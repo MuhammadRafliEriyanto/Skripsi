@@ -62,7 +62,7 @@ async function getStudentMembershipAccess(token: string): Promise<MembershipProx
     if (response.status === 401) {
       return {
         accessStatus: null,
-        shouldClearSession: true,
+        shouldClearSession: false,
       };
     }
 
@@ -135,10 +135,6 @@ export async function proxy(request: NextRequest) {
 
   if (roleValue === "siswa" && pathname.startsWith("/dashboard-siswa") && token) {
     const membership = await getStudentMembershipAccess(token);
-
-    if (membership.shouldClearSession) {
-      return redirectToLogin(request, true);
-    }
 
     if (membership.accessStatus && membership.accessStatus !== "active") {
       const membershipUrl = new URL("/register-online/status", request.url);

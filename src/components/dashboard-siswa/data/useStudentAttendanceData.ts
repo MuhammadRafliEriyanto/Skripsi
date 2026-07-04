@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { clearAuthClientState } from "@/lib/auth";
-
+import { withStoredAuthHeader } from "@/lib/auth";
 import { subscribeStudentDashboardRefresh } from "../student-dashboard-refresh-events";
 import type { StudentAcademicAccess } from "./studentAcademicAccess";
 
@@ -51,6 +50,7 @@ export function useStudentAttendanceData() {
       try {
         const response = await fetch("/api/student/me/attendance", {
           method: "GET",
+          ...withStoredAuthHeader(),
           credentials: "include",
           cache: "no-store",
         });
@@ -63,7 +63,6 @@ export function useStudentAttendanceData() {
         }
 
         if (response.status === 401) {
-          clearAuthClientState();
           setHistory([]);
           setAcademicAccess(null);
           setLoadError("Sesi login berakhir. Silakan login ulang.");
