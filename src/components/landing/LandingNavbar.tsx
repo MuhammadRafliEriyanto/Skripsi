@@ -95,6 +95,7 @@ export default function LandingNavbar() {
             alt="Logo Bina Cendekia"
             width={40}
             height={40}
+            style={{ width: "auto" }}
             className="h-10 w-auto shrink-0 transition duration-200 group-hover:scale-[1.03]"
           />
 
@@ -163,6 +164,7 @@ export default function LandingNavbar() {
                         alt="Logo Bina Cendekia"
                         width={40}
                         height={40}
+                        style={{ width: "auto" }}
                         className="h-10 w-auto shrink-0 transition duration-200 group-hover:scale-[1.03]"
                       />
 

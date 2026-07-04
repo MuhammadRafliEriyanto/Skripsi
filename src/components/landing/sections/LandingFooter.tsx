@@ -175,6 +175,7 @@ export default function LandingFooter() {
                 alt="Logo Bina Cendekia"
                 width={44}
                 height={44}
+                style={{ width: "auto" }}
                 className="h-11 w-auto shrink-0 transition duration-200 group-hover:scale-[1.03]"
               />
 

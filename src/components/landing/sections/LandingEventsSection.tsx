@@ -280,7 +280,7 @@ export default function LandingEventsSection() {
                   alt={activeProgram.imageAlt}
                   fill
                   sizes="(max-width: 1024px) 100vw, 40vw"
-                  quality={85}
+                  quality={75}
                   className={`scale-[1.03] object-cover ${activeProgram.imagePosition} brightness-[0.98] saturate-[0.92] transition-all duration-700 ease-out group-hover/program:scale-[1.07] group-hover/program:saturate-100`}
                 />
                 <div
