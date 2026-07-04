@@ -21,7 +21,6 @@ import {
   MembershipRequestError,
   formatRupiah,
   membershipService,
-  getPriceByClass,
   type PaymentStatusResponse,
 } from "@/lib/subscription";
 import { cn } from "@/lib/utils";
@@ -309,8 +308,12 @@ export default function RegisterOnlinePaymentView({
                 <div className="space-y-2 rounded-2xl bg-slate-50/50 p-5 border border-slate-100/80">
                   <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Paket Membership</p>
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-2">
-                    <h3 className="text-xl font-black text-slate-900 bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600">{paymentData ? "Paket 1 Tahun (2 Semester)" : ""}</h3>
-                    <span className="text-3xl font-black text-orange-600 tracking-tight">{paymentData ? formatRupiah(getPriceByClass(paymentData.student.className)) : "-"}</span>
+                    <h3 className="text-xl font-black text-slate-900 bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600">
+                      {paymentData?.subscription.packageName ?? paymentData?.payment.packageName ?? ""}
+                    </h3>
+                    <span className="text-3xl font-black text-orange-600 tracking-tight">
+                      {paymentData ? formatRupiah(paymentData.payment.amount) : "-"}
+                    </span>
                   </div>
                 </div>
                 

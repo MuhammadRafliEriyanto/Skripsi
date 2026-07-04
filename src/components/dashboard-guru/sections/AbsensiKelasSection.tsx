@@ -20,7 +20,7 @@ import {
 
 import { clearAuthClientState } from "@/lib/auth";
 import { buildGuruApiUrl, buildGuruUrl, getSelectedAcademicPeriod } from "@/lib/guru-helpers";
-import { DEFAULT_SEMESTER_MEETING_TARGET } from "@/components/dashboard-guru/data/guruClassData";
+import { DEFAULT_SEMESTER_MEETING_TARGET } from "@/components/dashboard-guru/data/guruClassTypes";
 import {
   Dialog,
   DialogClose,

@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { AppLogo } from "@/components/shared/app-logo";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { dashboardConfigs, type DashboardRole } from "@/lib/dashboard-data";
+import { dashboardConfigs, type DashboardRole } from "@/lib/dashboard-navigation";
 
 type SidebarProps = {
   role: DashboardRole;

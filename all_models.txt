@@ -1,0 +1,2935 @@
+﻿import { HydratedDocument, Model, Schema, model, models, type Types } from "mongoose";
+
+export const ACADEMIC_GRADE_SCHEMES = ["semester", "tryout"] as const;
+export const ACADEMIC_GRADE_SEMESTERS = ["Ganjil", "Genap"] as const;
+
+export type AcademicGradeScheme = (typeof ACADEMIC_GRADE_SCHEMES)[number];
+export type AcademicGradeSemester = (typeof ACADEMIC_GRADE_SEMESTERS)[number];
+
+export interface IAcademicGrade {
+  academicGradeId: string;
+  teacherId: Types.ObjectId;
+  classId: string;
+  studentId: string;
+  academicYear: string;
+  semester: AcademicGradeSemester;
+  scheme: AcademicGradeScheme;
+  uts: number | null;
+  uas: number | null;
+  uts1: number | null;
+  uts2: number | null;
+  uts3: number | null;
+  tryout1: number | null;
+  tryout2: number | null;
+  tryout3: number | null;
+  note: string;
+  evaluatedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type AcademicGradeDocument = HydratedDocument<IAcademicGrade>;
+
+const nullableScore = {
+  type: Number,
+  default: null,
+  min: 0,
+  max: 100,
+};
+
+const academicGradeSchema = new Schema<IAcademicGrade>(
+  {
+    academicGradeId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+    teacherId: {
+      type: Schema.Types.ObjectId,
+      ref: "Teacher",
+      required: true,
+      index: true,
+    },
+    classId: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true,
+    },
+    studentId: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true,
+    },
+    academicYear: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true,
+    },
+    semester: {
+      type: String,
+      enum: ACADEMIC_GRADE_SEMESTERS,
+      required: true,
+      index: true,
+    },
+    scheme: {
+      type: String,
+      enum: ACADEMIC_GRADE_SCHEMES,
+      required: true,
+    },
+    uts: nullableScore,
+    uas: nullableScore,
+    uts1: nullableScore,
+    uts2: nullableScore,
+    uts3: nullableScore,
+    tryout1: nullableScore,
+    tryout2: nullableScore,
+    tryout3: nullableScore,
+    note: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    evaluatedAt: {
+      type: Date,
+      default: null,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+academicGradeSchema.index(
+  {
+    teacherId: 1,
+    classId: 1,
+    studentId: 1,
+    academicYear: 1,
+    semester: 1,
+  },
+  {
+    unique: true,
+  },
+);
+
+export const AcademicGrade: Model<IAcademicGrade> =
+  (models.AcademicGrade as Model<IAcademicGrade> | undefined) ??
+  model<IAcademicGrade>("AcademicGrade", academicGradeSchema);
+import { HydratedDocument, Model, Schema, model, models } from "mongoose";
+
+export const ASSESSMENT_TYPES = ["UTS", "UAS", "Tryout"] as const;
+export const ASSESSMENT_REVIEW_STATUSES = [
+  "Perlu Review Guru",
+  "Disetujui",
+  "Revisi",
+] as const;
+export const ASSESSMENT_DIFFICULTIES = ["Mudah", "Sedang", "Sulit"] as const;
+export const ASSESSMENT_CORRECT_ANSWERS = ["A", "B", "C", "D"] as const;
+
+export type AssessmentType = (typeof ASSESSMENT_TYPES)[number];
+export type AssessmentReviewStatus =
+  (typeof ASSESSMENT_REVIEW_STATUSES)[number];
+export type AssessmentDifficulty = (typeof ASSESSMENT_DIFFICULTIES)[number];
+export type AssessmentCorrectAnswer = (typeof ASSESSMENT_CORRECT_ANSWERS)[number];
+
+export interface IAssessmentQuestionOption {
+  A: string;
+  B: string;
+  C: string;
+  D: string;
+}
+
+export interface IAssessmentQuestionItem {
+  questionId: string;
+  number: number;
+  competency: string;
+  topic: string;
+  indicator: string;
+  cognitiveLevel: string;
+  difficulty: AssessmentDifficulty;
+  question: string;
+  options: IAssessmentQuestionOption;
+  correctAnswer: AssessmentCorrectAnswer;
+  explanation: string;
+  reviewStatus: AssessmentReviewStatus;
+  reviewerNotes: string;
+}
+
+export interface IAssessmentQuestionSet {
+  schemaVersion: string;
+  questionSetId: string;
+  assessmentType: AssessmentType;
+  stage: number | null;
+  className: string;
+  canonicalClassName: string;
+  grade: number;
+  phase: string;
+  subject: string;
+  questionCount: number;
+  suggestedDurationMinutes: number;
+  reviewStatus: AssessmentReviewStatus;
+  curriculumNote: string;
+  questions: IAssessmentQuestionItem[];
+  importedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type AssessmentQuestionSetDocument =
+  HydratedDocument<IAssessmentQuestionSet>;
+
+const assessmentQuestionOptionSchema =
+  new Schema<IAssessmentQuestionOption>(
+    {
+      A: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+      B: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+      C: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+      D: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+    },
+    {
+      _id: false,
+    },
+  );
+
+const assessmentQuestionItemSchema = new Schema<IAssessmentQuestionItem>(
+  {
+    questionId: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    number: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+    competency: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    topic: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    indicator: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    cognitiveLevel: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    difficulty: {
+      type: String,
+      enum: ASSESSMENT_DIFFICULTIES,
+      required: true,
+    },
+    question: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    options: {
+      type: assessmentQuestionOptionSchema,
+      required: true,
+    },
+    correctAnswer: {
+      type: String,
+      enum: ASSESSMENT_CORRECT_ANSWERS,
+      required: true,
+    },
+    explanation: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    reviewStatus: {
+      type: String,
+      enum: ASSESSMENT_REVIEW_STATUSES,
+      default: "Perlu Review Guru",
+    },
+    reviewerNotes: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+  },
+  {
+    _id: false,
+  },
+);
+
+const assessmentQuestionSetSchema = new Schema<IAssessmentQuestionSet>(
+  {
+    schemaVersion: {
+      type: String,
+      default: "1.0.0",
+      trim: true,
+    },
+    questionSetId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      index: true,
+    },
+    assessmentType: {
+      type: String,
+      enum: ASSESSMENT_TYPES,
+      required: true,
+      index: true,
+    },
+    stage: {
+      type: Number,
+      default: null,
+      min: 1,
+      max: 3,
+      index: true,
+    },
+    className: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    canonicalClassName: {
+      type: String,
+      default: "",
+      trim: true,
+      index: true,
+    },
+    grade: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+    phase: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    subject: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true,
+    },
+    questionCount: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    suggestedDurationMinutes: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+    reviewStatus: {
+      type: String,
+      enum: ASSESSMENT_REVIEW_STATUSES,
+      default: "Perlu Review Guru",
+      index: true,
+    },
+    curriculumNote: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    questions: {
+      type: [assessmentQuestionItemSchema],
+      default: [],
+    },
+    importedAt: {
+      type: Date,
+      default: () => new Date(),
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+assessmentQuestionSetSchema.index({
+  assessmentType: 1,
+  canonicalClassName: 1,
+  subject: 1,
+  stage: 1,
+});
+
+export const AssessmentQuestionSet: Model<IAssessmentQuestionSet> =
+  (models.AssessmentQuestionSet as
+    | Model<IAssessmentQuestionSet>
+    | undefined) ??
+  model<IAssessmentQuestionSet>(
+    "AssessmentQuestionSet",
+    assessmentQuestionSetSchema,
+  );
+import { HydratedDocument, Model, Schema, model, models, type Types } from "mongoose";
+
+export const ATTENDANCE_RECORD_STATUSES = [
+  "Belum Absen",
+  "Hadir",
+  "Sakit",
+  "Izin",
+  "Alpa",
+] as const;
+export const ATTENDANCE_RECORD_MARKED_BY = [
+  "teacher",
+  "manual",
+  "qr",
+] as const;
+
+export type AttendanceRecordStatus =
+  (typeof ATTENDANCE_RECORD_STATUSES)[number];
+export type AttendanceRecordMarkedBy =
+  (typeof ATTENDANCE_RECORD_MARKED_BY)[number];
+
+export interface IAttendanceRecord {
+  recordId: string;
+  sessionId: string;
+  studentId: string;
+  studentObjectId: Types.ObjectId | null;
+  name: string;
+  status: AttendanceRecordStatus;
+  note: string;
+  markedBy: AttendanceRecordMarkedBy;
+  markedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type AttendanceRecordDocument = HydratedDocument<IAttendanceRecord>;
+
+const attendanceRecordSchema = new Schema<IAttendanceRecord>(
+  {
+    recordId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+    sessionId: {
+      type: String,
+      required: [true, "Session ID absensi wajib diisi."],
+      ref: "AttendanceSession",
+      trim: true,
+      index: true,
+    },
+    studentId: {
+      type: String,
+      required: [true, "Student ID wajib diisi."],
+      trim: true,
+      index: true,
+    },
+    studentObjectId: {
+      type: Schema.Types.ObjectId,
+      ref: "Student",
+      default: null,
+      index: true,
+    },
+    name: {
+      type: String,
+      required: [true, "Nama siswa wajib diisi."],
+      trim: true,
+    },
+    status: {
+      type: String,
+      enum: ATTENDANCE_RECORD_STATUSES,
+      default: "Belum Absen",
+      index: true,
+    },
+    note: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    markedBy: {
+      type: String,
+      enum: ATTENDANCE_RECORD_MARKED_BY,
+      default: "teacher",
+      trim: true,
+    },
+    markedAt: {
+      type: Date,
+      default: null,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+attendanceRecordSchema.index(
+  {
+    sessionId: 1,
+    studentId: 1,
+  },
+  {
+    unique: true,
+  },
+);
+
+attendanceRecordSchema.index({ sessionId: 1, name: 1 });
+
+export const AttendanceRecord: Model<IAttendanceRecord> =
+  (models.AttendanceRecord as Model<IAttendanceRecord> | undefined) ??
+  model<IAttendanceRecord>("AttendanceRecord", attendanceRecordSchema);
+import { HydratedDocument, Model, Schema, model, models, type Types } from "mongoose";
+
+export const ATTENDANCE_SESSION_STATUSES = ["open", "closed"] as const;
+
+export type AttendanceSessionStatus =
+  (typeof ATTENDANCE_SESSION_STATUSES)[number];
+
+export interface IAttendanceSession {
+  sessionId: string;
+  classId: string;
+  teacherId: Types.ObjectId;
+  scheduleId: string | null;
+  className: string;
+  subject: string;
+  branch: string;
+  room: string;
+  date: string;
+  startTime: string;
+  status: AttendanceSessionStatus;
+  qrToken: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type AttendanceSessionDocument = HydratedDocument<IAttendanceSession>;
+
+const attendanceSessionSchema = new Schema<IAttendanceSession>(
+  {
+    sessionId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+    classId: {
+      type: String,
+      required: [true, "Class ID wajib diisi."],
+      trim: true,
+      index: true,
+    },
+    teacherId: {
+      type: Schema.Types.ObjectId,
+      ref: "Teacher",
+      required: [true, "Guru wajib diisi."],
+      index: true,
+    },
+    scheduleId: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    className: {
+      type: String,
+      required: [true, "Nama kelas wajib diisi."],
+      trim: true,
+    },
+    subject: {
+      type: String,
+      required: [true, "Mata pelajaran wajib diisi."],
+      trim: true,
+    },
+    branch: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    room: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    date: {
+      type: String,
+      required: [true, "Tanggal absensi wajib diisi."],
+      trim: true,
+    },
+    startTime: {
+      type: String,
+      required: [true, "Jam mulai absensi wajib diisi."],
+      trim: true,
+    },
+    status: {
+      type: String,
+      enum: ATTENDANCE_SESSION_STATUSES,
+      default: "open",
+      index: true,
+    },
+    qrToken: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+attendanceSessionSchema.index(
+  {
+    teacherId: 1,
+    classId: 1,
+    date: 1,
+  },
+  {
+    unique: true,
+  },
+);
+
+export const AttendanceSession: Model<IAttendanceSession> =
+  (models.AttendanceSession as Model<IAttendanceSession> | undefined) ??
+  model<IAttendanceSession>("AttendanceSession", attendanceSessionSchema);
+import { HydratedDocument, Model, Schema, model, models, type Types } from "mongoose";
+
+export const BRANCH_STATUSES = ["Aktif", "Persiapan", "Nonaktif"] as const;
+
+export type BranchStatus = (typeof BRANCH_STATUSES)[number];
+
+export interface IBranch {
+  branchId: string;
+  name: string;
+  shortAddress: string;
+  fullAddress: string;
+  phone: string;
+  email: string;
+  status: BranchStatus;
+  adminName: string;
+  adminUserId: Types.ObjectId | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type BranchDocument = HydratedDocument<IBranch>;
+
+const branchSchema = new Schema<IBranch>(
+  {
+    branchId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+    name: {
+      type: String,
+      required: [true, "Nama cabang wajib diisi."],
+      trim: true,
+    },
+    shortAddress: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    fullAddress: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    phone: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    email: {
+      type: String,
+      default: "",
+      lowercase: true,
+      trim: true,
+    },
+    status: {
+      type: String,
+      enum: BRANCH_STATUSES,
+      default: "Aktif",
+    },
+    adminName: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    adminUserId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+branchSchema.index({ name: 1 });
+branchSchema.index({ adminUserId: 1, status: 1 });
+
+export const Branch: Model<IBranch> =
+  (models.Branch as Model<IBranch> | undefined) ?? model<IBranch>("Branch", branchSchema);
+import { HydratedDocument, Model, Schema, model, models, type Types } from "mongoose";
+
+export const BRANCH_INCOME_STATUSES = [
+  "Menunggu",
+  "Diterima",
+  "Dibatalkan",
+] as const;
+
+export type BranchIncomeStatus = (typeof BRANCH_INCOME_STATUSES)[number];
+
+export interface IBranchIncome {
+  incomeId: string;
+  title: string;
+  branch: string;
+  category: string;
+  payerOrSource: string;
+  amount: number;
+  paymentMethod: string;
+  status: BranchIncomeStatus;
+  receivedAt: Date | null;
+  note: string;
+  createdBy: Types.ObjectId | null;
+  updatedBy: Types.ObjectId | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type BranchIncomeDocument = HydratedDocument<IBranchIncome>;
+
+const branchIncomeSchema = new Schema<IBranchIncome>(
+  {
+    incomeId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+    title: {
+      type: String,
+      required: [true, "Judul pemasukan wajib diisi."],
+      trim: true,
+    },
+    branch: {
+      type: String,
+      default: "Pusat",
+      trim: true,
+    },
+    category: {
+      type: String,
+      required: [true, "Kategori pemasukan wajib diisi."],
+      trim: true,
+    },
+    payerOrSource: {
+      type: String,
+      required: [true, "Sumber pemasukan wajib diisi."],
+      trim: true,
+    },
+    amount: {
+      type: Number,
+      required: [true, "Nominal pemasukan wajib diisi."],
+      min: 0,
+    },
+    paymentMethod: {
+      type: String,
+      required: [true, "Metode pembayaran wajib diisi."],
+      trim: true,
+    },
+    status: {
+      type: String,
+      enum: BRANCH_INCOME_STATUSES,
+      required: [true, "Status pemasukan wajib diisi."],
+      default: "Menunggu",
+    },
+    receivedAt: {
+      type: Date,
+      default: null,
+    },
+    note: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
+    },
+    updatedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+
+branchIncomeSchema.index({ branch: 1, status: 1, createdAt: -1 });
+branchIncomeSchema.index({ category: 1, createdAt: -1 });
+
+export const BranchIncome: Model<IBranchIncome> =
+  (models.BranchIncome as Model<IBranchIncome> | undefined) ??
+  model<IBranchIncome>("BranchIncome", branchIncomeSchema);
+import { HydratedDocument, Model, Schema, model, models, type Types } from "mongoose";
+
+export const CLASS_MATERIAL_STATUSES = [
+  "Draft",
+  "Dipublikasikan",
+] as const;
+
+export type ClassMaterialStatus = (typeof CLASS_MATERIAL_STATUSES)[number];
+
+export interface IClassMaterialAttachment {
+  fileName: string;
+  mimeType: string;
+  size: number;
+  storagePath: string;
+}
+
+export interface IClassMaterial {
+  materialId: string;
+  classId: string;
+  teacherId: Types.ObjectId;
+  className: string;
+  canonicalClassName: string;
+  subject: string;
+  branch: string;
+  room: string;
+  meetingNumber: number;
+  date: string;
+  title: string;
+  description: string;
+  linkUrl: string;
+  attachment: IClassMaterialAttachment | null;
+  status: ClassMaterialStatus;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type ClassMaterialDocument = HydratedDocument<IClassMaterial>;
+
+const classMaterialSchema = new Schema<IClassMaterial>(
+  {
+    materialId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+    classId: {
+      type: String,
+      required: [true, "Class ID wajib diisi."],
+      trim: true,
+      index: true,
+    },
+    teacherId: {
+      type: Schema.Types.ObjectId,
+      ref: "Teacher",
+      required: [true, "Guru wajib diisi."],
+      index: true,
+    },
+    className: {
+      type: String,
+      required: [true, "Nama kelas wajib diisi."],
+      trim: true,
+    },
+    canonicalClassName: {
+      type: String,
+      default: "",
+      trim: true,
+      index: true,
+    },
+    subject: {
+      type: String,
+      required: [true, "Mata pelajaran wajib diisi."],
+      trim: true,
+    },
+    branch: {
+      type: String,
+      default: "",
+      trim: true,
+      index: true,
+    },
+    room: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    meetingNumber: {
+      type: Number,
+      required: [true, "Pertemuan wajib diisi."],
+      min: 1,
+      index: true,
+    },
+    date: {
+      type: String,
+      required: [true, "Tanggal materi wajib diisi."],
+      trim: true,
+    },
+    title: {
+      type: String,
+      required: [true, "Judul materi wajib diisi."],
+      trim: true,
+    },
+    description: {
+      type: String,
+      required: [true, "Deskripsi materi wajib diisi."],
+      trim: true,
+    },
+    linkUrl: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    attachment: {
+      type: {
+        fileName: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        mimeType: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        size: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+        storagePath: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+      },
+      default: null,
+    },
+    status: {
+      type: String,
+      enum: CLASS_MATERIAL_STATUSES,
+      default: "Draft",
+      index: true,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+classMaterialSchema.index({
+  teacherId: 1,
+  classId: 1,
+  meetingNumber: 1,
+  date: 1,
+});
+
+export const ClassMaterial: Model<IClassMaterial> =
+  (models.ClassMaterial as Model<IClassMaterial> | undefined) ??
+  model<IClassMaterial>("ClassMaterial", classMaterialSchema);
+import { HydratedDocument, Model, Schema, model, models, type Types } from "mongoose";
+
+export const CLASS_TASK_REVIEW_STATUSES = [
+  "Belum Ada Pengumpulan",
+  "Sudah Dinilai",
+  "Belum Dinilai",
+] as const;
+
+export type ClassTaskReviewStatus =
+  (typeof CLASS_TASK_REVIEW_STATUSES)[number];
+
+export interface IClassTaskAttachment {
+  fileName: string;
+  mimeType: string;
+  size: number;
+  storagePath: string;
+}
+
+export interface IClassTask {
+  taskId: string;
+  classId: string;
+  teacherId: Types.ObjectId;
+  className: string;
+  canonicalClassName: string;
+  subject: string;
+  branch: string;
+  room: string;
+  meetingNumber: number;
+  title: string;
+  description: string;
+  deadline: string;
+  attachment: IClassTaskAttachment | null;
+  submittedCount: number;
+  reviewStatus: ClassTaskReviewStatus;
+  academicYear?: string | null;
+  semester?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type ClassTaskDocument = HydratedDocument<IClassTask>;
+
+const classTaskSchema = new Schema<IClassTask>(
+  {
+    taskId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+    classId: {
+      type: String,
+      required: [true, "Class ID wajib diisi."],
+      trim: true,
+      index: true,
+    },
+    teacherId: {
+      type: Schema.Types.ObjectId,
+      ref: "Teacher",
+      required: [true, "Guru wajib diisi."],
+      index: true,
+    },
+    className: {
+      type: String,
+      required: [true, "Nama kelas wajib diisi."],
+      trim: true,
+    },
+    canonicalClassName: {
+      type: String,
+      default: "",
+      trim: true,
+      index: true,
+    },
+    subject: {
+      type: String,
+      required: [true, "Mata pelajaran wajib diisi."],
+      trim: true,
+    },
+    branch: {
+      type: String,
+      default: "",
+      trim: true,
+      index: true,
+    },
+    room: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    meetingNumber: {
+      type: Number,
+      required: [true, "Pertemuan wajib diisi."],
+      min: 1,
+      index: true,
+    },
+    title: {
+      type: String,
+      required: [true, "Judul tugas wajib diisi."],
+      trim: true,
+    },
+    description: {
+      type: String,
+      required: [true, "Deskripsi tugas wajib diisi."],
+      trim: true,
+    },
+    attachment: {
+      type: {
+        fileName: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        mimeType: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        size: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+        storagePath: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+      },
+      default: null,
+    },
+    deadline: {
+      type: String,
+      required: [true, "Deadline tugas wajib diisi."],
+      trim: true,
+    },
+    submittedCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    reviewStatus: {
+      type: String,
+      enum: CLASS_TASK_REVIEW_STATUSES,
+      default: "Belum Ada Pengumpulan",
+      index: true,
+    },
+    academicYear: {
+      type: String,
+      default: null,
+      trim: true,
+      index: true,
+    },
+    semester: {
+      type: String,
+      default: null,
+      trim: true,
+      index: true,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+classTaskSchema.index({
+  teacherId: 1,
+  classId: 1,
+  meetingNumber: 1,
+  deadline: 1,
+});
+
+export const ClassTask: Model<IClassTask> =
+  (models.ClassTask as Model<IClassTask> | undefined) ??
+  model<IClassTask>("ClassTask", classTaskSchema);
+import { HydratedDocument, Model, Schema, model, models, type Types } from "mongoose";
+
+export const LEGACY_EXPENSE_CATEGORIES = [
+  "Gaji Guru",
+  "Gaji Admin",
+  "Operasional Cabang",
+] as const;
+
+export const OPERATIONAL_EXPENSE_CATEGORIES = [
+  "Listrik",
+  "Internet",
+  "Sewa Gedung",
+  "Perawatan Fasilitas",
+  "Perlengkapan Kelas",
+  "Kebersihan",
+  "Keamanan",
+  "Teknologi",
+  "Transportasi Operasional",
+  "Lainnya",
+] as const;
+
+export const EXPENSE_CATEGORIES = [
+  ...LEGACY_EXPENSE_CATEGORIES,
+  ...OPERATIONAL_EXPENSE_CATEGORIES,
+] as const;
+
+export const EXPENSE_STATUSES = [
+  "Menunggu",
+  "Dijadwalkan",
+  "Selesai",
+  "Dibatalkan",
+] as const;
+
+export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
+export type ExpenseStatus = (typeof EXPENSE_STATUSES)[number];
+
+export interface IExpense {
+  expenseId: string;
+  title: string;
+  branch: string;
+  category: ExpenseCategory;
+  vendorOrRecipient: string;
+  amount: number;
+  paymentMethod: string;
+  status: ExpenseStatus;
+  paidAt: Date | null;
+  dueDate: Date | null;
+  note: string;
+  createdBy: Types.ObjectId | null;
+  updatedBy: Types.ObjectId | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type ExpenseDocument = HydratedDocument<IExpense>;
+
+const expenseSchema = new Schema<IExpense>(
+  {
+    expenseId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+    title: {
+      type: String,
+      required: [true, "Judul pengeluaran wajib diisi."],
+      trim: true,
+    },
+    branch: {
+      type: String,
+      default: "Pusat",
+      trim: true,
+    },
+    category: {
+      type: String,
+      enum: EXPENSE_CATEGORIES,
+      required: [true, "Kategori pengeluaran wajib diisi."],
+    },
+    vendorOrRecipient: {
+      type: String,
+      required: [true, "Vendor atau penerima wajib diisi."],
+      trim: true,
+    },
+    amount: {
+      type: Number,
+      required: [true, "Nominal pengeluaran wajib diisi."],
+      min: 0,
+    },
+    paymentMethod: {
+      type: String,
+      required: [true, "Metode pembayaran wajib diisi."],
+      trim: true,
+    },
+    status: {
+      type: String,
+      enum: EXPENSE_STATUSES,
+      required: [true, "Status pengeluaran wajib diisi."],
+      default: "Menunggu",
+    },
+    paidAt: {
+      type: Date,
+      default: null,
+    },
+    dueDate: {
+      type: Date,
+      default: null,
+    },
+    note: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
+    },
+    updatedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+
+expenseSchema.index({ status: 1, createdAt: -1 });
+expenseSchema.index({ branch: 1, status: 1, createdAt: -1 });
+
+export const Expense: Model<IExpense> =
+  (models.Expense as Model<IExpense> | undefined) ?? model<IExpense>("Expense", expenseSchema);
+import { HydratedDocument, Model, Schema, model, models, type Types } from "mongoose";
+
+export const PAYMENT_STATUSES = ["pending", "paid", "failed", "expired"] as const;
+export const PAYMENT_SOURCES = ["register_online", "admin"] as const;
+export const PAYMENT_CANCEL_REASONS = [
+  "admin_cancelled",
+  "replaced_by_new_session",
+  "provider_canceled",
+] as const;
+
+export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
+export type PaymentSource = (typeof PAYMENT_SOURCES)[number];
+export type PaymentCancelReason = (typeof PAYMENT_CANCEL_REASONS)[number];
+
+export interface IPayment {
+  paymentId: string;
+  userId: Types.ObjectId;
+  studentId: Types.ObjectId;
+  subscriptionId: Types.ObjectId;
+  packageKey: string | null;
+  packageName: string;
+  durationMonth: number | null;
+  amount: number;
+  provider: string;
+  method: string;
+  status: PaymentStatus;
+  source: PaymentSource;
+  createdByAdminId: Types.ObjectId | null;
+  paidAt: Date | null;
+  checkoutUrl: string | null;
+  expiresAt: Date | null;
+  checkoutLastSentAt: Date | null;
+  checkoutSendCount: number;
+  cancelReason: PaymentCancelReason | null;
+  canceledAt: Date | null;
+  archivedAt: Date | null;
+  archivedByAdminId: Types.ObjectId | null;
+  archiveReason: string | null;
+  xenditReferenceId: string | null;
+  xenditPaymentSessionId: string | null;
+  xenditPaymentRequestId: string | null;
+  xenditPaymentId: string | null;
+  xenditCustomerId: string | null;
+  xenditSessionStatus: string | null;
+  xenditWebhookReceivedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type PaymentDocument = HydratedDocument<IPayment>;
+
+const paymentSchema = new Schema<IPayment>(
+  {
+    paymentId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    studentId: {
+      type: Schema.Types.ObjectId,
+      ref: "Student",
+      required: true,
+      index: true,
+    },
+    subscriptionId: {
+      type: Schema.Types.ObjectId,
+      ref: "Subscription",
+      required: true,
+      index: true,
+    },
+    packageKey: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    packageName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    durationMonth: {
+      type: Number,
+      default: null,
+      min: 1,
+    },
+    amount: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    provider: {
+      type: String,
+      required: true,
+      default: "manual",
+      trim: true,
+    },
+    method: {
+      type: String,
+      required: true,
+      default: "manual_transfer",
+      trim: true,
+    },
+    status: {
+      type: String,
+      enum: PAYMENT_STATUSES,
+      default: "pending",
+    },
+    source: {
+      type: String,
+      enum: PAYMENT_SOURCES,
+      default: "register_online",
+      index: true,
+    },
+    createdByAdminId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
+    },
+    paidAt: {
+      type: Date,
+      default: null,
+    },
+    checkoutUrl: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    expiresAt: {
+      type: Date,
+      default: null,
+    },
+    checkoutLastSentAt: {
+      type: Date,
+      default: null,
+    },
+    checkoutSendCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    cancelReason: {
+      type: String,
+      enum: PAYMENT_CANCEL_REASONS,
+      default: null,
+      trim: true,
+    },
+    canceledAt: {
+      type: Date,
+      default: null,
+    },
+    archivedAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+    archivedByAdminId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
+    },
+    archiveReason: {
+      type: String,
+      default: null,
+      trim: true,
+      maxlength: 300,
+    },
+    xenditReferenceId: {
+      type: String,
+      default: null,
+      trim: true,
+      index: true,
+    },
+    xenditPaymentSessionId: {
+      type: String,
+      default: null,
+      trim: true,
+      index: true,
+    },
+    xenditPaymentRequestId: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    xenditPaymentId: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    xenditCustomerId: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    xenditSessionStatus: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    xenditWebhookReceivedAt: {
+      type: Date,
+      default: null,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+paymentSchema.index({ subscriptionId: 1, createdAt: -1 });
+paymentSchema.index({ studentId: 1, status: 1, createdAt: -1 });
+paymentSchema.index({ source: 1, status: 1, createdAt: -1 });
+paymentSchema.index({ archivedAt: 1, source: 1, status: 1, createdAt: -1 });
+
+export const Payment: Model<IPayment> =
+  (models.Payment as Model<IPayment> | undefined) ?? model<IPayment>("Payment", paymentSchema);
+import { HydratedDocument, Model, Schema, model, models } from "mongoose";
+
+export const ROOM_STATUSES = ["Dipakai", "Kosong", "Persiapan"] as const;
+
+export type RoomStatus = (typeof ROOM_STATUSES)[number];
+
+export interface IRoom {
+  roomId: string;
+  name: string;
+  floor: string;
+  status: RoomStatus;
+  activeClass: string;
+  teacher: string;
+  time: string;
+  occupancy: number;
+  capacityLabel: string;
+  nextSession: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type RoomDocument = HydratedDocument<IRoom>;
+
+const roomSchema = new Schema<IRoom>(
+  {
+    roomId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+    name: {
+      type: String,
+      required: [true, "Nama ruangan wajib diisi."],
+      trim: true,
+    },
+    floor: {
+      type: String,
+      required: [true, "Lantai wajib diisi."],
+      trim: true,
+    },
+    status: {
+      type: String,
+      enum: ROOM_STATUSES,
+      default: "Kosong",
+    },
+    activeClass: {
+      type: String,
+      required: [true, "Kelas aktif wajib diisi."],
+      trim: true,
+    },
+    teacher: {
+      type: String,
+      required: [true, "Guru wajib diisi."],
+      trim: true,
+    },
+    time: {
+      type: String,
+      required: [true, "Waktu wajib diisi."],
+      trim: true,
+    },
+    occupancy: {
+      type: Number,
+      required: [true, "Utilisasi wajib diisi."],
+      min: 0,
+      max: 100,
+    },
+    capacityLabel: {
+      type: String,
+      required: [true, "Kapasitas wajib diisi."],
+      trim: true,
+    },
+    nextSession: {
+      type: String,
+      required: [true, "Sesi berikutnya wajib diisi."],
+      trim: true,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+export const Room: Model<IRoom> =
+  (models.Room as Model<IRoom> | undefined) ?? model<IRoom>("Room", roomSchema);
+import { HydratedDocument, Model, Schema, model, models, type Types } from "mongoose";
+
+export const SCHEDULE_STATUSES = ["Berjalan", "Siap", "Review", "Bentrok"] as const;
+export const SCHEDULE_SUBJECTS = [
+  "Matematika",
+  "Bahasa Indonesia",
+  "Bahasa Inggris",
+  "IPA",
+  "IPS",
+  "Guru Kelas SD",
+] as const;
+
+export type ScheduleStatus = (typeof SCHEDULE_STATUSES)[number];
+export type ScheduleSubject = (typeof SCHEDULE_SUBJECTS)[number];
+
+export interface ISchedule {
+  scheduleId: string;
+  day: string;
+  time: string;
+  className: string;
+  branch: string;
+  subject: string;
+  teacherId: Types.ObjectId;
+  room: string;
+  status: ScheduleStatus;
+  academicYear?: string;
+  semester?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type ScheduleDocument = HydratedDocument<ISchedule>;
+
+const scheduleSchema = new Schema<ISchedule>(
+  {
+    scheduleId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+    day: {
+      type: String,
+      required: [true, "Hari wajib diisi."],
+      trim: true,
+    },
+    time: {
+      type: String,
+      required: [true, "Jam wajib diisi."],
+      trim: true,
+    },
+    className: {
+      type: String,
+      required: [true, "Nama kelas wajib diisi."],
+      trim: true,
+    },
+    branch: {
+      type: String,
+      required: [true, "Cabang jadwal wajib diisi."],
+      trim: true,
+      index: true,
+    },
+    subject: {
+      type: String,
+      required: [true, "Mata pelajaran wajib diisi."],
+      trim: true,
+      enum: SCHEDULE_SUBJECTS,
+    },
+    teacherId: {
+      type: Schema.Types.ObjectId,
+      ref: "Teacher",
+      required: [true, "Guru wajib dipilih."],
+    },
+    room: {
+      type: String,
+      required: [true, "Ruangan wajib diisi."],
+      trim: true,
+    },
+    status: {
+      type: String,
+      enum: SCHEDULE_STATUSES,
+      default: "Berjalan",
+    },
+    academicYear: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    semester: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+export const Schedule: Model<ISchedule> =
+  (models.Schedule as Model<ISchedule> | undefined) ?? model<ISchedule>("Schedule", scheduleSchema);
+import { HydratedDocument, Model, Schema, model, models, type Types } from "mongoose";
+
+export const STUDENT_STATUSES = ["Aktif", "Nonaktif"] as const;
+
+export type StudentStatus = (typeof STUDENT_STATUSES)[number];
+
+export interface IStudent {
+  studentId: string;
+  userId: Types.ObjectId;
+  phone: string;
+  branch: string;
+  program: string;
+  className: string;
+  academicYear: string;
+  birthDate: Date | null;
+  status: StudentStatus;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type StudentDocument = HydratedDocument<IStudent>;
+
+const studentSchema = new Schema<IStudent>(
+  {
+    studentId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      unique: true,
+    },
+    phone: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    branch: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    program: {
+      type: String,
+      required: [true, "Program wajib diisi."],
+      trim: true,
+    },
+    className: {
+      type: String,
+      required: [true, "Kelas wajib diisi."],
+      trim: true,
+    },
+    academicYear: {
+      type: String,
+      trim: true,
+    },
+    birthDate: {
+      type: Date,
+      default: null,
+    },
+    status: {
+      type: String,
+      enum: STUDENT_STATUSES,
+      default: "Aktif",
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+export const Student: Model<IStudent> =
+  (models.Student as Model<IStudent> | undefined) ?? model<IStudent>("Student", studentSchema);
+import { HydratedDocument, Model, Schema, model, models, type Types } from "mongoose";
+
+export const STUDENT_TRYOUT_ATTEMPT_STATUSES = [
+  "in_progress",
+  "submitted",
+] as const;
+export const STUDENT_TRYOUT_SELECTED_ANSWERS = ["A", "B", "C", "D", ""] as const;
+
+export type StudentTryoutAttemptStatus =
+  (typeof STUDENT_TRYOUT_ATTEMPT_STATUSES)[number];
+export type StudentTryoutSelectedAnswer =
+  (typeof STUDENT_TRYOUT_SELECTED_ANSWERS)[number];
+
+export interface IStudentTryoutAttemptAnswer {
+  questionId: string;
+  selectedAnswer: StudentTryoutSelectedAnswer;
+  isCorrect: boolean | null;
+}
+
+export interface IStudentTryoutAttempt {
+  attemptId: string;
+  tryoutId: string;
+  teacherId: Types.ObjectId;
+  classId: string;
+  branch: string;
+  studentId: string;
+  questionSetId: string;
+  packageId: string;
+  stage: number | null;
+  answers: IStudentTryoutAttemptAnswer[];
+  correctCount: number;
+  wrongCount: number;
+  unansweredCount: number;
+  score: number;
+  timeUsedSeconds: number;
+  startedAt: Date;
+  submittedAt: Date | null;
+  status: StudentTryoutAttemptStatus;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type StudentTryoutAttemptDocument =
+  HydratedDocument<IStudentTryoutAttempt>;
+
+const studentTryoutAttemptAnswerSchema =
+  new Schema<IStudentTryoutAttemptAnswer>(
+    {
+      questionId: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+      selectedAnswer: {
+        type: String,
+        enum: STUDENT_TRYOUT_SELECTED_ANSWERS,
+        default: "",
+      },
+      isCorrect: {
+        type: Boolean,
+        default: null,
+      },
+    },
+    {
+      _id: false,
+    },
+  );
+
+const studentTryoutAttemptSchema = new Schema<IStudentTryoutAttempt>(
+  {
+    attemptId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+    tryoutId: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true,
+    },
+    teacherId: {
+      type: Schema.Types.ObjectId,
+      ref: "Teacher",
+      required: true,
+      index: true,
+    },
+    classId: {
+      type: String,
+      default: "",
+      trim: true,
+      index: true,
+    },
+    branch: {
+      type: String,
+      default: "",
+      trim: true,
+      index: true,
+    },
+    studentId: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true,
+    },
+    questionSetId: {
+      type: String,
+      default: "",
+      trim: true,
+      index: true,
+    },
+    packageId: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    stage: {
+      type: Number,
+      default: null,
+      min: 1,
+      max: 3,
+      index: true,
+    },
+    answers: {
+      type: [studentTryoutAttemptAnswerSchema],
+      default: [],
+    },
+    correctCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    wrongCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    unansweredCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    score: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
+    timeUsedSeconds: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    startedAt: {
+      type: Date,
+      default: () => new Date(),
+    },
+    submittedAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+    status: {
+      type: String,
+      enum: STUDENT_TRYOUT_ATTEMPT_STATUSES,
+      default: "in_progress",
+      index: true,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+studentTryoutAttemptSchema.index(
+  {
+    tryoutId: 1,
+    studentId: 1,
+  },
+  {
+    unique: true,
+  },
+);
+studentTryoutAttemptSchema.index({
+  teacherId: 1,
+  classId: 1,
+  branch: 1,
+  stage: 1,
+});
+
+export const StudentTryoutAttempt: Model<IStudentTryoutAttempt> =
+  (models.StudentTryoutAttempt as
+    | Model<IStudentTryoutAttempt>
+    | undefined) ??
+  model<IStudentTryoutAttempt>(
+    "StudentTryoutAttempt",
+    studentTryoutAttemptSchema,
+  );
+import { HydratedDocument, Model, Schema, model, models, type Types } from "mongoose";
+
+export const SUBSCRIPTION_STATUSES = ["pending", "active", "expired"] as const;
+export const SUBSCRIPTION_PAYMENT_STATUSES = ["pending", "paid", "failed", "expired"] as const;
+export const SUBSCRIPTION_SOURCES = ["register_online", "admin"] as const;
+
+export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
+export type SubscriptionPaymentStatus = (typeof SUBSCRIPTION_PAYMENT_STATUSES)[number];
+export type SubscriptionSource = (typeof SUBSCRIPTION_SOURCES)[number];
+
+export interface ISubscription {
+  subscriptionCode: string;
+  userId: Types.ObjectId;
+  studentId: Types.ObjectId;
+  packageKey: string;
+  packageName: string;
+  durationMonth: number;
+  startDate: Date | null;
+  endDate: Date | null;
+  status: SubscriptionStatus;
+  paymentStatus: SubscriptionPaymentStatus;
+  source: SubscriptionSource;
+  createdByAdminId: Types.ObjectId | null;
+  renewalOfSubscriptionId: Types.ObjectId | null;
+  targetProgram: string | null;
+  targetClassName: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type SubscriptionDocument = HydratedDocument<ISubscription>;
+
+const subscriptionSchema = new Schema<ISubscription>(
+  {
+    subscriptionCode: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    studentId: {
+      type: Schema.Types.ObjectId,
+      ref: "Student",
+      required: true,
+      index: true,
+    },
+    packageKey: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    packageName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    durationMonth: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+    startDate: {
+      type: Date,
+      default: null,
+    },
+    endDate: {
+      type: Date,
+      default: null,
+    },
+    status: {
+      type: String,
+      enum: SUBSCRIPTION_STATUSES,
+      default: "pending",
+    },
+    paymentStatus: {
+      type: String,
+      enum: SUBSCRIPTION_PAYMENT_STATUSES,
+      default: "pending",
+    },
+    source: {
+      type: String,
+      enum: SUBSCRIPTION_SOURCES,
+      default: "register_online",
+      index: true,
+    },
+    createdByAdminId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
+    },
+    renewalOfSubscriptionId: {
+      type: Schema.Types.ObjectId,
+      ref: "Subscription",
+      default: null,
+      index: true,
+    },
+    targetProgram: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    targetClassName: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+subscriptionSchema.index({ studentId: 1, createdAt: -1 });
+subscriptionSchema.index({ studentId: 1, status: 1, paymentStatus: 1, createdAt: -1 });
+
+export const Subscription: Model<ISubscription> =
+  (models.Subscription as Model<ISubscription> | undefined) ??
+  model<ISubscription>("Subscription", subscriptionSchema);
+import { HydratedDocument, Model, Schema, model, models, type Types } from "mongoose";
+
+export const TASK_GRADE_STATUSES = [
+  "Belum Dinilai",
+  "Sudah Dinilai",
+] as const;
+
+export type TaskGradeStatus = (typeof TASK_GRADE_STATUSES)[number];
+
+export interface ITaskGrade {
+  gradeId: string;
+  teacherId: Types.ObjectId;
+  classId: string;
+  taskId: string;
+  studentId: string;
+  score: number;
+  note: string;
+  status: TaskGradeStatus;
+  gradedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type TaskGradeDocument = HydratedDocument<ITaskGrade>;
+
+const taskGradeSchema = new Schema<ITaskGrade>(
+  {
+    gradeId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+    teacherId: {
+      type: Schema.Types.ObjectId,
+      ref: "Teacher",
+      required: [true, "Guru wajib diisi."],
+      index: true,
+    },
+    classId: {
+      type: String,
+      required: [true, "Class ID wajib diisi."],
+      trim: true,
+      index: true,
+    },
+    taskId: {
+      type: String,
+      required: [true, "Task ID wajib diisi."],
+      trim: true,
+      index: true,
+    },
+    studentId: {
+      type: String,
+      required: [true, "Student ID wajib diisi."],
+      trim: true,
+      index: true,
+    },
+    score: {
+      type: Number,
+      required: [true, "Nilai tugas wajib diisi."],
+      min: 0,
+      max: 100,
+    },
+    note: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    status: {
+      type: String,
+      enum: TASK_GRADE_STATUSES,
+      default: "Belum Dinilai",
+      index: true,
+    },
+    gradedAt: {
+      type: Date,
+      default: null,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+taskGradeSchema.index(
+  {
+    teacherId: 1,
+    classId: 1,
+    taskId: 1,
+    studentId: 1,
+  },
+  {
+    unique: true,
+  },
+);
+
+export const TaskGrade: Model<ITaskGrade> =
+  (models.TaskGrade as Model<ITaskGrade> | undefined) ??
+  model<ITaskGrade>("TaskGrade", taskGradeSchema);
+import { HydratedDocument, Model, Schema, model, models, type Types } from "mongoose";
+
+export const TASK_SUBMISSION_MODES = [
+  "file",
+  "text",
+  "drive",
+] as const;
+
+export type TaskSubmissionMode = (typeof TASK_SUBMISSION_MODES)[number];
+
+export interface ITaskSubmissionAttachment {
+  fileName: string;
+  mimeType: string;
+  size: number;
+  storagePath: string;
+  originalName: string;
+}
+
+export interface ITaskSubmission {
+  submissionId: string;
+  teacherId: Types.ObjectId;
+  classId: string;
+  taskId: string;
+  studentId: string;
+  submissionMode: TaskSubmissionMode;
+  answerText: string;
+  driveUrl: string;
+  attachment: ITaskSubmissionAttachment | null;
+  note: string;
+  submittedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type TaskSubmissionDocument = HydratedDocument<ITaskSubmission>;
+
+const taskSubmissionSchema = new Schema<ITaskSubmission>(
+  {
+    submissionId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+    teacherId: {
+      type: Schema.Types.ObjectId,
+      ref: "Teacher",
+      required: [true, "Guru wajib diisi."],
+      index: true,
+    },
+    classId: {
+      type: String,
+      required: [true, "Class ID wajib diisi."],
+      trim: true,
+      index: true,
+    },
+    taskId: {
+      type: String,
+      required: [true, "Task ID wajib diisi."],
+      trim: true,
+      index: true,
+    },
+    studentId: {
+      type: String,
+      required: [true, "Student ID wajib diisi."],
+      trim: true,
+      index: true,
+    },
+    submissionMode: {
+      type: String,
+      enum: TASK_SUBMISSION_MODES,
+      required: [true, "Mode pengumpulan wajib diisi."],
+      index: true,
+    },
+    answerText: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    driveUrl: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    attachment: {
+      type: {
+        fileName: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        mimeType: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        size: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+        storagePath: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        originalName: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+      },
+      default: null,
+    },
+    note: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    submittedAt: {
+      type: Date,
+      required: true,
+      default: () => new Date(),
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+taskSubmissionSchema.index({
+  teacherId: 1,
+  classId: 1,
+  taskId: 1,
+  studentId: 1,
+});
+taskSubmissionSchema.index(
+  {
+    taskId: 1,
+    studentId: 1,
+  },
+  {
+    unique: true,
+  },
+);
+
+export const TaskSubmission: Model<ITaskSubmission> =
+  (models.TaskSubmission as Model<ITaskSubmission> | undefined) ??
+  model<ITaskSubmission>("TaskSubmission", taskSubmissionSchema);
+import { HydratedDocument, Model, Schema, model, models, type Types } from "mongoose";
+
+export const TEACHER_STATUSES = ["Aktif", "Nonaktif"] as const;
+export const TEACHER_AVAILABILITIES = ["Tersedia", "Padat", "Cuti"] as const;
+
+export type TeacherStatus = (typeof TEACHER_STATUSES)[number];
+export type TeacherAvailability = (typeof TEACHER_AVAILABILITIES)[number];
+
+export interface ITeacher {
+  teacherId: string;
+  userId: Types.ObjectId;
+  subject: string;
+  branch: string;
+  branches: string[];
+  phone: string;
+  schedule: string;
+  activeClasses: number;
+  classList: string;
+  capableGrades: string[];
+  status: TeacherStatus;
+  availability: TeacherAvailability;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type TeacherDocument = HydratedDocument<ITeacher>;
+
+const teacherSchema = new Schema<ITeacher>(
+  {
+    teacherId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      unique: true,
+    },
+    subject: {
+      type: String,
+      required: [true, "Mapel wajib diisi."],
+      trim: true,
+    },
+    branch: {
+      type: String,
+      required: [true, "Cabang wajib diisi."],
+      trim: true,
+    },
+    branches: {
+      type: [String],
+      default: [],
+    },
+    phone: {
+      type: String,
+      required: [true, "No. HP wajib diisi."],
+      trim: true,
+    },
+    schedule: {
+      type: String,
+      required: [true, "Jadwal mengajar wajib diisi."],
+      trim: true,
+    },
+    activeClasses: {
+      type: Number,
+      required: [true, "Kelas aktif wajib diisi."],
+      min: 0,
+    },
+    classList: {
+      type: String,
+      required: [true, "Kelas diampu wajib diisi."],
+      trim: true,
+    },
+    capableGrades: {
+      type: [String],
+      default: [],
+    },
+    status: {
+      type: String,
+      enum: TEACHER_STATUSES,
+      default: "Aktif",
+    },
+    availability: {
+      type: String,
+      enum: TEACHER_AVAILABILITIES,
+      default: "Tersedia",
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+export const Teacher: Model<ITeacher> =
+  (models.Teacher as Model<ITeacher> | undefined) ?? model<ITeacher>("Teacher", teacherSchema);
+import { HydratedDocument, Model, Schema, model, models, type Types } from "mongoose";
+
+export interface ITeacherClassSetting {
+  classId: string;
+  teacherId: Types.ObjectId;
+  className: string;
+  branch: string;
+  targetMeetingCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type TeacherClassSettingDocument = HydratedDocument<ITeacherClassSetting>;
+
+const teacherClassSettingSchema = new Schema<ITeacherClassSetting>(
+  {
+    classId: {
+      type: String,
+      required: [true, "Class ID wajib diisi."],
+      trim: true,
+      index: true,
+    },
+    teacherId: {
+      type: Schema.Types.ObjectId,
+      ref: "Teacher",
+      required: [true, "Guru wajib diisi."],
+      index: true,
+    },
+    className: {
+      type: String,
+      required: [true, "Nama kelas wajib diisi."],
+      trim: true,
+    },
+    branch: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    targetMeetingCount: {
+      type: Number,
+      required: [true, "Target pertemuan wajib diisi."],
+      min: 1,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+teacherClassSettingSchema.index(
+  {
+    teacherId: 1,
+    classId: 1,
+  },
+  {
+    unique: true,
+  },
+);
+
+export const TeacherClassSetting: Model<ITeacherClassSetting> =
+  (models.TeacherClassSetting as Model<ITeacherClassSetting> | undefined) ??
+  model<ITeacherClassSetting>(
+    "TeacherClassSetting",
+    teacherClassSettingSchema,
+  );
+import { HydratedDocument, Model, Schema, model, models, type Types } from "mongoose";
+
+export const TEACHER_TRYOUT_JENJANG = ["SD", "SMP", "SMA"] as const;
+export const TEACHER_ASSESSMENT_TYPES = [
+  "UTS 1",
+  "UTS 2",
+  "UTS 3",
+  "UTS",
+  "UAS",
+  "Tryout",
+] as const;
+export const TEACHER_TRYOUT_PUBLISH_STATUSES = [
+  "draft",
+  "published",
+] as const;
+export const TEACHER_TRYOUT_QUESTION_SOURCES = [
+  "manual",
+  "bank",
+  "file",
+] as const;
+export const TEACHER_TRYOUT_REVIEW_STATUSES = [
+  "Perlu Review Guru",
+  "Disetujui",
+  "Revisi",
+] as const;
+
+export type TeacherTryoutJenjang =
+  (typeof TEACHER_TRYOUT_JENJANG)[number];
+export type TeacherAssessmentType = (typeof TEACHER_ASSESSMENT_TYPES)[number];
+export type TeacherTryoutPublishStatus =
+  (typeof TEACHER_TRYOUT_PUBLISH_STATUSES)[number];
+export type TeacherTryoutQuestionSource =
+  (typeof TEACHER_TRYOUT_QUESTION_SOURCES)[number];
+export type TeacherTryoutReviewStatus =
+  (typeof TEACHER_TRYOUT_REVIEW_STATUSES)[number];
+
+export interface ITeacherTryout {
+  teacherId: Types.ObjectId;
+  tryoutId: string;
+  classId: string;
+  branch: string;
+  canonicalClassName: string;
+  assessmentType: TeacherAssessmentType;
+  title: string;
+  jenjang: TeacherTryoutJenjang;
+  kelas: string;
+  subject: string;
+  stage: number | null;
+  durationMinutes: number;
+  startAt: Date;
+  endAt: Date;
+  publishStatus: TeacherTryoutPublishStatus;
+  reviewStatus: TeacherTryoutReviewStatus;
+  questionSource: TeacherTryoutQuestionSource;
+  questionCount: number;
+  questionBankId: string | null;
+  questionSetId: string | null;
+  packageId: string | null;
+  fileName: string | null;
+  academicYear?: string | null;
+  semester?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type TeacherTryoutDocument = HydratedDocument<ITeacherTryout>;
+
+const teacherTryoutSchema = new Schema<ITeacherTryout>(
+  {
+    teacherId: {
+      type: Schema.Types.ObjectId,
+      ref: "Teacher",
+      required: [true, "Guru wajib diisi."],
+      index: true,
+    },
+    tryoutId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+    classId: {
+      type: String,
+      default: "",
+      trim: true,
+      index: true,
+    },
+    branch: {
+      type: String,
+      default: "",
+      trim: true,
+      index: true,
+    },
+    canonicalClassName: {
+      type: String,
+      default: "",
+      trim: true,
+      index: true,
+    },
+    assessmentType: {
+      type: String,
+      enum: TEACHER_ASSESSMENT_TYPES,
+      default: "Tryout",
+      index: true,
+    },
+    title: {
+      type: String,
+      required: [true, "Judul tryout wajib diisi."],
+      trim: true,
+    },
+    jenjang: {
+      type: String,
+      enum: TEACHER_TRYOUT_JENJANG,
+      required: [true, "Jenjang tryout wajib diisi."],
+      index: true,
+    },
+    kelas: {
+      type: String,
+      required: [true, "Kelas tryout wajib diisi."],
+      trim: true,
+      index: true,
+    },
+    subject: {
+      type: String,
+      required: [true, "Mata pelajaran tryout wajib diisi."],
+      trim: true,
+    },
+    stage: {
+      type: Number,
+      default: null,
+      min: 1,
+      max: 3,
+      index: true,
+    },
+    durationMinutes: {
+      type: Number,
+      required: [true, "Durasi tryout wajib diisi."],
+      min: 15,
+    },
+    startAt: {
+      type: Date,
+      required: [true, "Waktu mulai tryout wajib diisi."],
+      index: true,
+    },
+    endAt: {
+      type: Date,
+      required: [true, "Waktu selesai tryout wajib diisi."],
+    },
+    publishStatus: {
+      type: String,
+      enum: TEACHER_TRYOUT_PUBLISH_STATUSES,
+      default: "draft",
+      index: true,
+    },
+    reviewStatus: {
+      type: String,
+      enum: TEACHER_TRYOUT_REVIEW_STATUSES,
+      default: "Perlu Review Guru",
+      index: true,
+    },
+    questionSource: {
+      type: String,
+      enum: TEACHER_TRYOUT_QUESTION_SOURCES,
+      default: "manual",
+    },
+    questionCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    questionBankId: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    questionSetId: {
+      type: String,
+      default: null,
+      trim: true,
+      index: true,
+    },
+    packageId: {
+      type: String,
+      default: null,
+      trim: true,
+      index: true,
+    },
+    fileName: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    academicYear: {
+      type: String,
+      default: null,
+      trim: true,
+      index: true,
+    },
+    semester: {
+      type: String,
+      default: null,
+      trim: true,
+      index: true,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+teacherTryoutSchema.index({
+  teacherId: 1,
+  assessmentType: 1,
+  jenjang: 1,
+  kelas: 1,
+  startAt: 1,
+});
+teacherTryoutSchema.index({
+  teacherId: 1,
+  classId: 1,
+  branch: 1,
+  subject: 1,
+  stage: 1,
+});
+
+export const TeacherTryout: Model<ITeacherTryout> =
+  (models.TeacherTryout as Model<ITeacherTryout> | undefined) ??
+  model<ITeacherTryout>("TeacherTryout", teacherTryoutSchema);
+import { HydratedDocument, Model, Schema, model, models, type Types } from "mongoose";
+
+export const TEACHER_TRYOUT_QUESTION_ANSWERS = ["A", "B", "C", "D"] as const;
+
+export type TeacherTryoutQuestionAnswer =
+  (typeof TEACHER_TRYOUT_QUESTION_ANSWERS)[number];
+
+export interface ITeacherTryoutQuestion {
+  questionId: string;
+  teacherId: Types.ObjectId;
+  tryoutId: string;
+  questionText: string;
+  optionA: string;
+  optionB: string;
+  optionC: string;
+  optionD: string;
+  correctAnswer: TeacherTryoutQuestionAnswer;
+  order: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type TeacherTryoutQuestionDocument =
+  HydratedDocument<ITeacherTryoutQuestion>;
+
+const teacherTryoutQuestionSchema = new Schema<ITeacherTryoutQuestion>(
+  {
+    questionId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+    teacherId: {
+      type: Schema.Types.ObjectId,
+      ref: "Teacher",
+      required: [true, "Guru wajib diisi."],
+      index: true,
+    },
+    tryoutId: {
+      type: String,
+      required: [true, "Tryout ID wajib diisi."],
+      trim: true,
+      index: true,
+    },
+    questionText: {
+      type: String,
+      required: [true, "Pertanyaan tryout wajib diisi."],
+      trim: true,
+    },
+    optionA: {
+      type: String,
+      required: [true, "Opsi A wajib diisi."],
+      trim: true,
+    },
+    optionB: {
+      type: String,
+      required: [true, "Opsi B wajib diisi."],
+      trim: true,
+    },
+    optionC: {
+      type: String,
+      required: [true, "Opsi C wajib diisi."],
+      trim: true,
+    },
+    optionD: {
+      type: String,
+      required: [true, "Opsi D wajib diisi."],
+      trim: true,
+    },
+    correctAnswer: {
+      type: String,
+      enum: TEACHER_TRYOUT_QUESTION_ANSWERS,
+      required: [true, "Jawaban benar wajib diisi."],
+    },
+    order: {
+      type: Number,
+      required: [true, "Urutan soal wajib diisi."],
+      min: 1,
+      index: true,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+teacherTryoutQuestionSchema.index({
+  teacherId: 1,
+  tryoutId: 1,
+  order: 1,
+});
+
+export const TeacherTryoutQuestion: Model<ITeacherTryoutQuestion> =
+  (models.TeacherTryoutQuestion as
+    | Model<ITeacherTryoutQuestion>
+    | undefined) ??
+  model<ITeacherTryoutQuestion>(
+    "TeacherTryoutQuestion",
+    teacherTryoutQuestionSchema,
+  );
+import { HydratedDocument, Model, Schema, model, models } from "mongoose";
+
+export const USER_ROLES = ["owner", "admin", "guru", "siswa"] as const;
+
+export type UserRole = (typeof USER_ROLES)[number];
+
+export interface IUser {
+  nama: string;
+  email: string;
+  loginCode?: string | null;
+  avatar: string | null;
+  password: string;
+  role: UserRole;
+  isEmailVerified: boolean;
+  emailVerifiedAt: Date | null;
+  emailVerificationToken: string | null;
+  emailVerificationExpires: Date | null;
+  passwordResetToken: string | null;
+  passwordResetExpires: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type UserDocument = HydratedDocument<IUser>;
+
+export interface PublicUser {
+  _id: string;
+  nama: string;
+  email: string;
+  loginCode: string | null;
+  avatar: string | null;
+  role: UserRole;
+  isEmailVerified: boolean;
+  emailVerifiedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const userSchema = new Schema<IUser>(
+  {
+    nama: {
+      type: String,
+      required: [true, "Nama wajib diisi."],
+      trim: true,
+    },
+    email: {
+      type: String,
+      required: [true, "Email wajib diisi."],
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+    loginCode: {
+      type: String,
+      trim: true,
+      uppercase: true,
+    },
+    avatar: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    password: {
+      type: String,
+      required: [true, "Password wajib diisi."],
+      minlength: 8,
+      select: false,
+    },
+    role: {
+      type: String,
+      enum: USER_ROLES,
+      default: "siswa",
+    },
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerifiedAt: {
+      type: Date,
+      default: null,
+    },
+    emailVerificationToken: {
+      type: String,
+      default: null,
+    },
+    emailVerificationExpires: {
+      type: Date,
+      default: null,
+    },
+    passwordResetToken: {
+      type: String,
+      default: null,
+    },
+    passwordResetExpires: {
+      type: Date,
+      default: null,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+userSchema.index(
+  { loginCode: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      loginCode: { $type: "string" },
+    },
+  },
+);
+
+export const User: Model<IUser> =
+  (models.User as Model<IUser> | undefined) ?? model<IUser>("User", userSchema);

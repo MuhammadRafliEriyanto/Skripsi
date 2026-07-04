@@ -107,15 +107,13 @@ function normalizeText(value: string) {
 }
 
 function selectRelevantBranchOptions(branches: string[]) {
-  const normalizedUniqueBranches = Array.from(
+  return Array.from(
     new Set(branches.map((branch) => normalizeText(branch)).filter(Boolean)),
   );
-
-  return normalizedUniqueBranches.length > 0 ? normalizedUniqueBranches : ["Pusat"];
 }
 
 function resolveDefaultBranch(branchOptions: string[]) {
-  return selectRelevantBranchOptions(branchOptions)[0] ?? "Pusat";
+  return selectRelevantBranchOptions(branchOptions)[0] ?? "";
 }
 
 function buildDefaultExpenseForm(branchOptions: string[]): OwnerExpenseForm {
@@ -136,7 +134,7 @@ function buildDefaultExpenseForm(branchOptions: string[]): OwnerExpenseForm {
 function buildExpenseMutationPayload(form: OwnerExpenseForm): OwnerExpenseMutationPayload {
   return {
     title: normalizeText(form.title),
-    branch: normalizeText(form.branch) || "Pusat",
+    branch: normalizeText(form.branch),
     category: form.category,
     vendorOrRecipient: normalizeText(form.vendorOrRecipient),
     amount: Math.round(Number(form.amount)),
@@ -160,7 +158,7 @@ function readExpenseFieldErrors(
 
 export function useOwnerExpenses() {
   const [expenses, setExpenses] = useState<OwnerExpense[]>([]);
-  const [branchOptions, setBranchOptions] = useState<string[]>(["Pusat"]);
+  const [branchOptions, setBranchOptions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -175,7 +173,7 @@ export function useOwnerExpenses() {
     null,
   );
   const [form, setForm] = useState<OwnerExpenseForm>(
-    buildDefaultExpenseForm(["Pusat"]),
+    buildDefaultExpenseForm([]),
   );
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<OwnerExpenseFieldErrors>({});
@@ -226,7 +224,7 @@ export function useOwnerExpenses() {
         }
 
         setExpenses([]);
-        setBranchOptions(["Pusat"]);
+        setBranchOptions([]);
         setFlash({
           tone: "warning",
           message:

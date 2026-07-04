@@ -6,7 +6,7 @@ import {
   AUTH_TOKEN_COOKIE_NAME,
   getRedirectPathForRole,
   isUserRole,
-} from "./src/lib/auth";
+} from "@/lib/auth";
 
 const MEMBERSHIP_ACCESS_VALUES = ["active", "pending", "expired", "not_registered"] as const;
 

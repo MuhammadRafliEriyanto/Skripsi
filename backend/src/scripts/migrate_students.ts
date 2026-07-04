@@ -6,8 +6,13 @@ import path from "path";
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 async function run() {
-  const uri = process.env.MONGODB_URI || "mongodb://localhost:27017/bimbel";
-  console.log("Connecting to", uri);
+  const uri = process.env.MONGO_URI;
+
+  if (!uri) {
+    throw new Error("MONGO_URI is required. Set it in backend/.env before running this script.");
+  }
+
+  console.log("Connecting to MongoDB from MONGO_URI.");
   await mongoose.connect(uri);
   
   const result = await Student.updateMany(

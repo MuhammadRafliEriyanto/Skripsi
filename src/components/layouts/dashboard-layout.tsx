@@ -3,7 +3,7 @@
 import { Sidebar } from "@/components/layouts/sidebar";
 import { Topbar } from "@/components/layouts/topbar";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { type DashboardRole } from "@/lib/dashboard-data";
+import { type DashboardRole } from "@/lib/dashboard-navigation";
 
 type DashboardLayoutProps = {
   role: DashboardRole;

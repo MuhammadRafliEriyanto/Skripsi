@@ -1,6 +1,6 @@
 import { CalendarDays, Download, Pencil, Plus, Trash2 } from "lucide-react";
 
-import { formatDisplayDate } from "./dummy";
+import { formatDisplayDate } from "./helpers";
 import type { DetailPertemuanTableProps } from "./types";
 
 function getMateriStatusClass(status: DetailPertemuanTableProps["materials"][number]["statusMateri"]) {

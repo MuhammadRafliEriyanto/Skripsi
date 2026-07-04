@@ -14,7 +14,7 @@ import type {
   StudentTaskSubmissionSummary,
   StudentTaskStatus,
   SubmissionMode,
-} from "./learning-data";
+} from "./learning-types";
 import {
   EMPTY_ACADEMIC_SCORES,
   type AcademicGradeScheme,

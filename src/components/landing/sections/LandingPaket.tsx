@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -13,14 +15,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  CLASS_PRICING_MATRIX,
-  ONLINE_PACKAGES,
   formatRupiah,
   type OnlinePackageKey,
 } from "@/lib/subscription";
+import { useSubscriptionConfig } from "@/lib/use-subscription-config";
 import { cn } from "@/lib/utils";
 
-type ClassPricingKey = keyof typeof CLASS_PRICING_MATRIX;
+type ClassPricingKey = string;
 
 type PackageCardMeta = {
   eyebrow: string;
@@ -37,7 +38,7 @@ type PriceRow = {
   priceClass: ClassPricingKey;
 };
 
-const packageCardMeta: Record<OnlinePackageKey, PackageCardMeta> = {
+const packageCardMeta: Record<string, PackageCardMeta> = {
   "1-semester": {
     eyebrow: "6 bulan",
     description: "Pilihan ringkas untuk fokus pada target belajar satu semester.",
@@ -119,16 +120,60 @@ const packageFacts = [
   },
 ] as const;
 
-function getPackagePriceRange(packageKey: OnlinePackageKey) {
-  const prices = Object.values(CLASS_PRICING_MATRIX).map((pricing) => pricing[packageKey]);
+function normalizePriceClass(value: string) {
+  const grade = value.match(/\b(1[0-2]|[2-9])\b/)?.[1] ?? "";
+
+  if (!grade) {
+    return value;
+  }
+
+  if (Number(grade) <= 6) {
+    return `SD ${grade}`;
+  }
+
+  if (Number(grade) <= 9) {
+    return `SMP ${grade}`;
+  }
+
+  return `SMA ${grade}`;
+}
+
+function getPackageMeta(packageKey: OnlinePackageKey): PackageCardMeta {
+  return (
+    packageCardMeta[packageKey] ?? {
+      eyebrow: "Membership",
+      description: "Paket membership aktif dari server.",
+      icon: CalendarDays,
+      benefits: [
+        "Akses LMS mengikuti status membership dan pembayaran.",
+        "Materi, tugas, absensi, dan tryout mengikuti kelas siswa.",
+        "Nominal final mengikuti konfigurasi backend.",
+      ],
+      buttonLabel: "Pilih Paket",
+    }
+  );
+}
+
+function getPackagePriceRange(
+  packageKey: OnlinePackageKey,
+  classPricingMatrix: Record<string, Record<string, number>>,
+  fallbackAmount: number,
+) {
+  const prices = Object.values(classPricingMatrix)
+    .map((pricing) => pricing[packageKey])
+    .filter((price): price is number => typeof price === "number");
 
   return {
-    min: Math.min(...prices),
-    max: Math.max(...prices),
+    min: prices.length ? Math.min(...prices) : fallbackAmount,
+    max: prices.length ? Math.max(...prices) : fallbackAmount,
   };
 }
 
 export default function LandingPaket() {
+  const { config, isLoading, error } = useSubscriptionConfig();
+  const packageOptions = config.packages;
+  const classPricingMatrix = config.classPricingMatrix;
+
   return (
     <section id="paket" className="scroll-mt-28 py-16 lg:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -156,10 +201,14 @@ export default function LandingPaket() {
         </div>
 
         <div className="mt-10 grid gap-5 lg:grid-cols-2">
-          {ONLINE_PACKAGES.map((item) => {
-            const meta = packageCardMeta[item.packageKey];
+          {packageOptions.map((item) => {
+            const meta = getPackageMeta(item.packageKey);
             const Icon = meta.icon;
-            const priceRange = getPackagePriceRange(item.packageKey);
+            const priceRange = getPackagePriceRange(
+              item.packageKey,
+              classPricingMatrix,
+              item.amount,
+            );
             const monthlyStart = Math.round(priceRange.min / item.durationMonth);
 
             return (
@@ -238,6 +287,12 @@ export default function LandingPaket() {
           })}
         </div>
 
+        {!isLoading && (!packageOptions.length || error) ? (
+          <div className="mt-6 rounded-lg border border-amber-100 bg-amber-50 px-5 py-4 text-sm leading-6 text-amber-700">
+            {error || "Paket membership belum tersedia dari server."}
+          </div>
+        ) : null}
+
         <div className="mt-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 px-5 py-4 sm:px-6">
             <h3 className="text-base font-semibold text-slate-950">Ringkasan harga per kelas</h3>
@@ -266,7 +321,8 @@ export default function LandingPaket() {
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
                 {priceRows.map((row) => {
-                  const price = CLASS_PRICING_MATRIX[row.priceClass];
+                  const price =
+                    classPricingMatrix[normalizePriceClass(row.priceClass)] ?? {};
 
                   return (
                     <tr key={row.label} className="hover:bg-orange-50/35">
@@ -275,10 +331,10 @@ export default function LandingPaket() {
                       </th>
                       <td className="px-5 py-4 text-slate-500 sm:px-6">{row.helper}</td>
                       <td className="whitespace-nowrap px-5 py-4 font-semibold text-slate-800 sm:px-6">
-                        {formatRupiah(price["1-semester"])}
+                        {formatRupiah(price["1-semester"] ?? 0)}
                       </td>
                       <td className="whitespace-nowrap px-5 py-4 font-semibold text-slate-800 sm:px-6">
-                        {formatRupiah(price["2-semester"])}
+                        {formatRupiah(price["2-semester"] ?? 0)}
                       </td>
                     </tr>
                   );

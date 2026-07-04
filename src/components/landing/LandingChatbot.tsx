@@ -29,41 +29,11 @@ type ChatMessage = {
   };
 };
 
-type QuickAction = {
-  label: string;
-  prompt: string;
-  icon: LucideIcon;
-};
-
 const initialMessages: ChatMessage[] = [
   {
     id: 1,
     role: "bot",
-    text:
-      "Halo, saya asisten Bina Cendekia. Saya bisa bantu jelaskan paket belajar, program, lokasi cabang, atau alur pendaftaran online.",
-  },
-];
-
-const quickActions: QuickAction[] = [
-  {
-    label: "Lihat Paket",
-    prompt: "Saya ingin lihat paket belajar",
-    icon: BookOpenCheck,
-  },
-  {
-    label: "Cara Daftar",
-    prompt: "Bagaimana cara daftar online?",
-    icon: Sparkles,
-  },
-  {
-    label: "Program",
-    prompt: "Program belajar tersedia untuk jenjang apa saja?",
-    icon: GraduationCap,
-  },
-  {
-    label: "Lokasi Cabang",
-    prompt: "Lokasi cabang Bina Cendekia di mana?",
-    icon: MapPin,
+    text: "Halo! Saya asisten AI Bina Cendekia. Ada yang bisa saya bantu hari ini?",
   },
 ];
 
@@ -112,10 +82,12 @@ export default function LandingChatbot() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({
-      block: "end",
-      behavior: "smooth",
-    });
+    if (isOpen) {
+      messagesEndRef.current?.scrollIntoView({
+        block: "end",
+        behavior: "smooth",
+      });
+    }
   }, [isOpen, isTyping, messages]);
 
   useEffect(() => {
@@ -236,168 +208,135 @@ export default function LandingChatbot() {
   }
 
   return (
-    <div className="pointer-events-none fixed inset-x-3 bottom-3 z-50 flex justify-end sm:inset-x-4 sm:bottom-4 lg:inset-x-5 lg:bottom-5">
-      {!isOpen ? (
-        <div className="pointer-events-none mb-3 hidden justify-end lg:flex">
-          <div className="rounded-full border border-white/12 bg-slate-950/82 px-3.5 py-1.5 text-[13px] text-white shadow-[0_20px_36px_-28px_rgba(15,23,42,0.52)] backdrop-blur-xl">
-            Butuh bantuan pilih paket atau lokasi?
+    <div className="fixed bottom-4 right-4 z-50 sm:bottom-6 sm:right-6 flex flex-col items-end">
+      {/* Chat Window */}
+      <div
+        className={cn(
+          "mb-4 flex flex-col overflow-hidden rounded-2xl bg-white shadow-2xl transition-all duration-300 origin-bottom-right sm:mb-5 border border-slate-100",
+          "w-[calc(100vw-2rem)] h-[480px] max-h-[calc(100vh-6rem)] sm:w-[380px]",
+          isOpen
+            ? "scale-100 opacity-100 translate-y-0 pointer-events-auto"
+            : "scale-90 opacity-0 translate-y-8 pointer-events-none"
+        )}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between bg-white px-5 py-4 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-full bg-orange-50 text-orange-600">
+              <Bot className="size-5" />
+            </div>
+            <div>
+              <h2 className="text-[15px] font-semibold text-slate-800">Asisten AI</h2>
+              <p className="text-[12px] text-slate-500">Ada yang bisa kami bantu?</p>
+            </div>
           </div>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="flex size-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+          >
+            <X className="size-4" />
+          </button>
         </div>
-      ) : null}
 
-      <div className="pointer-events-auto flex flex-col items-end gap-3">
-        {isOpen ? (
-          <div className="flex h-[min(460px,calc(100dvh-10rem))] w-full max-w-[318px] flex-col overflow-hidden rounded-[26px] border border-white/12 bg-white/12 shadow-[0_30px_80px_-38px_rgba(15,23,42,0.56)] backdrop-blur-2xl sm:h-[min(500px,calc(100dvh-10.5rem))] sm:max-w-[330px]">
-            <div className="relative overflow-hidden border-b border-white/10 bg-[linear-gradient(135deg,rgba(136,19,55,0.94)_0%,rgba(194,65,12,0.93)_54%,rgba(251,146,60,0.9)_100%)] px-3.5 py-3 text-white">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.14),rgba(255,255,255,0)_34%,rgba(15,23,42,0.12)_100%)]" />
-              <div className="relative flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3">
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-[15px] bg-white/14 shadow-[0_16px_30px_-24px_rgba(15,23,42,0.34)]">
-                    <Bot className="size-4.5 text-yellow-200" />
-                  </div>
-                  <div>
-                    <div className="inline-flex items-center gap-1.5 rounded-full border border-white/14 bg-white/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-yellow-100">
-                      <Sparkles className="size-3" />
-                      Chat Bina Cendekia
-                    </div>
-                    <h2 className="mt-2 text-[15px] font-semibold">Asisten Pendaftaran</h2>
-                    <p className="mt-1 text-[12px] leading-5 text-white/78">
-                      Tanya cepat seputar paket, program, lokasi, dan langkah daftar online.
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="inline-flex size-8.5 shrink-0 items-center justify-center rounded-full border border-white/14 bg-white/10 text-white/86 transition hover:bg-white/16"
-                  aria-label="Tutup chatbot"
-                >
-                  <X className="size-3.5" />
-                </button>
-              </div>
-            </div>
-
-            <div className="flex min-h-0 flex-1 flex-col bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,250,245,0.96))]">
-              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={cn(
-                      "flex",
-                      message.role === "user" ? "justify-end" : "justify-start",
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "max-w-[85%] rounded-[20px] px-3 py-2.5 text-[12px] leading-5 shadow-[0_18px_32px_-26px_rgba(15,23,42,0.18)]",
-                        message.role === "user"
-                          ? "rounded-br-[10px] bg-[linear-gradient(135deg,#f97316_0%,#ea580c_100%)] text-white"
-                          : "rounded-bl-[10px] border border-orange-100 bg-white text-slate-700",
-                      )}
-                    >
-                      <p>{message.text}</p>
-
-                      {message.cta ? (
-                        message.cta.href.startsWith("#") ? (
-                          <button
-                            type="button"
-                            onClick={() => handleAnchorNavigation(message.cta!.href)}
-                            className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-orange-100 bg-orange-50 px-2.5 py-1.5 text-[11px] font-semibold text-orange-700 transition hover:bg-orange-100"
-                          >
-                            {message.cta.label}
-                            <ArrowRight className="size-3" />
-                          </button>
-                        ) : (
-                          <Link
-                            href={message.cta.href}
-                            target={message.cta.external ? "_blank" : undefined}
-                            rel={message.cta.external ? "noreferrer" : undefined}
-                            className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-orange-100 bg-orange-50 px-2.5 py-1.5 text-[11px] font-semibold text-orange-700 transition hover:bg-orange-100"
-                            onClick={() => setIsOpen(false)}
-                          >
-                            {message.cta.label}
-                            <ArrowRight className="size-3" />
-                          </Link>
-                        )
-                      ) : null}
-                    </div>
-                  </div>
-                ))}
-
-                {isTyping ? (
-                  <div className="flex justify-start">
-                    <div className="rounded-[20px] rounded-bl-[10px] border border-orange-100 bg-white px-3 py-2.5 text-[12px] text-slate-500 shadow-[0_18px_32px_-26px_rgba(15,23,42,0.18)]">
-                      <div className="flex items-center gap-1.5">
-                        <span className="size-2 rounded-full bg-orange-300 animate-[pulse_1.2s_ease-in-out_infinite]" />
-                        <span className="size-2 rounded-full bg-orange-400 animate-[pulse_1.2s_ease-in-out_0.15s_infinite]" />
-                        <span className="size-2 rounded-full bg-orange-500 animate-[pulse_1.2s_ease-in-out_0.3s_infinite]" />
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-
-                <div ref={messagesEndRef} />
-              </div>
-
-              <div className="border-t border-orange-100/80 px-3 pb-3 pt-2.5">
-                <div className="mb-2.5 flex flex-wrap gap-1.5">
-                  {quickActions.map((action) => {
-                    const Icon = action.icon;
-
-                    return (
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto bg-slate-50/50 p-4 space-y-4">
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={cn(
+                "flex",
+                message.role === "user" ? "justify-end" : "justify-start"
+              )}
+            >
+              <div
+                className={cn(
+                  "max-w-[85%] rounded-2xl px-4 py-3 text-[13px] leading-relaxed",
+                  message.role === "user"
+                    ? "bg-orange-500 text-white rounded-br-sm"
+                    : "bg-white text-slate-700 border border-slate-100 shadow-sm rounded-bl-sm"
+                )}
+              >
+                <p>{message.text}</p>
+                {message.cta && (
+                  <div className="mt-3">
+                    {message.cta.href.startsWith("#") ? (
                       <button
-                        key={action.label}
                         type="button"
-                        onClick={() => handleSubmitMessage(action.prompt)}
-                        disabled={isTyping}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-orange-100 bg-white px-2.5 py-1.5 text-[10px] font-semibold text-slate-700 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        onClick={() => handleAnchorNavigation(message.cta!.href)}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-[12px] font-medium text-orange-600 transition-colors hover:bg-orange-100"
                       >
-                        <Icon className="size-3 text-orange-500" />
-                        {action.label}
+                        {message.cta.label}
+                        <ArrowRight className="size-3" />
                       </button>
-                    );
-                  })}
-                </div>
-
-                <form
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    handleSubmitMessage(inputValue);
-                  }}
-                  className="flex items-center gap-1.5"
-                >
-                  <Input
-                    value={inputValue}
-                    onChange={(event) => setInputValue(event.target.value)}
-                    placeholder="Tulis pertanyaanmu..."
-                    className="h-9 rounded-full border-orange-100 bg-white/96 pr-4 text-[12px] shadow-[0_8px_20px_-18px_rgba(15,23,42,0.2)]"
-                    disabled={isTyping}
-                  />
-                  <button
-                    type="submit"
-                    disabled={!inputValue.trim() || isTyping}
-                    className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#f97316_0%,#ea580c_100%)] text-white shadow-[0_24px_36px_-24px_rgba(249,115,22,0.38)] transition hover:-translate-y-px hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
-                    aria-label="Kirim pesan"
-                  >
-                    <SendHorizonal className="size-3.5" />
-                  </button>
-                </form>
+                    ) : (
+                      <Link
+                        href={message.cta.href}
+                        target={message.cta.external ? "_blank" : undefined}
+                        rel={message.cta.external ? "noreferrer" : undefined}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-[12px] font-medium text-orange-600 transition-colors hover:bg-orange-100"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        {message.cta.label}
+                        <ArrowRight className="size-3" />
+                      </Link>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        ) : null}
+          ))}
 
-        <button
-          type="button"
-          onClick={() => setIsOpen((current) => !current)}
-          className="group inline-flex size-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,#f97316_0%,#ea580c_100%)] text-white shadow-[0_26px_42px_-24px_rgba(249,115,22,0.44)] transition duration-300 hover:-translate-y-0.5 hover:brightness-105 sm:size-12 lg:size-13"
-          aria-label={isOpen ? "Tutup chatbot" : "Buka chatbot"}
-          aria-expanded={isOpen}
-        >
-          <MessageCircle className="size-4.5 transition duration-300 group-hover:scale-105 sm:size-5" />
-        </button>
+          {isTyping && (
+            <div className="flex justify-start">
+              <div className="rounded-2xl rounded-bl-sm border border-slate-100 bg-white px-4 py-3 shadow-sm">
+                <div className="flex items-center gap-1.5">
+                  <span className="size-2 rounded-full bg-slate-300 animate-[bounce_1s_infinite]" />
+                  <span className="size-2 rounded-full bg-slate-300 animate-[bounce_1s_0.2s_infinite]" />
+                  <span className="size-2 rounded-full bg-slate-300 animate-[bounce_1s_0.4s_infinite]" />
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Input Area */}
+        <div className="border-t border-slate-100 bg-white p-4">
+          <form
+            onSubmit={(e) => {
+               e.preventDefault();
+               handleSubmitMessage(inputValue);
+            }}
+            className="flex items-center gap-2"
+          >
+            <Input
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder="Ketik pesan..."
+              className="h-11 rounded-full border-slate-200 bg-slate-50 px-4 text-[13px] focus-visible:ring-1 focus-visible:ring-orange-500"
+              disabled={isTyping}
+            />
+            <button
+              type="submit"
+              disabled={!inputValue.trim() || isTyping}
+              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-orange-500 text-white transition-transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+            >
+              <SendHorizonal className="size-4" />
+            </button>
+          </form>
+        </div>
       </div>
+
+      {/* Floating Toggle Button */}
+      <button
+        onClick={() => setIsOpen((prev) => !prev)}
+        className={cn(
+          "flex size-14 items-center justify-center rounded-full bg-orange-500 text-white shadow-lg transition-transform duration-300 hover:scale-105 active:scale-95 sm:size-16",
+          isOpen ? "rotate-90 scale-90" : "rotate-0 scale-100"
+        )}
+      >
+        {isOpen ? <X className="size-6" /> : <MessageCircle className="size-6 sm:size-7" />}
+      </button>
     </div>
   );
 }

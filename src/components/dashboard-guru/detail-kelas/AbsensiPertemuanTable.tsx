@@ -14,9 +14,9 @@ import {
 import type {
   AttendanceSessionStatus,
   PresenceStatus,
-} from "@/components/dashboard-guru/data/guruClassData";
+} from "@/components/dashboard-guru/data/guruClassTypes";
 
-import { formatDisplayDate } from "./dummy";
+import { formatDisplayDate } from "./helpers";
 import type { AbsensiPertemuanTableProps } from "./types";
 
 function formatTimeLabel(value: string) {

@@ -1,6 +1,6 @@
 import { AlertCircle, ClipboardCheck } from "lucide-react";
 
-import { formatDisplayDate } from "./dummy";
+import { formatDisplayDate } from "./helpers";
 import type { BelumDinilaiTableProps } from "./types";
 
 export default function BelumDinilaiTable({

@@ -15,7 +15,7 @@ import {
 import type {
   PresenceStatus,
   StudentStatus,
-} from "@/components/dashboard-guru/data/guruClassData";
+} from "@/components/dashboard-guru/data/guruClassTypes";
 
 import type { PesertaKelasTableProps } from "./types";
 

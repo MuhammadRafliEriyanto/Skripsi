@@ -75,7 +75,10 @@ import {
   findPackageByKey,
   findPackageByName,
   getPriceByClassAndPackage,
+  type ClassPricingMatrix,
+  type OnlinePackageDefinition,
 } from "@/lib/subscription";
+import { useSubscriptionConfig } from "@/lib/use-subscription-config";
 import { cn, formatCurrency } from "@/lib/utils";
 
 import type { AdminStudent } from "./admin-data";
@@ -380,9 +383,10 @@ function formatPackageFilterLabel(input: {
   packageName?: string | null;
   durationMonth?: number | null;
   amount?: number | null;
-}) {
+}, packages: OnlinePackageDefinition[]) {
   const knownPackage =
-    findPackageByKey(input.packageKey) ?? findPackageByName(input.packageName);
+    findPackageByKey(input.packageKey, packages) ??
+    findPackageByName(input.packageName, packages);
   const packageName = normalizeText(knownPackage?.packageName ?? input.packageName) || "-";
   const amount =
     typeof knownPackage?.amount === "number"
@@ -421,6 +425,7 @@ function createPackageFilterOptions(
     amount?: number | null;
   }>,
   allLabel: string,
+  packages: OnlinePackageDefinition[],
 ) {
   const options = new Map<string, PackageFilterOption>();
 
@@ -433,7 +438,7 @@ function createPackageFilterOptions(
 
     options.set(value, {
       value,
-      label: formatPackageFilterLabel(item),
+      label: formatPackageFilterLabel(item, packages),
     });
   }
 
@@ -856,6 +861,8 @@ function CreateMembershipBillingDialog({
   batchClassOptions,
   batchClassOption,
   billingPackages,
+  classPricingMatrix,
+  packageLookupOptions,
   batchPackageMode,
   batchPackageKey,
   batchIncludeInactive,
@@ -889,6 +896,8 @@ function CreateMembershipBillingDialog({
   batchClassOptions: string[];
   batchClassOption: string;
   billingPackages: AdminBillingPackage[];
+  classPricingMatrix: ClassPricingMatrix;
+  packageLookupOptions: OnlinePackageDefinition[];
   batchPackageMode: BatchPackageMode;
   batchPackageKey: string;
   batchIncludeInactive: boolean;
@@ -1392,7 +1401,12 @@ function CreateMembershipBillingDialog({
                       <SelectContent className={warmSelectContentClassName}>
                         {billingPackages.map((item) => {
                           const activeStudent = filteredStudents.find(s => s.id === selectedStudentId);
-                          const dynamicAmount = getPriceByClassAndPackage(activeStudent?.className, item.packageKey as "1-semester" | "2-semester");
+                          const dynamicAmount = getPriceByClassAndPackage(
+                            activeStudent?.className,
+                            item.packageKey,
+                            classPricingMatrix,
+                            packageLookupOptions,
+                          );
                           return (
                             <SelectItem
                               key={item.packageKey}
@@ -1454,6 +1468,8 @@ function CreateMembershipBillingDialog({
 function IncomingPaymentEditDialog({
   record,
   billingPackages,
+  classPricingMatrix,
+  packageLookupOptions,
   open,
   isSubmitting,
   onOpenChange,
@@ -1461,6 +1477,8 @@ function IncomingPaymentEditDialog({
 }: {
   record: IncomingPaymentRecord | null;
   billingPackages: AdminBillingPackage[];
+  classPricingMatrix: ClassPricingMatrix;
+  packageLookupOptions: OnlinePackageDefinition[];
   open: boolean;
   isSubmitting: boolean;
   onOpenChange: (open: boolean) => void;
@@ -1540,7 +1558,12 @@ function IncomingPaymentEditDialog({
                     </SelectTrigger>
                     <SelectContent>
                       {billingPackages.map((item) => {
-                        const dynamicAmount = getPriceByClassAndPackage(record?.student.className, item.packageKey as "1-semester" | "2-semester");
+                        const dynamicAmount = getPriceByClassAndPackage(
+                          record?.student.className,
+                          item.packageKey,
+                          classPricingMatrix,
+                          packageLookupOptions,
+                        );
                         return (
                           <SelectItem key={item.packageKey} value={item.packageKey}>
                             {item.packageName} · {formatCurrency(dynamicAmount)}
@@ -1956,7 +1979,15 @@ export function AdminPaymentVerification({
   onRefresh?: () => Promise<void> | void;
   globalSearchQuery?: string;
 }) {
+  const { config: subscriptionConfig } = useSubscriptionConfig();
   const billingPackages = dashboardConfig.payment.billingPackages;
+  const packageLookupOptions: OnlinePackageDefinition[] =
+    subscriptionConfig.packages.length > 0
+      ? subscriptionConfig.packages
+      : billingPackages.map((item) => ({
+          ...item,
+          highlight: "",
+        }));
   const batchClassOptionsByLevel =
     dashboardConfig.payment.batchClassOptionsByLevel;
   const billingLevelOptions = dashboardConfig.academic.levels as StudentLevel[];
@@ -2488,8 +2519,9 @@ export function AdminPaymentVerification({
           })),
         ],
         ALL_PACKAGES,
+        packageLookupOptions,
       ),
-    [billingPackages, incomingPayments],
+    [billingPackages, incomingPayments, packageLookupOptions],
   );
 
   const activationPackageOptions = useMemo(
@@ -2510,8 +2542,9 @@ export function AdminPaymentVerification({
           })),
         ],
         ALL_PACKAGES,
+        packageLookupOptions,
       ),
-    [activationStudents, billingPackages],
+    [activationStudents, billingPackages, packageLookupOptions],
   );
 
   const activationClassOptions = useMemo(() => {
@@ -4414,6 +4447,8 @@ export function AdminPaymentVerification({
         batchClassOptions={batchClassOptionsByLevel[batchLevel] ?? []}
         batchClassOption={batchClassOption}
         billingPackages={billingPackages}
+        classPricingMatrix={subscriptionConfig.classPricingMatrix}
+        packageLookupOptions={packageLookupOptions}
         batchPackageMode={batchPackageMode}
         batchPackageKey={batchPackageKey}
         batchIncludeInactive={batchIncludeInactive}
@@ -4443,6 +4478,8 @@ export function AdminPaymentVerification({
         key={paymentEditRecord?.id ?? "empty-payment-edit"}
         record={paymentEditRecord}
         billingPackages={billingPackages}
+        classPricingMatrix={subscriptionConfig.classPricingMatrix}
+        packageLookupOptions={packageLookupOptions}
         open={paymentEditRecord !== null}
         isSubmitting={isReplacingPayment}
         onOpenChange={(open) => {

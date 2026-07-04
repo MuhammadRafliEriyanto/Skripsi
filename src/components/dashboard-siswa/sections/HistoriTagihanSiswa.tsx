@@ -34,7 +34,9 @@ import {
   formatRupiah,
   membershipService,
   type MembershipPaymentHistoryItem,
+  type OnlinePackageDefinition,
 } from "@/lib/subscription";
+import { useSubscriptionConfig } from "@/lib/use-subscription-config";
 
 function formatDateTimeLabel(value: string | null) {
   if (!value) {
@@ -125,8 +127,11 @@ function canContinuePayment(payment: MembershipPaymentHistoryItem) {
   return payment.status === "pending" && Boolean(payment.checkoutUrl?.trim());
 }
 
-function resolveDurationLabel(payment: MembershipPaymentHistoryItem) {
-  const knownPackage = findPackageByName(payment.packageName);
+function resolveDurationLabel(
+  payment: MembershipPaymentHistoryItem,
+  packages: OnlinePackageDefinition[],
+) {
+  const knownPackage = findPackageByName(payment.packageName, packages);
 
   if (knownPackage?.durationMonth) {
     return `${knownPackage.durationMonth} bulan`;
@@ -179,8 +184,10 @@ function openCheckoutUrl(checkoutUrl: string | null | undefined) {
 
 function PendingPaymentHighlight({
   payment,
+  packages,
 }: {
   payment: MembershipPaymentHistoryItem;
+  packages: OnlinePackageDefinition[];
 }) {
   return (
     <div className="px-4 pt-4 md:px-5 md:pt-5">
@@ -208,7 +215,7 @@ function PendingPaymentHighlight({
               </p>
               <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium text-slate-500">
                 <span className="rounded-full border border-white/80 bg-white px-3 py-1.5 shadow-sm">
-                  Durasi {resolveDurationLabel(payment)}
+                  Durasi {resolveDurationLabel(payment, packages)}
                 </span>
                 <span className="rounded-full border border-white/80 bg-white px-3 py-1.5 shadow-sm">
                   Pembayaran online
@@ -266,6 +273,8 @@ export default function HistoriTagihanSiswa({
 }: {
   reloadSignal?: number;
 }) {
+  const { config: subscriptionConfig } = useSubscriptionConfig();
+  const packageOptions = subscriptionConfig.packages;
   const [payments, setPayments] = useState<MembershipPaymentHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -373,7 +382,12 @@ export default function HistoriTagihanSiswa({
 
       {!isLoading && !error && payments.length > 0 ? (
         <>
-          {pendingPayment ? <PendingPaymentHighlight payment={pendingPayment} /> : null}
+          {pendingPayment ? (
+            <PendingPaymentHighlight
+              payment={pendingPayment}
+              packages={packageOptions}
+            />
+          ) : null}
 
           <div className="p-4 md:p-5">
             <div className="overflow-hidden rounded-[22px] border border-slate-100 bg-white">
@@ -400,7 +414,7 @@ export default function HistoriTagihanSiswa({
                         {payment.packageName}
                       </p>
                       <p className="text-xs text-slate-500">
-                        Durasi: {resolveDurationLabel(payment)}
+                        Durasi: {resolveDurationLabel(payment, packageOptions)}
                       </p>
                       <p className="font-mono text-xs text-slate-500">
                         {payment.paymentId}
@@ -521,7 +535,7 @@ export default function HistoriTagihanSiswa({
               />
               <PaymentDetailItem
                 label="Durasi"
-                value={resolveDurationLabel(selectedPayment)}
+                value={resolveDurationLabel(selectedPayment, packageOptions)}
               />
               <PaymentDetailItem
                 label="Metode pembayaran"

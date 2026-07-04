@@ -24,6 +24,8 @@ import {
   resolveRenewalWindow,
 } from "../utils/membershipPayments";
 import {
+  CLASS_PRICING_MATRIX,
+  ONLINE_PACKAGE_DEFINITIONS,
   type StudentWithUser,
   getClassPricedOnlinePackageByKey,
   getMembershipSnapshotByUserId,
@@ -56,6 +58,12 @@ const PROGRAM_CLASS_OPTIONS = {
   SMP: ["Kelas 7", "Kelas 8", "Kelas 9"],
   SMA: ["Kelas 10", "Kelas 11", "Kelas 12"],
 } as const;
+
+const PROGRAM_LABELS: Record<keyof typeof PROGRAM_CLASS_OPTIONS, string> = {
+  SD: "SD / Program Dasar",
+  SMP: "SMP / Program Reguler",
+  SMA: "SMA / Program Intensif",
+};
 
 function normalizeText(value: string | undefined) {
   return value?.trim().replace(/\s+/g, " ") ?? "";
@@ -103,6 +111,34 @@ function generateVerificationToken() {
 function buildStudentClassName(program: keyof typeof PROGRAM_CLASS_OPTIONS, classLevel: string) {
   return `${program} ${classLevel}`.trim();
 }
+
+export const getSubscriptionConfig = asyncHandler(
+  async (_req: Request, res: Response) => {
+    return sendSuccess(res, {
+      message: "Konfigurasi membership berhasil dimuat.",
+      data: {
+        packages: Object.values(ONLINE_PACKAGE_DEFINITIONS).map((item) => ({
+          ...item,
+          highlight:
+            item.packageKey === "1-semester"
+              ? "Paket setengah tahun untuk fokus pada satu semester ajaran."
+              : "Pilihan tahunan untuk progres belajar yang ingin dijaga penuh sepanjang tahun.",
+        })),
+        programs: Object.keys(PROGRAM_CLASS_OPTIONS).map((program) => ({
+          value: program,
+          label: PROGRAM_LABELS[program as keyof typeof PROGRAM_CLASS_OPTIONS],
+        })),
+        classOptionsByProgram: Object.fromEntries(
+          Object.entries(PROGRAM_CLASS_OPTIONS).map(([program, classOptions]) => [
+            program,
+            [...classOptions],
+          ]),
+        ),
+        classPricingMatrix: CLASS_PRICING_MATRIX,
+      },
+    });
+  },
+);
 
 export const registerOnline = asyncHandler(
   async (

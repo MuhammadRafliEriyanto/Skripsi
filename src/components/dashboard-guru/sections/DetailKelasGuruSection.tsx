@@ -28,7 +28,7 @@ import {
   type PresenceStatus,
   type ClassAttendanceSession,
   DEFAULT_SEMESTER_MEETING_TARGET,
-} from "@/components/dashboard-guru/data/guruClassData";
+} from "@/components/dashboard-guru/data/guruClassTypes";
 import AbsensiPertemuanTable from "@/components/dashboard-guru/detail-kelas/AbsensiPertemuanTable";
 import BelumDinilaiTable from "@/components/dashboard-guru/detail-kelas/BelumDinilaiTable";
 import DetailKelasSidebar from "@/components/dashboard-guru/detail-kelas/DetailKelasSidebar";
@@ -45,7 +45,7 @@ import {
   createEmptyNilai,
   createEmptyTugas,
   DETAIL_SECTION_ITEMS,
-} from "@/components/dashboard-guru/detail-kelas/dummy";
+} from "@/components/dashboard-guru/detail-kelas/helpers";
 import type {
   DetailSection,
   DialogMode,

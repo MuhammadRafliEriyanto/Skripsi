@@ -7,11 +7,7 @@ import {
   Users,
 } from "lucide-react";
 
-import type { ClassDetailData } from "@/components/dashboard-guru/data/guruClassData";
-import {
-  hasGuruClassDetail,
-  resolveGuruClassDetail,
-} from "@/components/dashboard-guru/data/guruClassData";
+import type { ClassDetailData } from "@/components/dashboard-guru/data/guruClassTypes";
 
 import type {
   DetailSectionItem,
@@ -92,7 +88,7 @@ function extractPertemuanKe(label: string) {
   return Number.isFinite(parsed) ? parsed : 1;
 }
 
-function createLocalId(prefix: string) {
+function createClientDraftId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
@@ -139,8 +135,8 @@ export function createInitialMateri(activeClass: ClassDetailData): MateriPertemu
 }
 
 export function createInitialTugas(activeClass: ClassDetailData): TugasPertemuan[] {
-  return activeClass.assignments.map((assignment, index) => ({
-    id: `${activeClass.kelasId}-tugas-${index + 1}`,
+  return activeClass.assignments.map((assignment) => ({
+    id: `${activeClass.kelasId}-tugas-${extractPertemuanKe(assignment.meeting)}`,
     kelasId: activeClass.kelasId,
     pertemuanKe: extractPertemuanKe(assignment.meeting),
     judulTugas: assignment.title,
@@ -177,7 +173,7 @@ export function createEmptyMateri(
   pertemuanKe: number,
 ): MateriPertemuan {
   return {
-    id: createLocalId("materi"),
+    id: createClientDraftId("materi"),
     kelasId,
     pertemuanKe,
     tanggal: "",
@@ -193,7 +189,7 @@ export function createEmptyTugas(
   pertemuanKe: number,
 ): TugasPertemuan {
   return {
-    id: createLocalId("tugas"),
+    id: createClientDraftId("tugas"),
     kelasId,
     pertemuanKe,
     judulTugas: "",
@@ -221,5 +217,3 @@ export function createEmptyNilai(studentId: string): NilaiSiswa {
     note: "",
   };
 }
-
-export { hasGuruClassDetail, resolveGuruClassDetail };

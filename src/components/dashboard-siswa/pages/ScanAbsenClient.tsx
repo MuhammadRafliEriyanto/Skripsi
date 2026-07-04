@@ -50,6 +50,14 @@ function parseSearchParamsPayload(params: URLSearchParams) {
   return { sessionId, token } satisfies AttendanceQrPayload;
 }
 
+function getQrUrlParseBase() {
+  if (typeof window !== "undefined") {
+    return window.location.origin;
+  }
+
+  return process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://bimbel-app.invalid";
+}
+
 function parseAttendanceQrPayload(decodedText: string) {
   const rawValue = normalizeText(decodedText);
 
@@ -58,10 +66,7 @@ function parseAttendanceQrPayload(decodedText: string) {
   }
 
   try {
-    const url = new URL(
-      rawValue,
-      typeof window === "undefined" ? "http://localhost" : window.location.origin,
-    );
+    const url = new URL(rawValue, getQrUrlParseBase());
     const payload = parseSearchParamsPayload(url.searchParams);
 
     if (payload) {

@@ -29,7 +29,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { dashboardConfigs, type DashboardRole } from "@/lib/dashboard-data";
+import { dashboardConfigs, type DashboardRole } from "@/lib/dashboard-navigation";
 
 type TopbarProps = {
   role: DashboardRole;

@@ -1,6 +1,14 @@
 import mongoose from "mongoose";
+import dotenv from "dotenv";
+import path from "path";
 
-const MONGO_URI = "mongodb+srv://raflimhmmd621_db_user:MuhRafli310104*@cluster0.ahx9jjw.mongodb.net/bimbel-lms?retryWrites=true&w=majority&appName=Cluster0";
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
+
+const MONGO_URI = process.env.MONGO_URI ?? "";
+
+if (!MONGO_URI) {
+  throw new Error("MONGO_URI wajib diatur di backend/.env sebelum menjalankan script ini.");
+}
 
 async function main() {
   try {

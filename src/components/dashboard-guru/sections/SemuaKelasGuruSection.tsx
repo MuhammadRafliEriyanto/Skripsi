@@ -25,7 +25,7 @@ import {
   type ClassStatus,
   type GuruClassSummary,
   type JenjangFilter,
-} from "@/components/dashboard-guru/data/guruClassData";
+} from "@/components/dashboard-guru/data/guruClassTypes";
 
 type FilterKey = "all" | "weekly" | "pending";
 type GuruClassSummaryWithBranch = GuruClassSummary & { branch: string };

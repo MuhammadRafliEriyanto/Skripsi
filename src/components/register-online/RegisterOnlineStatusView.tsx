@@ -21,7 +21,6 @@ import {
   MembershipRequestError,
   formatRupiah,
   membershipService,
-  getPriceByClass,
   type MembershipAccessStatus,
   type MembershipPayment,
   type MembershipStatusResponse,
@@ -369,7 +368,7 @@ export default function RegisterOnlineStatusView({
       } else if (error instanceof Error && error.message) {
         setErrorMessage(error.message);
       } else {
-        setErrorMessage("Konfirmasi pembayaran dummy belum berhasil diproses.");
+        setErrorMessage("Konfirmasi pembayaran belum berhasil diproses.");
       }
     } finally {
       setConfirmingPayment(false);
@@ -435,11 +434,15 @@ export default function RegisterOnlineStatusView({
                     <AccessIcon className="size-7" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-black text-slate-900 truncate">{statusData ? "Paket 1 Tahun (2 Semester)" : "-"}</h3>
+                    <h3 className="text-lg font-black text-slate-900 truncate">
+                      {statusData?.subscription?.packageName ?? statusData?.payment?.packageName ?? "-"}
+                    </h3>
                     <p className="text-xs font-medium text-slate-500 mt-0.5">{summaryDuration} aktif</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-black text-orange-600">{statusData?.payment ? formatRupiah(getPriceByClass(statusData.student?.className)) : "-"}</p>
+                    <p className="text-lg font-black text-orange-600">
+                      {statusData?.payment ? formatRupiah(statusData.payment.amount) : "-"}
+                    </p>
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter mt-1">{paymentStatus ?? "pending"}</p>
                   </div>
                 </div>

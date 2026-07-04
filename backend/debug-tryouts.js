@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
+require('dotenv').config();
 
-const uri = "mongodb+srv://raflimhmmd621_db_user:MuhRafli310104*@cluster0.ahx9jjw.mongodb.net/bimbel-lms?retryWrites=true&w=majority&appName=Cluster0";
+const uri = process.env.MONGO_URI;
+
+if (!uri) {
+  throw new Error('MONGO_URI is required. Set it in backend/.env before running this script.');
+}
 
 mongoose.connect(uri)
   .then(async () => {

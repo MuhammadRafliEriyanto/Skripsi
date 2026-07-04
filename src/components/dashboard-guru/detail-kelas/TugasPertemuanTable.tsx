@@ -8,7 +8,7 @@ import {
   Trash2,
 } from "lucide-react";
 
-import { formatDisplayDate } from "./dummy";
+import { formatDisplayDate } from "./helpers";
 import type { TugasPertemuanTableProps } from "./types";
 
 const ACTION_ICON_CLASS = "h-4 w-4 shrink-0";

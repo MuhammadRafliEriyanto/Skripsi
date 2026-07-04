@@ -21,7 +21,7 @@ import type {
   StudentTaskSubmissionDetail,
   StudentTaskSubmissionSummary,
   SubmissionMode,
-} from "../data/learning-data";
+} from "../data/learning-types";
 
 type FlexibleSubmissionPanelProps = {
   taskId: string;

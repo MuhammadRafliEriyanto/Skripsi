@@ -26,10 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  CLASS_OPTIONS_BY_PROGRAM,
   MembershipRequestError,
-  ONLINE_PACKAGES,
-  PROGRAM_OPTIONS,
   formatRupiah,
   getPackageByKey,
   membershipService,
@@ -39,17 +36,18 @@ import {
   type RegisterOnlinePayload,
   getPriceByClassAndPackage,
 } from "@/lib/subscription";
+import { useSubscriptionConfig } from "@/lib/use-subscription-config";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
 
 type RegisterOnlineViewProps = {
-  initialPackageKey?: OnlinePackageKey;
+  initialPackageKey?: string;
 };
 
-function resolvePackageKey(packageKey?: OnlinePackageKey): OnlinePackageKey {
-  return packageKey && (packageKey as string) !== "12-bulan" ? packageKey : "2-semester";
+function resolvePackageKey(packageKey?: string): OnlinePackageKey {
+  return packageKey && packageKey !== "12-bulan" ? packageKey : "";
 }
 
 function normalizeRegisterPath(path?: string | null) {
@@ -101,10 +99,18 @@ function FormSection({
 
 export default function RegisterOnlineView({ initialPackageKey }: RegisterOnlineViewProps) {
   const router = useRouter();
+  const {
+    config: subscriptionConfig,
+    isLoading: isSubscriptionConfigLoading,
+    error: subscriptionConfigError,
+  } = useSubscriptionConfig();
   const resolvedInitialPackageKey = useMemo(
     () => resolvePackageKey(initialPackageKey),
     [initialPackageKey],
   );
+  const packageOptions = subscriptionConfig.packages;
+  const programOptions = subscriptionConfig.programs;
+  const classOptionsByProgram = subscriptionConfig.classOptionsByProgram;
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -116,23 +122,63 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
     email: "",
     phone: "",
     branch: "",
-    program: "SMP",
-    classLevel: "Kelas 7",
+    program: "",
+    classLevel: "",
     packageKey: resolvedInitialPackageKey,
   }));
 
   const classOptions = useMemo(
-    () => CLASS_OPTIONS_BY_PROGRAM[formValues.program],
-    [formValues.program],
+    () => classOptionsByProgram[formValues.program] ?? [],
+    [classOptionsByProgram, formValues.program],
   );
   
-  const basePackage = getPackageByKey(formValues.packageKey);
-  const dynamicAmount = getPriceByClassAndPackage(formValues.classLevel, formValues.packageKey);
+  const basePackage = getPackageByKey(formValues.packageKey, packageOptions);
+  const dynamicAmount = getPriceByClassAndPackage(
+    formValues.classLevel,
+    formValues.packageKey,
+    subscriptionConfig.classPricingMatrix,
+    packageOptions,
+  );
   const selectedPackage = { 
-    ...basePackage, 
+    durationMonth: basePackage?.durationMonth ?? 0,
     amount: dynamicAmount, 
     packageName: basePackage?.packageName ?? "Paket Belajar" 
   };
+
+  useEffect(() => {
+    if (!packageOptions.length || !programOptions.length) {
+      return;
+    }
+
+    setFormValues((current) => {
+      const nextProgram = programOptions.some((item) => item.value === current.program)
+        ? current.program
+        : programOptions[0]?.value ?? "";
+      const nextClassOptions = classOptionsByProgram[nextProgram] ?? [];
+      const nextClassLevel = nextClassOptions.includes(current.classLevel)
+        ? current.classLevel
+        : nextClassOptions[0] ?? "";
+      const nextPackageKey = packageOptions.some(
+        (item) => item.packageKey === current.packageKey,
+      )
+        ? current.packageKey
+        : packageOptions.some((item) => item.packageKey === resolvedInitialPackageKey)
+          ? resolvedInitialPackageKey
+          : packageOptions[0]?.packageKey ?? "";
+
+      return {
+        ...current,
+        program: nextProgram,
+        classLevel: nextClassLevel,
+        packageKey: nextPackageKey,
+      };
+    });
+  }, [
+    classOptionsByProgram,
+    packageOptions,
+    programOptions,
+    resolvedInitialPackageKey,
+  ]);
 
   useEffect(() => {
     let isMounted = true;
@@ -222,7 +268,7 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
   }
 
   function updateProgram(programValue: ProgramOptionValue) {
-    const nextClassOptions = CLASS_OPTIONS_BY_PROGRAM[programValue];
+    const nextClassOptions = classOptionsByProgram[programValue] ?? [];
 
     setFormValues((current) => ({
       ...current,
@@ -241,7 +287,15 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
   }
 
   const isSubmitDisabled =
-    loading || branchOptionsLoading || Boolean(branchOptionsError) || !branchOptions.length;
+    loading ||
+    isSubscriptionConfigLoading ||
+    Boolean(subscriptionConfigError) ||
+    !packageOptions.length ||
+    !programOptions.length ||
+    !classOptions.length ||
+    branchOptionsLoading ||
+    Boolean(branchOptionsError) ||
+    !branchOptions.length;
 
   return (
     <AuthShell
@@ -401,7 +455,7 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
                     <SelectValue placeholder="Pilih program" />
                   </SelectTrigger>
                   <SelectContent>
-                    {PROGRAM_OPTIONS.map((option) => (
+                    {programOptions.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
                       </SelectItem>
@@ -500,9 +554,14 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
             </div>
 
             <div className="grid gap-3">
-              {ONLINE_PACKAGES.map((item) => {
+              {packageOptions.map((item) => {
                 const isActive = formValues.packageKey === item.packageKey;
-                const displayAmount = getPriceByClassAndPackage(formValues.classLevel, item.packageKey);
+                const displayAmount = getPriceByClassAndPackage(
+                  formValues.classLevel,
+                  item.packageKey,
+                  subscriptionConfig.classPricingMatrix,
+                  packageOptions,
+                );
                 const displayName = item.packageName;
 
                 return (
@@ -558,14 +617,22 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
                 );
               })}
             </div>
-            <InputError message={fieldErrors.packageKey} />
+            <InputError
+              message={
+                fieldErrors.packageKey ||
+                subscriptionConfigError ||
+                (!isSubscriptionConfigLoading && !packageOptions.length
+                  ? "Paket membership belum tersedia dari server."
+                  : "")
+              }
+            />
             
             {/* Rincian Harga Card */}
             <div className="mt-4 rounded-3xl border border-slate-200/60 bg-slate-50/50 p-6 shadow-inner">
               <div className="mb-4 flex items-center gap-2">
                 <Info className="size-4 text-slate-400" />
                 <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                  Rincian Harga {ONLINE_PACKAGES.find((p) => p.packageKey === formValues.packageKey)?.packageName || "Paket Belajar"}
+                  Rincian Harga {packageOptions.find((p) => p.packageKey === formValues.packageKey)?.packageName || "Paket Belajar"}
                 </h4>
               </div>
               <ul className="grid gap-2.5 sm:grid-cols-2">
@@ -578,7 +645,12 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
                   { label: "Kelas 10–11", cls: "Kelas 10" },
                   { label: "Kelas 12", cls: "Kelas 12" },
                 ].map((tier, idx) => {
-                  const currentPrice = getPriceByClassAndPackage(tier.cls, formValues.packageKey);
+                  const currentPrice = getPriceByClassAndPackage(
+                    tier.cls,
+                    formValues.packageKey,
+                    subscriptionConfig.classPricingMatrix,
+                    packageOptions,
+                  );
                   return (
                     <li key={idx} className="flex items-center justify-between text-sm rounded-xl bg-white px-4 py-2 border border-slate-100 shadow-sm">
                       <span className="font-medium text-slate-500">{tier.label}</span>

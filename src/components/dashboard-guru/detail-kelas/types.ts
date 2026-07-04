@@ -4,7 +4,7 @@ import type {
   ClassAttendanceSession,
   ClassDetailData,
   ClassStudent,
-} from "@/components/dashboard-guru/data/guruClassData";
+} from "@/components/dashboard-guru/data/guruClassTypes";
 import type { AcademicGradeScheme, AcademicScores } from "@/lib/academic-grades";
 import type { AcademicScoreKey } from "@/lib/academic-grades";
 

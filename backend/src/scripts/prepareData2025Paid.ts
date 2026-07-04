@@ -7,7 +7,11 @@ import { resolveRenewalWindow } from "../utils/membershipPayments";
 
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
-const MONGO_URI = process.env.MONGO_URI ?? "mongodb://127.0.0.1:27017/bimbel_db";
+const MONGO_URI = process.env.MONGO_URI ?? "";
+
+if (!MONGO_URI) {
+  throw new Error("MONGO_URI is required. Set it in backend/.env before running this script.");
+}
 
 async function run() {
   const isDryRun = !process.argv.includes("--apply");

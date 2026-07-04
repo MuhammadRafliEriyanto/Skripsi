@@ -38,9 +38,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  CLASS_OPTIONS_BY_PROGRAM,
   MembershipRequestError,
-  ONLINE_PACKAGES,
   findPackageByName,
   formatDateLabel,
   formatRupiah,
@@ -49,7 +47,9 @@ import {
   type OnlinePackageKey,
   type ProgramOptionValue,
   type MembershipStatusData,
+  type OnlinePackageDefinition,
 } from "@/lib/subscription";
+import { useSubscriptionConfig } from "@/lib/use-subscription-config";
 
 type MembershipOverview = {
   studentName: string;
@@ -105,13 +105,16 @@ type RenewalFeedback = {
 } | null;
 
 const defaultRenewalFormValues: RenewalFormValues = {
-  program: "SMP",
-  classLevel: "Kelas 7",
-  packageKey: "1-semester",
+  program: "",
+  classLevel: "",
+  packageKey: "",
 };
 
-function isOnlinePackageKey(value: string | null | undefined): value is OnlinePackageKey {
-  return value === "1-semester" || value === "2-semester";
+function isOnlinePackageKey(
+  value: string | null | undefined,
+  packages: OnlinePackageDefinition[],
+): value is OnlinePackageKey {
+  return packages.some((item) => item.packageKey === value);
 }
 
 function extractGrade(value: string | null | undefined) {
@@ -159,11 +162,12 @@ function inferProgramFromOverview(
 function inferClassLevelFromClassName(
   overview: MembershipOverview,
   program: ProgramOptionValue,
+  classOptionsByProgram: Record<string, string[]>,
 ) {
   const grade = extractGrade(overview.className) ?? "";
   const classLevel = grade ? `Kelas ${grade}` : "";
 
-  const classOptions = CLASS_OPTIONS_BY_PROGRAM[program] as readonly string[];
+  const classOptions = classOptionsByProgram[program] ?? [];
 
   return classOptions.includes(classLevel) ? classLevel : null;
 }
@@ -171,8 +175,9 @@ function inferClassLevelFromClassName(
 function getSuggestedRenewalClass(
   program: ProgramOptionValue,
   classLevel: string,
+  classOptionsByProgram: Record<string, string[]>,
 ): Pick<RenewalFormValues, "program" | "classLevel"> {
-  const classOptions = CLASS_OPTIONS_BY_PROGRAM[program] as readonly string[];
+  const classOptions = classOptionsByProgram[program] ?? [];
   const currentIndex = classOptions.indexOf(classLevel);
 
   if (currentIndex >= 0 && currentIndex < classOptions.length - 1) {
@@ -182,17 +187,16 @@ function getSuggestedRenewalClass(
     };
   }
 
-  if (program === "SD" && classLevel === "Kelas 6") {
-    return {
-      program: "SMP",
-      classLevel: "Kelas 7",
-    };
-  }
+  const programOrder = Object.keys(classOptionsByProgram);
+  const nextProgram = programOrder[programOrder.indexOf(program) + 1];
+  const nextProgramClassOptions = nextProgram
+    ? classOptionsByProgram[nextProgram] ?? []
+    : [];
 
-  if (program === "SMP" && classLevel === "Kelas 9") {
+  if (currentIndex === classOptions.length - 1 && nextProgramClassOptions[0]) {
     return {
-      program: "SMA",
-      classLevel: "Kelas 10",
+      program: nextProgram,
+      classLevel: nextProgramClassOptions[0],
     };
   }
 
@@ -208,6 +212,7 @@ function formatClassTargetLabel(program: ProgramOptionValue, classLevel: string)
 
 function resolveRenewalClassSuggestion(
   overview: MembershipOverview,
+  classOptionsByProgram: Record<string, string[]>,
 ): RenewalClassSuggestion | null {
   if (overview.studentId === "-") {
     return null;
@@ -219,13 +224,21 @@ function resolveRenewalClassSuggestion(
     return null;
   }
 
-  const classLevel = inferClassLevelFromClassName(overview, program);
+  const classLevel = inferClassLevelFromClassName(
+    overview,
+    program,
+    classOptionsByProgram,
+  );
 
   if (!classLevel) {
     return null;
   }
 
-  const suggestedClass = getSuggestedRenewalClass(program, classLevel);
+  const suggestedClass = getSuggestedRenewalClass(
+    program,
+    classLevel,
+    classOptionsByProgram,
+  );
 
   return {
     ...suggestedClass,
@@ -237,14 +250,21 @@ function resolveRenewalClassSuggestion(
   };
 }
 
-function buildRenewalFormDefaults(overview: MembershipOverview): RenewalFormValues {
-  const suggestedClass = resolveRenewalClassSuggestion(overview);
+function buildRenewalFormDefaults(
+  overview: MembershipOverview,
+  classOptionsByProgram: Record<string, string[]>,
+  packages: OnlinePackageDefinition[],
+): RenewalFormValues {
+  const suggestedClass = resolveRenewalClassSuggestion(
+    overview,
+    classOptionsByProgram,
+  );
 
   return {
     ...(suggestedClass ?? defaultRenewalFormValues),
-    packageKey: isOnlinePackageKey(overview.packageKey)
+    packageKey: isOnlinePackageKey(overview.packageKey, packages)
       ? overview.packageKey
-      : defaultRenewalFormValues.packageKey,
+      : packages[0]?.packageKey ?? "",
   };
 }
 
@@ -295,13 +315,14 @@ function formatPaymentStatusLabel(status: string | null | undefined) {
 
 function buildMembershipOverview(
   data: MembershipStatusData | undefined | null,
+  packages: OnlinePackageDefinition[],
 ): MembershipOverview {
   if (!data) {
     return emptyOverview;
   }
 
   const resolvedPackage =
-    findPackageByName(data.subscription?.packageName) ??
+    findPackageByName(data.subscription?.packageName, packages) ??
     (data.subscription?.durationMonth
       ? {
           packageName: data.subscription.packageName,
@@ -444,6 +465,12 @@ function PaymentPolicyCopy({
 }
 
 export default function TagihanSiswaPageView() {
+  const {
+    config: subscriptionConfig,
+    isLoading: isSubscriptionConfigLoading,
+  } = useSubscriptionConfig();
+  const packageOptions = subscriptionConfig.packages;
+  const classOptionsByProgram = subscriptionConfig.classOptionsByProgram;
   const [overview, setOverview] = useState<MembershipOverview>(emptyOverview);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -463,12 +490,18 @@ export default function TagihanSiswaPageView() {
 
     try {
       const response = await membershipService.getMySubscription();
-      const nextOverview = buildMembershipOverview(response.data);
+      const nextOverview = buildMembershipOverview(response.data, packageOptions);
       const previousClassName = lastLoadedClassNameRef.current;
 
       lastLoadedClassNameRef.current = nextOverview.className;
       setOverview(nextOverview);
-      setRenewalFormValues(buildRenewalFormDefaults(nextOverview));
+      setRenewalFormValues(
+        buildRenewalFormDefaults(
+          nextOverview,
+          classOptionsByProgram,
+          packageOptions,
+        ),
+      );
 
       if (
         previousClassName !== null &&
@@ -518,7 +551,16 @@ export default function TagihanSiswaPageView() {
     }
   }, [overview.paymentStatus]);
 
-  const renewalClassSuggestion = resolveRenewalClassSuggestion(overview);
+  useEffect(() => {
+    setRenewalFormValues(
+      buildRenewalFormDefaults(overview, classOptionsByProgram, packageOptions),
+    );
+  }, [classOptionsByProgram, overview, packageOptions]);
+
+  const renewalClassSuggestion = resolveRenewalClassSuggestion(
+    overview,
+    classOptionsByProgram,
+  );
   const effectiveRenewalFormValues: RenewalFormValues = {
     ...renewalFormValues,
     ...(renewalClassSuggestion
@@ -529,11 +571,14 @@ export default function TagihanSiswaPageView() {
       : {}),
   };
   const selectedRenewalPackage =
-    ONLINE_PACKAGES.find((item) => item.packageKey === effectiveRenewalFormValues.packageKey) ??
-    ONLINE_PACKAGES[0];
+    packageOptions.find((item) => item.packageKey === effectiveRenewalFormValues.packageKey) ??
+    packageOptions[0] ??
+    null;
   const selectedRenewalAmount = getPriceByClassAndPackage(
     effectiveRenewalFormValues.classLevel,
     effectiveRenewalFormValues.packageKey,
+    subscriptionConfig.classPricingMatrix,
+    packageOptions,
   );
   const renewalTargetClassLabel =
     renewalClassSuggestion?.targetClassLabel ??
@@ -544,6 +589,8 @@ export default function TagihanSiswaPageView() {
   const canCreateRenewal =
     overview.studentId !== "-" &&
     Boolean(renewalClassSuggestion) &&
+    !isSubscriptionConfigLoading &&
+    packageOptions.length > 0 &&
     overview.accessStatus !== "not_registered" &&
     overview.paymentStatus !== "pending";
   const renewalUnavailableMessage = !renewalClassSuggestion
@@ -776,7 +823,7 @@ export default function TagihanSiswaPageView() {
 
                   <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3">
                     <p className="text-xs font-medium text-slate-500">
-                      {selectedRenewalPackage.packageName}
+                      {selectedRenewalPackage?.packageName ?? "Paket belum tersedia"}
                     </p>
                     <p className="mt-1 text-xl font-semibold tracking-tight text-slate-950">
                       {formatRupiah(selectedRenewalAmount)}
@@ -918,13 +965,15 @@ export default function TagihanSiswaPageView() {
                     <SelectValue placeholder="Pilih paket" />
                   </SelectTrigger>
                   <SelectContent>
-                    {ONLINE_PACKAGES.map((item) => (
+                    {packageOptions.map((item) => (
                       <SelectItem key={item.packageKey} value={item.packageKey}>
                         {item.packageName} |{" "}
                         {formatRupiah(
                           getPriceByClassAndPackage(
                             effectiveRenewalFormValues.classLevel,
                             item.packageKey,
+                            subscriptionConfig.classPricingMatrix,
+                            packageOptions,
                           ),
                         )}
                       </SelectItem>
@@ -939,7 +988,7 @@ export default function TagihanSiswaPageView() {
                     Total Tagihan
                   </p>
                   <p className="mt-1 truncate text-xs text-slate-500">
-                    {selectedRenewalPackage.packageName} | {renewalTargetClassLabel}
+                    {selectedRenewalPackage?.packageName ?? "Paket belum tersedia"} | {renewalTargetClassLabel}
                   </p>
                 </div>
                 <p className="shrink-0 text-lg font-semibold tracking-tight text-slate-950">

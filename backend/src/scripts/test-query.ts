@@ -6,8 +6,13 @@ dotenv.config();
 import { Schedule } from "../models/Schedule";
 
 async function runTest() {
-  const uri = process.env.MONGO_URI || "mongodb://localhost:27017/bimbel-lms";
-  console.log(`Connecting to MongoDB at: ${uri}`);
+  const uri = process.env.MONGO_URI;
+
+  if (!uri) {
+    throw new Error("MONGO_URI is required. Set it in backend/.env before running this script.");
+  }
+
+  console.log("Connecting to MongoDB from MONGO_URI.");
 
   try {
     await mongoose.connect(uri);
