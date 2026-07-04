@@ -4,12 +4,58 @@ import { AUTH_TOKEN_COOKIE_NAME, type ApiResponse } from "@/lib/auth";
 
 type BackendPayload = ApiResponse<Record<string, unknown>>;
 
+function buildInvalidBackendResponse(
+  fallbackMessage: string,
+  response?: Response,
+  rawBody?: string,
+) {
+  const contentType = response?.headers.get("content-type")?.trim() || "unknown";
+  const responseStatus = response
+    ? `${response.status}${response.statusText ? ` ${response.statusText}` : ""}`
+    : "unknown";
+  const bodyPreview = rawBody?.trim().slice(0, 500) || "";
+
+  return {
+    success: false,
+    message:
+      bodyPreview && bodyPreview.startsWith("<")
+        ? `${fallbackMessage} (backend mengembalikan HTML ${responseStatus}).`
+        : bodyPreview
+          ? `${fallbackMessage} (${responseStatus}).`
+          : fallbackMessage,
+    errorCode: "BACKEND_INVALID_RESPONSE",
+    errors: {
+      contentType,
+      status: responseStatus,
+      bodyPreview,
+    },
+  } satisfies BackendPayload;
+}
+
+async function readBackendPayload(response: Response, fallbackMessage: string) {
+  const rawBody = await response.text().catch(() => "");
+  const trimmedBody = rawBody.trim();
+  const contentType = response.headers.get("content-type")?.toLowerCase() || "";
+  const looksJson =
+    contentType.includes("json") || trimmedBody.startsWith("{") || trimmedBody.startsWith("[");
+
+  if (trimmedBody && looksJson) {
+    try {
+      return JSON.parse(rawBody) as BackendPayload;
+    } catch {
+      // Fall through to the structured error payload below.
+    }
+  }
+
+  return buildInvalidBackendResponse(fallbackMessage, response, rawBody);
+}
+
 function getBackendConfig() {
-  const baseUrl = process.env.AUTH_API_URL?.trim();
+  const baseUrl = process.env.AUTH_API_URL?.trim() || process.env.BACKEND_URL?.trim();
   const apiKey = process.env.AUTH_API_KEY?.trim();
 
   if (!baseUrl) {
-    throw new Error("AUTH_API_URL belum diatur pada .env.local root frontend.");
+    throw new Error("AUTH_API_URL atau BACKEND_URL belum diatur pada environment frontend.");
   }
 
   if (!apiKey) {
@@ -73,10 +119,10 @@ export async function proxyPublicBackend(path: string, init: RequestInit = {}) {
       headers,
       cache: "no-store",
     });
-    const payload = (await response.json().catch(() => ({
-      success: false,
-      message: "Backend mengembalikan respons yang tidak valid.",
-    }))) as BackendPayload;
+    const payload = await readBackendPayload(
+      response,
+      "Backend mengembalikan respons yang tidak valid.",
+    );
 
     return NextResponse.json(payload, {
       status: response.status,
@@ -99,12 +145,22 @@ export async function proxyPublicBackend(path: string, init: RequestInit = {}) {
   }
 }
 
+function getRequestAuthToken(request: NextRequest) {
+  const authorizationHeader = request.headers.get("authorization")?.trim();
+
+  if (authorizationHeader?.toLowerCase().startsWith("bearer ")) {
+    return authorizationHeader.slice(7).trim();
+  }
+
+  return request.cookies.get(AUTH_TOKEN_COOKIE_NAME)?.value;
+}
+
 export async function proxyProtectedBackend(
   request: NextRequest,
   path: string,
   init: RequestInit = {},
 ) {
-  const token = request.cookies.get(AUTH_TOKEN_COOKIE_NAME)?.value;
+  const token = getRequestAuthToken(request);
 
   if (!token) {
     return buildAuthErrorResponse();
@@ -113,14 +169,9 @@ export async function proxyProtectedBackend(
   try {
     const { baseUrl, apiKey } = getBackendConfig();
     const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-    
-    const url = new URL(normalizedPath, baseUrl);
-    request.nextUrl.searchParams.forEach((value, key) => {
-      if (!url.searchParams.has(key)) {
-        url.searchParams.append(key, value);
-      }
-    });
-    const targetUrl = url.toString();
+    const targetUrl = `${baseUrl}${normalizedPath}${
+      normalizedPath.includes("?") ? "" : request.nextUrl.search
+    }`;
     const headers = new Headers(init.headers);
 
     headers.set("x-api-key", apiKey);
@@ -135,10 +186,10 @@ export async function proxyProtectedBackend(
       headers,
       cache: "no-store",
     });
-    const payload = (await response.json().catch(() => ({
-      success: false,
-      message: "Backend mengembalikan respons yang tidak valid.",
-    }))) as BackendPayload;
+    const payload = await readBackendPayload(
+      response,
+      "Backend mengembalikan respons yang tidak valid.",
+    );
 
     return NextResponse.json(payload, {
       status: response.status,
@@ -166,7 +217,7 @@ export async function proxyProtectedBackendRaw(
   path: string,
   init: RequestInit = {},
 ) {
-  const token = request.cookies.get(AUTH_TOKEN_COOKIE_NAME)?.value;
+  const token = getRequestAuthToken(request);
 
   if (!token) {
     return buildAuthErrorResponse();
@@ -175,14 +226,7 @@ export async function proxyProtectedBackendRaw(
   try {
     const { baseUrl, apiKey } = getBackendConfig();
     const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-    
-    const url = new URL(normalizedPath, baseUrl);
-    request.nextUrl.searchParams.forEach((value, key) => {
-      if (!url.searchParams.has(key)) {
-        url.searchParams.append(key, value);
-      }
-    });
-    const targetUrl = url.toString();
+    const targetUrl = `${baseUrl}${normalizedPath}`;
     const headers = new Headers(init.headers);
 
     headers.set("x-api-key", apiKey);

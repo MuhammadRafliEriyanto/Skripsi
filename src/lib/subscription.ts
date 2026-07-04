@@ -1,3 +1,4 @@
+import { readPersistedAuthToken } from "@/lib/auth";
 import type { ApiErrorDetails, ApiResponse } from "@/lib/auth";
 
 export type OnlinePackageKey = string;
@@ -255,6 +256,11 @@ async function requestMembershipJson<T extends Record<string, unknown>>(
   init: RequestInit,
 ): Promise<ApiResponse<T>> {
   const headers = new Headers(init.headers);
+  const storedToken = readPersistedAuthToken();
+
+  if (storedToken && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${storedToken}`);
+  }
 
   if (!headers.has("Content-Type") && init.body) {
     headers.set("Content-Type", "application/json");

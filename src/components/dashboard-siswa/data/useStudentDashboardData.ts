@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { clearAuthClientState } from "@/lib/auth";
-
+import { withStoredAuthHeader } from "@/lib/auth";
 import { subscribeStudentDashboardRefresh } from "../student-dashboard-refresh-events";
 import type { StudentAcademicAccess } from "./studentAcademicAccess";
 
@@ -68,6 +67,7 @@ export function useStudentDashboardData() {
       try {
         const response = await fetch("/api/student/me/dashboard", {
           method: "GET",
+          ...withStoredAuthHeader(),
           credentials: "include",
           cache: "no-store",
         });
@@ -80,7 +80,6 @@ export function useStudentDashboardData() {
         }
 
         if (response.status === 401) {
-          clearAuthClientState();
           setDashboardData(null);
           setLoadError("Sesi login berakhir. Silakan login ulang.");
           return;

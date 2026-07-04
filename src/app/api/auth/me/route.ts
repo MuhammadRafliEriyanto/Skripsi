@@ -7,7 +7,11 @@ import { proxyProtectedBackend, readRequestBody } from "@/lib/backend-route";
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get(AUTH_TOKEN_COOKIE_NAME)?.value;
+    const authorizationHeader = request.headers.get("authorization")?.trim();
+    const token =
+      authorizationHeader?.toLowerCase().startsWith("bearer ")
+        ? authorizationHeader.slice(7).trim()
+        : request.cookies.get(AUTH_TOKEN_COOKIE_NAME)?.value;
 
     if (!token) {
       return NextResponse.json(

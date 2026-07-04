@@ -38,6 +38,7 @@ import {
   getRedirectPathForRole,
   persistAuthUser,
   readPersistedAuthUser,
+  withStoredAuthHeader,
   type AuthUser,
 } from "@/lib/auth";
 import {
@@ -310,12 +311,10 @@ export default function SiswaTopbar() {
         error instanceof MembershipRequestError &&
         (error.status === 401 || error.status === 403)
       ) {
-        clearAuthClientState();
-        setCurrentUser(null);
-        setProfile(fallbackProfile);
-        setNotifications([]);
-        setUnreadCount(0);
-        redirectToLogin();
+        console.warn("[siswa-topbar] membership_profile_unavailable", {
+          status: error.status,
+          errorCode: error.errorCode,
+        });
         return;
       }
 
@@ -329,6 +328,7 @@ export default function SiswaTopbar() {
     try {
       const response = await fetch("/api/student/me/notifications", {
         method: "GET",
+        ...withStoredAuthHeader(),
         credentials: "include",
         cache: "no-store",
       });
@@ -349,12 +349,11 @@ export default function SiswaTopbar() {
       }
 
       if (response.status === 401 || response.status === 403) {
-        clearAuthClientState();
-        setCurrentUser(null);
-        setProfile(fallbackProfile);
         setNotifications([]);
         setUnreadCount(0);
-        redirectToLogin();
+        setNotificationsError(
+          payload?.message ?? "Notifikasi siswa belum bisa dimuat saat ini.",
+        );
         return;
       }
 

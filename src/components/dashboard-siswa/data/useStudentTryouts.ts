@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { clearAuthClientState } from "@/lib/auth";
-
+import { withStoredAuthHeader } from "@/lib/auth";
 import { subscribeStudentDashboardRefresh } from "../student-dashboard-refresh-events";
 import type { StudentAcademicAccess } from "./studentAcademicAccess";
 
@@ -74,6 +73,7 @@ export function useStudentTryouts() {
       try {
         const response = await fetch("/api/student/me/tryouts", {
           method: "GET",
+          ...withStoredAuthHeader(),
           credentials: "include",
           cache: "no-store",
         });
@@ -82,7 +82,6 @@ export function useStudentTryouts() {
         if (!isMounted) return;
 
         if (response.status === 401) {
-          clearAuthClientState();
           setTryouts([]);
           setAcademicAccess(null);
           setLoadError("Sesi login berakhir. Silakan login ulang.");

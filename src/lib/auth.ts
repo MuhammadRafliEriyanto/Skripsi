@@ -112,6 +112,7 @@ export const AUTH_TOKEN_COOKIE_NAME = "bimbel_auth_token";
 export const AUTH_ROLE_COOKIE_NAME = "bimbel_auth_role";
 export const AUTH_USER_STORAGE_KEY = "bimbel.auth.user";
 export const AUTH_ROLE_STORAGE_KEY = "bimbel.auth.role";
+export const AUTH_TOKEN_STORAGE_KEY = "bimbel.auth.token";
 export const AUTH_USER_UPDATED_EVENT = "bimbel:auth-user-updated";
 
 const ROLE_REDIRECT_MAP: Record<UserRole, string> = {
@@ -150,6 +151,12 @@ async function requestJson<T extends Record<string, unknown>>(
   const headers = new Headers(init.headers);
   const isFormDataBody =
     typeof FormData !== "undefined" && init.body instanceof FormData;
+
+  const storedToken = readPersistedAuthToken();
+
+  if (storedToken && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${storedToken}`);
+  }
 
   if (!isFormDataBody && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
@@ -280,6 +287,24 @@ export function persistAuthUser(user: AuthUser) {
   );
 }
 
+export function persistAuthToken(token: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+}
+
+export function readPersistedAuthToken() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const token = window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY)?.trim();
+
+  return token || null;
+}
+
 export function clearAuthClientState() {
   if (typeof window === "undefined") {
     return;
@@ -287,6 +312,7 @@ export function clearAuthClientState() {
 
   window.localStorage.removeItem(AUTH_USER_STORAGE_KEY);
   window.localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
+  window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
   window.dispatchEvent(
     new CustomEvent(AUTH_USER_UPDATED_EVENT, {
       detail: {
@@ -339,4 +365,18 @@ export function readPersistedAuthUser() {
     clearAuthClientState();
     return null;
   }
+}
+
+export function withStoredAuthHeader(init: RequestInit = {}) {
+  const headers = new Headers(init.headers);
+  const storedToken = readPersistedAuthToken();
+
+  if (storedToken && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${storedToken}`);
+  }
+
+  return {
+    ...init,
+    headers,
+  };
 }

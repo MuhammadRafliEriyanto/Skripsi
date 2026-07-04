@@ -220,7 +220,10 @@ export default function HeaderProfilSiswa({
         error instanceof MembershipRequestError &&
         (error.status === 401 || error.status === 403)
       ) {
-        clearAuthClientState();
+        console.warn("[header-profil-siswa] membership_profile_unavailable", {
+          status: error.status,
+          errorCode: error.errorCode,
+        });
         setProfile(fallbackStudentProfile);
         return;
       }

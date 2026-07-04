@@ -15,7 +15,11 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-import { clearAuthClientState, type ApiResponse } from "@/lib/auth";
+import {
+  clearAuthClientState,
+  type ApiResponse,
+  withStoredAuthHeader,
+} from "@/lib/auth";
 
 import type {
   StudentTaskSubmissionDetail,
@@ -225,12 +229,18 @@ export default function FlexibleSubmissionPanel({
 
     async function loadSubmissionDetail() {
       try {
+        const authInit = withStoredAuthHeader({
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
+        const headers = new Headers(authInit.headers);
+
         const response = await fetch(
           `/api/student/me/learning/tasks/${encodeURIComponent(taskId)}/submission`,
           {
-            method: "GET",
-            credentials: "include",
-            cache: "no-store",
+            ...authInit,
+            headers,
           },
         );
         const payload = (await response
@@ -399,14 +409,21 @@ export default function FlexibleSubmissionPanel({
     setIsSubmitting(true);
 
     try {
+      const authInit = withStoredAuthHeader({
+        method: shouldUsePatch ? "PATCH" : "POST",
+        credentials: "include",
+      });
+      const headers = new Headers(authInit.headers);
+
+      if (!headers.has("Content-Type")) {
+        headers.set("Content-Type", "application/json");
+      }
+
       const response = await fetch(
         `/api/student/me/learning/tasks/${encodeURIComponent(taskId)}/submission`,
         {
-          method: shouldUsePatch ? "PATCH" : "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
+          ...authInit,
+          headers,
           body: JSON.stringify(nextPayload),
         },
       );

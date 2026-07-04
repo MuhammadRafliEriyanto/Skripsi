@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { clearAuthClientState } from "@/lib/auth";
-
+import { withStoredAuthHeader } from "@/lib/auth";
 import { subscribeStudentDashboardRefresh } from "../student-dashboard-refresh-events";
 import type { StudentAcademicAccess } from "./studentAcademicAccess";
 import type {
@@ -421,6 +420,7 @@ export function useStudentLearningData() {
       try {
         const response = await fetch("/api/student/me/learning", {
           method: "GET",
+          ...withStoredAuthHeader(),
           credentials: "include",
           cache: "no-store",
         });
@@ -433,7 +433,6 @@ export function useStudentLearningData() {
         }
 
         if (response.status === 401) {
-          clearAuthClientState();
           setMaterials([]);
           setTasks([]);
           setAcademicSummaries([]);

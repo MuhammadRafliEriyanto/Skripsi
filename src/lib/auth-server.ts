@@ -37,13 +37,13 @@ function getPayloadMessage(payload: BackendPayload | null | undefined) {
 }
 
 function getAuthBackendConfig() {
-  const baseUrl = process.env.AUTH_API_URL?.trim();
+  const baseUrl = process.env.AUTH_API_URL?.trim() || process.env.BACKEND_URL?.trim();
   const apiKey = process.env.AUTH_API_KEY?.trim();
 
   if (!baseUrl) {
     throw new AuthBackendProxyError({
       status: 500,
-      message: "AUTH_API_URL belum diatur pada .env.local root frontend.",
+      message: "AUTH_API_URL atau BACKEND_URL belum diatur pada environment frontend.",
       errorCode: "AUTH_BACKEND_URL_MISSING",
     });
   }
@@ -51,7 +51,7 @@ function getAuthBackendConfig() {
   if (!apiKey) {
     throw new AuthBackendProxyError({
       status: 500,
-      message: "AUTH_API_KEY belum diatur pada .env.local root frontend.",
+      message: "AUTH_API_KEY belum diatur pada environment frontend.",
       errorCode: "AUTH_BACKEND_API_KEY_MISSING",
     });
   }
@@ -105,7 +105,7 @@ export async function callAuthBackend<T extends BackendPayload>(
 
     throw new AuthBackendProxyError({
       status: 502,
-      message: "Gagal menghubungi backend auth. Periksa AUTH_API_URL, port backend, dan status server backend.",
+      message: "Gagal menghubungi backend auth. Periksa AUTH_API_URL/BACKEND_URL, port backend, dan status server backend.",
       errorCode: "AUTH_BACKEND_UNREACHABLE",
     });
   }

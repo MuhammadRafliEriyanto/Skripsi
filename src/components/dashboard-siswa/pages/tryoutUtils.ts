@@ -1,3 +1,4 @@
+import { withStoredAuthHeader } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import type { StudentAcademicAccess } from "../data/studentAcademicAccess";
 
@@ -264,14 +265,20 @@ export function getOptionClass({
 }
 
 export async function fetchStudentTryoutJson<T>(url: string, init: RequestInit = {}) {
-  const response = await fetch(url, {
+  const authInit = withStoredAuthHeader({
     ...init,
     credentials: "include",
     cache: "no-store",
-    headers: {
-      "Content-Type": "application/json",
-      ...(init.headers ?? {}),
-    },
+  });
+  const headers = new Headers(authInit.headers);
+
+  if (init.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const response = await fetch(url, {
+    ...authInit,
+    headers,
   });
   const payload = (await response.json().catch(() => null)) as T | null;
 

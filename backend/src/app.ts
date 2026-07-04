@@ -1,6 +1,8 @@
 import cors from "cors";
 import express, { type NextFunction, type Request, type Response } from "express";
 
+import "./types/express";
+
 import branchFinanceRoutes from "./routes/branchFinanceRoutes";
 import branchIncomeRoutes from "./routes/branchIncomeRoutes";
 import branchRoutes from "./routes/branchRoutes";
@@ -21,10 +23,30 @@ import subscriptionRoutes from "./routes/subscriptionRoutes";
 import teacherRoutes from "./routes/teacherRoutes";
 import teacherScheduleRoutes from "./routes/teacherScheduleRoutes";
 import teacherTryoutRoutes from "./routes/teacherTryoutRoutes";
+import connectDB from "./config/db";
 import { AppError, sendSuccess } from "./utils/apiResponse";
+import { verifyEmailTransport } from "./utils/email";
 
 const app = express();
 const REQUEST_BODY_LIMIT = "20mb";
+let backendInitPromise: Promise<void> | null = null;
+
+function ensureBackendReady() {
+  if (!backendInitPromise) {
+    backendInitPromise = (async () => {
+      await connectDB();
+
+      void verifyEmailTransport().catch((error) => {
+        console.warn("SMTP init skipped on service runtime:", error);
+      });
+    })().catch((error) => {
+      backendInitPromise = null;
+      throw error;
+    });
+  }
+
+  return backendInitPromise;
+}
 
 app.use(
   cors({
@@ -34,6 +56,11 @@ app.use(
 );
 app.use(express.json({ limit: REQUEST_BODY_LIMIT }));
 app.use(express.urlencoded({ extended: true, limit: REQUEST_BODY_LIMIT }));
+app.use((_, __, next) => {
+  void ensureBackendReady()
+    .then(() => next())
+    .catch(next);
+});
 
 app.get("/api/health", (_req: Request, res: Response) => {
   return sendSuccess(res, {

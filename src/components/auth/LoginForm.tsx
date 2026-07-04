@@ -12,6 +12,7 @@ import {
   AuthRequestError,
   authService,
   clearAuthClientState,
+  persistAuthToken,
   persistAuthUser,
 } from "@/lib/auth";
 
@@ -65,6 +66,7 @@ export function LoginForm() {
   function completeAuth(response: {
     data?: {
       user: Parameters<typeof persistAuthUser>[0];
+      token: string;
       redirectPath: string;
     };
   }) {
@@ -74,6 +76,7 @@ export function LoginForm() {
     }
 
     persistAuthUser(response.data.user);
+    persistAuthToken(response.data.token);
     console.log("routing to", resolveRedirectPath(response.data.redirectPath));
     router.replace(resolveRedirectPath(response.data.redirectPath));
     router.refresh();
