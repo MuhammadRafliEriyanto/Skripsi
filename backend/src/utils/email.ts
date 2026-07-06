@@ -148,6 +148,7 @@ export async function sendVerificationEmail({
   try {
     await transporter.sendMail({
       from: `"Bimbel LMS" <${emailUser as string}>`,
+      replyTo: emailUser as string,
       to: email,
       subject: "Verifikasi Email Akun Bimbel LMS",
       html,
@@ -218,6 +219,7 @@ export async function sendPasswordResetEmail({
   try {
     await transporter.sendMail({
       from: `"Bimbel LMS" <${emailUser as string}>`,
+      replyTo: emailUser as string,
       to: email,
       subject: "Instruksi Reset Password Bimbel LMS",
       html,
