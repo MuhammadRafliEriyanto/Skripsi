@@ -77,6 +77,10 @@ async function getAuthenticatedStudentWithActiveMembershipOrThrow(userId: string
 
   const membershipAccess = resolveStudentMembershipContentAccess(
     membershipSnapshot.accessStatus,
+    {
+      subscription: membershipSnapshot.subscription,
+      payment: membershipSnapshot.payment,
+    },
   );
 
   if (membershipAccess.isMembershipLocked) {
@@ -683,6 +687,10 @@ export const getMyStudentLearningData = asyncHandler(
 
     const membershipAccess = resolveStudentMembershipContentAccess(
       membershipSnapshot.accessStatus,
+      {
+        subscription: membershipSnapshot.subscription,
+        payment: membershipSnapshot.payment,
+      },
     );
     const academicAccess = await resolveStudentAcademicContentAccess(student);
 
@@ -896,6 +904,10 @@ export const getMyStudentDashboardData = asyncHandler(
     const academicAccess = await resolveStudentAcademicContentAccess(student);
     const membershipAccess = resolveStudentMembershipContentAccess(
       membershipSnapshot.accessStatus,
+      {
+        subscription: membershipSnapshot.subscription,
+        payment: membershipSnapshot.payment,
+      },
     );
     const classFilter = buildStudentLearningClassFilter(
       student.className,
@@ -905,7 +917,7 @@ export const getMyStudentDashboardData = asyncHandler(
       membershipAccess.isMembershipLocked || academicAccess.isUpcomingClassLocked;
     const eligibleTryoutFilter = isLearningLocked
       ? null
-      : await buildEligibleTryoutFilter(student as any);
+      : await buildEligibleTryoutFilter(student);
     const cutOffDate = student.createdAt;
 
     const [materialCount, taskCount, schedules, tryoutCount] = await Promise.all([

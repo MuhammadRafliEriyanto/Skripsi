@@ -96,10 +96,31 @@ function toPendingPaymentReference(
   };
 }
 
+function getScheduledAccessDate(membershipData: MembershipStatusData | null) {
+  if (
+    membershipData?.accessStatus !== "pending" ||
+    membershipData.subscription?.paymentStatus !== "paid" ||
+    !membershipData.subscription.startDate
+  ) {
+    return null;
+  }
+
+  const startDate = new Date(membershipData.subscription.startDate);
+
+  if (Number.isNaN(startDate.getTime()) || startDate.getTime() <= Date.now()) {
+    return null;
+  }
+
+  return membershipData.subscription.startDate;
+}
+
 function getGateCopy(
-  accessStatus: MembershipAccessStatus | undefined,
+  membershipData: MembershipStatusData | null,
   pendingPayment: PendingPaymentReference | null,
 ): GateCopy {
+  const accessStatus = membershipData?.accessStatus;
+  const scheduledAccessDate = getScheduledAccessDate(membershipData);
+
   if (pendingPayment) {
     return {
       badge: "Tagihan Pending",
@@ -110,6 +131,16 @@ function getGateCopy(
         ? "Lanjut Pembayaran"
         : "Buka Tagihan",
       secondaryLabel: "Lihat Histori Tagihan",
+    };
+  }
+
+  if (scheduledAccessDate) {
+    return {
+      badge: "Akses Terjadwal",
+      title: "Akses belajar dibuka mulai periode baru",
+      description: `Membership sudah tercatat dan pembayaran sudah selesai. Materi, tugas, jadwal, absensi, nilai, dan ujian akan dibuka mulai ${formatDateLabel(scheduledAccessDate)}.`,
+      primaryLabel: "Lihat Tagihan",
+      secondaryLabel: "Histori Pembayaran",
     };
   }
 
@@ -440,11 +471,13 @@ export default function StudentMembershipAccessGate({
     try {
       const subscriptionResponse = await membershipService.getMySubscription();
       const nextMembershipData = subscriptionResponse.data ?? null;
+      const hasScheduledAccess = Boolean(getScheduledAccessDate(nextMembershipData));
       let nextPendingPayment =
         toPendingPaymentReference(nextMembershipData?.payment) ?? null;
 
       if (
         isMembershipLocked(nextMembershipData?.accessStatus) &&
+        !hasScheduledAccess &&
         !nextPendingPayment
       ) {
         const historyResponse = await membershipService.getMyPaymentHistory();
@@ -503,8 +536,8 @@ export default function StudentMembershipAccessGate({
   const shouldBlockChildren =
     !isLoading && isLocked && isAcademicPath(pathname);
   const copy = useMemo(
-    () => getGateCopy(membershipData?.accessStatus, pendingPayment),
-    [membershipData?.accessStatus, pendingPayment],
+    () => getGateCopy(membershipData, pendingPayment),
+    [membershipData, pendingPayment],
   );
 
   function handleDialogOpenChange(open: boolean) {

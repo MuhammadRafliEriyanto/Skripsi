@@ -19,6 +19,7 @@ import { Teacher } from "../models/Teacher";
 import asyncHandler from "../utils/asyncHandler";
 import { AppError, sendSuccess } from "../utils/apiResponse";
 import { getNextPublicId } from "../utils/publicId";
+import { resolveStudentAcademicContentAccess } from "../utils/studentAcademicAccess";
 import { resolveStudentMembershipContentAccess } from "../utils/studentMembershipAccess";
 import { getMembershipSnapshotByUserId } from "../utils/subscription";
 import { resolveTeacherClassDetailContext } from "./teacherScheduleController";
@@ -581,6 +582,10 @@ export const scanStudentAttendanceByQr = asyncHandler(
 
     const membershipAccess = resolveStudentMembershipContentAccess(
       membershipSnapshot.accessStatus,
+      {
+        subscription: membershipSnapshot.subscription,
+        payment: membershipSnapshot.payment,
+      },
     );
 
     if (membershipAccess.isMembershipLocked) {
@@ -590,6 +595,20 @@ export const scanStudentAttendanceByQr = asyncHandler(
           membershipAccess.message ?? "Membership siswa belum aktif.",
           { membershipAccess },
           "MEMBERSHIP_ACCESS_REQUIRED",
+        ),
+      );
+      return;
+    }
+
+    const academicAccess = await resolveStudentAcademicContentAccess(student);
+
+    if (academicAccess.isUpcomingClassLocked) {
+      next(
+        new AppError(
+          403,
+          academicAccess.message ?? "Akses akademik siswa belum dibuka.",
+          { academicAccess, membershipAccess },
+          "ACADEMIC_ACCESS_SCHEDULED",
         ),
       );
       return;

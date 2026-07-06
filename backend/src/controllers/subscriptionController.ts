@@ -77,6 +77,29 @@ function normalizePhone(value: string | undefined) {
   return value?.trim().replace(/\s+/g, "") ?? "";
 }
 
+function getJakartaMonthAndYear(date: Date) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    month: "numeric",
+    year: "numeric",
+    timeZone: "Asia/Jakarta",
+  }).formatToParts(date);
+
+  return {
+    month: Number(parts.find((part) => part.type === "month")?.value ?? 1),
+    year: Number(parts.find((part) => part.type === "year")?.value ?? 2026),
+  };
+}
+
+function resolveRegisterOnlineDeferredStartDate(date = new Date()) {
+  const { month, year } = getJakartaMonthAndYear(date);
+
+  if (month >= 8) {
+    return null;
+  }
+
+  return new Date(`${year}-08-01T00:00:00+07:00`);
+}
+
 function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -224,6 +247,8 @@ export const registerOnline = asyncHandler(
     const hashedPassword = await bcrypt.hash(generatedPassword, 12);
     const className = buildStudentClassName(program, classLevel);
     const existingLoginCode = await User.exists({ loginCode });
+    const deferredStartDate = resolveRegisterOnlineDeferredStartDate();
+    const studentAcademicPeriod = getCurrentAcademicPeriod(deferredStartDate ?? new Date());
 
     if (existingLoginCode) {
       next(new AppError(409, "Kode akun siswa sudah digunakan. Silakan coba daftar ulang.", {
@@ -259,7 +284,7 @@ export const registerOnline = asyncHandler(
         branch: branch?.name ?? "",
         program,
         className,
-        academicYear: getCurrentAcademicPeriod().academicYear,
+        academicYear: studentAcademicPeriod.academicYear,
         birthDate: null,
         status: "Aktif",
       });
@@ -270,6 +295,9 @@ export const registerOnline = asyncHandler(
         student,
         packageDefinition: selectedPackage,
         source: "register_online",
+        startDate: deferredStartDate,
+        targetProgram: deferredStartDate ? program : null,
+        targetClassName: deferredStartDate ? className : null,
       });
       createdSubscriptionId = subscription._id.toString();
       createdPaymentId = payment._id.toString();

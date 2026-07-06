@@ -14,7 +14,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         credential: body?.credential,
       }),
-    });
+    }, request);
 
     const nextResponse = NextResponse.json(payload, {
       status: response.status,

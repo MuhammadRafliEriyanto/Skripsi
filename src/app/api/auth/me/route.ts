@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    });
+    }, request);
 
     const nextResponse = NextResponse.json(payload, {
       status: response.status,

@@ -67,6 +67,8 @@ type MembershipOverview = {
   paymentStatusLabel: string;
   daysRemainingLabel: string;
   paymentStatus: string | null;
+  isScheduledAccess: boolean;
+  scheduledStartDate: string | null;
 };
 
 const emptyOverview: MembershipOverview = {
@@ -85,6 +87,8 @@ const emptyOverview: MembershipOverview = {
   paymentStatusLabel: "Belum ada tagihan",
   daysRemainingLabel: "-",
   paymentStatus: null,
+  isScheduledAccess: false,
+  scheduledStartDate: null,
 };
 
 type RenewalFormValues = {
@@ -313,6 +317,27 @@ function formatPaymentStatusLabel(status: string | null | undefined) {
   }
 }
 
+function resolveScheduledMembershipStartDate(
+  data: MembershipStatusData | undefined | null,
+) {
+  if (
+    data?.accessStatus !== "pending" ||
+    !data.subscription?.startDate ||
+    (data.payment?.status !== "paid" &&
+      data.subscription.paymentStatus !== "paid")
+  ) {
+    return null;
+  }
+
+  const startDate = new Date(data.subscription.startDate);
+
+  if (Number.isNaN(startDate.getTime()) || startDate.getTime() <= Date.now()) {
+    return null;
+  }
+
+  return data.subscription.startDate;
+}
+
 function buildMembershipOverview(
   data: MembershipStatusData | undefined | null,
   packages: OnlinePackageDefinition[],
@@ -332,6 +357,8 @@ function buildMembershipOverview(
           highlight: "",
         }
       : null);
+  const scheduledStartDate = resolveScheduledMembershipStartDate(data);
+  const isScheduledAccess = Boolean(scheduledStartDate);
 
   return {
     studentName: data.student?.name?.trim() || data.user.nama,
@@ -349,15 +376,23 @@ function buildMembershipOverview(
     startDate: formatDateLabel(data.subscription?.startDate ?? null),
     endDate: formatDateLabel(data.subscription?.endDate ?? null),
     accessStatus: data.accessStatus,
-    accessLabel: formatAccessLabel(data.accessStatus),
-    paymentStatusLabel: formatPaymentStatusLabel(data.payment?.status),
+    accessLabel: isScheduledAccess
+      ? "Akses Terjadwal"
+      : formatAccessLabel(data.accessStatus),
+    paymentStatusLabel: isScheduledAccess
+      ? "Pembayaran lunas, akses terjadwal"
+      : formatPaymentStatusLabel(data.payment?.status),
     daysRemainingLabel:
-      typeof data.daysRemaining === "number"
+      isScheduledAccess && scheduledStartDate
+        ? `Dibuka ${formatDateLabel(scheduledStartDate)}`
+        : typeof data.daysRemaining === "number"
         ? `${data.daysRemaining} hari tersisa`
         : data.accessStatus === "expired"
           ? "Perlu perpanjangan"
           : "-",
     paymentStatus: data.payment?.status ?? null,
+    isScheduledAccess,
+    scheduledStartDate,
   };
 }
 
@@ -398,11 +433,27 @@ function SummaryCard({
 }
 
 function PaymentPolicyCopy({
-  accessStatus,
+  overview,
 }: {
-  accessStatus: MembershipStatusData["accessStatus"];
+  overview: MembershipOverview;
 }) {
-  if (accessStatus === "not_registered") {
+  if (overview.isScheduledAccess) {
+    return (
+      <>
+        <p>
+          Membership sudah tercatat dan pembayaran sudah lunas. Akses materi,
+          tugas, jadwal, absensi, nilai, dan ujian akan dibuka mulai{" "}
+          {formatDateLabel(overview.scheduledStartDate)}.
+        </p>
+        <p>
+          Selama masih menunggu tanggal mulai, siswa cukup memantau status
+          tagihan dan tidak perlu membuat perpanjangan baru.
+        </p>
+      </>
+    );
+  }
+
+  if (overview.accessStatus === "not_registered") {
     return (
       <>
         <p>
@@ -418,7 +469,7 @@ function PaymentPolicyCopy({
     );
   }
 
-  if (accessStatus === "pending") {
+  if (overview.accessStatus === "pending") {
     return (
       <>
         <p>
@@ -433,7 +484,7 @@ function PaymentPolicyCopy({
     );
   }
 
-  if (accessStatus === "expired") {
+  if (overview.accessStatus === "expired") {
     return (
       <>
         <p>
@@ -552,9 +603,11 @@ export default function TagihanSiswaPageView() {
   }, [overview.paymentStatus]);
 
   useEffect(() => {
-    setRenewalFormValues(
-      buildRenewalFormDefaults(overview, classOptionsByProgram, packageOptions),
-    );
+    queueMicrotask(() => {
+      setRenewalFormValues(
+        buildRenewalFormDefaults(overview, classOptionsByProgram, packageOptions),
+      );
+    });
   }, [classOptionsByProgram, overview, packageOptions]);
 
   const renewalClassSuggestion = resolveRenewalClassSuggestion(
@@ -592,12 +645,17 @@ export default function TagihanSiswaPageView() {
     !isSubscriptionConfigLoading &&
     packageOptions.length > 0 &&
     overview.accessStatus !== "not_registered" &&
-    overview.paymentStatus !== "pending";
+    overview.paymentStatus !== "pending" &&
+    overview.accessStatus !== "pending";
   const renewalUnavailableMessage = !renewalClassSuggestion
     ? "Kelas siswa belum bisa dikenali otomatis. Minta admin merapikan data kelas siswa terlebih dahulu."
     : overview.paymentStatus === "pending"
       ? "Masih ada tagihan pending. Selesaikan atau batalkan tagihan lama terlebih dahulu."
-      : "Perpanjangan tersedia setelah membership awal tercatat.";
+      : overview.isScheduledAccess
+        ? "Membership sudah lunas dan akses belajar terjadwal. Perpanjangan baru tersedia setelah membership berjalan."
+        : overview.accessStatus === "pending"
+          ? "Membership belum aktif. Selesaikan aktivasi terlebih dahulu sebelum membuat perpanjangan."
+          : "Perpanjangan tersedia setelah membership awal tercatat.";
 
   async function handleCreateRenewalPayment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -779,7 +837,7 @@ export default function TagihanSiswaPageView() {
               </div>
 
               <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
-                <PaymentPolicyCopy accessStatus={overview.accessStatus} />
+                <PaymentPolicyCopy overview={overview} />
                 <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-3 py-3 text-slate-500">
                   Sistem saat ini masih memakai model sekali bayar per paket.
                   Opsi cicilan belum saya aktifkan supaya alurnya tetap sesuai

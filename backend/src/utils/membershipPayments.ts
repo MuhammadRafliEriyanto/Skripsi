@@ -51,6 +51,10 @@ export type XenditSessionSnapshot = Omit<
   external_id?: string;
 };
 
+type ResolveRenewalWindowOptions = {
+  preferredStartDate?: Date | null;
+};
+
 function normalizeText(value: string | undefined | null) {
   return value?.trim().replace(/\s+/g, " ") ?? "";
 }
@@ -304,6 +308,7 @@ export async function resolveRenewalWindow(
   durationMonth: number,
   paidAt: Date,
   currentSubscriptionId?: Types.ObjectId | string | null,
+  options: ResolveRenewalWindowOptions = {},
 ) {
   const activeSubscription = await findCurrentActiveSubscriptionByStudentId(
     studentId,
@@ -313,7 +318,15 @@ export async function resolveRenewalWindow(
     activeSubscription?.endDate && activeSubscription.endDate.getTime() > paidAt.getTime()
       ? new Date(activeSubscription.endDate)
       : null;
-  const startDate = activeEndDate ?? paidAt;
+  const preferredStartDate =
+    options.preferredStartDate &&
+    !Number.isNaN(options.preferredStartDate.getTime()) &&
+    options.preferredStartDate.getTime() > paidAt.getTime()
+      ? new Date(options.preferredStartDate)
+      : null;
+  const startDate = [paidAt, activeEndDate, preferredStartDate]
+    .filter((date): date is Date => date !== null)
+    .sort((firstDate, secondDate) => secondDate.getTime() - firstDate.getTime())[0];
   const endDate = buildSubscriptionEndDate(startDate, durationMonth);
   const status: SubscriptionDocument["status"] =
     startDate.getTime() > Date.now() ? "pending" : "active";
@@ -342,6 +355,7 @@ export async function markPaymentPaidFromProvider(
     subscription.durationMonth,
     paidAt,
     subscription._id,
+    { preferredStartDate: subscription.startDate },
   );
 
   if (payment.status !== "paid") {
@@ -451,12 +465,17 @@ export async function createPendingSubscriptionAndPayment(params: {
   source: PaymentSource;
   createdByAdminId?: Types.ObjectId | string | null;
   renewalOfSubscriptionId?: Types.ObjectId | string | null;
+  startDate?: Date | null;
   targetProgram?: string | null;
   targetClassName?: string | null;
 }) {
   const subscriptionCode = await getNextPublicId(Subscription, "subscriptionCode", "SUB");
   const paymentId = await getNextPublicId(Payment, "paymentId", "PAY");
   const createdByAdminId = params.createdByAdminId ?? null;
+  const startDate =
+    params.startDate && !Number.isNaN(params.startDate.getTime())
+      ? params.startDate
+      : null;
 
   const subscription = await Subscription.create({
     subscriptionCode,
@@ -465,7 +484,7 @@ export async function createPendingSubscriptionAndPayment(params: {
     packageKey: params.packageDefinition.packageKey,
     packageName: params.packageDefinition.packageName,
     durationMonth: params.packageDefinition.durationMonth,
-    startDate: null,
+    startDate,
     endDate: null,
     status: "pending",
     paymentStatus: "pending",

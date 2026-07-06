@@ -94,6 +94,10 @@ export const getMyAttendanceHistory = asyncHandler(
 
     const membershipAccess = resolveStudentMembershipContentAccess(
       membershipSnapshot.accessStatus,
+      {
+        subscription: membershipSnapshot.subscription,
+        payment: membershipSnapshot.payment,
+      },
     );
     const academicAccess = await resolveStudentAcademicContentAccess(student);
 

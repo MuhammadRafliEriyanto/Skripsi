@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     const { payload, response } = await callAuthBackend<RegisterResponse>("/api/auth/register", {
       method: "POST",
       body: JSON.stringify(body),
-    });
+    }, request);
 
     return NextResponse.json(payload, {
       status: response.status,

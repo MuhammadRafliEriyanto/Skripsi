@@ -321,6 +321,10 @@ export const getMyStudentNotifications = asyncHandler(
     const academicAccess = await resolveStudentAcademicContentAccess(student);
     const membershipAccess = resolveStudentMembershipContentAccess(
       membershipSnapshot.accessStatus,
+      {
+        subscription: membershipSnapshot.subscription,
+        payment: membershipSnapshot.payment,
+      },
     );
     const classFilter = buildStudentLearningClassFilter(
       student.className,
@@ -573,7 +577,21 @@ export const getMyStudentNotifications = asyncHandler(
       normalizeText(primarySubscription?.packageName) ||
       "membership";
 
-    if (
+    if (membershipAccess.isScheduledAccess) {
+      notifications.push({
+        id: "student-billing-scheduled",
+        title: "Akses Belajar Terjadwal",
+        message:
+          membershipAccess.message ??
+          `${latestPackageLabel} sudah tercatat dan akses belajar akan dibuka pada tanggal mulai membership.`,
+        type: "billing",
+        createdAt: toIsoDate(
+          primarySubscription?.updatedAt ?? latestPayment?.updatedAt,
+        ),
+        read: false,
+        href: "/dashboard-siswa/tagihan",
+      });
+    } else if (
       membershipSnapshot.accessStatus === "pending" ||
       latestPayment?.status === "pending"
     ) {

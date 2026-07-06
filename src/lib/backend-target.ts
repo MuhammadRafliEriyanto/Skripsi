@@ -1,0 +1,101 @@
+type BackendTargetSource = "env" | "same-origin";
+
+export type BackendTarget = {
+  baseUrl: string;
+  source: BackendTargetSource;
+  forwardRequestCookies: boolean;
+};
+
+type BackendTargetOptions = {
+  request?: Request;
+  missingBaseUrlMessage: string;
+  missingApiKeyMessage: string;
+};
+
+function normalizeBaseUrl(value: string) {
+  return value.trim().replace(/\/+$/, "");
+}
+
+function getSameOriginBackendBaseUrl(request?: Request) {
+  if (!request?.url) {
+    return null;
+  }
+
+  try {
+    return normalizeBaseUrl(new URL("/api/backend", request.url).toString());
+  } catch {
+    return null;
+  }
+}
+
+function addTarget(targets: BackendTarget[], target: BackendTarget) {
+  if (!target.baseUrl || targets.some((current) => current.baseUrl === target.baseUrl)) {
+    return;
+  }
+
+  targets.push(target);
+}
+
+export function getBackendTargets({
+  request,
+  missingBaseUrlMessage,
+  missingApiKeyMessage,
+}: BackendTargetOptions) {
+  const envBaseUrl = process.env.AUTH_API_URL?.trim() || process.env.BACKEND_URL?.trim();
+  const apiKey = process.env.AUTH_API_KEY?.trim();
+  const targets: BackendTarget[] = [];
+
+  if (envBaseUrl) {
+    addTarget(targets, {
+      baseUrl: normalizeBaseUrl(envBaseUrl),
+      source: "env",
+      forwardRequestCookies: false,
+    });
+  }
+
+  const sameOriginBaseUrl = getSameOriginBackendBaseUrl(request);
+
+  if (sameOriginBaseUrl) {
+    addTarget(targets, {
+      baseUrl: sameOriginBaseUrl,
+      source: "same-origin",
+      forwardRequestCookies: true,
+    });
+  }
+
+  if (!targets.length) {
+    throw new Error(missingBaseUrlMessage);
+  }
+
+  if (!apiKey) {
+    throw new Error(missingApiKeyMessage);
+  }
+
+  return {
+    apiKey,
+    targets,
+  };
+}
+
+export function buildBackendUrl(baseUrl: string, path: string, requestSearch = "") {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const shouldAppendSearch = requestSearch && !normalizedPath.includes("?");
+
+  return `${normalizeBaseUrl(baseUrl)}${normalizedPath}${shouldAppendSearch ? requestSearch : ""}`;
+}
+
+export function getForwardedCookieHeader(request?: Request) {
+  return request?.headers.get("cookie")?.trim() || null;
+}
+
+export function isVercelDeploymentNotFound(response: Response, rawBody = "") {
+  const vercelError = response.headers.get("x-vercel-error")?.trim().toUpperCase();
+  const body = rawBody.toUpperCase();
+
+  return (
+    response.status === 404 &&
+    (vercelError === "DEPLOYMENT_NOT_FOUND" ||
+      body.includes("DEPLOYMENT_NOT_FOUND") ||
+      body.includes("THE DEPLOYMENT COULD NOT BE FOUND ON VERCEL"))
+  );
+}

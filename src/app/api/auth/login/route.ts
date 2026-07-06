@@ -17,7 +17,7 @@ export async function POST(request: Request) {
         loginCode: body?.loginCode,
         password: body?.password,
       }),
-    });
+    }, request);
 
     const nextResponse = NextResponse.json(payload, {
       status: response.status,

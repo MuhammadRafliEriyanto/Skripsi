@@ -12,6 +12,7 @@ export async function POST(request: Request) {
         method: "POST",
         body: JSON.stringify(body),
       },
+      request,
     );
 
     return NextResponse.json(payload, {

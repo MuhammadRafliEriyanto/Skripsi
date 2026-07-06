@@ -129,6 +129,10 @@ async function getAuthenticatedStudentWithActiveMembershipOrThrow(userId: string
 
   const membershipAccess = resolveStudentMembershipContentAccess(
     membershipSnapshot.accessStatus,
+    {
+      subscription: membershipSnapshot.subscription,
+      payment: membershipSnapshot.payment,
+    },
   );
 
   if (membershipAccess.isMembershipLocked) {
@@ -717,6 +721,10 @@ export const getMyStudentTryouts = asyncHandler(
 
     const membershipAccess = resolveStudentMembershipContentAccess(
       membershipSnapshot.accessStatus,
+      {
+        subscription: membershipSnapshot.subscription,
+        payment: membershipSnapshot.payment,
+      },
     );
     const academicAccess = await resolveStudentAcademicContentAccess(student);
     const cutOffDate = student.createdAt;

@@ -2358,6 +2358,7 @@ export const updateAdminPaymentStatus = asyncHandler(
       subscription.durationMonth,
       paidAt,
       subscription._id,
+      { preferredStartDate: subscription.startDate },
     );
 
     payment.status = "paid";
@@ -3167,6 +3168,7 @@ export const confirmDummyPayment = asyncHandler(
         subscription.durationMonth,
         paidAt,
         subscription._id,
+        { preferredStartDate: subscription.startDate },
       );
 
       payment.status = "paid";
