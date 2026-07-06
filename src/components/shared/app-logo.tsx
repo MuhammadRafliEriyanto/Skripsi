@@ -9,7 +9,7 @@ export function AppLogo() {
 
       <div className="min-w-0 leading-none">
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-orange-600">
-          Smart Bimbel
+          Bimbel LMS
         </p>
         <h1 className="mt-1 text-sm font-semibold text-slate-950">
           Bina Cendekia
