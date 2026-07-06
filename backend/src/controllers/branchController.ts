@@ -45,6 +45,8 @@ type BranchAdminAccountRequestBody = {
 type BranchAdminAccountUpdateRequestBody = {
   name?: string;
   email?: string;
+  password?: string;
+  confirmPassword?: string;
 };
 
 function normalizeText(value: string | undefined): string {
