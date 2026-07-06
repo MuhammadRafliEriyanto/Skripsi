@@ -235,7 +235,7 @@ const ABSENSI_STATUS_UPDATE_ERROR_MESSAGE =
 const ABSENSI_CLOSE_SESSION_ERROR_MESSAGE =
   "Sesi absensi belum bisa ditutup saat ini.";
 const AUTH_SESSION_EXPIRED_MESSAGE = "Sesi guru berakhir. Silakan login kembali.";
-const ATTENDANCE_SESSION_REFRESH_INTERVAL = 5000;
+const ATTENDANCE_SESSION_REFRESH_INTERVAL = 4000;
 const SELECTABLE_ATTENDANCE_STATUSES: AttendanceSelection[] = ["H", "S", "A"];
 
 const STATUS_META: Record<
@@ -1157,8 +1157,8 @@ export default function AbsensiKelasSection({
       
       setRefreshTicks(t => {
         const nextTick = t + 1;
-        // Rotate QR every 3 ticks (15 seconds)
-        void refreshAttendanceSessionWhileOpen(nextTick % 3 === 0);
+        // Rotate QR every tick (4 seconds)
+        void refreshAttendanceSessionWhileOpen(true);
         return nextTick;
       });
     }, ATTENDANCE_SESSION_REFRESH_INTERVAL);
