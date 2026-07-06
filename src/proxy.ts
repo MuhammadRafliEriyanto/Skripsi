@@ -104,7 +104,7 @@ async function getStudentMembershipAccess(token: string): Promise<MembershipProx
   }
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const token = request.cookies.get(AUTH_TOKEN_COOKIE_NAME)?.value;
   const roleValue = request.cookies.get(AUTH_ROLE_COOKIE_NAME)?.value;

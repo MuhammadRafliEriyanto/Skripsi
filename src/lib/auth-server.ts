@@ -122,7 +122,7 @@ async function readAuthBackendPayload<T extends BackendPayload>(
         status: `${response.status}${response.statusText ? ` ${response.statusText}` : ""}`,
         bodyPreview: trimmedBody.slice(0, 500),
       },
-    } as T,
+      } as unknown as T,
     rawBody,
   };
 }
