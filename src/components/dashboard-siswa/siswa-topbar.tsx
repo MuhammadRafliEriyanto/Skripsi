@@ -65,7 +65,7 @@ const menus = [
     exact: false,
   },
   {
-    name: "Tagihan",
+    name: "Transaksi",
     path: "/dashboard-siswa/tagihan",
     exact: true,
   },
@@ -212,7 +212,7 @@ function getNotificationTypeLabel(type: StudentNotificationItem["type"]) {
     case "material":
       return "Materi";
     case "billing":
-      return "Tagihan";
+      return "Transaksi";
     case "grade":
       return "Nilai";
     default:
@@ -517,7 +517,7 @@ export default function SiswaTopbar() {
                         Notifikasi Siswa
                       </p>
                       <p className="mt-1 text-xs text-slate-500">
-                        Ringkasan jadwal, tugas, materi, nilai, dan tagihanmu.
+                        Ringkasan jadwal, tugas, materi, nilai, dan transaksimu.
                       </p>
                     </div>
                     {unreadCount > 0 ? (
