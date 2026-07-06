@@ -273,16 +273,16 @@ export function useOwnerBranchAdmins() {
       nextErrors.email = "Email admin wajib diisi.";
     }
 
-    if (dialogMode === "create") {
-      if (!password) {
+    if (dialogMode === "create" || password) {
+      if (dialogMode === "create" && !password) {
         nextErrors.password = "Password admin wajib diisi.";
-      } else if (password.length < 8) {
+      } else if (password && password.length < 8) {
         nextErrors.password = "Password admin minimal 8 karakter.";
       }
 
-      if (!confirmPassword) {
+      if (password && !confirmPassword) {
         nextErrors.confirmPassword = "Konfirmasi password admin wajib diisi.";
-      } else if (password !== confirmPassword) {
+      } else if (password && password !== confirmPassword) {
         nextErrors.confirmPassword = "Konfirmasi password admin tidak cocok.";
       }
     }
@@ -300,6 +300,8 @@ export function useOwnerBranchAdmins() {
         await updateOwnerBranchAdminAccount(editingAdminId, {
           name,
           email,
+          password: password || undefined,
+          confirmPassword: confirmPassword || undefined,
         });
         setFlash({
           tone: "success",

@@ -720,14 +720,12 @@ export function OwnerDashboardBranchAdminsSection({
                   <InputError message={manager.dialog.fieldErrors.email} />
                 </div>
 
-                {manager.dialog.mode === "create" ? (
-                  <>
                     <div className="space-y-2">
                       <label
                         className="text-sm font-medium text-slate-700"
                         htmlFor="owner-branch-admin-password"
                       >
-                        Password sementara
+                        {manager.dialog.mode === "create" ? "Password sementara" : "Password baru (Opsional)"}
                       </label>
                       <div className="relative">
                         <KeyRound className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
@@ -738,7 +736,7 @@ export function OwnerDashboardBranchAdminsSection({
                           onChange={(event) =>
                             manager.updateFormValue("password", event.target.value)
                           }
-                          placeholder="Minimal 8 karakter"
+                          placeholder={manager.dialog.mode === "create" ? "Minimal 8 karakter" : "Kosongkan jika tidak diubah"}
                           className="pl-10 pr-12"
                         />
                         <button
@@ -808,13 +806,6 @@ export function OwnerDashboardBranchAdminsSection({
                         message={manager.dialog.fieldErrors.confirmPassword}
                       />
                     </div>
-                  </>
-                ) : (
-                  <div className="rounded-2xl border border-orange-100/80 bg-orange-50/45 px-4 py-3 text-xs leading-5 text-slate-500">
-                    Password tidak diubah dari form ini. Jika admin lupa password,
-                    gunakan flow reset password yang sudah ada.
-                  </div>
-                )}
 
                 {manager.dialog.error ? (
                   <div className="rounded-2xl border border-red-200 bg-red-50/85 px-4 py-3 text-sm text-red-600">

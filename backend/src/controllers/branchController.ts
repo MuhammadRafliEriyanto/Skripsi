@@ -493,6 +493,8 @@ export const updateBranchAdminAccount = asyncHandler(
 
     const name = normalizeText(req.body.name);
     const email = normalizeEmail(req.body.email);
+    const password = req.body.password?.trim() ?? "";
+    const confirmPassword = req.body.confirmPassword?.trim() ?? "";
     const errors: Record<string, string> = {};
 
     if (!name) {
@@ -503,6 +505,15 @@ export const updateBranchAdminAccount = asyncHandler(
       errors.email = "Email admin wajib diisi.";
     } else if (!isValidEmail(email)) {
       errors.email = "Email admin belum valid.";
+    }
+
+    if (password) {
+      if (password.length < 8) {
+        errors.password = "Password admin minimal 8 karakter.";
+      }
+      if (password !== confirmPassword) {
+        errors.confirmPassword = "Konfirmasi password admin tidak cocok.";
+      }
     }
 
     if (Object.keys(errors).length > 0) {
@@ -541,6 +552,9 @@ export const updateBranchAdminAccount = asyncHandler(
 
     admin.nama = name;
     admin.email = email;
+    if (password) {
+      admin.password = await bcrypt.hash(password, 12);
+    }
     await admin.save();
 
     if (previousAdminName !== name) {

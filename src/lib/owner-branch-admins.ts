@@ -33,6 +33,15 @@ export type CreateOwnerBranchAdminAccountPayload = {
 export type UpdateOwnerBranchAdminAccountPayload = {
   name: string;
   email: string;
+  password?: string;
+  confirmPassword?: string;
+};
+
+export type OwnerBranchAdminAccountUpdateRequestBody = {
+  name: string;
+  email: string;
+  password?: string;
+  confirmPassword?: string;
 };
 
 export type OwnerBranchAdminAccountMutationResult = {
