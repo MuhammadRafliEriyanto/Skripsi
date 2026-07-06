@@ -106,17 +106,17 @@ export default function LandingRegistrationSection() {
               </div>
             </div>
 
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-6 flex flex-col sm:flex-row flex-wrap gap-3">
               <Link
                 href="/register"
-                className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#b91c1c_0%,#ea580c_100%)] px-6 text-sm font-semibold text-white shadow-[0_22px_34px_-24px_rgba(185,28,28,0.38)] transition duration-300 hover:-translate-y-px hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2"
+                className="group w-full sm:w-auto inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#b91c1c_0%,#ea580c_100%)] px-6 text-sm font-semibold text-white shadow-[0_22px_34px_-24px_rgba(185,28,28,0.38)] transition duration-300 hover:-translate-y-px hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2"
               >
                 Mulai Pendaftaran
                 <ArrowRight className="size-4 transition duration-300 group-hover:translate-x-0.5" />
               </Link>
               <Link
                 href="/login"
-                className="inline-flex h-12 items-center justify-center rounded-full border border-orange-100/80 bg-white px-6 text-sm font-semibold text-slate-700 transition duration-300 hover:-translate-y-px hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2"
+                className="w-full sm:w-auto inline-flex h-12 items-center justify-center rounded-full border border-orange-100/80 bg-white px-6 text-sm font-semibold text-slate-700 transition duration-300 hover:-translate-y-px hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2"
               >
                 Sudah punya akun
               </Link>
@@ -189,9 +189,23 @@ export default function LandingRegistrationSection() {
                       key={item.title}
                       className="group rounded-[26px] border border-orange-100/80 bg-white/92 p-5 shadow-[0_20px_36px_-30px_rgba(15,23,42,0.14)] transition-all duration-300 hover:-translate-y-1 hover:border-orange-200 hover:shadow-[0_28px_44px_-30px_rgba(249,115,22,0.2)]"
                     >
-                      <div className="flex items-start gap-4">
-                        <div className="flex flex-col items-center">
-                          <span className="flex size-10 items-center justify-center rounded-full bg-orange-50 text-sm font-semibold text-orange-600">
+                      <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-5">
+                        {/* Header for Mobile (Icon + Number) */}
+                        <div className="flex items-center gap-3 sm:hidden">
+                          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-orange-50 text-xs font-semibold text-orange-600">
+                            {String(index + 1).padStart(2, "0")}
+                          </span>
+                          <div className="flex size-10 shrink-0 items-center justify-center rounded-[16px] bg-[linear-gradient(135deg,#be123c_0%,#ea580c_100%)] text-white shadow-[0_18px_28px_-22px_rgba(190,24,93,0.32)]">
+                            <Icon className="size-4" />
+                          </div>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-orange-500 ml-1">
+                            {stepMeta.chip}
+                          </p>
+                        </div>
+
+                        {/* Desktop Side Icons */}
+                        <div className="hidden sm:flex flex-col items-center">
+                          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-orange-50 text-sm font-semibold text-orange-600">
                             {String(index + 1).padStart(2, "0")}
                           </span>
                           {index < landingSteps.length - 1 ? (
@@ -199,15 +213,15 @@ export default function LandingRegistrationSection() {
                           ) : null}
                         </div>
 
-                        <div className="flex size-12 shrink-0 items-center justify-center rounded-[18px] bg-[linear-gradient(135deg,#be123c_0%,#ea580c_100%)] text-white shadow-[0_18px_28px_-22px_rgba(190,24,93,0.32)] transition duration-300 group-hover:scale-105">
+                        <div className="hidden sm:flex size-12 shrink-0 items-center justify-center rounded-[18px] bg-[linear-gradient(135deg,#be123c_0%,#ea580c_100%)] text-white shadow-[0_18px_28px_-22px_rgba(190,24,93,0.32)] transition duration-300 group-hover:scale-105">
                           <Icon className="size-5" />
                         </div>
 
                         <div className="min-w-0 flex-1">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-orange-500">
+                          <p className="hidden sm:block text-[11px] font-semibold uppercase tracking-[0.18em] text-orange-500">
                             {stepMeta.chip}
                           </p>
-                          <h3 className="mt-2 text-lg font-semibold tracking-tight text-slate-950 sm:text-[1.3rem]">
+                          <h3 className="mt-1 sm:mt-2 text-lg font-semibold tracking-tight text-slate-950 sm:text-[1.3rem]">
                             {item.title}
                           </h3>
                           <p className="mt-2 text-sm leading-7 text-slate-600">{item.description}</p>
