@@ -383,7 +383,12 @@ export const getTeacherAttendanceSession = asyncHandler(
       return;
     }
 
-    await ensureAttendanceSessionQrToken(session);
+    if (req.query.rotateQr === "true") {
+      session.qrToken = generateAttendanceQrToken();
+      await session.save();
+    } else {
+      await ensureAttendanceSessionQrToken(session);
+    }
     const records = await ensureAttendanceRecordsForSession(session, participants);
 
     sendSuccess(res, {

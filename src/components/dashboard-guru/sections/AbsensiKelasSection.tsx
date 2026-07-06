@@ -723,15 +723,17 @@ export default function AbsensiKelasSection({
 
   async function fetchAttendanceSession(
     classId: string,
+    rotateQr: boolean = false,
   ): Promise<AttendanceSessionFetchResult> {
-    const response = await fetch(
-      buildGuruApiUrl(`/api/teacher/me/classes/${encodeURIComponent(classId)}/attendance/session`, searchParams),
-      {
-        method: "GET",
-        credentials: "include",
-        cache: "no-store",
-      },
-    );
+    const url = new URL(buildGuruApiUrl(`/api/teacher/me/classes/${encodeURIComponent(classId)}/attendance/session`, searchParams));
+    if (rotateQr) {
+      url.searchParams.set("rotateQr", "true");
+    }
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+    });
     const payload = await readJsonResponse<TeacherAttendanceSessionResponse>(
       response,
     );
@@ -1123,12 +1125,12 @@ export default function AbsensiKelasSection({
     });
   }, [kelasId]);
 
-  const refreshAttendanceSessionWhileOpen = useEffectEvent(async () => {
+  const refreshAttendanceSessionWhileOpen = useEffectEvent(async (rotateQr: boolean = false) => {
     if (!attendanceSession || attendanceSession.status !== "open") {
       return;
     }
 
-    const sessionResult = await fetchAttendanceSession(attendanceSession.classId);
+    const sessionResult = await fetchAttendanceSession(attendanceSession.classId, rotateQr);
 
     if (sessionResult.kind === "unauthorized") {
       clearAuthClientState();
@@ -1141,6 +1143,8 @@ export default function AbsensiKelasSection({
     }
   });
 
+  const [refreshTicks, setRefreshTicks] = useState(0);
+
   useEffect(() => {
     if (!attendanceSession || attendanceSession.status !== "open") {
       return;
@@ -1150,8 +1154,13 @@ export default function AbsensiKelasSection({
       if (sessionLoading || closingSession || updatingRecordId !== null) {
         return;
       }
-
-      void refreshAttendanceSessionWhileOpen();
+      
+      setRefreshTicks(t => {
+        const nextTick = t + 1;
+        // Rotate QR every 3 ticks (15 seconds)
+        void refreshAttendanceSessionWhileOpen(nextTick % 3 === 0);
+        return nextTick;
+      });
     }, ATTENDANCE_SESSION_REFRESH_INTERVAL);
 
     return () => window.clearInterval(intervalId);
@@ -1445,7 +1454,7 @@ export default function AbsensiKelasSection({
                       ) : (
                         <CheckCircle2 className="h-4 w-4" />
                       )}
-                      {closingSession ? "Menutup Sesi..." : "Selesai"}
+                      {closingSession ? "Menutup Sesi..." : "Tutup Absensi"}
                     </button>
                   ) : null}
                 </div>
@@ -1680,19 +1689,19 @@ export default function AbsensiKelasSection({
 
       <Dialog open={isQrOpen} onOpenChange={handleQrOpenChange}>
         <DialogContent
-          className={`max-h-[90vh] w-full gap-0 overflow-hidden rounded-none border-white/80 bg-white/98 p-0 shadow-[0_32px_88px_-44px_rgba(15,23,42,0.28),0_20px_38px_-30px_rgba(249,115,22,0.18)] transition-[transform,opacity] duration-300 ease-out data-[state=closed]:scale-95 data-[state=closed]:opacity-0 data-[state=open]:scale-100 data-[state=open]:opacity-100 [&>button]:right-4 [&>button]:top-4 [&>button]:h-9 [&>button]:w-9 [&>button]:rounded-none [&>button]:border [&>button]:border-slate-200 [&>button]:bg-white [&>button]:p-0 [&>button]:text-slate-500 [&>button]:shadow-sm [&>button:hover]:bg-slate-50 [&>button:hover]:text-orange-700 ${
+          className={`max-h-[90vh] w-full gap-0 overflow-hidden rounded-3xl border-white/80 bg-white/98 p-0 shadow-[0_32px_88px_-44px_rgba(15,23,42,0.28),0_20px_38px_-30px_rgba(249,115,22,0.18)] transition-[transform,opacity] duration-300 ease-out data-[state=closed]:scale-95 data-[state=closed]:opacity-0 data-[state=open]:scale-100 data-[state=open]:opacity-100 [&>button]:right-4 [&>button]:top-4 [&>button]:h-9 [&>button]:w-9 [&>button]:rounded-full [&>button]:border [&>button]:border-slate-200 [&>button]:bg-white [&>button]:p-0 [&>button]:text-slate-500 [&>button]:shadow-sm [&>button:hover]:bg-slate-50 [&>button:hover]:text-orange-700 ${
             isQrZoomed ? "max-w-xl" : "max-w-md"
           }`}
         >
           <div
-            className={`relative overflow-hidden rounded-none bg-[radial-gradient(circle_at_top,rgba(251,146,60,0.12),transparent_32%),linear-gradient(180deg,#ffffff_0%,#fffaf5_100%)] ${
+            className={`relative overflow-hidden rounded-3xl bg-[radial-gradient(circle_at_top,rgba(251,146,60,0.12),transparent_32%),linear-gradient(180deg,#ffffff_0%,#fffaf5_100%)] ${
               isQrZoomed ? "p-5" : "p-4"
             }`}
           >
-            <div className="absolute left-1/2 top-0 h-28 w-28 -translate-x-1/2 rounded-none bg-orange-100/60 blur-3xl" />
+            <div className="absolute left-1/2 top-0 h-28 w-28 -translate-x-1/2 rounded-full bg-orange-100/60 blur-3xl" />
 
             <DialogHeader className="relative items-center text-center">
-              <div className="inline-flex w-fit items-center gap-2 rounded-none border border-orange-100 bg-orange-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-orange-600 shadow-sm shadow-orange-100/80">
+              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-orange-100 bg-orange-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-orange-600 shadow-sm shadow-orange-100/80">
                 <QrCode className="h-3.5 w-3.5" />
                 QR Absensi
               </div>
@@ -1707,7 +1716,7 @@ export default function AbsensiKelasSection({
 
             <div className="relative mt-4 flex flex-col items-center gap-3.5">
               <div
-                className={`mx-auto flex items-center justify-center rounded-none border border-orange-100 bg-white p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_22px_48px_-36px_rgba(249,115,22,0.28)] transition-all duration-300 ${
+                className={`mx-auto flex items-center justify-center rounded-3xl border border-orange-100 bg-white p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_22px_48px_-36px_rgba(249,115,22,0.28)] transition-all duration-300 ${
                   isQrZoomed ? "w-full max-w-[28rem]" : "w-full max-w-[19rem]"
                 }`}
               >
@@ -1731,7 +1740,7 @@ export default function AbsensiKelasSection({
                 <button
                   type="button"
                   onClick={() => setIsQrZoomed((current) => !current)}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-none border border-orange-200 bg-white px-4 py-2.5 text-sm font-semibold text-orange-700 shadow-sm shadow-orange-100/80 transition hover:-translate-y-0.5 hover:bg-orange-50 sm:w-auto sm:min-w-[165px]"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-orange-200 bg-white px-4 py-2.5 text-sm font-semibold text-orange-700 shadow-sm shadow-orange-100/80 transition hover:-translate-y-0.5 hover:bg-orange-50 sm:w-auto sm:min-w-[165px]"
                 >
                   {isQrZoomed ? (
                     <Minimize2 className="h-4 w-4" />
@@ -1744,7 +1753,7 @@ export default function AbsensiKelasSection({
                 <DialogClose asChild>
                   <button
                     type="button"
-                    className="inline-flex w-full items-center justify-center rounded-none border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700 sm:w-auto sm:min-w-[140px]"
+                    className="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700 sm:w-auto sm:min-w-[140px]"
                   >
                     Tutup
                   </button>
