@@ -3,10 +3,7 @@ import StudentAttendanceScanPageClient from "@/components/absensi/StudentAttenda
 export const dynamic = "force-dynamic";
 
 type PageProps = {
-  searchParams?: {
-    sessionId?: string | string[];
-    token?: string | string[];
-  };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
 function firstSearchParam(value: string | string[] | undefined) {
@@ -17,11 +14,13 @@ function firstSearchParam(value: string | string[] | undefined) {
   return value ?? "";
 }
 
-export default function StudentAttendanceScanPage({ searchParams }: PageProps) {
+export default async function StudentAttendanceScanPage({ searchParams }: PageProps) {
+  const resolvedParams = await searchParams;
+
   return (
     <StudentAttendanceScanPageClient
-      initialSessionId={firstSearchParam(searchParams?.sessionId)}
-      initialToken={firstSearchParam(searchParams?.token)}
+      initialSessionId={firstSearchParam(resolvedParams?.sessionId)}
+      initialToken={firstSearchParam(resolvedParams?.token)}
     />
   );
 }
