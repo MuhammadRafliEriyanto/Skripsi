@@ -8,8 +8,8 @@ const geist = Geist({ subsets: ['latin'], variable: '--font-sans', preload: fals
 
 export const metadata: Metadata = {
   title: {
-    default: "Bimbel LMS Dashboard",
-    template: "%s | Bimbel LMS",
+    default: "Bina Cendekia Dashboard",
+    template: "%s | Bina Cendekia",
   },
   description:
     "Dashboard modern untuk Owner, Admin, Guru, dan Siswa pada LMS Bimbingan Belajar.",

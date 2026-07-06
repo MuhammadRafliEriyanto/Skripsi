@@ -227,7 +227,7 @@ export function AdminSidebar({
             {isCompact ? null : (
               <div>
                 <p className="text-lg font-semibold tracking-[-0.02em] text-white">
-                  Bimbel LMS
+                  Bina Cendekia
                 </p>
                 <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.22em] text-orange-100/80">
                   Admin Dashboard

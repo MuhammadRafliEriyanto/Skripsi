@@ -51,7 +51,7 @@ export function OwnerDashboardSidebar({
             onClick={onNavigate}
           >
             <p className="truncate text-base font-semibold text-white">
-              Bimbel LMS
+              Bina Cendekia
             </p>
             <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-orange-100/85">
               Owner Workspace
