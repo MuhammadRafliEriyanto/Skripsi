@@ -387,10 +387,23 @@ function matchesTeacherClassName(
     return false;
   }
 
-  return (
-    normalizeCanonicalClassName(studentClassName)?.toLowerCase() ===
-    canonicalClassName.toLowerCase()
-  );
+  const studentCanonical = normalizeCanonicalClassName(studentClassName);
+  
+  if (!studentCanonical || studentCanonical.toLowerCase() !== canonicalClassName.toLowerCase()) {
+    return false;
+  }
+
+  // Canonical level matches (e.g., both are "SMP 9").
+  // Now verify that their subclass modifiers (e.g., "A", "B") match.
+  const extractModifier = (name: string) => {
+    const match = name.match(/(?:^|\s)(?:1[0-2]|[2-9])\s*([A-Za-z]+)\b/);
+    return match?.[1]?.toUpperCase() ?? "";
+  };
+
+  const studentModifier = extractModifier(studentClassName);
+  const teacherModifier = extractModifier(className);
+
+  return studentModifier === teacherModifier;
 }
 
 function getStudentCountFromMaps(
@@ -831,6 +844,11 @@ function buildStudentCountMaps(students: StudentClassLookup[]) {
   const exactCountMap = new Map<string, number>();
   const canonicalCountMap = new Map<string, number>();
 
+  const extractModifier = (name: string) => {
+    const match = name.match(/(?:^|\s)(?:1[0-2]|[2-9])\s*([A-Za-z]+)\b/);
+    return match?.[1]?.toUpperCase() ?? "";
+  };
+
   for (const student of students) {
     const branch = normalizeText(student.branch);
     const className = normalizeText(student.className);
@@ -848,7 +866,8 @@ function buildStudentCountMaps(students: StudentClassLookup[]) {
       continue;
     }
 
-    const canonicalKey = buildStudentCountKey(branch, canonicalClassName);
+    const modifier = extractModifier(className);
+    const canonicalKey = `${buildStudentCountKey(branch, canonicalClassName)}::${modifier}`;
     canonicalCountMap.set(canonicalKey, (canonicalCountMap.get(canonicalKey) ?? 0) + 1);
   }
 
@@ -881,10 +900,16 @@ function resolveStudentCount(
     return 0;
   }
 
+  const extractModifier = (name: string) => {
+    const match = name.match(/(?:^|\s)(?:1[0-2]|[2-9])\s*([A-Za-z]+)\b/);
+    return match?.[1]?.toUpperCase() ?? "";
+  };
+  
+  const modifier = extractModifier(normalizedClassName);
+  const canonicalKey = `${buildStudentCountKey(normalizedBranch, canonicalClassName)}::${modifier}`;
+  
   const canonicalCount =
-    studentCountMaps.canonicalCountMap.get(
-      buildStudentCountKey(normalizedBranch, canonicalClassName),
-    ) ?? null;
+    studentCountMaps.canonicalCountMap.get(canonicalKey) ?? null;
 
   if (typeof canonicalCount === "number") {
     return canonicalCount;
