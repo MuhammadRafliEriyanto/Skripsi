@@ -163,8 +163,8 @@ export default function LandingFooter() {
       </div>
 
       <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
-        <div className="grid gap-12 lg:grid-cols-[1.35fr_0.82fr_0.9fr_0.92fr]">
-          <div className="max-w-md">
+        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[1.35fr_0.82fr_0.9fr_0.92fr] lg:gap-12">
+          <div className="max-w-md md:col-span-2 lg:col-span-1">
             <Link
               href="#home"
               onClick={(event) => handleSectionNavigation(event, "#home")}
@@ -345,7 +345,7 @@ export default function LandingFooter() {
             pendampingan yang lebih hangat.
           </p>
 
-          <div className="flex items-center gap-3 self-start sm:self-auto">
+          <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
             {socialLinks.map((item) => {
               const Icon = item.icon;
 
