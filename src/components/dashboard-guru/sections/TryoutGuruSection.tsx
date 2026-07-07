@@ -2806,6 +2806,7 @@ export default function TryoutGuruSection() {
     setIsQuestionLoading(false);
     setIsQuestionSubmitting(false);
     setIsXlsxUploading(false);
+    loadTeacherTryouts();
   }
 
   function resetQuestionEditor() {

