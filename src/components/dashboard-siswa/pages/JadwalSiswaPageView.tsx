@@ -383,7 +383,7 @@ export default function JadwalSiswaPageView() {
                         </div>
                       </div>
 
-                      <div className="hidden shrink-0 sm:block">
+                      <div className="shrink-0">
                         <Link
                           href={`/dashboard-siswa/scan-absen?scheduleId=${schedule.id}`}
                           className={cn(
