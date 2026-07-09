@@ -161,7 +161,6 @@ export function LoginForm() {
                     identifier: event.target.value,
                   }));
                 }}
-                placeholder="Contoh: STD-160, TCH-001, atau email"
                 className="h-12 rounded-xl border-[#f2c7b3] bg-white px-4 shadow-none transition focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10"
                 autoComplete="username"
                 required
@@ -187,7 +186,6 @@ export function LoginForm() {
                       password: event.target.value,
                     }));
                   }}
-                  placeholder="********"
                   className="h-12 rounded-xl border-[#f2c7b3] bg-white px-4 pr-12 shadow-none transition focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10"
                   autoComplete="current-password"
                   required
