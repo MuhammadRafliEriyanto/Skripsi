@@ -1030,76 +1030,17 @@ function CreateMembershipBillingDialog({
 
                 </div>
 
-                <div className="grid gap-4 xl:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-800">
-                      Tipe Perpanjangan
-                    </label>
-                    <Select
-                      value={batchPackageMode}
-                      onValueChange={(value) =>
-                        onBatchPackageModeChange(value as BatchPackageMode)
-                      }
-                    >
-                      <SelectTrigger className={warmSelectTriggerClassName}>
-                        <SelectValue placeholder="Pilih tipe perpanjangan" />
-                      </SelectTrigger>
-                      <SelectContent className={warmSelectContentClassName}>
-                        <SelectItem
-                          value="follow_latest_package"
-                          className={warmSelectItemClassName}
-                        >
-                          Otomatis (Ikuti riwayat paket siswa sebelumnya)
-                        </SelectItem>
-                        <SelectItem
-                          value="fixed_package"
-                          className={warmSelectItemClassName}
-                        >
-                          Manual (Pilih 1 paket seragam untuk semua siswa)
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-800">
-                      Expired at opsional
-                    </label>
-                    <Input
-                      type="datetime-local"
-                      value={expiresAtValue}
-                      onChange={(event) => onExpiresAtChange(event.target.value)}
-                      className={warmFieldClassName}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-800">
+                    Batas Waktu Pembayaran (Opsional)
+                  </label>
+                  <Input
+                    type="datetime-local"
+                    value={expiresAtValue}
+                    onChange={(event) => onExpiresAtChange(event.target.value)}
+                    className={warmFieldClassName}
+                  />
                 </div>
-
-                {batchPackageMode === "fixed_package" ? (
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-800">
-                      Paket membership
-                    </label>
-                    <Select
-                      value={batchPackageKey}
-                      onValueChange={onBatchPackageKeyChange}
-                    >
-                      <SelectTrigger className={warmSelectTriggerClassName}>
-                        <SelectValue placeholder="Pilih paket membership" />
-                      </SelectTrigger>
-                      <SelectContent className={warmSelectContentClassName}>
-                        {billingPackages.map((item) => (
-                          <SelectItem
-                            key={item.packageKey}
-                            value={item.packageKey}
-                            className={warmSelectItemClassName}
-                          >
-                            {item.packageName} • {formatCurrency(item.amount)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ) : null}
 
                 <label className="flex items-start gap-3 rounded-[20px] border border-slate-200/80 bg-slate-50/75 px-4 py-3 text-sm text-slate-700 shadow-[0_12px_22px_-24px_rgba(15,23,42,0.16)]">
                   <input
