@@ -1154,15 +1154,6 @@ export function AdminStudents({
         action={
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <Button
-              variant="secondary"
-              className={warmPrimaryButtonClassName}
-              onClick={openCreateDialog}
-            >
-              <Plus className="size-4" />
-              <span className="hidden sm:inline">Tambah Data</span>
-              <span className="inline sm:hidden">Tambah</span>
-            </Button>
-            <Button
               variant="outline"
               className={warmOutlineButtonClassName}
               onClick={handleExport}
