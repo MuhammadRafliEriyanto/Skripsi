@@ -77,8 +77,15 @@ export function LoginForm() {
 
     persistAuthUser(response.data.user);
     persistAuthToken(response.data.token);
-    console.log("routing to", resolveRedirectPath(response.data.redirectPath));
-    router.replace(resolveRedirectPath(response.data.redirectPath));
+
+    let targetPath = response.data.redirectPath;
+    if (response.data.user.role === "siswa") {
+      targetPath = "/dashboard-siswa";
+    }
+
+    const finalPath = resolveRedirectPath(targetPath);
+    console.log("routing to", finalPath);
+    router.replace(finalPath);
     router.refresh();
   }
 
