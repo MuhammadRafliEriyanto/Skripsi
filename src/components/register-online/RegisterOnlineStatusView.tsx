@@ -569,7 +569,7 @@ export default function RegisterOnlineStatusView({
               )}
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <Link href="/login">
+                <Link href={accessStatus === "active" ? "/dashboard-siswa" : "/login"}>
                   <Button variant="outline" className="h-12 w-full rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all hover:border-orange-200 hover:text-orange-600">
                     Masuk ke Dashboard
                   </Button>
