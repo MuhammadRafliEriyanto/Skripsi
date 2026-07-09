@@ -132,7 +132,7 @@ export function OwnerDashboardSidebar({
               isCompact && "hidden",
             )}
           >
-            Data pada workspace ini tersinkron langsung dengan backend LMS.
+            Data operasional dikelola secara terpusat dan real-time.
           </div>
         </div>
       </aside>

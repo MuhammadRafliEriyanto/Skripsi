@@ -451,7 +451,7 @@ export function OwnerDashboardTopbar({
                     Hasil pencarian owner
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
-                    Menampilkan data backend real untuk cabang, admin, pembayaran,
+                    Menampilkan data operasional dan performa cabang secara real-time.
                     pengeluaran, dan aktivasi siswa.
                   </p>
                 </div>

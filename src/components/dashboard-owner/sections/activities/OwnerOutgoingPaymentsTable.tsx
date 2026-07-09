@@ -101,7 +101,7 @@ export function OwnerOutgoingPaymentsTable({
       description={
         outgoingPaymentsAvailable
           ? "Pantau pengeluaran operasional per cabang dengan lebih ringkas."
-          : "Belum ada data pengeluaran operasional dari backend."
+          : "Belum ada data pengeluaran operasional."
       }
       actions={
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">

@@ -225,7 +225,7 @@ export function OwnerDashboardBranchAdminsSection({
       ? "Belum ada admin cabang yang cocok"
       : "Belum ada akun admin cabang";
   const emptyStateDescription = manager.isLoading
-    ? "Daftar akun admin cabang dari backend sedang diambil."
+    ? "Sedang memuat daftar admin cabang..."
     : hasActiveFilters
       ? "Coba ubah kata kunci pencarian atau reset filter agar data kembali tampil."
       : "Buat akun admin cabang baru agar bisa dipilih pada form cabang.";

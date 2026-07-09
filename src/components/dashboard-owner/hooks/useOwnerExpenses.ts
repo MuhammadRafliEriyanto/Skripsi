@@ -468,7 +468,7 @@ export function useOwnerExpenses() {
         ? "Catat biaya operasional cabang agar langsung masuk ke monitoring owner dan perhitungan saldo bersih."
         : editingLegacyCategory
           ? `Data lama dengan kategori legacy "${editingLegacyCategory}" bisa diperbarui ke kategori operasional baru tanpa mengubah flow pembayaran.`
-          : "Perbarui data pengeluaran operasional tanpa mengubah alur backend yang sudah berjalan.",
+          : "Perbarui data pengeluaran operasional yang ada di sistem.",
     submitLabel:
       dialogMode === "create"
         ? "Simpan pengeluaran"

@@ -230,7 +230,7 @@ function OwnerFinanceOverviewPanel({
             Ringkasan Keuangan
           </h3>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
-            Gabungan pemasukan pembayaran dan pengeluaran operasional dari data backend.
+            Gabungan pemasukan pembayaran dan pengeluaran operasional seluruh cabang.
           </p>
         </div>
         <Badge variant="secondary" className="w-fit rounded-full px-3 py-1.5">
@@ -289,13 +289,13 @@ function calculateProgress(numerator: number, denominator: number) {
 
 function formatUpdateBadge(value: string | null) {
   if (!value) {
-    return "Sinkron backend belum tersedia";
+    return "Sinkronisasi belum tersedia";
   }
 
   const updatedAt = new Date(value);
 
   if (Number.isNaN(updatedAt.getTime())) {
-    return "Sinkron backend belum tersedia";
+    return "Sinkronisasi belum tersedia";
   }
 
   const diffMinutes = Math.max(
@@ -508,21 +508,21 @@ function getPerformanceChartCopy(period: OwnerDashboardPerformancePeriod) {
     case "week":
       return {
         description:
-          "Tren omzet lunas dibanding nominal pembayaran yang belum lunas untuk 7 hari terakhir berdasarkan data backend.",
+          "Tren omzet lunas dibanding tagihan yang belum dibayar selama 7 hari terakhir.",
         primaryLabel: "Omzet lunas",
         secondaryLabel: "Belum lunas",
       };
     case "month":
       return {
         description:
-          "Tren omzet lunas dibanding nominal pembayaran yang belum lunas untuk 30 hari terakhir berdasarkan data backend.",
+          "Tren omzet lunas dibanding tagihan yang belum dibayar selama 30 hari terakhir.",
         primaryLabel: "Omzet lunas",
         secondaryLabel: "Belum lunas",
       };
     default:
       return {
         description:
-          "Tren omzet lunas dibanding nominal pembayaran yang belum lunas berdasarkan data backend selama tahun berjalan.",
+          "Tren omzet lunas dibanding tagihan yang belum dibayar selama tahun berjalan.",
         primaryLabel: "Omzet lunas",
         secondaryLabel: "Belum lunas",
       };
@@ -559,7 +559,7 @@ function summarizePerformanceSeries(
       return {
         hasActivity: false,
         emptyStateMessage:
-          "Belum ada transaksi yang tercatat untuk tahun ini dari backend.",
+          "Belum ada transaksi yang tercatat untuk tahun ini di sistem.",
       };
   }
 }
@@ -896,7 +896,7 @@ export function OwnerDashboardCanvasSection() {
       : {
           title: "Omzet",
           value: unavailableValue,
-          note: "Menunggu data pembayaran dari backend.",
+          note: "Sedang memuat data transaksi pembayaran...",
           progress: 0,
           trend: "Menunggu data",
           direction: "down",
@@ -910,7 +910,7 @@ export function OwnerDashboardCanvasSection() {
           note:
             branchCount > 0
               ? `${Math.max(branchCount - (activeBranchCount ?? 0), 0)} cabang lain masih persiapan atau nonaktif.`
-              : "Belum ada data cabang di backend.",
+              : "Belum ada data cabang terdaftar di sistem.",
           progress: calculateProgress(activeBranchCount ?? 0, branchCount),
           trend:
             branchCount > 0
@@ -923,7 +923,7 @@ export function OwnerDashboardCanvasSection() {
       : {
           title: "Cabang",
           value: unavailableValue,
-          note: "Menunggu data cabang dari backend.",
+          note: "Sedang memuat data operasional cabang...",
           progress: 0,
           trend: "Menunggu data",
           direction: "down",
@@ -937,7 +937,7 @@ export function OwnerDashboardCanvasSection() {
           note:
             activitySummary.attentionActivationCount > 0
               ? `${activitySummary.attentionActivationCount} status aktivasi masih perlu tindak lanjut.`
-              : "Pembayaran dan aktivasi membership backend dalam kondisi aman.",
+              : "Seluruh sistem pembayaran dan aktivasi berjalan normal.",
           progress: calculateProgress(
             activitySummary.paidIncomingCount + activitySummary.activeActivationCount,
             activitySummary.totalActivityCount,
@@ -953,7 +953,7 @@ export function OwnerDashboardCanvasSection() {
       : {
           title: "Aktivitas Sistem",
           value: unavailableValue,
-          note: "Menunggu data pembayaran dan aktivasi dari backend.",
+          note: "Sedang memuat data transaksi dan aktivasi...",
           progress: 0,
           trend: "Menunggu data",
           direction: "down",
@@ -967,7 +967,7 @@ export function OwnerDashboardCanvasSection() {
           note:
             studentCount > 0
               ? `${Math.max(studentCount - (activeStudentCount ?? 0), 0)} siswa berstatus nonaktif.`
-              : "Belum ada data siswa di backend.",
+              : "Belum ada data siswa yang terdaftar di sistem.",
           progress: calculateProgress(activeStudentCount ?? 0, studentCount),
           trend:
             studentCount > 0
@@ -980,7 +980,7 @@ export function OwnerDashboardCanvasSection() {
       : {
           title: "Total Siswa",
           value: unavailableValue,
-          note: "Menunggu data siswa dari backend.",
+          note: "Sedang memuat profil dan data siswa...",
           progress: 0,
           trend: "Menunggu data",
           direction: "down",
@@ -1101,7 +1101,7 @@ export function OwnerDashboardCanvasSection() {
 
         <OwnerDashboardMetricList
           title="Status Operasional Cabang"
-          description="Komposisi status operasional seluruh cabang berdasarkan data backend terbaru."
+          description="Komposisi status operasional seluruh cabang berdasarkan pembaruan data terakhir."
           items={[]}
           donutItems={branchStatusSummary.donutItems}
           donutLabel={branchStatusSummary.donutLabel}

@@ -179,14 +179,14 @@ export function OwnerDashboardOverviewSection() {
       {
         title: "Total Siswa",
         value: metrics ? formatNumber(metrics.totalStudents) : "-",
-        description: "Seluruh siswa yang tercatat di backend.",
+        description: "Seluruh siswa Bimbel yang terdaftar di sistem.",
         icon: Users,
         tone: "border-orange-100 bg-orange-50 text-orange-700",
       },
       {
         title: "Total Guru",
         value: metrics ? formatNumber(metrics.totalTeachers) : "-",
-        description: "Seluruh guru yang tercatat di backend.",
+        description: "Seluruh guru yang tergabung di Bina Cendekia.",
         icon: GraduationCap,
         tone: "border-red-100 bg-red-50 text-red-700",
       },
@@ -221,7 +221,7 @@ export function OwnerDashboardOverviewSection() {
               : "-",
         description:
           metrics?.expensesThisMonth === null
-            ? "Backend belum menyediakan data pengeluaran Owner."
+            ? "Data pengeluaran operasional belum tersedia."
             : "Pengeluaran selesai pada bulan berjalan.",
         icon: ReceiptText,
         tone: "border-red-100 bg-red-50 text-red-700",
@@ -250,7 +250,7 @@ export function OwnerDashboardOverviewSection() {
             Dashboard
           </h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Ringkasan operasional seluruh cabang dari data backend LMS.
+            Ringkasan operasional dan performa seluruh cabang Bina Cendekia.
           </p>
         </div>
         <Badge
@@ -324,7 +324,7 @@ export function OwnerDashboardOverviewSection() {
         <EmptyState
           icon={Building2}
           title="Belum ada data operasional"
-          description="Backend belum memiliki data siswa, guru, cabang, pembayaran, atau membership untuk ditampilkan."
+          description="Belum ada data operasional yang tercatat di sistem."
         />
       ) : null}
     </div>

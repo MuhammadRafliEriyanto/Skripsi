@@ -212,7 +212,7 @@ export function OwnerDashboardActivitiesSection({
         setActivitiesError(
           error instanceof Error
             ? error.message
-            : "Data aktivitas owner dari backend belum bisa dimuat.",
+            : "Gagal memuat log aktivitas. Silakan coba lagi.",
         );
       } finally {
         if (!isCancelled) {
@@ -584,39 +584,39 @@ export function OwnerDashboardActivitiesSection({
 
   const incomingPanelNote = studentBranchAvailable
     ? "Owner hanya memantau. Tidak ada aksi edit atau hapus di halaman ini."
-    : "Owner hanya memantau. Tidak ada aksi edit atau hapus di halaman ini. Kolom cabang siswa masih belum tersedia di backend, jadi sementara ditampilkan sebagai Belum diatur.";
+    : "Owner hanya memiliki akses pantau. Kolom cabang untuk siswa saat ini belum diatur.";
 
   const outgoingPanelNote = outgoingPaymentsAvailable
     ? "Owner hanya memantau pengeluaran. Tidak ada aksi edit atau hapus di halaman ini."
-    : "Data pengeluaran belum tersedia dari backend owner activities.";
+    : "Data pengeluaran belum tersedia.";
 
   const activationPanelNote = studentBranchAvailable
     ? "Status aktivasi mengikuti hasil pembayaran otomatis."
-    : "Status aktivasi mengikuti hasil pembayaran otomatis. Cabang siswa belum tersedia di backend, jadi sementara ditampilkan sebagai Belum diatur.";
+    : "Status aktivasi mengikuti hasil pembayaran otomatis. Kolom cabang saat ini belum diatur.";
 
   const incomingEmptyDescription = isLoadingActivities
-    ? "Sedang memuat data pembayaran masuk dari backend."
+    ? "Sedang memuat data pembayaran masuk..."
     : activitiesError
       ? activitiesError
       : hasIncomingFilters
         ? "Ubah pencarian atau filter agar data kembali tampil."
-        : "Belum ada data pembayaran masuk dari backend.";
+        : "Belum ada data pembayaran masuk.";
 
   const activationEmptyDescription = isLoadingActivities
-    ? "Sedang memuat data aktivasi siswa dari backend."
+    ? "Sedang memuat data aktivasi siswa..."
     : activitiesError
       ? activitiesError
       : hasActivationFilters
         ? "Ubah pencarian atau filter agar data kembali tampil."
-        : "Belum ada data aktivasi siswa dari backend.";
+        : "Belum ada data aktivasi siswa.";
 
   const outgoingEmptyDescription = isLoadingActivities
-    ? "Sedang memuat data pengeluaran dari backend."
+    ? "Sedang memuat data pengeluaran..."
     : activitiesError
       ? activitiesError
       : hasOutgoingFilters
         ? "Ubah pencarian atau filter agar data pengeluaran kembali tampil."
-        : "Belum ada data pengeluaran dari backend.";
+        : "Belum ada data pengeluaran.";
 
   const totalPemasukan = useMemo(() => {
     return incomingPayments
@@ -754,7 +754,7 @@ export function OwnerDashboardActivitiesSection({
 
       {activitiesError ? (
         <section className="rounded-[24px] border border-amber-200 bg-amber-50 px-5 py-4 text-sm leading-6 text-amber-900">
-          Data aktivitas owner belum bisa dimuat penuh dari backend. Halaman tetap
+          Data aktivitas belum bisa dimuat penuh. Halaman tetap
           menampilkan state kosong yang jujur tanpa data dummy.
         </section>
       ) : null}

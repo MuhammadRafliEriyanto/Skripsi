@@ -889,7 +889,7 @@ export function useOwnerDashboard({
     description:
       branchDialogMode === "create"
         ? "Lengkapi nama, alamat, dan status. Pilih admin cabang dari daftar akun admin yang sudah dibuat pada menu Admin Cabang."
-        : "Perbarui nama, alamat, status, dan pilih admin cabang dari akun admin backend yang tersedia.",
+        : "Perbarui nama, alamat, status, dan pilih admin cabang dari akun staf yang tersedia.",
     submitLabel:
       branchDialogMode === "create" ? "Simpan cabang" : "Update perubahan",
     error: branchFormError,

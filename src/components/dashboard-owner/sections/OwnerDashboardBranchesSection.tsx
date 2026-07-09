@@ -172,10 +172,10 @@ export function OwnerDashboardBranchesSection({
       ? "Belum ada cabang yang cocok dengan filter"
       : "Belum ada data cabang";
   const emptyStateDescription = manager.isLoading
-    ? "Data cabang dari backend sedang diambil. Tabel akan terisi otomatis setelah permintaan selesai."
+    ? "Data cabang sedang dimuat. Tabel akan terisi otomatis."
     : hasActiveFilters
       ? "Coba ubah kata kunci pencarian, reset filter, atau tambahkan cabang baru agar data kembali tampil."
-      : "Tambahkan cabang baru atau lakukan import setelah backend siap agar data mulai tampil di dashboard owner.";
+      : "Tambahkan cabang baru untuk mulai memantau operasionalnya di sini.";
 
   return (
     <TooltipProvider>
@@ -618,13 +618,13 @@ export function OwnerDashboardBranchesSection({
                     </SelectContent>
                   </Select>
                   <p className="text-xs leading-5 text-slate-400">
-                    Pilih admin cabang dari daftar akun backend yang memiliki
+                    Pilih admin cabang dari daftar akun staf yang memiliki
                     role admin. Pengelolaan akun admin dilakukan dari menu Admin
                     Cabang.
                   </p>
                   {manager.branchAdminOptions.length === 0 ? (
                     <p className="rounded-2xl border border-orange-100/80 bg-orange-50/45 px-4 py-3 text-xs leading-5 text-slate-500">
-                      Belum ada akun admin backend yang tersedia untuk dipilih.
+                      Belum ada akun staf/admin yang tersedia untuk dipilih.
                       Tambahkan akun dulu dari menu Admin Cabang.
                     </p>
                   ) : null}
@@ -656,7 +656,7 @@ export function OwnerDashboardBranchesSection({
                   </Select>
                   <p className="text-xs leading-5 text-slate-400">
                     Kolom guru tersedia dan total siswa pada tabel dihitung
-                    otomatis dari data backend terkait, bukan diisi manual saat
+                    otomatis berdasarkan sistem, bukan diisi manual saat
                     membuat cabang.
                   </p>
                 </div>
