@@ -335,29 +335,7 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
       }
     >
       <div className="space-y-8 pb-10">
-        {/* Billing Summary Mini */}
-        <div className="group relative overflow-hidden rounded-3xl border border-orange-100/50 bg-gradient-to-br from-orange-50/40 via-white to-white p-6 shadow-[0_8px_30px_-4px_rgba(249,115,22,0.04)] transition-all duration-500 hover:shadow-[0_12px_40px_-4px_rgba(249,115,22,0.08)] hover:-translate-y-0.5">
-          <div className="absolute right-0 top-0 -mr-4 -mt-4 size-32 rounded-full bg-orange-100/40 blur-3xl transition-transform duration-700 group-hover:scale-110" />
-          <div className="relative flex items-center justify-between">
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
-                <Package className="size-4 text-orange-500" />
-                <p className="text-[10px] font-bold uppercase tracking-widest text-orange-500/80">Paket Terpilih</p>
-              </div>
-              <h3 className="text-lg font-bold text-slate-800">{selectedPackage.packageName}</h3>
-              <p className="text-xs text-slate-500 flex items-center gap-1.5">
-                <Clock3 className="size-3.5" />
-                Akses selama {selectedPackage.durationMonth} bulan
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-2xl font-black text-slate-800 tracking-tight">{formatRupiah(selectedPackage.amount)}</p>
-              <Badge variant="secondary" className="mt-1.5 bg-orange-50/80 text-orange-600 text-[10px] font-bold tracking-widest border border-orange-100/50">
-                PROMO AKTIF
-              </Badge>
-            </div>
-          </div>
-        </div>
+
 
         <form className="space-y-10" onSubmit={handleSubmit}>
           {/* Section 1: Data Diri */}
