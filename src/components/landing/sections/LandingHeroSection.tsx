@@ -10,7 +10,7 @@ export default function LandingHeroSection() {
     >
       <div className="absolute inset-0 overflow-hidden">
         <Image
-          src="https://images.unsplash.com/photo-1759922378123-a1f4f1e39bae?auto=format&fit=crop&fm=jpg&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&ixlib=rb-4.1.0&q=60&w=3000"
+          src="/landing-hero-bimbel.png"
           alt=""
           fill
           preload

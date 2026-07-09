@@ -92,8 +92,8 @@ const contactItems: FooterContactItem[] = [
   {
     icon: Mail,
     label: "Email",
-    value: "halo@binacendekia.test",
-    href: "mailto:halo@binacendekia.test",
+    value: "halo@binacendekia.com",
+    href: "mailto:halo@binacendekia.com",
   },
   {
     icon: Phone,
@@ -119,7 +119,7 @@ const socialLinks: FooterSocialLink[] = [
   {
     icon: Mail,
     label: "Email",
-    href: "mailto:halo@binacendekia.test",
+    href: "mailto:halo@binacendekia.com",
   },
   {
     icon: Clapperboard,
