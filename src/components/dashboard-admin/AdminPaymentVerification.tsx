@@ -3228,26 +3228,7 @@ export function AdminPaymentVerification({
         </span>
       ),
     },
-    {
-      key: "paymentId",
-      header: "No. Referensi",
-      className: "min-w-[210px]",
-      cell: (payment) => (
-        <div className="space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="font-semibold text-slate-950">{payment.paymentId}</p>
-            <Badge variant={payment.source === "admin" ? "secondary" : "outline"}>
-              {formatPaymentSourceLabel(payment.source)}
-            </Badge>
-          </div>
-          <p className="text-xs text-slate-400">
-            {payment.subscription?.subscriptionCode
-              ? `Kode Layanan: ${payment.subscription.subscriptionCode}`
-              : "Kode layanan belum tersedia"}
-          </p>
-        </div>
-      ),
-    },
+
     {
       key: "student",
       header: "Siswa",
@@ -3270,8 +3251,7 @@ export function AdminPaymentVerification({
               {payment.student.email ?? "Email siswa tidak tersedia"}
             </p>
             <p className="text-xs text-slate-400">
-              {payment.student.studentId ?? "-"} | {payment.student.program || "-"} |{" "}
-              {payment.student.className || "-"}
+              {payment.student.program || "-"} | {payment.student.className || "-"}
             </p>
             {anomalyReasons.length ? (
               <p className="text-xs leading-5 text-rose-600">
@@ -3357,16 +3337,7 @@ export function AdminPaymentVerification({
         </div>
       ),
     },
-    {
-      key: "subscriptionCode",
-      header: "Kode Layanan",
-      className: "min-w-[160px]",
-      cell: (payment) => (
-        <span className="text-sm text-slate-700">
-          {payment.subscription?.subscriptionCode ?? "-"}
-        </span>
-      ),
-    },
+
     {
       key: "actions",
       header: "Aksi",
