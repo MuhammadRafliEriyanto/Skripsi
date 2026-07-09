@@ -503,7 +503,7 @@ function getActivationAnomalyReasons(record: ActivationRecord) {
 }
 
 function extractGradeFromClassOption(classOption: string) {
-  const match = classOption.match(/\b(4|5|6|7|8|9|10|11|12)\b/);
+  const match = classOption.match(/\b([1-9]|1[0-2])\b/);
   return match?.[1] ?? "";
 }
 
