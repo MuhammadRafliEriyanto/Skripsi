@@ -19,9 +19,7 @@ export default function LandingAbout() {
 
           <p className="mt-4 text-sm leading-7 text-slate-600 sm:text-base">
             Bina Cendekia adalah bimbingan belajar yang mendampingi siswa
-            dengan suasana belajar yang hangat, program yang terarah, dan alur
-            pendaftaran yang rapi sehingga orang tua maupun siswa lebih mudah
-            memahami langkah belajar sejak awal.
+            dengan suasana belajar yang hangat, program yang terarah, serta fasilitas modern untuk membantu siswa meraih prestasi akademik terbaik mereka.
           </p>
         </div>
 

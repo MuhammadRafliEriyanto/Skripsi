@@ -57,27 +57,27 @@ export const landingNavLinks: LandingNavLink[] = [
 
 export const landingBenefits: LandingBenefit[] = [
   {
-    title: "Nuansa bimbel yang lebih personal",
+    title: "Suasana Belajar yang Nyaman",
     description:
-      "Copy dan struktur halaman dibuat terasa hangat seperti layanan les, bukan platform belajar yang terlalu generik.",
+      "Pendekatan belajar yang personal membuat siswa lebih fokus dan tidak merasa tertekan selama proses belajar.",
     icon: MessagesSquare,
   },
   {
-    title: "Arah belajar lebih mudah dipahami",
+    title: "Kurikulum Terarah",
     description:
-      "Calon siswa bisa langsung melihat jenjang, paket, dan langkah pendaftaran tanpa harus menebak-nebak alurnya.",
+      "Materi disusun secara sistematis agar siswa tahu persis apa yang harus dicapai setiap minggunya.",
     icon: BrainCircuit,
   },
   {
-    title: "Flow membership tetap aman",
+    title: "Laporan Perkembangan Transparan",
     description:
-      "Paket, payment, dan status akses siswa tetap memakai logic yang sudah ada sehingga proses aktivasi tetap tertata.",
+      "Orang tua dapat memantau kehadiran, nilai tryout, dan evaluasi siswa secara real-time.",
     icon: ShieldCheck,
   },
   {
-    title: "Tampilan lebih tenang dan clean",
+    title: "Fasilitas Belajar Modern",
     description:
-      "Visual dipadatkan ke bagian yang penting saja supaya lebih nyaman dibaca oleh siswa maupun orang tua.",
+      "Dilengkapi dengan materi interaktif dan tutor yang siap membantu bahkan di luar jam kelas.",
     icon: ChartNoAxesColumn,
   },
 ];
@@ -121,23 +121,23 @@ export const landingPromises = [
 export const landingEventItems: LandingEventItem[] = [
   {
     label: "Tryout & evaluasi",
-    title: "Ruang untuk sesi latihan yang lebih terarah",
+    title: "Uji Kemampuan dengan Tryout Terarah",
     description:
-      "Homepage bisa memperkenalkan ritme tryout, penguatan materi, dan evaluasi yang membantu siswa tetap konsisten.",
+      "Uji kemampuan dengan simulasi ujian yang dirancang mirip dengan kondisi aslinya untuk mengukur kesiapan.",
     icon: BookOpenCheck,
   },
   {
     label: "Jadwal belajar",
-    title: "Informasi program terasa lebih mudah diikuti",
+    title: "Pilih Waktu Belajar yang Fleksibel",
     description:
-      "Orang tua dan siswa bisa langsung menangkap bahwa kelas, membership, dan progres belajar disusun lebih tertata.",
+      "Pilih waktu belajar yang paling sesuai dengan kegiatan sekolahmu agar pembelajaran lebih optimal.",
     icon: Clock3,
   },
   {
     label: "Aktivasi akses",
-    title: "Status membership tidak lagi membingungkan",
+    title: "Mulai Belajar Tanpa Menunggu Lama",
     description:
-      "Dari daftar online sampai akses dashboard, setiap langkah terasa lebih jelas dan mudah dipahami sejak awal.",
+      "Daftar sekarang, aktivasi akun secara instan, dan langsung mulai belajar meraih prestasimu.",
     icon: ShieldCheck,
   },
 ];

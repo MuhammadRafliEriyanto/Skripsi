@@ -61,9 +61,7 @@ export default function LandingRegistrationSection() {
             </h2>
 
             <p className="mt-6 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
-              Semua proses pendaftaran dilakukan online. Di kanan kami tampilkan dulu syarat yang
-              perlu disiapkan, lalu langkah-langkah pendaftarannya supaya calon siswa atau orang
-              tua bisa mengikuti alurnya dengan lebih mudah.
+              Semua proses pendaftaran dilakukan online. Siapkan data dirimu dan ikuti langkah mudah berikut untuk menjadi bagian dari Bina Cendekia.
             </p>
 
             <div className="mt-6 space-y-3">

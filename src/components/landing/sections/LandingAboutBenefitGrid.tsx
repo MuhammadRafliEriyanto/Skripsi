@@ -20,14 +20,14 @@ import {
 const aboutCardMeta = [
   {
     accent: "from-orange-500 to-amber-400",
-    chip: "Suasana belajar",
-    title: "Pendekatan belajar dibuat lebih personal dan lebih menenangkan.",
+    chip: "Metode Belajar",
+    title: "Pendekatan belajar yang lebih personal dan menyenangkan.",
     detail:
-      "Bina Cendekia membangun suasana bimbel yang terasa dekat, hangat, dan tidak kaku supaya siswa lebih nyaman belajar dan orang tua lebih mudah percaya dengan prosesnya.",
+      "Bina Cendekia membangun suasana bimbel yang terasa dekat, hangat, dan interaktif agar siswa lebih termotivasi belajar dan orang tua tenang memantau progresnya.",
     points: [
-      "Pendampingan dibuat terasa akrab sehingga siswa tidak cepat tertekan.",
-      "Bahasa dan alur informasi disusun sederhana agar orang tua mudah mengikuti.",
-      "Setiap program diarahkan supaya ritme belajar terasa konsisten, bukan terburu-buru.",
+      "Pendampingan akrab oleh tutor berpengalaman agar siswa tidak cepat merasa tertekan.",
+      "Laporan perkembangan belajar yang mudah diakses oleh siswa maupun orang tua.",
+      "Materi disesuaikan dengan ritme pemahaman masing-masing siswa.",
     ],
     primaryHref: "#program",
     primaryLabel: "Lihat Program",
@@ -36,14 +36,14 @@ const aboutCardMeta = [
   },
   {
     accent: "from-rose-500 to-orange-500",
-    chip: "Arah belajar",
-    title: "Informasi program dan jenjang dibuat lebih mudah dipahami sejak awal.",
+    chip: "Fokus Akademik",
+    title: "Materi belajar yang terstruktur sesuai dengan kurikulum sekolah.",
     detail:
-      "Calon siswa bisa langsung melihat program belajar per jenjang tanpa harus menebak-nebak alurnya. Ini membantu keputusan belajar terasa lebih mantap dari awal kunjungan.",
+      "Kami memastikan materi bimbingan relevan dengan pelajaran di sekolah. Mulai dari pemahaman dasar hingga soal-soal tingkat lanjut, semua dipandu dengan cara yang mudah dimengerti.",
     points: [
-      "Jenjang SD, SMP, SMA, dan UTBK ditampilkan lebih jelas.",
-      "Setiap kartu program punya fokus dan manfaat yang mudah dibaca.",
-      "Landing page tetap ringkas, tetapi tetap memberi cukup konteks untuk memilih langkah berikutnya.",
+      "Persiapan lengkap untuk SD, SMP, SMA, dan UTBK.",
+      "Fokus pada penguasaan konsep, bukan sekadar menghafal rumus.",
+      "Latihan soal terarah untuk membantu siswa meraih nilai maksimal di ujian.",
     ],
     primaryHref: "#program",
     primaryLabel: "Lihat Detail Program",
@@ -52,14 +52,14 @@ const aboutCardMeta = [
   },
   {
     accent: "from-amber-500 to-orange-500",
-    chip: "Flow membership",
-    title: "Alur pendaftaran dan membership tetap aman tanpa bikin bingung pengguna.",
+    chip: "Akses Belajar",
+    title: "Fasilitas lengkap untuk mendukung proses belajarmu dari mana saja.",
     detail:
-      "Walau tampilan landing dibuat lebih ramah, proses daftar, verifikasi, dan aktivasi tetap mengikuti alur yang rapi supaya akses siswa baru dibuka pada tahap yang benar.",
+      "Dapatkan akses materi dan jadwal belajar secara online dengan mudah. Platform ini dirancang untuk memudahkanmu mengatur waktu belajar dan mengevaluasi hasil tryout.",
     points: [
-      "Data siswa, pilihan program, dan membership tetap diisi berurutan.",
-      "Verifikasi email dan pembayaran tetap jadi bagian penting sebelum akses aktif.",
-      "Tampilan tetap terasa ringan meski logic membership di belakangnya tetap tertata.",
+      "Lihat jadwal kelas dan daftar kelas tambahan langsung dari akunmu.",
+      "Akses modul pembelajaran dan kerjakan tryout langsung dari genggaman.",
+      "Kemudahan memantau kehadiran dan histori belajar bagi orang tua.",
     ],
     primaryHref: "#pendaftaran",
     primaryLabel: "Lihat Alur Daftar",
@@ -68,14 +68,14 @@ const aboutCardMeta = [
   },
   {
     accent: "from-orange-500 to-yellow-400",
-    chip: "Visual landing",
-    title: "Tampilan dibuat lebih clean supaya fokus pengguna tidak pecah.",
+    chip: "Evaluasi Berkala",
+    title: "Pantau prestasimu dengan laporan evaluasi yang komprehensif.",
     detail:
-      "Perubahan visual di landing page diarahkan untuk menonjolkan hal yang paling penting: program, alur pendaftaran, dan pilihan paket. Hasilnya terasa lebih rapi tanpa mengubah identitas Bina Cendekia.",
+      "Setiap langkah belajarmu sangat berarti. Kami menyediakan sesi evaluasi rutin untuk memastikan kamu terus berkembang dan siap menghadapi setiap ujian.",
     points: [
-      "Komponen utama diberi hirarki visual yang lebih jelas.",
-      "Aksen warna tetap hangat dan konsisten dengan tema yang sudah ada.",
-      "User tetap bisa eksplor halaman tanpa merasa penuh atau berlebihan.",
+      "Tryout berkala untuk mengukur pemahaman materi.",
+      "Sesi konsultasi dengan tutor jika merasa kesulitan dalam belajar.",
+      "Rapor evaluasi digital yang bisa dilihat kapan saja.",
     ],
     primaryHref: "#paket",
     primaryLabel: "Lihat Paket",

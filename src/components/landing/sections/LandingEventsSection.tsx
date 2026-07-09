@@ -187,8 +187,7 @@ export default function LandingEventsSection() {
           </h2>
 
           <p className="mt-4 text-sm leading-7 text-slate-600 sm:text-base">
-            Pilih jenjang yang sesuai dengan kebutuhan belajar siswa, lalu biarkan banner ini
-            menampilkan arah program yang paling relevan secara lebih jelas.
+            Pilih jenjang pendidikanmu dan temukan program belajar yang paling tepat untuk membantumu berkembang.
           </p>
         </div>
 
