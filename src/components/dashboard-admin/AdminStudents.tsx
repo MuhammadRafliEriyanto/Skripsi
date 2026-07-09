@@ -162,7 +162,7 @@ function createEmptyStudentForm(defaultClassName: string): StudentFormValues {
   return {
     name: "",
     email: "",
-    phone: "",
+    phone: "-",
     branch: "",
     program: "-",
     className: defaultClassName,
@@ -800,10 +800,6 @@ export function AdminStudents({
       return;
     }
 
-    if (!normalizedPhone) {
-      setFormError("No. HP wajib diisi.");
-      return;
-    }
 
     if (!normalizedClassName) {
       setFormError("Kelas harus menggunakan format SD 4 sampai SMA 12.");
@@ -1467,16 +1463,6 @@ export function AdminStudents({
                 </div>
               </StudentField>
 
-              <StudentField label="No HP">
-                <Input
-                  className={warmFieldClassName}
-                  value={formValues.phone}
-                  onChange={(event) =>
-                    updateFormValue("phone", event.target.value)
-                  }
-                  placeholder="Nomor telepon aktif"
-                />
-              </StudentField>
 
               <StudentField label="Cabang">
                 <Select
