@@ -42,8 +42,7 @@ const landingProgramItems: LandingProgramItem[] = [
     label: "SD Kelas 4-6",
     tabDescription: "Fondasi belajar yang hangat dan bertahap.",
     tabHint: "Belajar lebih tenang",
-    imageSrc:
-      "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1600&q=80",
+    imageSrc: "/images/landing/sd.png",
     imageAlt: "Siswa sedang belajar bersama di kelas.",
     title: "Bangun kebiasaan belajar yang rapi sejak kelas 4 sampai 6.",
     description:
@@ -73,8 +72,7 @@ const landingProgramItems: LandingProgramItem[] = [
     label: "SMP Kelas 7-9",
     tabDescription: "Jaga ritme belajar di masa transisi yang lebih aktif.",
     tabHint: "Ritme makin stabil",
-    imageSrc:
-      "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1600&q=80",
+    imageSrc: "/images/landing/smp.png",
     imageAlt: "Sekelompok siswa berdiskusi sambil belajar bersama.",
     title: "Temani siswa SMP menjaga ritme belajar agar tetap stabil dan percaya diri.",
     description:
@@ -104,8 +102,7 @@ const landingProgramItems: LandingProgramItem[] = [
     label: "SMA Kelas 10-12",
     tabDescription: "Struktur materi yang lebih siap mengarah ke target akademik.",
     tabHint: "Target lebih terukur",
-    imageSrc:
-      "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1600&q=80",
+    imageSrc: "/images/landing/sma.png",
     imageAlt: "Siswi sedang belajar mandiri dengan fokus.",
     title: "Program SMA yang lebih terstruktur untuk menjaga target dan kesiapan akademik.",
     description:
@@ -135,8 +132,7 @@ const landingProgramItems: LandingProgramItem[] = [
     label: "Program UTBK",
     tabDescription: "Pendampingan intens untuk target kampus dan skor.",
     tabHint: "Fokus menuju PTN",
-    imageSrc:
-      "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1600&q=80",
+    imageSrc: "/images/landing/utbk.png",
     imageAlt: "Siswa belajar bersama untuk persiapan ujian masuk perguruan tinggi.",
     title: "Persiapan UTBK yang lebih fokus, intens, dan dekat dengan target kampus.",
     description:
