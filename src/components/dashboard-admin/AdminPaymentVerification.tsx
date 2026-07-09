@@ -1308,7 +1308,8 @@ function CreateMembershipBillingDialog({
                         ))}
                       </div>
                     </div>
-              </div>
+                  </div>
+                ) : null}
               </div>
           </div>
 
