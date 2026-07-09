@@ -153,15 +153,10 @@ export function OwnerActivityDetailDialog({
                   value={formatLongDate(selectedIncomingPayment.paidAt)}
                   icon={CalendarClock}
                 />
+
                 <DetailItem
                   tone="orange"
-                  label="No. Referensi"
-                  value={selectedIncomingPayment.paymentId ?? "-"}
-                  icon={CreditCard}
-                />
-                <DetailItem
-                  tone="orange"
-                  label="Expired At"
+                  label="Masa Aktif"
                   value={formatLongDate(selectedIncomingPayment.expiresAt)}
                   icon={CalendarClock}
                 />
@@ -385,12 +380,7 @@ export function OwnerActivityDetailDialog({
                   value={formatLongDate(selectedStudent.activeUntil)}
                   icon={CalendarClock}
                 />
-                <DetailItem
-                  tone="emerald"
-                  label="No. Referensi"
-                  value={selectedStudent.paymentId ?? "-"}
-                  icon={CreditCard}
-                />
+
                 <DetailItem
                   tone="emerald"
                   label="Subscription Code"

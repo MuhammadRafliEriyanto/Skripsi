@@ -112,7 +112,7 @@ export function OwnerIncomingPaymentsTable({
             <Input
               value={searchQuery}
               onChange={(event) => onSearchQueryChange(event.target.value)}
-              placeholder="Cari nama siswa, cabang, paket, metode, atau no referensi..."
+              placeholder="Cari nama siswa, cabang, atau paket..."
               className="h-12 rounded-2xl border-white/70 bg-white/88 pl-11 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]"
             />
           </div>
@@ -225,9 +225,7 @@ export function OwnerIncomingPaymentsTable({
             <TableHead className="w-56 text-[11px] uppercase tracking-[0.18em] text-slate-500">
               Paket
             </TableHead>
-            <TableHead className="w-40 text-[11px] uppercase tracking-[0.18em] text-slate-500">
-              Metode
-            </TableHead>
+
             <TableHead className="w-40 text-[11px] uppercase tracking-[0.18em] text-slate-500">
               Nominal
             </TableHead>
@@ -255,11 +253,7 @@ export function OwnerIncomingPaymentsTable({
                 <TableCell>
                   <div className="space-y-1">
                     <p className="font-semibold text-slate-900">{payment.studentName}</p>
-                    <p className="text-xs text-slate-400">
-                      {payment.paymentId
-                        ? `No. Ref: ${payment.paymentId}`
-                        : "No. Ref belum tersedia"}
-                    </p>
+
                   </div>
                 </TableCell>
                 <TableCell className="text-sm font-medium text-slate-700">
@@ -268,9 +262,7 @@ export function OwnerIncomingPaymentsTable({
                 <TableCell className="text-sm leading-6 text-slate-700">
                   {payment.packageName}
                 </TableCell>
-                <TableCell className="text-sm text-slate-600">
-                  {formatPaymentMethodLabel(payment.method)}
-                </TableCell>
+
                 <TableCell className="text-sm font-semibold text-slate-900">
                   {formatCurrency(payment.amount)}
                 </TableCell>

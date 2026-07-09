@@ -431,12 +431,10 @@ export function OwnerDashboardActivitiesSection({
       namaSiswa: payment.studentName,
       cabang: payment.branch,
       paket: payment.packageName,
-      metode: payment.method,
       jumlah: payment.amount,
       status: payment.status,
       tanggalBayar: payment.paidAt ?? "",
       expiredAt: payment.expiresAt ?? "",
-      paymentId: payment.paymentId ?? "",
       subscriptionCode: payment.subscriptionCode ?? "",
     }));
 
@@ -450,18 +448,16 @@ export function OwnerDashboardActivitiesSection({
     }
 
     const csvContent = [
-      "nama siswa,cabang,paket,metode,jumlah,status,tanggal bayar,expired at,no ref,kode layanan",
+      "nama siswa,cabang,paket,jumlah,status,tanggal bayar,expired at,kode layanan",
       ...exportRows.map((payment) =>
         [
           escapeCsvCell(payment.namaSiswa),
           escapeCsvCell(payment.cabang),
           escapeCsvCell(payment.paket),
-          escapeCsvCell(payment.metode),
           escapeCsvCell(String(payment.jumlah)),
           escapeCsvCell(payment.status),
           escapeCsvCell(payment.tanggalBayar),
           escapeCsvCell(payment.expiredAt),
-          escapeCsvCell(payment.paymentId),
           escapeCsvCell(payment.subscriptionCode),
         ].join(","),
       ),
@@ -543,7 +539,6 @@ export function OwnerDashboardActivitiesSection({
       statusAktivasi: student.activationStatus,
       tanggalDaftar: student.registeredAt,
       activeUntil: student.activeUntil ?? "",
-      paymentId: student.paymentId ?? "",
       subscriptionCode: student.subscriptionCode,
     }));
 
@@ -557,7 +552,7 @@ export function OwnerDashboardActivitiesSection({
     }
 
     const csvContent = [
-      "nama siswa,cabang,jenjang,kelas,paket membership,status pembayaran,status aktivasi,tanggal daftar,active until,no ref,kode layanan",
+      "nama siswa,cabang,jenjang,kelas,paket membership,status pembayaran,status aktivasi,tanggal daftar,active until,kode layanan",
       ...exportRows.map((student) =>
         [
           escapeCsvCell(student.namaSiswa),
@@ -569,7 +564,6 @@ export function OwnerDashboardActivitiesSection({
           escapeCsvCell(student.statusAktivasi),
           escapeCsvCell(student.tanggalDaftar),
           escapeCsvCell(student.activeUntil),
-          escapeCsvCell(student.paymentId),
           escapeCsvCell(student.subscriptionCode),
         ].join(","),
       ),
