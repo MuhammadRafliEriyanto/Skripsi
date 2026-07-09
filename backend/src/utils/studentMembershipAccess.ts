@@ -67,7 +67,7 @@ export function resolveStudentMembershipContentAccess(
     Boolean(startDate && startDate.getTime() > Date.now());
   const startsAt = startDate?.toISOString() ?? null;
 
-  if (accessStatus === "active") {
+  if (accessStatus === "active" || accessStatus === "expiring") {
     return {
       isMembershipLocked: false,
       accessStatus,

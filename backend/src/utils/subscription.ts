@@ -7,10 +7,14 @@ import { type UserDocument } from "../models/User";
 
 export const MEMBERSHIP_ACCESS_STATUSES = [
   "active",
+  "expiring",
   "pending",
   "expired",
   "not_registered",
 ] as const;
+
+const EXPIRING_MEMBERSHIP_THRESHOLD_DAYS = 14;
+const DAY_IN_MILLISECONDS = 1000 * 60 * 60 * 24;
 
 export const ONLINE_PACKAGE_DEFINITIONS = {
   "1-semester": {
@@ -158,6 +162,33 @@ export function buildSubscriptionEndDate(startDate: Date, durationMonth: number)
   return endDate;
 }
 
+export function getRemainingDaysUntilDate(endDate: Date, now = new Date()) {
+  const milliseconds = endDate.getTime() - now.getTime();
+  return Math.max(0, Math.ceil(milliseconds / DAY_IN_MILLISECONDS));
+}
+
+export function resolveSubscriptionStatusByDates(
+  startDate: Date | null | undefined,
+  endDate: Date | null | undefined,
+  now = new Date(),
+): "pending" | "active" | "expiring" | "expired" {
+  if (!endDate || Number.isNaN(endDate.getTime())) {
+    return "pending";
+  }
+
+  if (startDate && startDate.getTime() > now.getTime()) {
+    return "pending";
+  }
+
+  if (endDate.getTime() <= now.getTime()) {
+    return "expired";
+  }
+
+  return getRemainingDaysUntilDate(endDate, now) <= EXPIRING_MEMBERSHIP_THRESHOLD_DAYS
+    ? "expiring"
+    : "active";
+}
+
 function compareSubscriptionRecency(
   first: SubscriptionDocument,
   second: SubscriptionDocument,
@@ -187,26 +218,16 @@ export async function refreshSubscriptionLifecycle(
   }
 
   let changed = false;
+  const nextStatus =
+    subscription.paymentStatus === "failed" || subscription.paymentStatus === "expired"
+      ? "expired"
+      : resolveSubscriptionStatusByDates(
+          subscription.startDate,
+          subscription.endDate,
+        );
 
-  if (
-    subscription.paymentStatus === "paid" &&
-    subscription.startDate &&
-    subscription.startDate.getTime() <= Date.now() &&
-    subscription.endDate &&
-    subscription.endDate.getTime() > Date.now() &&
-    subscription.status !== "active"
-  ) {
-    subscription.status = "active";
-    changed = true;
-  }
-
-  if (
-    subscription.paymentStatus === "paid" &&
-    subscription.endDate &&
-    subscription.endDate.getTime() <= Date.now() &&
-    subscription.status !== "expired"
-  ) {
-    subscription.status = "expired";
+  if (subscription.status !== nextStatus) {
+    subscription.status = nextStatus;
     changed = true;
   }
 
@@ -224,33 +245,27 @@ export function resolveMembershipAccessStatus(
     return "not_registered";
   }
 
-  if (
-    subscription.paymentStatus === "paid" &&
-    subscription.status === "active" &&
-    (!subscription.startDate || subscription.startDate.getTime() <= Date.now()) &&
-    subscription.endDate &&
-    subscription.endDate.getTime() > Date.now()
-  ) {
-    return "active";
-  }
-
-  if (
-    subscription.status === "expired" ||
-    (subscription.endDate ? subscription.endDate.getTime() <= Date.now() : false)
-  ) {
+  if (subscription.paymentStatus === "failed" || subscription.paymentStatus === "expired") {
     return "expired";
   }
 
-  return "pending";
+  return resolveSubscriptionStatusByDates(
+    subscription.startDate,
+    subscription.endDate,
+  );
 }
 
 export function getRemainingSubscriptionDays(subscription: SubscriptionDocument | null) {
-  if (!subscription?.endDate || resolveMembershipAccessStatus(subscription) !== "active") {
+  const accessStatus = resolveMembershipAccessStatus(subscription);
+
+  if (
+    !subscription?.endDate ||
+    (accessStatus !== "active" && accessStatus !== "expiring")
+  ) {
     return null;
   }
 
-  const milliseconds = subscription.endDate.getTime() - Date.now();
-  return Math.max(0, Math.ceil(milliseconds / (1000 * 60 * 60 * 24)));
+  return getRemainingDaysUntilDate(subscription.endDate);
 }
 
 export async function findStudentWithUserByUserId(userId: Types.ObjectId | string) {
@@ -274,8 +289,8 @@ export function selectPrimarySubscription(
     .filter(
       (subscription) =>
         subscription.paymentStatus === "paid" &&
-        subscription.status === "active" &&
         subscription.endDate &&
+        (!subscription.startDate || subscription.startDate.getTime() <= Date.now()) &&
         subscription.endDate.getTime() > Date.now(),
     )
     .sort(compareSubscriptionByEndDate);

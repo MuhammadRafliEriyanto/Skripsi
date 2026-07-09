@@ -411,7 +411,7 @@ function deriveActivationStatus(
 
   const accessStatus = resolveMembershipAccessStatus(subscription);
 
-  if (accessStatus === "active") {
+  if (accessStatus === "active" || accessStatus === "expiring") {
     return "Aktif";
   }
 

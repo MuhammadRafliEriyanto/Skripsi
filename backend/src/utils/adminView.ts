@@ -22,7 +22,7 @@ export type PublicStudent = {
   generatedPassword: string;
   status: "Aktif" | "Nonaktif";
   membership?: {
-    status: "active" | "pending" | "expired" | "none";
+    status: "active" | "expiring" | "pending" | "expired" | "none";
     packageKey?: string;
     packageName?: string;
     paymentStatus?: string;

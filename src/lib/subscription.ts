@@ -76,10 +76,11 @@ export function getPriceByClass(
 ): number {
   return getPriceByClassAndPackage(className, "2-semester", classPricingMatrix, packages);
 }
-export type SubscriptionStatus = "pending" | "active" | "expired";
+export type SubscriptionStatus = "pending" | "active" | "expiring" | "expired";
 export type PaymentStatus = "pending" | "paid" | "failed" | "expired" | "draft_renewal";
 export type MembershipAccessStatus =
   | "active"
+  | "expiring"
   | "pending"
   | "expired"
   | "not_registered";

@@ -105,6 +105,8 @@ function formatAccessStatusLabel(
   switch (accessStatus) {
     case "active":
       return "Membership Aktif";
+    case "expiring":
+      return "Membership Hampir Berakhir";
     case "pending":
       return "Menunggu Pembayaran";
     case "expired":

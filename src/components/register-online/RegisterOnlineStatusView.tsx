@@ -76,6 +76,13 @@ function getAccessStatusMeta(accessStatus: MembershipAccessStatus): StatusMeta {
         chipClassName: "bg-emerald-100 text-emerald-700 border-emerald-200",
         iconClassName: "bg-emerald-500 text-white shadow-emerald-100",
       };
+    case "expiring":
+      return {
+        chip: "Hampir Berakhir",
+        icon: Clock3,
+        chipClassName: "bg-amber-100 text-amber-700 border-amber-200",
+        iconClassName: "bg-amber-500 text-white shadow-amber-100",
+      };
     case "expired":
       return {
         chip: "Kedaluwarsa",
@@ -142,6 +149,12 @@ function getStatusCopy(accessStatus: MembershipAccessStatus) {
         title: "Membership Aktif",
         description:
           "Selamat! Paket belajar Anda sudah siap digunakan sepenuhnya.",
+      };
+    case "expiring":
+      return {
+        title: "Membership Hampir Berakhir",
+        description:
+          "Paket belajar masih aktif. Siapkan perpanjangan sebelum masa aktif selesai.",
       };
     case "expired":
       return {

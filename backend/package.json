@@ -36,7 +36,9 @@
     "data:cleanup": "tsx src/scripts/cleanupScheduleData.ts --apply",
     "data:cleanup:slawi": "tsx src/scripts/cleanupScheduleData.ts --apply --fill-empty-branch=Slawi",
     "audit:student-master:dry-run": "tsx src/scripts/studentMasterCleanupDryRun.ts",
-    "audit:student-master:apply": "tsx src/scripts/studentMasterCleanupApply.ts"
+    "audit:student-master:apply": "tsx src/scripts/studentMasterCleanupApply.ts",
+    "data:membership:individual-dates:dry-run": "tsx src/scripts/migrateMembershipIndividualDates.ts",
+    "data:membership:individual-dates": "tsx src/scripts/migrateMembershipIndividualDates.ts --apply"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

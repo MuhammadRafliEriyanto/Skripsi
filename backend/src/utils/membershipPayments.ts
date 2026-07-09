@@ -26,6 +26,8 @@ import {
   buildSubscriptionEndDate,
   getOnlinePackageByKey,
   refreshSubscriptionLifecycle,
+  resolveMembershipAccessStatus,
+  resolveSubscriptionStatusByDates,
 } from "./subscription";
 
 type MembershipPackageDefinition = {
@@ -289,10 +291,13 @@ async function findCurrentActiveSubscriptionByStudentId(
 
   for (const subscription of subscriptions) {
     const refreshedSubscription = await refreshSubscriptionLifecycle(subscription);
+    const accessStatus = refreshedSubscription
+      ? resolveMembershipAccessStatus(refreshedSubscription)
+      : "not_registered";
 
     if (
       refreshedSubscription &&
-      refreshedSubscription.status === "active" &&
+      (accessStatus === "active" || accessStatus === "expiring") &&
       refreshedSubscription.endDate &&
       refreshedSubscription.endDate.getTime() > Date.now()
     ) {
@@ -329,7 +334,7 @@ export async function resolveRenewalWindow(
     .sort((firstDate, secondDate) => secondDate.getTime() - firstDate.getTime())[0];
   const endDate = buildSubscriptionEndDate(startDate, durationMonth);
   const status: SubscriptionDocument["status"] =
-    startDate.getTime() > Date.now() ? "pending" : "active";
+    resolveSubscriptionStatusByDates(startDate, endDate);
 
   return {
     startDate,

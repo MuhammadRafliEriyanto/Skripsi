@@ -108,7 +108,9 @@ export const getOwnerNotificationSummary = asyncHandler(
         return true;
       }
 
-      return resolveMembershipAccessStatus(subscription) !== "active";
+      const accessStatus = resolveMembershipAccessStatus(subscription);
+
+      return accessStatus !== "active" && accessStatus !== "expiring";
     }).length;
 
     const pendingExpensesCount = expenses.filter(

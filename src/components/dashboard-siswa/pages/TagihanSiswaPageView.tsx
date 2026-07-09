@@ -276,6 +276,8 @@ function formatAccessLabel(accessStatus: MembershipStatusData["accessStatus"]) {
   switch (accessStatus) {
     case "active":
       return "Aktif";
+    case "expiring":
+      return "Hampir Berakhir";
     case "pending":
       return "Menunggu Aktivasi";
     case "expired":
@@ -291,6 +293,8 @@ function formatAccessVariant(accessStatus: MembershipStatusData["accessStatus"])
   switch (accessStatus) {
     case "active":
       return "success";
+    case "expiring":
+      return "warning";
     case "pending":
       return "warning";
     case "expired":
@@ -508,6 +512,22 @@ function PaymentPolicyCopy({
         <p>
           Selama belum ada tagihan pending, belum ada pembayaran yang perlu
           dilanjutkan saat ini.
+        </p>
+      </>
+    );
+  }
+
+  if (overview.accessStatus === "expiring") {
+    return (
+      <>
+        <p>
+          Membership siswa masih aktif, tetapi masa aktifnya sudah mendekati
+          tanggal akhir. Siswa dapat menyiapkan perpanjangan sebelum akses
+          belajar berakhir.
+        </p>
+        <p>
+          Masa aktif tetap dihitung dari tanggal aktivasi masing-masing siswa,
+          bukan dari pergantian semester akademik.
         </p>
       </>
     );
@@ -834,7 +854,9 @@ export default function TagihanSiswaPageView() {
               </div>
             </div>
 
-            {overview.accessStatus === "expired" || overview.paymentStatus === "draft_renewal" ? (
+            {overview.accessStatus === "expired" ||
+            overview.accessStatus === "expiring" ||
+            overview.paymentStatus === "draft_renewal" ? (
               <aside className="rounded-[24px] border border-slate-200 bg-white p-4">
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-600">
