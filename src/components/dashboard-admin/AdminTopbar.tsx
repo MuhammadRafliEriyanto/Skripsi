@@ -148,13 +148,13 @@ function resolveAdminNotificationTab(key: string): AdminTab {
 function getSearchPlaceholder(activeTab: AdminTab) {
   switch (activeTab) {
     case "students":
-      return "Cari nama siswa, email, student ID, atau kelas...";
+      return "Cari nama siswa, email, nomor induk, atau kelas...";
     case "teachers":
-      return "Cari nama guru, email, teacher ID, cabang, atau mapel...";
+      return "Cari nama guru, email, nomor induk, cabang, atau mapel...";
     case "schedule":
       return "Cari kelas, mapel, guru, hari, atau ruangan...";
     case "payments":
-      return "Cari payment ID, siswa, paket, pengeluaran, atau aktivasi...";
+      return "Cari no referensi, siswa, paket, pengeluaran, atau aktivasi...";
     case "overview":
     default:
       return "Cari siswa, guru, jadwal, atau pembayaran...";

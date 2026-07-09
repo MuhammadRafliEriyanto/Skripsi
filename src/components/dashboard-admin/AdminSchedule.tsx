@@ -759,7 +759,7 @@ export function AdminSchedule({
         setError(
           getScheduleRequestErrorMessage(
             requestError,
-            "Gagal memuat daftar jadwal dari backend.",
+            "Gagal memuat daftar jadwal.",
           ),
         );
       } finally {
@@ -1738,7 +1738,7 @@ export function AdminSchedule({
                 {!isRoomDirectoryLoading && !hasRoomOptions ? (
                   <p className="text-xs text-amber-600">
                     Data ruangan belum tersedia. Tambahkan master ruangan di
-                    backend terlebih dahulu.
+                    sistem pusat terlebih dahulu.
                   </p>
                 ) : null}
                 {isEditing && formValues.room && !isSelectedRoomAvailable ? (
@@ -1822,7 +1822,7 @@ export function AdminSchedule({
           <DialogHeader>
             <DialogTitle>Import data jadwal</DialogTitle>
             <DialogDescription>
-              Upload file CSV atau Excel untuk menambahkan jadwal ke backend dengan format kelas akademik dan mapel terbaru.
+              Unggah file CSV atau Excel untuk menambahkan jadwal menggunakan format standar.
             </DialogDescription>
           </DialogHeader>
 

@@ -454,7 +454,7 @@ function getIncomingAnomalyReasons(record: IncomingPaymentRecord) {
   const reasons = [...record.anomalyReasons];
 
   if (!record.student.studentId) {
-    reasons.push("Student ID belum tersedia.");
+    reasons.push("Nomor induk belum tersedia.");
   }
 
   if (record.student.name === "Siswa tidak ditemukan") {
@@ -466,11 +466,11 @@ function getIncomingAnomalyReasons(record: IncomingPaymentRecord) {
   }
 
   if (!record.paymentId) {
-    reasons.push("Payment ID kosong.");
+    reasons.push("No. referensi kosong.");
   }
 
   if (!record.subscription?.subscriptionCode) {
-    reasons.push("Subscription code kosong.");
+    reasons.push("Kode layanan kosong.");
   }
 
   if (record.status === "pending" && record.source === "admin" && !record.checkoutUrl) {
@@ -484,7 +484,7 @@ function getActivationAnomalyReasons(record: ActivationRecord) {
   const reasons: string[] = [];
 
   if (!record.studentId) {
-    reasons.push("Student ID kosong.");
+    reasons.push("Nomor induk kosong.");
   }
 
   if (record.studentName === "Siswa tidak ditemukan") {
@@ -496,7 +496,7 @@ function getActivationAnomalyReasons(record: ActivationRecord) {
   }
 
   if (record.activationStatus === "Aktif" && !record.paymentId) {
-    reasons.push("Status aktif belum memiliki payment ID.");
+    reasons.push("Status aktif belum memiliki no referensi.");
   }
 
   return reasons;
@@ -525,7 +525,7 @@ function formatBatchReasonLabel(reasonCode: AdminBatchPaymentReasonCode) {
     case "BLOCKING_PENDING_PAYMENT":
       return "Masih ada pending payment";
     case "XENDIT_SESSION_FAILED":
-      return "Gagal buat sesi Xendit";
+      return "Gagal membuat sesi pembayaran";
     case "UNKNOWN_ERROR":
       return "Error tidak diketahui";
     default:
@@ -779,7 +779,7 @@ function StudentsWithoutMembershipPanel({
           <p className="text-sm leading-6 text-slate-600">
             Daftar ini menampilkan siswa existing yang belum muncul pada data
             aktivasi membership. Cocok dipakai untuk aktivasi awal siswa lama
-            tanpa mengubah flow backend yang sudah berjalan.
+            tanpa mengganggu sistem utama.
           </p>
           <p className="text-xs leading-5 text-slate-500">
             Filter pencarian, jenjang, dan kelas tetap berlaku di panel ini.
@@ -948,8 +948,8 @@ function CreateMembershipBillingDialog({
               Buat Tagihan Membership
             </DialogTitle>
             <DialogDescription>
-              Buat payment session Xendit baru untuk siswa existing. Status paid
-              atau expired tetap ditentukan webhook Xendit.
+              Buat tagihan baru untuk siswa lama. Status lunas
+              atau kedaluwarsa akan diperbarui secara otomatis.
             </DialogDescription>
           </DialogHeader>
 
@@ -1272,7 +1272,7 @@ function CreateMembershipBillingDialog({
                               <div className="mt-3 flex flex-wrap gap-2">
                                 {item.paymentId ? (
                                   <Badge variant="success">
-                                    Payment ID: {item.paymentId}
+                                    No. Ref: {item.paymentId}
                                   </Badge>
                                 ) : null}
                                 {item.subscriptionCode ? (
@@ -1339,7 +1339,7 @@ function CreateMembershipBillingDialog({
                   <Input
                     value={studentSearchQuery}
                     onChange={(event) => onStudentSearchQueryChange(event.target.value)}
-                    placeholder="Cari berdasarkan student ID, nama, email, kelas, atau cabang..."
+                    placeholder="Cari berdasarkan nomor induk, nama, email, kelas, atau cabang..."
                     className={warmFieldClassName}
                   />
                 </div>
@@ -1594,8 +1594,8 @@ function IncomingPaymentEditDialog({
               </div>
 
               <div className="rounded-[20px] border border-amber-100/80 bg-amber-50/90 px-4 py-3 text-sm leading-6 text-amber-700">
-                Checkout link lama akan dibatalkan. Sistem membuat payment ID dan
-                checkout link baru agar data Xendit tetap konsisten.
+                Tautan lama akan dibatalkan. Sistem membuat no referensi dan
+                tautan pembayaran baru agar data tetap konsisten.
               </div>
             </div>
 
@@ -1658,7 +1658,7 @@ function IncomingPaymentStatusEditDialog({
               </DialogTitle>
               <DialogDescription>
                 Tandai pembayaran pending sebagai lunas untuk merapikan data testing.
-                Membership terkait akan mengikuti logika aktivasi backend.
+                Status layanan siswa akan mengikuti pengaturan sistem otomatis.
               </DialogDescription>
             </DialogHeader>
 
@@ -1666,7 +1666,7 @@ function IncomingPaymentStatusEditDialog({
               <div className="grid gap-3 md:grid-cols-2">
                 <InfoField label="Nama siswa" value={record.student.name} />
                 <InfoField
-                  label="Subscription Code"
+                  label="Kode Layanan"
                   value={record.subscription?.subscriptionCode ?? "-"}
                 />
                 <InfoField label="Paket membership" value={record.packageName} />
@@ -1748,7 +1748,7 @@ function IncomingPaymentDetailDialog({
                 {record.student.name}
               </DialogTitle>
               <DialogDescription>
-                Detail tagihan membership dan status payment Xendit berdasarkan
+                Detail tagihan membership dan status pembayaran berdasarkan
                 endpoint admin payment.
               </DialogDescription>
             </DialogHeader>
@@ -1761,13 +1761,13 @@ function IncomingPaymentDetailDialog({
               ) : null}
 
               <div className="grid gap-3 md:grid-cols-2">
-                <InfoField label="Payment ID" value={record.paymentId} />
+                <InfoField label="No. Referensi" value={record.paymentId} />
                 <InfoField
-                  label="Subscription Code"
+                  label="Kode Layanan"
                   value={record.subscription?.subscriptionCode ?? "-"}
                 />
                 <InfoField
-                  label="Student ID"
+                  label="Nomor Induk"
                   value={record.student.studentId ?? "-"}
                 />
                 <InfoField label="Nama siswa" value={record.student.name} />
@@ -1909,7 +1909,7 @@ function ActivationDetailDialog({
                 {record.studentName}
               </DialogTitle>
               <DialogDescription>
-                Detail aktivasi membership siswa berdasarkan data backend real.
+                Detail aktivasi layanan siswa.
               </DialogDescription>
             </DialogHeader>
 
@@ -1921,8 +1921,8 @@ function ActivationDetailDialog({
               ) : null}
 
               <div className="grid gap-3 md:grid-cols-2">
-                <InfoField label="Student ID" value={record.studentId ?? "-"} />
-                <InfoField label="Payment ID" value={record.paymentId ?? "-"} />
+                <InfoField label="Nomor Induk" value={record.studentId ?? "-"} />
+                <InfoField label="No. Referensi" value={record.paymentId ?? "-"} />
                 <InfoField label="Nama siswa" value={record.studentName} />
                 <InfoField
                   label="Email siswa"
@@ -1952,7 +1952,7 @@ function ActivationDetailDialog({
                   value={formatDateTimeLabel(record.activeUntil)}
                 />
                 <InfoField
-                  label="Subscription Code"
+                  label="Kode Layanan"
                   value={record.subscriptionCode}
                 />
               </div>
@@ -2838,7 +2838,7 @@ export function AdminPaymentVerification({
 
     if (batchPackageMode === "fixed_package" && !batchPackageKey) {
       const message =
-        "Belum ada paket membership dari backend yang bisa dipakai untuk batch tagihan.";
+        "Belum ada paket membership yang tersedia untuk penagihan massal.";
       setBatchError(message);
       window.alert(message);
       return;
@@ -2918,7 +2918,7 @@ export function AdminPaymentVerification({
 
     if (!selectedPackageKey) {
       window.alert(
-        "Belum ada paket membership dari backend yang bisa dipilih untuk tagihan individual.",
+        "Belum ada paket membership yang tersedia untuk tagihan individual.",
       );
       return;
     }
@@ -3021,7 +3021,7 @@ export function AdminPaymentVerification({
 
   async function handleCancelPayment(payment: IncomingPaymentRecord) {
     const confirmed = window.confirm(
-      `Batalkan tagihan ${payment.paymentId} untuk ${payment.student.name}? Status local akan menjadi expired dan sesi pending Xendit akan dicancel jika masih aktif.`,
+      `Batalkan tagihan ${payment.paymentId} untuk ${payment.student.name}? Status tagihan akan menjadi kedaluwarsa dan tautan pembayaran akan dibatalkan.`,
     );
 
     if (!confirmed) {
@@ -3230,7 +3230,7 @@ export function AdminPaymentVerification({
     },
     {
       key: "paymentId",
-      header: "Payment ID",
+      header: "No. Referensi",
       className: "min-w-[210px]",
       cell: (payment) => (
         <div className="space-y-1">
@@ -3242,8 +3242,8 @@ export function AdminPaymentVerification({
           </div>
           <p className="text-xs text-slate-400">
             {payment.subscription?.subscriptionCode
-              ? `Subscription: ${payment.subscription.subscriptionCode}`
-              : "Subscription code belum tersedia"}
+              ? `Kode Layanan: ${payment.subscription.subscriptionCode}`
+              : "Kode layanan belum tersedia"}
           </p>
         </div>
       ),
@@ -3359,7 +3359,7 @@ export function AdminPaymentVerification({
     },
     {
       key: "subscriptionCode",
-      header: "Subscription Code",
+      header: "Kode Layanan",
       className: "min-w-[160px]",
       cell: (payment) => (
         <span className="text-sm text-slate-700">
@@ -3519,7 +3519,7 @@ export function AdminPaymentVerification({
     },
     {
       key: "studentId",
-      header: "Student ID",
+      header: "Nomor Induk",
       className: "min-w-[130px]",
       cell: (student) => (
         <span className="text-sm font-semibold text-slate-900">
@@ -3640,7 +3640,7 @@ export function AdminPaymentVerification({
     },
     {
       key: "paymentId",
-      header: "Payment ID",
+      header: "No. Referensi",
       className: "min-w-[150px]",
       cell: (student) => (
         <span className="text-sm text-slate-700">{student.paymentId ?? "-"}</span>
@@ -3648,7 +3648,7 @@ export function AdminPaymentVerification({
     },
     {
       key: "subscriptionCode",
-      header: "Subscription Code",
+      header: "Kode Layanan",
       className: "min-w-[160px]",
       cell: (student) => (
         <span className="text-sm text-slate-700">{student.subscriptionCode}</span>
@@ -3893,7 +3893,7 @@ export function AdminPaymentVerification({
             <div className="flex flex-wrap items-center gap-2">
               {!studentBranchAvailable ? (
                 <Badge variant="warning">
-                  Sebagian cabang siswa belum tersedia di backend
+                  Sebagian cabang siswa belum terdaftar di sistem pusat
                 </Badge>
               ) : null}
               <Button
@@ -3922,7 +3922,7 @@ export function AdminPaymentVerification({
           <TabsContent value="incoming" className="mt-6">
             <AdminSectionCard
               title="Pembayaran Masuk"
-              description="Kelola tagihan membership Xendit untuk siswa existing sekaligus memonitor histori payment yang sudah tersimpan di backend."
+              description="Kelola tagihan membership untuk siswa lama dan pantau riwayat transaksi yang tersimpan."
               action={
                 <div className="flex flex-wrap gap-2">
                   {paymentsLoading && incomingPayments.length === 0 ? (
@@ -3968,7 +3968,7 @@ export function AdminPaymentVerification({
                         onChange={(event) =>
                           setIncomingSearchQuery(event.target.value)
                         }
-                        placeholder="Cari nama siswa, payment ID, atau subscription code..."
+                        placeholder="Cari nama siswa, no referensi, atau kode layanan..."
                         className={cn("pl-10", warmFieldClassName)}
                       />
                     </div>
@@ -4210,7 +4210,7 @@ export function AdminPaymentVerification({
                         onChange={(event) =>
                           setActivationSearchQuery(event.target.value)
                         }
-                        placeholder="Cari nama siswa, student ID, payment ID, atau subscription code..."
+                        placeholder="Cari nama siswa, no referensi, atau kode layanan..."
                         className={cn("pl-10", warmFieldClassName)}
                       />
                     </div>

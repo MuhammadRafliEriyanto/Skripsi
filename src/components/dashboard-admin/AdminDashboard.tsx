@@ -945,7 +945,7 @@ function OverviewSearchResultsSection({
                 Hasil pencarian dashboard
               </p>
               <p className="text-xs text-slate-500">
-                Menelusuri siswa, guru, jadwal, dan payment dari backend.
+                Menelusuri data siswa, guru, jadwal, dan transaksi.
               </p>
             </div>
           </div>

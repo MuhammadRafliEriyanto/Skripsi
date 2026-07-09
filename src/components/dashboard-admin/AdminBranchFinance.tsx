@@ -1290,7 +1290,7 @@ export function AdminBranchFinance({
                 <span className="font-medium text-slate-700">
                   {selectedBranchLabel}
                 </span>{" "}
-                tanpa mengubah flow pembayaran membership atau Xendit.
+                tanpa mengganggu sistem utama.
               </DialogDescription>
             </DialogHeader>
 

@@ -633,7 +633,7 @@ export function AdminStudents({
         setError(
           requestError instanceof Error
             ? requestError.message
-            : "Gagal memuat daftar siswa dari backend.",
+            : "Gagal memuat daftar siswa.",
         );
       } finally {
         setIsLoading(false);
@@ -1527,7 +1527,7 @@ export function AdminStudents({
                 </Select>
                 {branchOptions.length === 0 ? (
                   <p className="text-xs text-amber-600">
-                    Belum ada cabang backend yang tersedia untuk dipilih.
+                    Belum ada cabang yang tersedia untuk dipilih.
                   </p>
                 ) : null}
               </StudentField>

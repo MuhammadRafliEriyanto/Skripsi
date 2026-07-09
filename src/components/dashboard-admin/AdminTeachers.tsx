@@ -616,7 +616,7 @@ export function AdminTeachers({
         setError(
           requestError instanceof Error
             ? requestError.message
-            : "Gagal memuat daftar guru dari backend.",
+            : "Gagal memuat daftar guru.",
         );
       } finally {
         setIsLoading(false);
@@ -1220,7 +1220,7 @@ export function AdminTeachers({
 
         {!isBranchOptionsLoading && branchOptions.length === 0 ? (
           <div className="mb-4 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-            Belum ada cabang backend yang tersedia. Filter tetap menampilkan
+            Belum ada cabang yang tersedia. Filter tetap menampilkan
             cabang yang sudah melekat pada data guru.
           </div>
         ) : null}
@@ -1524,12 +1524,12 @@ export function AdminTeachers({
                 </Select>
                 {isBranchOptionsLoading ? (
                   <p className="text-xs text-slate-500">
-                    Daftar cabang sedang dimuat dari backend.
+                    Daftar cabang sedang dimuat...
                   </p>
                 ) : null}
                 {!isBranchOptionsLoading && branchOptions.length === 0 ? (
                   <p className="text-xs text-amber-600">
-                    Belum ada cabang backend yang tersedia untuk dipilih.
+                    Belum ada cabang yang tersedia untuk dipilih.
                   </p>
                 ) : null}
               </TeacherField>
@@ -1665,7 +1665,7 @@ export function AdminTeachers({
           <form className="space-y-5" onSubmit={handleImportSubmit}>
             <div className="rounded-[22px] border border-slate-200/80 bg-gradient-to-r from-white to-orange-50/45 px-4 py-3 text-sm leading-6 text-slate-600 shadow-[0_12px_26px_-22px_rgba(249,115,22,0.16)]">
               Header utama yang dibaca: {teacherImportColumns.join(", ")}.
-              Nilai cabang harus cocok dengan master cabang backend. Sistem
+              Penamaan cabang harus sesuai dengan standar sistem pusat.
               juga tetap menerima kolom tambahan seperti email, phone, jadwal,
               status, atau availability jika nanti ada.
             </div>
