@@ -954,20 +954,7 @@ function CreateMembershipBillingDialog({
           </DialogHeader>
 
           <div className="overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] px-5 py-4 sm:px-6">
-            <Tabs
-              value={createMode}
-              onValueChange={(value) => onCreateModeChange(value as CreateBillingMode)}
-            >
-              <TabsList className="w-full justify-start">
-                <TabsTrigger value="massal" className="min-w-[144px]">
-                  Massal
-                </TabsTrigger>
-                <TabsTrigger value="individual" className="min-w-[144px]">
-                  Individual
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="massal" className="mt-4 space-y-4">
+              <div className="mt-4 space-y-4">
                 <div className="rounded-[22px] border border-orange-100/80 bg-[linear-gradient(135deg,rgba(255,247,237,0.95),rgba(255,255,255,0.98))] px-4 py-4 shadow-[0_18px_32px_-30px_rgba(15,23,42,0.16)]">
                   <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
                     <div className="space-y-1">
@@ -1321,120 +1308,8 @@ function CreateMembershipBillingDialog({
                         ))}
                       </div>
                     </div>
-                  </div>
-                ) : null}
-              </TabsContent>
-
-              <TabsContent value="individual" className="mt-4 space-y-4">
-                {studentsError ? (
-                  <div className="rounded-[20px] border border-rose-100/80 bg-rose-50 px-4 py-3 text-sm leading-6 text-rose-700">
-                    {studentsError}
-                  </div>
-                ) : null}
-
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-800">
-                    Cari siswa existing
-                  </label>
-                  <Input
-                    value={studentSearchQuery}
-                    onChange={(event) => onStudentSearchQueryChange(event.target.value)}
-                    placeholder="Cari berdasarkan nomor induk, nama, email, kelas, atau cabang..."
-                    className={warmFieldClassName}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-800">
-                    Pilih siswa
-                  </label>
-                  <Select
-                    value={selectedStudentId || undefined}
-                    onValueChange={onStudentIdChange}
-                    disabled={studentsLoading || filteredStudents.length === 0}
-                  >
-                    <SelectTrigger className={warmSelectTriggerClassName}>
-                      <SelectValue
-                        placeholder={
-                          studentsLoading
-                            ? "Memuat daftar siswa..."
-                            : "Pilih siswa existing"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent className={warmSelectContentClassName}>
-                      {filteredStudents.length > 0 ? (
-                        filteredStudents.map((student) => (
-                          <SelectItem
-                            key={student.id}
-                            value={student.id}
-                            className={warmSelectItemClassName}
-                          >
-                            {formatStudentOptionLabel(student)}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem
-                          value={emptyStudentValue}
-                          disabled
-                          className={warmSelectItemClassName}
-                        >
-                          Tidak ada siswa yang cocok
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-800">
-                      Paket membership
-                    </label>
-                    <Select
-                      value={selectedPackageKey}
-                      onValueChange={onPackageKeyChange}
-                    >
-                      <SelectTrigger className={warmSelectTriggerClassName}>
-                        <SelectValue placeholder="Pilih paket membership" />
-                      </SelectTrigger>
-                      <SelectContent className={warmSelectContentClassName}>
-                        {billingPackages.map((item) => {
-                          const activeStudent = filteredStudents.find(s => s.id === selectedStudentId);
-                          const dynamicAmount = getPriceByClassAndPackage(
-                            activeStudent?.className,
-                            item.packageKey,
-                            classPricingMatrix,
-                            packageLookupOptions,
-                          );
-                          return (
-                            <SelectItem
-                              key={item.packageKey}
-                              value={item.packageKey}
-                              className={warmSelectItemClassName}
-                            >
-                              {item.packageName} • {formatCurrency(dynamicAmount)}
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-800">
-                      Expired at opsional
-                    </label>
-                    <Input
-                      type="datetime-local"
-                      value={expiresAtValue}
-                      onChange={(event) => onExpiresAtChange(event.target.value)}
-                      className={warmFieldClassName}
-                    />
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
+              </div>
+              </div>
           </div>
 
           <DialogFooter className="border-t border-slate-100 px-5 py-4 sm:px-6">
