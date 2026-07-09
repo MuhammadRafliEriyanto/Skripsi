@@ -120,7 +120,7 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
   const [formValues, setFormValues] = useState<RegisterOnlinePayload>(() => ({
     nama: "",
     email: "",
-    phone: "",
+    phone: "-",
     branch: "",
     program: "",
     classLevel: "",
@@ -230,16 +230,7 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const phone = formValues.phone.trim();
-    if (!phone.startsWith("08")) {
-      setFieldErrors({ phone: "Nomor WhatsApp harus diawali dengan 08." });
-      return;
-    }
 
-    if (phone.length > 14) {
-      setFieldErrors({ phone: "Nomor WhatsApp maksimal 14 karakter." });
-      return;
-    }
 
     setLoading(true);
     setErrorMessage("");
@@ -389,31 +380,7 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
                 <InputError message={fieldErrors.email} />
               </div>
 
-              <div className="space-y-2">
-                <label htmlFor="phone" className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  No. WhatsApp
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400">
-                    <Phone className="size-4" />
-                  </div>
-                  <Input
-                    id="phone"
-                    value={formValues.phone}
-                    onChange={(event) =>
-                      setFormValues((current) => ({
-                        ...current,
-                        phone: event.target.value,
-                      }))
-                    }
-                    placeholder="08xxxxxxxxxx"
-                    className="h-12 rounded-2xl border-slate-200/60 bg-slate-50/50 pl-11 transition-all duration-300 focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-500/10 hover:border-slate-300"
-                    autoComplete="tel"
-                    required
-                  />
-                </div>
-                <InputError message={fieldErrors.phone} />
-              </div>
+
             </div>
           </FormSection>
 
