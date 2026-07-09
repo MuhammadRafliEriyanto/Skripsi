@@ -163,8 +163,8 @@ export default function LandingFooter() {
       </div>
 
       <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
-        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[1.35fr_0.82fr_0.9fr_0.92fr] lg:gap-12">
-          <div className="max-w-md md:col-span-2 lg:col-span-1">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-10 sm:gap-10 lg:grid-cols-[1.35fr_0.82fr_0.9fr_0.92fr] lg:gap-12">
+          <div className="col-span-2 max-w-md lg:col-span-1">
             <Link
               href="#home"
               onClick={(event) => handleSectionNavigation(event, "#home")}
@@ -252,7 +252,7 @@ export default function LandingFooter() {
             </div>
           </div>
 
-          <div>
+          <div className="col-span-1">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-yellow-200">
               Menu
             </p>
@@ -277,7 +277,7 @@ export default function LandingFooter() {
             </div>
           </div>
 
-          <div>
+          <div className="col-span-1">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-yellow-200">
               Links
             </p>
@@ -302,18 +302,16 @@ export default function LandingFooter() {
             </div>
           </div>
 
-          <div className="flex flex-col justify-between gap-8">
+          <div className="col-span-2 flex flex-col justify-between gap-8 lg:col-span-1">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-yellow-200">
                 Info
               </p>
               <div className="mt-6 space-y-3 text-sm leading-7 text-white/74">
-                <p>Copyright (c) 2001 - 2026</p>
                 <p className="font-semibold uppercase tracking-[0.08em] text-white">
                   Bina Cendekia
                 </p>
                 <p>Slawi dan Adiwerna</p>
-                <p>All Rights Reserved</p>
               </div>
             </div>
 
