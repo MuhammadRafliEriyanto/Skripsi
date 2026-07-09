@@ -47,25 +47,25 @@ type AuthShellProps = {
 const authHighlights = [
   {
     icon: ShieldCheck,
-    title: "Satu login, empat role",
-    description: "Owner, admin, guru, dan siswa memakai pintu masuk yang sama dengan redirect otomatis.",
+    title: "Belajar Lebih Mudah",
+    description: "Akses materi, jadwal, dan tugas dengan cepat dalam satu tempat.",
   },
   {
     icon: Mail,
-    title: "Email verification aktif",
-    description: "Akun baru harus diverifikasi dulu sebelum bisa mengakses dashboard.",
+    title: "Pantau Perkembangan",
+    description: "Lihat rapor, hasil tryout, dan evaluasi belajarmu kapan saja.",
   },
   {
     icon: Sparkles,
-    title: "UI tetap konsisten",
-    description: "Bahasa visual mengikuti tema orange LMS yang sudah Anda bangun.",
+    title: "Jadwal Teratur",
+    description: "Jangan lewatkan kelas dengan fitur pengingat dan jadwal terstruktur.",
   },
 ];
 
 const splitRotatingMessages = [
-  "Satu portal login untuk owner, admin, guru, dan siswa dalam satu pengalaman yang tetap rapi.",
-  "Setiap role masuk lewat halaman yang sama lalu diarahkan otomatis ke dashboard yang sesuai.",
-  "Kelas, jadwal, progres, dan pengelolaan belajar bisa diakses lebih cepat oleh seluruh pengguna.",
+  "Selamat datang di Bina Cendekia. Bersiap untuk meraih prestasi terbaikmu bersama kami.",
+  "Pantau jadwal kelas, kerjakan tugas, dan raih nilai impianmu.",
+  "Dapatkan pengalaman belajar yang interaktif dan menyenangkan bersama tutor berpengalaman.",
 ] as const;
 
 function LoginIllustration() {
@@ -526,23 +526,21 @@ export function AuthShell({
 
                   <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/14 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/82 backdrop-blur">
                     <Sparkles className="size-3.5 text-orange-300" />
-                    Portal Login LMS
+                    Portal Belajar Siswa
                   </div>
 
                   <h1 className="mt-6 max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl lg:text-[3rem] lg:leading-[1.06]">
-                    Masuk ke dashboard belajar dengan tampilan yang selaras dengan sistem LMS.
+                    Selamat Datang di Platform Belajar Bina Cendekia
                   </h1>
                   <p className="mt-4 max-w-2xl text-sm leading-7 text-white/78 sm:text-base">
-                    Gunakan kode akun dari admin untuk login ke portal Bina Cendekia. Email lama
-                    tetap bisa dipakai sebagai cadangan, sementara alur sesi dan redirect
-                    dashboard mengikuti role akun.
+                    Gunakan kode akun atau email yang telah didaftarkan. Bersiap untuk mengikuti kelas, mengecek jadwal harian, dan melihat pencapaian belajarmu dengan mudah.
                   </p>
 
                   <div className="mt-8 grid gap-4 sm:grid-cols-3">
                     {[
-                      { label: "Portal", value: "Login LMS" },
-                      { label: "Akun", value: "Kode login" },
-                      { label: "Akses", value: "Role-based" },
+                      { label: "Akses Cepat", value: "Kapan Saja" },
+                      { label: "Keamanan", value: "Terjamin" },
+                      { label: "Notifikasi", value: "Real-time" },
                     ].map((item) => (
                       <div
                         key={item.label}
@@ -558,15 +556,13 @@ export function AuthShell({
 
                   <div className="mt-8 rounded-[30px] border border-white/14 bg-white/10 p-5 shadow-md backdrop-blur">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-orange-200">
-                      Siap Digunakan
+                      Raih Prestasi Terbaik
                     </p>
                     <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white">
-                      Login yang lebih ringkas, tetap aman.
+                      Belajar jadi lebih menyenangkan.
                     </h2>
                     <p className="mt-2 max-w-xl text-sm leading-6 text-white/72">
-                      Halaman ini dibuat lebih selaras dengan tampilan `register-online`, tetapi
-                      tetap fokus ke proses masuk akun tanpa menambah blok informasi yang terlalu
-                      panjang.
+                      Dapatkan materi berkualitas, berdiskusi dengan tutor yang ramah, dan tingkatkan nilaimu setiap harinya bersama Bina Cendekia.
                     </p>
                   </div>
                 </div>
@@ -594,7 +590,7 @@ export function AuthShell({
 
                 <div className="mt-4 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-white/62">
                   <CheckCircle2 className="size-4 text-orange-300" />
-                  Redirect role-based tetap aktif
+                  Kesulitan masuk? Hubungi admin
                   <ArrowRight className="size-4 text-white/30" />
                 </div>
               </div>
@@ -658,21 +654,20 @@ export function AuthShell({
             <div className="relative">
               <AppLogo />
               <Badge variant="info" className="mt-6 w-fit">
-                Portal Authentication LMS
+                Portal Belajar Bina Cendekia
               </Badge>
               <h1 className="mt-5 max-w-xl text-3xl font-semibold tracking-tight text-slate-950 lg:text-4xl">
-                Akses akun Bimbel dengan alur yang rapi, aman, dan mudah dipahami.
+                Selamat datang kembali! Akses materi belajar, jadwal, dan perkembangan belajarmu di satu tempat.
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600 lg:text-base">
-                Flow login dan registrasi ini dibuat khusus untuk kebutuhan LMS/Bimbel Anda tanpa
-                mengganggu dashboard yang sudah ada.
+                Masuk ke akunmu untuk melihat rapor, jadwal kelas terbaru, dan berdiskusi dengan tentor kami.
               </p>
 
               <div className="mt-8 grid gap-4 sm:grid-cols-3">
                 {[
-                  { label: "Role aktif", value: "4 role" },
-                  { label: "Security", value: "JWT + API key" },
-                  { label: "Verifikasi", value: "Email required" },
+                  { label: "Akses Cepat", value: "Kapan Saja" },
+                  { label: "Keamanan", value: "Terjamin" },
+                  { label: "Informasi", value: "Real-time" },
                 ].map((item) => (
                   <div
                     key={item.label}
@@ -728,7 +723,7 @@ export function AuthShell({
 
             <div className="mt-5 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-slate-400">
               <CheckCircle2 className="size-4 text-orange-500" />
-              Redirect role-based dari backend tetap dipertahankan
+              Kesulitan masuk? Hubungi admin Bina Cendekia
               <ArrowRight className="size-4 text-slate-300" />
             </div>
           </div>

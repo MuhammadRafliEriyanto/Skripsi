@@ -38,8 +38,8 @@ export default function LandingHeroSection() {
 
           <p className="mx-auto mt-8 max-w-3xl text-base leading-8 text-white/78 sm:text-lg">
             Akses program bimbingan belajar untuk siswa SD sampai SMA dengan
-            alur pendaftaran yang rapi, pilihan membership yang fleksibel, dan
-            pendampingan belajar yang terasa lebih dekat dengan kebutuhan siswa.
+            fasilitas belajar modern, tutor berpengalaman, dan materi yang disesuaikan
+            dengan kurikulum sekolah untuk membantumu meraih prestasi terbaik.
           </p>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">

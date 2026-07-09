@@ -305,7 +305,7 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
       hideSplitTopBadge
       allowDesktopScroll
       title="Registrasi Siswa Baru"
-      description="Bergabung dengan membership kami untuk akses belajar yang terarah dan profesional."
+      description="Bergabunglah bersama ratusan siswa lainnya dan raih prestasi impianmu dengan fasilitas belajar terbaik."
       footer={
         <div className="text-sm text-slate-500 text-center space-y-4">
           <p>
