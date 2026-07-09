@@ -194,7 +194,7 @@ function formatDateTimeLocalInput(value: string | null | undefined) {
 function formatPaymentSourceLabel(value: IncomingPaymentRecord["source"]) {
   switch (value) {
     case "admin":
-      return "Tagihan Admin";
+      return "Transaksi Admin";
     case "register_online":
       return "Register Online";
     default:
@@ -839,7 +839,7 @@ function StudentsWithoutMembershipPanel({
                 }}
               >
                 <Plus className="size-4" />
-                Buat Tagihan Awal
+                Buat Transaksi Awal
               </Button>
             </div>
           ))}
@@ -945,10 +945,10 @@ function CreateMembershipBillingDialog({
         <form className="flex max-h-[90vh] flex-col" onSubmit={onSubmit}>
           <DialogHeader className="gap-3 border-b border-slate-100 px-5 pb-4 pt-5 pr-12 sm:px-6">
             <DialogTitle className="text-xl sm:text-2xl">
-              Buat Tagihan Membership
+              Buat Transaksi Membership
             </DialogTitle>
             <DialogDescription>
-              Buat tagihan baru untuk siswa lama. Status lunas
+              Buat transaksi baru untuk siswa lama. Status lunas
               atau kedaluwarsa akan diperbarui secara otomatis.
             </DialogDescription>
           </DialogHeader>
@@ -1137,7 +1137,7 @@ function CreateMembershipBillingDialog({
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                       <div>
                         <p className="text-base font-semibold text-slate-950">
-                          Hasil batch tagihan
+                          Hasil batch transaksi
                         </p>
                         <p className="mt-1 text-sm leading-6 text-slate-500">
                           Target {batchResult.filters.level}{" "}
@@ -1455,8 +1455,8 @@ function CreateMembershipBillingDialog({
               {createMode === "massal"
                 ? batchResult
                   ? "Proses Batch Lagi"
-                  : "Proses Tagihan Massal"
-                : "Buat Tagihan"}
+                  : "Proses Transaksi Massal"
+                : "Buat Transaksi"}
             </Button>
           </DialogFooter>
         </form>
@@ -1532,21 +1532,21 @@ function IncomingPaymentEditDialog({
                   tone={formatPaymentStatusTone(record.status)}
                   className="w-fit"
                 />
-                <Badge variant="secondary">Edit tagihan pending</Badge>
+                <Badge variant="secondary">Edit transaksi pending</Badge>
               </div>
               <DialogTitle className="text-xl sm:text-2xl">
                 {record.paymentId}
               </DialogTitle>
               <DialogDescription>
                 Perubahan paket atau batas pembayaran akan membuat sesi pembayaran
-                pengganti. Tagihan lama tetap disimpan sebagai riwayat expired.
+                pengganti. Transaksi lama tetap disimpan sebagai riwayat expired.
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] px-5 py-4 sm:px-6">
               <div className="grid gap-4 md:grid-cols-2">
                 <InfoField label="Nama siswa" value={record.student.name} />
-                <InfoField label="Tagihan lama" value={record.paymentId} />
+                <InfoField label="Transaksi lama" value={record.paymentId} />
 
                 <div className="space-y-2 md:col-span-2">
                   <label className="text-sm font-semibold text-slate-700">
@@ -1748,7 +1748,7 @@ function IncomingPaymentDetailDialog({
                 {record.student.name}
               </DialogTitle>
               <DialogDescription>
-                Detail tagihan membership dan status pembayaran berdasarkan
+                Detail transaksi membership dan status pembayaran berdasarkan
                 sistem pusat.
               </DialogDescription>
             </DialogHeader>
@@ -2847,7 +2847,7 @@ export function AdminPaymentVerification({
     const selectedGrade = extractGradeFromClassOption(batchClassOption);
 
     if (!selectedGrade) {
-      const message = "Pilih kelas yang valid untuk batch tagihan.";
+      const message = "Pilih kelas yang valid untuk batch transaksi.";
       setBatchError(message);
       window.alert(message);
       return;
@@ -2877,7 +2877,7 @@ export function AdminPaymentVerification({
           response.summary.failedCount > 0 || response.summary.skippedCount > 0
             ? "warning"
             : "success",
-        title: "Batch tagihan selesai diproses",
+        title: "Batch transaksi selesai diproses",
         message: `${response.summary.createdCount} berhasil dibuat, ${response.summary.skippedCount} skipped, dan ${response.summary.failedCount} failed untuk ${response.summary.totalTargetStudents} siswa target.`,
       });
       setIncomingPage(1);
@@ -2892,12 +2892,12 @@ export function AdminPaymentVerification({
       const message =
         requestError instanceof Error
           ? requestError.message
-          : "Batch tagihan belum bisa diproses.";
+          : "Batch transaksi belum bisa diproses.";
 
       setBatchError(message);
       setBillingFeedback({
         tone: "warning",
-        title: "Batch tagihan belum bisa diproses",
+        title: "Batch transaksi belum bisa diproses",
         message,
       });
       window.alert(message);
@@ -2918,7 +2918,7 @@ export function AdminPaymentVerification({
 
     if (!selectedPackageKey) {
       window.alert(
-        "Belum ada paket membership yang tersedia untuk tagihan individual.",
+        "Belum ada paket membership yang tersedia untuk transaksi individual.",
       );
       return;
     }
@@ -2940,12 +2940,12 @@ export function AdminPaymentVerification({
 
       setBillingFeedback({
         tone: "success",
-        title: "Tagihan membership berhasil dibuat",
+        title: "Transaksi membership berhasil dibuat",
         message: `Checkout link untuk ${response.student.name} sudah dibuat. Admin bisa mengirim link ini ke siswa tanpa approval manual tambahan.`,
         checkoutUrl: response.payment.checkoutUrl ?? null,
         statusPagePath,
       });
-      window.alert("Tagihan membership berhasil dibuat.");
+      window.alert("Transaksi membership berhasil dibuat.");
       setIsCreateDialogOpen(false);
       resetCreateDialogState();
       setIncomingPage(1);
@@ -2960,11 +2960,11 @@ export function AdminPaymentVerification({
       const message =
         requestError instanceof Error
           ? requestError.message
-          : "Tagihan membership belum bisa dibuat.";
+          : "Transaksi membership belum bisa dibuat.";
 
       setBillingFeedback({
         tone: "warning",
-        title: "Tagihan belum bisa dibuat",
+        title: "Transaksi belum bisa dibuat",
         message,
       });
       window.alert(message);
@@ -3021,7 +3021,7 @@ export function AdminPaymentVerification({
 
   async function handleCancelPayment(payment: IncomingPaymentRecord) {
     const confirmed = window.confirm(
-      `Batalkan tagihan ${payment.paymentId} untuk ${payment.student.name}? Status tagihan akan menjadi kedaluwarsa dan tautan pembayaran akan dibatalkan.`,
+      `Batalkan transaksi ${payment.paymentId} untuk ${payment.student.name}? Status transaksi akan menjadi kedaluwarsa dan tautan pembayaran akan dibatalkan.`,
     );
 
     if (!confirmed) {
@@ -3035,10 +3035,10 @@ export function AdminPaymentVerification({
 
       setBillingFeedback({
         tone: "warning",
-        title: "Tagihan berhasil dibatalkan",
+        title: "Transaksi berhasil dibatalkan",
         message: `Payment ${response.paymentId} sudah diubah menjadi expired dengan alasan ${formatCancelReasonLabel(response.cancelReason)}.`,
       });
-      window.alert("Tagihan berhasil dibatalkan.");
+      window.alert("Transaksi berhasil dibatalkan.");
       await refreshPaymentViews({
         includeStudents: false,
       });
@@ -3046,11 +3046,11 @@ export function AdminPaymentVerification({
       const message =
         requestError instanceof Error
           ? requestError.message
-          : "Tagihan belum bisa dibatalkan.";
+          : "Transaksi belum bisa dibatalkan.";
 
       setBillingFeedback({
         tone: "warning",
-        title: "Pembatalan tagihan gagal",
+        title: "Pembatalan transaksi gagal",
         message,
       });
       window.alert(message);
@@ -3077,13 +3077,13 @@ export function AdminPaymentVerification({
 
       setBillingFeedback({
         tone: "success",
-        title: "Tagihan berhasil diperbarui",
+        title: "Transaksi berhasil diperbarui",
         message: `Payment ${response.replacedPaymentId} diganti dengan ${response.payment.paymentId}. Bagikan checkout link baru kepada siswa.`,
         checkoutUrl: response.payment.checkoutUrl ?? null,
         statusPagePath,
       });
       setPaymentEditRecord(null);
-      window.alert("Tagihan berhasil diperbarui dengan payment baru.");
+      window.alert("Transaksi berhasil diperbarui dengan payment baru.");
       setIncomingPage(1);
       await Promise.allSettled([
         refreshPaymentViews({
@@ -3097,11 +3097,11 @@ export function AdminPaymentVerification({
       const message =
         requestError instanceof Error
           ? requestError.message
-          : "Tagihan belum bisa diperbarui.";
+          : "Transaksi belum bisa diperbarui.";
 
       setBillingFeedback({
         tone: "warning",
-        title: "Edit tagihan gagal",
+        title: "Edit transaksi gagal",
         message,
       });
       window.alert(message);
@@ -3116,7 +3116,7 @@ export function AdminPaymentVerification({
 
   async function handleArchivePayment(payment: IncomingPaymentRecord) {
     const confirmed = window.confirm(
-      `Hapus tagihan ${payment.paymentId} dari daftar? Data tidak dihapus permanen dan tetap tersimpan sebagai arsip audit.`,
+      `Hapus transaksi ${payment.paymentId} dari daftar? Data tidak dihapus permanen dan tetap tersimpan sebagai arsip audit.`,
     );
 
     if (!confirmed) {
@@ -3133,11 +3133,11 @@ export function AdminPaymentVerification({
 
       setBillingFeedback({
         tone: "warning",
-        title: "Tagihan dihapus dari daftar",
+        title: "Transaksi dihapus dari daftar",
         message: `Payment ${response.paymentId} tetap tersimpan sebagai arsip audit.`,
       });
       setSelectedIncomingPaymentId(null);
-      window.alert("Tagihan berhasil dihapus dari daftar pembayaran.");
+      window.alert("Transaksi berhasil dihapus dari daftar pembayaran.");
       await Promise.allSettled([
         refreshPaymentViews({
           includeStudents: false,
@@ -3149,11 +3149,11 @@ export function AdminPaymentVerification({
       const message =
         requestError instanceof Error
           ? requestError.message
-          : "Tagihan belum bisa dihapus.";
+          : "Transaksi belum bisa dihapus.";
 
       setBillingFeedback({
         tone: "warning",
-        title: "Hapus tagihan gagal",
+        title: "Hapus transaksi gagal",
         message,
       });
       window.alert(message);
@@ -3363,7 +3363,7 @@ export function AdminPaymentVerification({
                 ) : (
                   <Pencil className="size-4" />
                 )}
-                Edit Tagihan
+                Edit Transaksi
               </Button>
             ) : null}
             {payment.status === "pending" ? (
@@ -3420,7 +3420,7 @@ export function AdminPaymentVerification({
                 ) : (
                   <Ban className="size-4" />
                 )}
-                Batalkan Tagihan
+                Batalkan Transaksi
               </Button>
             ) : null}
             {canArchivePayment ? (
@@ -3656,7 +3656,7 @@ export function AdminPaymentVerification({
                 ) : (
                   <Pencil className="size-4" />
                 )}
-                Edit Tagihan
+                Edit Transaksi
               </Button>
             ) : null}
             {payment && payment.status === "pending" ? (
@@ -3713,7 +3713,7 @@ export function AdminPaymentVerification({
                 ) : (
                   <Ban className="size-4" />
                 )}
-                Batalkan Tagihan
+                Batalkan Transaksi
               </Button>
             ) : null}
             {payment && canArchivePayment ? (
@@ -3874,7 +3874,7 @@ export function AdminPaymentVerification({
           <TabsContent value="incoming" className="mt-6">
             <AdminSectionCard
               title="Pembayaran Masuk"
-              description="Kelola tagihan membership untuk siswa lama dan pantau riwayat transaksi yang tersimpan."
+              description="Kelola transaksi membership untuk siswa lama dan pantau riwayat transaksi yang tersimpan."
               action={
                 <div className="flex flex-wrap gap-2">
                   {paymentsLoading && incomingPayments.length === 0 ? (
@@ -3905,7 +3905,7 @@ export function AdminPaymentVerification({
                     }}
                   >
                     <Plus className="size-4" />
-                    Buat Tagihan
+                    Buat Transaksi
                   </Button>
                 </div>
               }
