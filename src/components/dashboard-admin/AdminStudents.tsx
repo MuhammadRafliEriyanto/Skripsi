@@ -1041,7 +1041,7 @@ export function AdminStudents({
             <p className="truncate font-semibold text-slate-950">
               {student.name}
             </p>
-            <p className="truncate text-sm text-slate-500">{student.id}</p>
+
           </div>
         </div>
       ),

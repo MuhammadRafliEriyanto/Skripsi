@@ -428,7 +428,7 @@ export function AdminTopbar({
                         Notifikasi Admin
                       </p>
                       <p className="mt-1 text-xs text-slate-500">
-                        Ringkasan status database saat ini.
+                        Ringkasan status data saat ini.
                       </p>
                     </div>
                     {notificationTotal > 0 ? (

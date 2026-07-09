@@ -1067,7 +1067,7 @@ export function AdminTeachers({
             <p className="truncate font-semibold text-slate-950">
               {teacher.name}
             </p>
-            <p className="truncate text-sm text-slate-500">{teacher.id}</p>
+
           </div>
         </div>
       ),
@@ -1665,9 +1665,9 @@ export function AdminTeachers({
           <form className="space-y-5" onSubmit={handleImportSubmit}>
             <div className="rounded-[22px] border border-slate-200/80 bg-gradient-to-r from-white to-orange-50/45 px-4 py-3 text-sm leading-6 text-slate-600 shadow-[0_12px_26px_-22px_rgba(249,115,22,0.16)]">
               Header utama yang dibaca: {teacherImportColumns.join(", ")}.
-              Penamaan cabang harus sesuai dengan standar sistem pusat.
-              juga tetap menerima kolom tambahan seperti email, phone, jadwal,
-              status, atau availability jika nanti ada.
+              Penamaan cabang harus sesuai dengan standar sistem pusat. Sistem
+              juga tetap menerima kolom tambahan seperti email, nomor telepon, jadwal,
+              status, atau ketersediaan waktu jika nanti ada.
             </div>
 
             <TeacherField label="File Excel">

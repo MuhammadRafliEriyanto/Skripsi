@@ -1657,7 +1657,7 @@ function IncomingPaymentStatusEditDialog({
                 {record.paymentId}
               </DialogTitle>
               <DialogDescription>
-                Tandai pembayaran pending sebagai lunas untuk merapikan data testing.
+                Tandai pembayaran yang tertunda sebagai lunas.
                 Status layanan siswa akan mengikuti pengaturan sistem otomatis.
               </DialogDescription>
             </DialogHeader>
@@ -1749,7 +1749,7 @@ function IncomingPaymentDetailDialog({
               </DialogTitle>
               <DialogDescription>
                 Detail tagihan membership dan status pembayaran berdasarkan
-                endpoint admin payment.
+                sistem pusat.
               </DialogDescription>
             </DialogHeader>
 
@@ -4069,7 +4069,7 @@ export function AdminPaymentVerification({
                       keyExtractor={(payment) => payment.id}
                       minWidthClassName="min-w-[1760px]"
                       emptyTitle="Belum ada pembayaran masuk"
-                      emptyDescription="Belum ada payment membership yang tercatat di endpoint admin atau semua data tersaring oleh filter aktif."
+                      emptyDescription="Belum ada transaksi pembayaran yang tercatat atau semua data tersaring oleh filter aktif."
                       getRowClassName={(payment) =>
                         getIncomingAnomalyReasons(payment).length
                           ? "bg-rose-50/30"
