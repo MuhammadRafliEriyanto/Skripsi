@@ -3290,26 +3290,7 @@ export function AdminPaymentVerification({
         </span>
       ),
     },
-    {
-      key: "method",
-      header: "Provider / Method",
-      className: "min-w-[180px]",
-      cell: (payment) => (
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-slate-800">
-            {formatPaymentMethodLabel(payment.method)}
-          </p>
-          <p className="text-xs text-slate-400">
-            Provider: {formatProviderLabel(payment.provider)}
-          </p>
-          {payment.source === "admin" ? (
-            <p className="text-xs text-slate-400">
-              Resend: {payment.checkoutSendCount}x
-            </p>
-          ) : null}
-        </div>
-      ),
-    },
+
     {
       key: "status",
       header: "Status",
