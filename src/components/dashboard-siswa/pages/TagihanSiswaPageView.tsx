@@ -821,125 +821,127 @@ export default function TagihanSiswaPageView() {
               </div>
             </div>
 
-            <aside className="rounded-[24px] border border-slate-200 bg-white p-4">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-600">
-                  <CreditCard className="h-5 w-5" />
+            {overview.accessStatus === "expired" ? (
+              <aside className="rounded-[24px] border border-slate-200 bg-white p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-600">
+                    <CreditCard className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-900">
+                      Perpanjang Membership
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-slate-500">
+                      Kelas tujuan dihitung otomatis dari data siswa saat ini.
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-slate-900">
-                    Perpanjang Membership
-                  </p>
-                  <p className="mt-1 text-sm leading-6 text-slate-500">
-                    Kelas tujuan dihitung otomatis dari data siswa saat ini.
-                  </p>
-                </div>
-              </div>
 
-              <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
-                <PaymentPolicyCopy overview={overview} />
-                <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-3 py-3 text-slate-500">
-                  Sistem saat ini masih memakai model sekali bayar per paket.
-                  Opsi cicilan belum saya aktifkan supaya alurnya tetap sesuai
-                  dengan backend yang sudah ada.
-                </p>
+                <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
+                  <PaymentPolicyCopy overview={overview} />
+                  <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-3 py-3 text-slate-500">
+                    Sistem saat ini masih memakai model sekali bayar per paket.
+                    Opsi cicilan belum saya aktifkan supaya alurnya tetap sesuai
+                    dengan backend yang sudah ada.
+                  </p>
 
-                <div className="border-t border-slate-200 pt-4">
-                  <div className="rounded-[22px] border border-slate-200 bg-slate-50/70 p-4">
-                    <div className="flex items-center gap-2 text-slate-500">
-                      <GraduationCap className="h-4 w-4" />
-                      <p className="text-xs font-semibold uppercase text-slate-500">
-                        Kelas Perpanjangan
+                  <div className="border-t border-slate-200 pt-4">
+                    <div className="rounded-[22px] border border-slate-200 bg-slate-50/70 p-4">
+                      <div className="flex items-center gap-2 text-slate-500">
+                        <GraduationCap className="h-4 w-4" />
+                        <p className="text-xs font-semibold uppercase text-slate-500">
+                          Kelas Perpanjangan
+                        </p>
+                        <Badge variant="outline" className="ml-auto px-2 py-0.5 text-[11px]">
+                          Otomatis
+                        </Badge>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                        <div className="min-w-0 rounded-2xl border border-slate-200 bg-white px-3 py-3">
+                          <p className="text-[11px] font-medium text-slate-400">
+                            Saat ini
+                          </p>
+                          <p className="mt-1 truncate text-sm font-semibold text-slate-900">
+                            {renewalClassSuggestion?.currentClassLabel ?? overview.className}
+                          </p>
+                        </div>
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400">
+                          <ArrowRight className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0 rounded-2xl border border-slate-200 bg-white px-3 py-3">
+                          <p className="text-[11px] font-medium text-slate-400">
+                            Tujuan
+                          </p>
+                          <p className="mt-1 truncate text-sm font-semibold text-slate-900">
+                            {renewalTargetClassLabel}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                      <p className="text-xs font-medium text-slate-500">
+                        {selectedRenewalPackage?.packageName ?? "Paket belum tersedia"}
                       </p>
-                      <Badge variant="outline" className="ml-auto px-2 py-0.5 text-[11px]">
-                        Otomatis
-                      </Badge>
+                      <p className="mt-1 text-xl font-semibold tracking-tight text-slate-950">
+                        {formatRupiah(selectedRenewalAmount)}
+                      </p>
                     </div>
 
-                    <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                      <div className="min-w-0 rounded-2xl border border-slate-200 bg-white px-3 py-3">
-                        <p className="text-[11px] font-medium text-slate-400">
-                          Saat ini
-                        </p>
-                        <p className="mt-1 truncate text-sm font-semibold text-slate-900">
-                          {renewalClassSuggestion?.currentClassLabel ?? overview.className}
-                        </p>
-                      </div>
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400">
-                        <ArrowRight className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0 rounded-2xl border border-slate-200 bg-white px-3 py-3">
-                        <p className="text-[11px] font-medium text-slate-400">
-                          Tujuan
-                        </p>
-                        <p className="mt-1 truncate text-sm font-semibold text-slate-900">
-                          {renewalTargetClassLabel}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                    <p className="text-xs font-medium text-slate-500">
-                      {selectedRenewalPackage?.packageName ?? "Paket belum tersedia"}
-                    </p>
-                    <p className="mt-1 text-xl font-semibold tracking-tight text-slate-950">
-                      {formatRupiah(selectedRenewalAmount)}
-                    </p>
-                  </div>
-
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="mt-4 w-full"
-                    disabled={!canCreateRenewal || isCreatingRenewal}
-                    onClick={() => {
-                      setRenewalError(null);
-                      setRenewalFeedback(null);
-                      setIsRenewalDialogOpen(true);
-                    }}
-                  >
-                    Perpanjang Sekarang
-                    <ArrowUpRight className="h-4 w-4" />
-                  </Button>
-
-                  {!canCreateRenewal ? (
-                    <p className="mt-3 text-xs leading-5 text-slate-400">
-                      {renewalUnavailableMessage}
-                    </p>
-                  ) : null}
-
-                  {renewalFeedback ? (
-                    <div
-                      className={`mt-4 rounded-2xl border px-3 py-3 text-sm leading-6 ${
-                        renewalFeedback.tone === "success"
-                          ? "border-emerald-100 bg-emerald-50 text-emerald-700"
-                          : "border-amber-100 bg-amber-50 text-amber-700"
-                      }`}
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="mt-4 w-full"
+                      disabled={!canCreateRenewal || isCreatingRenewal}
+                      onClick={() => {
+                        setRenewalError(null);
+                        setRenewalFeedback(null);
+                        setIsRenewalDialogOpen(true);
+                      }}
                     >
-                      <p className="font-semibold">{renewalFeedback.message}</p>
-                      {renewalFeedback.checkoutUrl ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          className="mt-3 rounded-full bg-emerald-600 text-white hover:bg-emerald-700"
-                          onClick={() => {
-                            window.open(
-                              renewalFeedback.checkoutUrl ?? "",
-                              "_blank",
-                              "noopener,noreferrer",
-                            );
-                          }}
-                        >
-                          Buka Checkout
-                          <ArrowUpRight className="h-4 w-4" />
-                        </Button>
-                      ) : null}
-                    </div>
-                  ) : null}
+                      Perpanjang Sekarang
+                      <ArrowUpRight className="h-4 w-4" />
+                    </Button>
+
+                    {!canCreateRenewal ? (
+                      <p className="mt-3 text-xs leading-5 text-slate-400">
+                        {renewalUnavailableMessage}
+                      </p>
+                    ) : null}
+
+                    {renewalFeedback ? (
+                      <div
+                        className={`mt-4 rounded-2xl border px-3 py-3 text-sm leading-6 ${
+                          renewalFeedback.tone === "success"
+                            ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+                            : "border-amber-100 bg-amber-50 text-amber-700"
+                        }`}
+                      >
+                        <p className="font-semibold">{renewalFeedback.message}</p>
+                        {renewalFeedback.checkoutUrl ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="mt-3 rounded-full bg-emerald-600 text-white hover:bg-emerald-700"
+                            onClick={() => {
+                              window.open(
+                                renewalFeedback.checkoutUrl ?? "",
+                                "_blank",
+                                "noopener,noreferrer",
+                              );
+                            }}
+                          >
+                            Buka Checkout
+                            <ArrowUpRight className="h-4 w-4" />
+                          </Button>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-            </aside>
+              </aside>
+            ) : null}
           </div>
         </section>
       ) : null}
