@@ -122,7 +122,6 @@ export function LoginForm() {
     <AuthShell
       variant="split"
       splitContentAlignment="start"
-      splitContentClassName="pt-4 lg:pt-14 xl:pt-16"
       splitInnerClassName="max-w-[430px]"
       hideSplitVisualOnMobile
       hideSplitTopBadge
@@ -230,7 +229,7 @@ export function LoginForm() {
 
           <Button
             type="submit"
-            className="h-12 w-full rounded-xl bg-[linear-gradient(135deg,#ea580c_0%,#dc2626_100%)] text-sm font-semibold text-white shadow-[0_20px_34px_-24px_rgba(220,38,38,0.45)] transition hover:brightness-105 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
+            className="h-12 w-full rounded-xl bg-orange-600 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
             disabled={loading}
           >
             {loading ? (

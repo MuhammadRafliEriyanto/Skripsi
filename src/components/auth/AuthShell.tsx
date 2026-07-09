@@ -11,7 +11,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import { FaGraduationCap } from "react-icons/fa";
+import { FaGraduationCap } from "react-icons/fa6";
 
 import { AppLogo } from "@/components/shared/app-logo";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +41,7 @@ type AuthShellProps = {
   splitContentClassName?: string;
   splitInnerClassName?: string;
   allowDesktopScroll?: boolean;
+  splitPosition?: "left" | "right";
 };
 
 const authHighlights = [
@@ -67,13 +68,70 @@ const splitRotatingMessages = [
   "Kelas, jadwal, progres, dan pengelolaan belajar bisa diakses lebih cepat oleh seluruh pengguna.",
 ] as const;
 
+function LoginIllustration() {
+  return (
+    <div className="mt-2 flex w-full justify-center">
+      <div className="relative mx-auto w-full max-w-[420px]">
+        <svg viewBox="0 40 500 310" className="h-auto w-full drop-shadow-xl" xmlns="http://www.w3.org/2000/svg">
+          {/* Background blob */}
+          <path d="M420.5 255.5C418.5 315.5 313.5 385 241.5 380C169.5 375 79 313.5 65.5 241C52 168.5 137.5 73.5 214 59.5C290.5 45.5 422.5 195.5 420.5 255.5Z" fill="#ffedd5" opacity="0.15"/>
+          
+          {/* Monitor Base */}
+          <path d="M200 320h100v15H200z" fill="#cbd5e1" />
+          <path d="M220 290h60v30h-60z" fill="#94a3b8" />
+          <ellipse cx="250" cy="335" rx="70" ry="10" fill="#94a3b8" opacity="0.3" />
+          
+          {/* Monitor Screen */}
+          <rect x="80" y="90" width="340" height="200" rx="12" fill="#334155" />
+          <rect x="90" y="100" width="320" height="180" rx="6" fill="#f8fafc" />
+          
+          {/* App Header inside Monitor */}
+          <rect x="90" y="100" width="320" height="30" rx="6" fill="#f1f5f9" />
+          <circle cx="110" cy="115" r="4" fill="#cbd5e1" />
+          <circle cx="125" cy="115" r="4" fill="#cbd5e1" />
+          <circle cx="140" cy="115" r="4" fill="#cbd5e1" />
+          
+          {/* Login Form Box inside monitor */}
+          <rect x="190" y="145" width="120" height="115" rx="8" fill="#ffffff" stroke="#e2e8f0" strokeWidth="2" />
+          
+          {/* Form inputs */}
+          <rect x="205" y="165" width="90" height="12" rx="4" fill="#f1f5f9" />
+          <rect x="205" y="190" width="90" height="12" rx="4" fill="#f1f5f9" />
+          
+          {/* Login Button */}
+          <rect x="205" y="230" width="90" height="16" rx="4" fill="#ea580c" />
+          
+          {/* Secure Padlock Floating */}
+          <g transform="translate(130, 220)">
+            <circle cx="0" cy="0" r="32" fill="#fff" filter="drop-shadow(0 10px 15px rgba(0,0,0,0.1))" />
+            <rect x="-12" y="-2" width="24" height="18" rx="3" fill="#fb923c" />
+            <path d="M-6 -2v-5a6 6 0 0 1 12 0v5" fill="none" stroke="#fb923c" strokeWidth="4" />
+            <circle cx="0" cy="8" r="3" fill="#fff" />
+          </g>
+
+          {/* User/Check Floating */}
+          <g transform="translate(370, 160)">
+            <circle cx="0" cy="0" r="35" fill="#fff" filter="drop-shadow(0 10px 15px rgba(0,0,0,0.1))" />
+            <path d="M-10 2l6 6l14 -14" fill="none" stroke="#22c55e" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+          </g>
+          
+          {/* Decorative lines */}
+          <rect x="110" y="150" width="50" height="6" rx="3" fill="#e2e8f0" />
+          <rect x="110" y="165" width="40" height="6" rx="3" fill="#e2e8f0" />
+          <rect x="110" y="180" width="45" height="6" rx="3" fill="#e2e8f0" />
+          
+          <rect x="340" y="220" width="40" height="6" rx="3" fill="#e2e8f0" />
+          <rect x="340" y="235" width="50" height="6" rx="3" fill="#e2e8f0" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
 function SplitLearningIllustration() {
   return (
     <div className="relative mx-auto w-full max-w-[500px]">
-      <div className="absolute left-5 top-4 h-20 w-20 rounded-full bg-white/12 blur-2xl" />
-      <div className="absolute bottom-2 right-6 h-28 w-28 rounded-full bg-red-950/18 blur-3xl" />
-
-      <div className="relative overflow-hidden rounded-[34px] border border-white/18 bg-white/10 p-3 shadow-[0_34px_80px_-48px_rgba(67,20,7,0.72)] backdrop-blur-xl sm:p-4">
+      <div className="relative overflow-hidden rounded-[34px] border border-white/18 bg-white/10 p-3 shadow-lg backdrop-blur-md sm:p-4">
         <svg
           viewBox="0 0 640 430"
           className="mx-auto w-full max-w-[430px]"
@@ -173,6 +231,7 @@ export function AuthShell({
   splitContentClassName,
   splitInnerClassName,
   allowDesktopScroll = false,
+  splitPosition = "left",
 }: AuthShellProps) {
   const [activeSplitMessage, setActiveSplitMessage] = useState(0);
 
@@ -247,7 +306,7 @@ export function AuthShell({
               "order-2 relative min-h-[320px] overflow-hidden",
               allowDesktopScroll
                 ? "lg:sticky lg:top-0 lg:h-screen"
-                : "lg:order-1 lg:h-full lg:min-h-0",
+                : cn("lg:h-full lg:min-h-0", splitPosition === "right" ? "lg:order-2" : "lg:order-1"),
               hideSplitVisualOnMobile && "hidden lg:block",
             )}
           >
@@ -261,77 +320,55 @@ export function AuthShell({
                   fetchPriority="high"
                   className="scale-[1.02] object-cover object-center"
                 />
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_0%,rgba(124,45,18,0.08)_24%,rgba(67,20,7,0.52)_100%)]" />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(251,146,60,0.22),transparent_34%)]" />
+                <div className="absolute inset-0 bg-slate-900/60" />
               </>
             ) : (
               <>
-                <div className="absolute inset-0 bg-[linear-gradient(160deg,#7c2d12_0%,#c2410c_28%,#ea580c_58%,#fb923c_100%)]" />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.24),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(127,29,29,0.24),transparent_28%)]" />
-                <div className="absolute inset-0 opacity-[0.12] [background-image:linear-gradient(rgba(255,255,255,0.9)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.9)_1px,transparent_1px)] [background-size:28px_28px]" />
-                <div className="absolute left-10 top-16 size-32 rounded-full bg-white/10 blur-3xl" />
-                <div className="absolute bottom-10 right-12 size-40 rounded-full bg-red-900/20 blur-3xl" />
+                <div className="absolute inset-0 bg-slate-50" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.8),transparent_60%)]" />
               </>
             )}
 
-            <div className="relative flex h-full flex-col p-5 sm:p-7 lg:p-9 xl:p-10">
-              <div className="max-w-xl text-white">
-                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/78 sm:text-base">
-                  Bina Cendekia
-                </p>
+            <div className="relative flex h-full flex-col items-center justify-center lg:justify-start p-5 sm:p-7 lg:px-9 xl:px-10 lg:pt-[10vh] xl:pt-[15vh]">
+              <div className="hidden lg:block w-full max-w-md text-center mb-2">
+                <h1 className="text-3xl font-semibold tracking-tight text-slate-900 xl:text-[2.2rem] xl:leading-[1.1]">
+                  {title}
+                </h1>
               </div>
 
               {!useImageShowcase ? (
-                <div className="mt-5 flex justify-center py-2 lg:mt-7">
-                  <SplitLearningIllustration />
-                </div>
+                <LoginIllustration />
               ) : null}
 
-              <div className="mt-5 max-w-xl text-white lg:mt-6">
-                <p className="min-h-[84px] max-w-lg text-sm leading-7 text-white/82 transition-all duration-300 sm:min-h-[96px] sm:text-base">
-                  {splitRotatingMessages[activeSplitMessage]}
+              <div className="hidden lg:block w-full max-w-md text-center mt-6">
+                <p className="text-[15px] leading-7 text-slate-600">
+                  {description}
                 </p>
-                <div className="mt-4 flex items-center gap-3">
-                  {splitRotatingMessages.map((message, index) => (
-                    <button
-                      key={message}
-                      type="button"
-                      onClick={() => setActiveSplitMessage(index)}
-                      className={cn(
-                        "rounded-full transition-all duration-300",
-                        index === activeSplitMessage
-                          ? "h-1.5 w-11 bg-white"
-                          : "size-1.5 bg-white/45 hover:bg-white/70",
-                      )}
-                      aria-label={`Tampilkan pesan ${index + 1}`}
-                      aria-pressed={index === activeSplitMessage}
-                    />
-                  ))}
-                </div>
               </div>
             </div>
           </div>
 
           <div
             className={cn(
-              "order-1 flex min-h-full flex-col bg-[linear-gradient(180deg,#fffaf6_0%,#fff7ef_100%)] lg:order-2 lg:grid",
+              "order-1 flex min-h-full flex-col relative bg-[linear-gradient(180deg,#fffaf6_0%,#fff7ef_100%)]",
               allowDesktopScroll
-                ? "lg:min-h-screen lg:grid-rows-[auto,minmax(0,1fr)]"
-                : "lg:h-full lg:min-h-0 lg:grid-rows-[auto,minmax(0,1fr)] lg:overflow-hidden",
+                ? "lg:min-h-screen"
+                : "lg:h-full lg:min-h-0 lg:overflow-hidden",
+              splitPosition === "right" ? "lg:order-1" : "lg:order-2",
               enableMobileFormOnly && "min-h-screen",
             )}
           >
             {shouldShowSplitTopRow ? (
               <div
                 className={cn(
-                  "flex shrink-0 items-center px-5 pt-5 sm:px-7 sm:pt-7 lg:justify-end lg:px-10 lg:pt-8",
+                  "flex shrink-0 items-center px-5 pt-5 sm:px-7 sm:pt-7 lg:absolute lg:top-0 lg:right-0 lg:w-full lg:justify-end lg:px-10 lg:pt-8 lg:z-10",
                   shouldShowMobileSplitBrand ? "justify-between" : "justify-end",
                 )}
               >
                 {shouldShowMobileSplitBrand ? (
-                <div className="inline-flex w-fit items-center gap-3 rounded-full bg-white px-4 py-3 text-slate-900 shadow-[0_20px_34px_-28px_rgba(124,45,18,0.18)] lg:hidden">
-                  <div className="flex size-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,#ea580c_0%,#dc2626_100%)] text-white">
-                    <FaGraduationCap className="size-[18px]" />
+                <div className="inline-flex w-fit items-center gap-3 rounded-full bg-white px-4 py-2 text-slate-900 shadow-sm lg:hidden">
+                  <div className="flex size-8 items-center justify-center rounded-full bg-orange-600 text-white">
+                    <FaGraduationCap className="size-4" />
                   </div>
                   <div className="leading-none">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
@@ -343,7 +380,7 @@ export function AuthShell({
               ) : null}
 
                 {!hideSplitTopBadge ? (
-                  <div className="inline-flex items-center rounded-full bg-[linear-gradient(135deg,#ea580c_0%,#dc2626_100%)] px-5 py-2 text-xs font-semibold text-white shadow-[0_18px_32px_-24px_rgba(220,38,38,0.42)]">
+                  <div className="inline-flex items-center rounded-full bg-orange-600 px-5 py-2 text-xs font-semibold text-white shadow-sm">
                     Sign in
                   </div>
                 ) : null}
@@ -358,12 +395,12 @@ export function AuthShell({
                   : "lg:h-full lg:overflow-y-auto lg:overscroll-contain",
                 enableMobileFormOnly && !allowDesktopScroll ? "overflow-visible" : (!allowDesktopScroll && "h-full overflow-y-auto overscroll-contain"),
                 splitContentAlignment === "start"
-                  ? cn("pt-4", shouldShowSplitTopRow ? "lg:pt-2" : "lg:pt-6")
+                  ? cn("pt-4 lg:pt-[10vh] xl:pt-[15vh]")
                   : cn(
                       "pt-6",
                       enableMobileFormOnly
-                        ? "lg:flex lg:min-h-full lg:items-center lg:pt-4"
-                        : "flex min-h-full items-center lg:pt-4",
+                        ? "lg:flex lg:min-h-full lg:items-start lg:pt-[10vh] xl:pt-[15vh]"
+                        : "flex min-h-full items-center lg:items-start lg:pt-[10vh] xl:pt-[15vh]",
                     ),
                 splitContentClassName,
               )}
@@ -377,6 +414,7 @@ export function AuthShell({
               >
                 <div
                   className={cn(
+                    "lg:hidden",
                     splitContentAlignment === "start"
                       ? "mb-5 sm:mb-6 lg:mb-7"
                       : "mb-7 sm:mb-8 lg:mb-9",
@@ -388,6 +426,11 @@ export function AuthShell({
                   <p className="mt-2.5 max-w-md text-[14px] leading-6 text-slate-500 sm:mt-3 sm:text-[15px] sm:leading-7">
                     {description}
                   </p>
+                </div>
+
+                <div className="hidden lg:block mb-6">
+                  <h2 className="text-xl font-bold text-slate-900">Silakan lengkapi data berikut</h2>
+                  <p className="text-sm text-slate-500 mt-1">Isi formulir di bawah ini untuk melanjutkan proses.</p>
                 </div>
 
                 <div className={cn(bodyClassName)}>{children}</div>
@@ -413,28 +456,23 @@ export function AuthShell({
             sizes="100vw"
             className="scale-[1.02] object-cover object-center opacity-92 blur-[2.5px] saturate-[0.9] brightness-[0.72]"
           />
-          <div className="absolute inset-0 bg-slate-950/42" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),rgba(15,23,42,0.06)_32%,rgba(15,23,42,0.24)_68%,rgba(15,23,42,0.42)_100%)]" />
-          <div className="absolute -left-12 top-16 size-56 rounded-full bg-orange-500/10 blur-3xl" />
-          <div className="absolute -right-10 top-10 size-72 rounded-full bg-amber-400/10 blur-3xl" />
-          <div className="absolute bottom-0 left-1/2 size-80 -translate-x-1/2 rounded-full bg-rose-500/8 blur-3xl" />
+          <div className="absolute inset-0 bg-slate-900/70" />
         </div>
 
         <div className="relative mx-auto flex min-h-screen w-full max-w-7xl items-center justify-center px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
           <div
             className={cn(
-              "w-full max-w-[640px] rounded-[34px] border border-white/14 bg-white/12 p-2.5 shadow-[0_34px_90px_-44px_rgba(15,23,42,0.62)] backdrop-blur-xl",
+              "w-full max-w-[640px] rounded-[34px] border border-white/14 bg-white/12 p-2.5 shadow-xl backdrop-blur-sm",
               panelClassName,
             )}
           >
-            <Card className="rounded-[28px] border-white/55 bg-white/92 shadow-[0_28px_64px_-42px_rgba(15,23,42,0.32),0_18px_34px_-28px_rgba(249,115,22,0.18)]">
+            <Card className="rounded-[28px] border-white/55 bg-white/92 shadow-lg">
               <CardContent className="p-5 sm:p-6 md:p-7">
                 <div>
                   <div className="mb-4 flex justify-center">
-                    <div className="relative inline-flex rounded-[24px] border border-orange-100/80 bg-white px-4 py-3 shadow-[0_18px_34px_-28px_rgba(15,23,42,0.16)]">
-                      <div className="absolute inset-0 rounded-[24px] bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.14),rgba(255,255,255,0)_68%)]" />
+                    <div className="relative inline-flex rounded-[24px] border border-orange-100 bg-white px-4 py-3 shadow-sm">
                       <div className="relative flex items-center justify-center">
-                        <div className="flex size-11 items-center justify-center rounded-[18px] bg-[linear-gradient(135deg,rgba(255,237,213,0.95),rgba(255,247,237,0.92))] text-orange-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
+                        <div className="flex size-11 items-center justify-center rounded-[18px] bg-orange-50 text-orange-600">
                           <FaGraduationCap className="size-5" aria-hidden="true" />
                         </div>
                       </div>
@@ -472,23 +510,17 @@ export function AuthShell({
             sizes="100vw"
             className="scale-[1.04] object-cover object-center opacity-95 saturate-[0.92] brightness-[0.72]"
           />
-          <div className="absolute inset-0 bg-slate-950/36 backdrop-blur-[1.5px]" />
-          <div className="absolute -left-12 top-16 size-52 rounded-full bg-orange-500/8 blur-3xl" />
-          <div className="absolute -right-8 top-12 size-64 rounded-full bg-amber-400/8 blur-3xl" />
-          <div className="absolute bottom-0 left-1/2 size-72 -translate-x-1/2 rounded-full bg-rose-500/10 blur-3xl" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),rgba(15,23,42,0.04)_28%,rgba(15,23,42,0.16)_62%,rgba(15,23,42,0.3)_100%)]" />
-          <div className="absolute inset-x-0 top-0 h-28 bg-[linear-gradient(180deg,rgba(15,23,42,0.14),rgba(15,23,42,0))]" />
-          <div className="absolute inset-x-0 bottom-0 h-44 bg-[linear-gradient(180deg,rgba(15,23,42,0),rgba(15,23,42,0.14)_58%,rgba(15,23,42,0.26)_100%)]" />
+          <div className="absolute inset-0 bg-slate-900/70" />
         </div>
 
         <div className="relative mx-auto flex min-h-screen w-full max-w-7xl items-center px-4 py-8 sm:px-6 lg:px-8">
-          <section className="w-full overflow-hidden rounded-[36px] border border-white/12 bg-white/10 shadow-[0_34px_90px_-44px_rgba(15,23,42,0.58)] backdrop-blur-xl">
+          <section className="w-full overflow-hidden rounded-[36px] border border-white/12 bg-white/10 shadow-2xl backdrop-blur-md">
             <div className="grid lg:grid-cols-[0.94fr_1.06fr]">
               <div className="relative px-6 py-8 text-white sm:px-8 lg:px-10 lg:py-10">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.16),transparent_36%),radial-gradient(circle_at_bottom,rgba(190,24,93,0.16),transparent_34%)]" />
+
 
                 <div className="relative">
-                  <div className="inline-flex rounded-full border border-white/18 bg-white/90 pr-4 shadow-[0_18px_34px_-28px_rgba(15,23,42,0.36)] backdrop-blur">
+                  <div className="inline-flex rounded-full border border-white/18 bg-white/90 pr-4 shadow-sm backdrop-blur">
                     <AppLogo />
                   </div>
 
@@ -514,7 +546,7 @@ export function AuthShell({
                     ].map((item) => (
                       <div
                         key={item.label}
-                        className="rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 text-white shadow-[0_20px_38px_-32px_rgba(15,23,42,0.42)] backdrop-blur"
+                        className="rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 text-white shadow-sm backdrop-blur"
                       >
                         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/55">
                           {item.label}
@@ -524,7 +556,7 @@ export function AuthShell({
                     ))}
                   </div>
 
-                  <div className="mt-8 rounded-[30px] border border-white/14 bg-white/10 p-5 shadow-[0_24px_44px_-34px_rgba(15,23,42,0.42)] backdrop-blur">
+                  <div className="mt-8 rounded-[30px] border border-white/14 bg-white/10 p-5 shadow-md backdrop-blur">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-orange-200">
                       Siap Digunakan
                     </p>
@@ -541,7 +573,7 @@ export function AuthShell({
               </div>
 
               <div className="px-6 py-8 sm:px-8 lg:px-10 lg:py-10">
-                <div className="rounded-[32px] border border-white/60 bg-white/92 p-6 shadow-[0_30px_70px_-42px_rgba(15,23,42,0.32),0_18px_36px_-28px_rgba(249,115,22,0.2)] backdrop-blur sm:p-8">
+                <div className="rounded-[32px] border border-white/60 bg-white/92 p-6 shadow-lg backdrop-blur sm:p-8">
                   <Badge
                     variant="secondary"
                     className="w-fit rounded-full bg-orange-50 text-orange-700"
@@ -577,20 +609,18 @@ export function AuthShell({
     return (
       <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-white px-4 py-8 sm:px-6 lg:px-8">
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute left-1/2 top-20 size-72 -translate-x-1/2 rounded-full bg-orange-50/80 blur-3xl" />
-          <div className="absolute bottom-12 left-12 size-48 rounded-full bg-amber-50/70 blur-3xl" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.05),rgba(255,255,255,0)_42%)]" />
+
         </div>
 
         <section
           className={cn(
             authPoppins.className,
-            "relative w-full max-w-lg rounded-[28px] border border-orange-100/70 bg-white px-6 py-8 text-center shadow-[0_28px_70px_-40px_rgba(15,23,42,0.18)] sm:px-8 sm:py-10",
+            "relative w-full max-w-lg rounded-[28px] border border-orange-100/70 bg-white px-6 py-8 text-center shadow-xl sm:px-8 sm:py-10",
             panelClassName,
           )}
         >
           <div className="flex justify-center">
-            <div className="inline-flex rounded-full border border-orange-100 bg-orange-50/50 px-4 py-3 shadow-[0_14px_28px_-24px_rgba(15,23,42,0.14)]">
+            <div className="inline-flex rounded-full border border-orange-100 bg-orange-50/50 px-4 py-3 shadow-sm">
               <AppLogo />
             </div>
           </div>
@@ -624,8 +654,7 @@ export function AuthShell({
     <main className="mx-auto flex min-h-screen w-full max-w-7xl items-center px-4 py-8 sm:px-6 lg:px-8">
       <section className="surface-panel w-full overflow-hidden p-0">
         <div className="grid lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="relative overflow-hidden border-b border-white/70 bg-gradient-to-br from-orange-50 via-amber-50 to-white px-6 py-8 sm:px-8 lg:border-b-0 lg:border-r lg:border-orange-100/70 lg:px-10 lg:py-10">
-            <div className="absolute inset-x-0 top-0 h-36 bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.18),transparent_62%)]" />
+          <div className="relative overflow-hidden border-b border-white/70 bg-orange-50 px-6 py-8 sm:px-8 lg:border-b-0 lg:border-r lg:border-orange-100/70 lg:px-10 lg:py-10">
             <div className="relative">
               <AppLogo />
               <Badge variant="info" className="mt-6 w-fit">
@@ -647,7 +676,7 @@ export function AuthShell({
                 ].map((item) => (
                   <div
                     key={item.label}
-                    className="rounded-[22px] border border-orange-100/80 bg-white/80 px-4 py-4 shadow-[0_16px_34px_-26px_rgba(249,115,22,0.28)]"
+                    className="rounded-[22px] border border-orange-100/80 bg-white/80 px-4 py-4 shadow-sm"
                   >
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
                       {item.label}
@@ -664,7 +693,7 @@ export function AuthShell({
                   return (
                     <div
                       key={item.title}
-                      className="flex gap-4 rounded-[24px] border border-white/80 bg-white/84 px-4 py-4 shadow-[0_18px_42px_-32px_rgba(15,23,42,0.14)] backdrop-blur"
+                      className="flex gap-4 rounded-[24px] border border-white/80 bg-white/84 px-4 py-4 shadow-md backdrop-blur"
                     >
                       <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-amber-400 text-white shadow-lg shadow-orange-500/20">
                         <Icon className="size-5" />
@@ -681,7 +710,7 @@ export function AuthShell({
           </div>
 
           <div className="px-6 py-8 sm:px-8 lg:px-10 lg:py-10">
-            <Card className="border-orange-100/80 bg-white/96 shadow-[0_22px_60px_-34px_rgba(15,23,42,0.24),0_18px_40px_-34px_rgba(249,115,22,0.28)]">
+            <Card className="border-orange-100/80 bg-white/96 shadow-lg">
               <CardContent className="p-6 sm:p-7">
                 <Badge variant="secondary" className="w-fit bg-slate-100/90 text-slate-700">
                   {eyebrow}

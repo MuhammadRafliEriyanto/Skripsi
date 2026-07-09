@@ -301,7 +301,6 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
     <AuthShell
       variant="split"
       splitContentAlignment="start"
-      splitContentClassName="pt-8 lg:pt-10"
       hideSplitVisualOnMobile
       hideSplitTopBadge
       allowDesktopScroll
