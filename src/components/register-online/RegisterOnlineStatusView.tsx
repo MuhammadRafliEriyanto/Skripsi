@@ -209,7 +209,11 @@ export default function RegisterOnlineStatusView({
   const [errorMessage, setErrorMessage] = useState("");
   const [statusData, setStatusData] = useState<StatusViewState | null>(null);
 
-  const accessStatus =
+  const emailVerified = statusData?.student?.isEmailVerified ?? false;
+  const paymentStatus = statusData?.payment?.status;
+  const xenditSessionStatus = statusData?.payment?.xenditSessionStatus;
+
+  let accessStatus =
     statusData?.accessStatus ??
     (access === "active" ||
     access === "pending" ||
@@ -218,10 +222,11 @@ export default function RegisterOnlineStatusView({
       ? access
       : "pending");
 
-  const paymentStatus = statusData?.payment?.status;
-  const xenditSessionStatus = statusData?.payment?.xenditSessionStatus;
+  if (paymentStatus === "paid" && emailVerified) {
+    accessStatus = "active";
+  }
+
   const paymentIsPending = paymentStatus === "pending";
-  const emailVerified = statusData?.student?.isEmailVerified ?? false;
   const xenditPaymentFlow =
     statusData?.payment?.provider === "xendit" ||
     Boolean(statusData?.payment?.xenditPaymentSessionId);
