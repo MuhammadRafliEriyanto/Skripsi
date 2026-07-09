@@ -312,6 +312,8 @@ function formatPaymentStatusLabel(status: string | null | undefined) {
       return "Pembayaran perlu diulang";
     case "expired":
       return "Tagihan sudah kedaluwarsa";
+    case "draft_renewal":
+      return "Menunggu pilihan paket perpanjangan";
     default:
       return "Belum ada tagihan";
   }
@@ -448,6 +450,17 @@ function PaymentPolicyCopy({
         <p>
           Selama masih menunggu tanggal mulai, siswa cukup memantau status
           tagihan dan tidak perlu membuat perpanjangan baru.
+        </p>
+      </>
+    );
+  }
+
+  if (overview.paymentStatus === "draft_renewal") {
+    return (
+      <>
+        <p>
+          Admin telah membukakan akses perpanjangan membership untuk akun ini.
+          Silakan klik tombol <strong>Perpanjang Sekarang</strong> untuk memilih paket (1 atau 2 semester) dan melanjutkan ke pembayaran.
         </p>
       </>
     );
@@ -821,7 +834,7 @@ export default function TagihanSiswaPageView() {
               </div>
             </div>
 
-            {overview.accessStatus === "expired" ? (
+            {overview.accessStatus === "expired" || overview.paymentStatus === "draft_renewal" ? (
               <aside className="rounded-[24px] border border-slate-200 bg-white p-4">
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-600">

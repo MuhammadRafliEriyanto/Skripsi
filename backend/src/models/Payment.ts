@@ -1,6 +1,6 @@
 import { HydratedDocument, Model, Schema, model, models, type Types } from "mongoose";
 
-export const PAYMENT_STATUSES = ["pending", "paid", "failed", "expired"] as const;
+export const PAYMENT_STATUSES = ["pending", "paid", "failed", "expired", "draft_renewal"] as const;
 export const PAYMENT_SOURCES = ["register_online", "admin"] as const;
 export const PAYMENT_CANCEL_REASONS = [
   "admin_cancelled",

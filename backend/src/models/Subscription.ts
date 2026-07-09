@@ -1,7 +1,7 @@
 import { HydratedDocument, Model, Schema, model, models, type Types } from "mongoose";
 
 export const SUBSCRIPTION_STATUSES = ["pending", "active", "expired"] as const;
-export const SUBSCRIPTION_PAYMENT_STATUSES = ["pending", "paid", "failed", "expired"] as const;
+export const SUBSCRIPTION_PAYMENT_STATUSES = ["pending", "paid", "failed", "expired", "draft_renewal"] as const;
 export const SUBSCRIPTION_SOURCES = ["register_online", "admin"] as const;
 
 export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];

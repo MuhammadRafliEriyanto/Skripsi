@@ -53,7 +53,6 @@ import {
   archiveAdminPayment,
   cancelAdminPayment,
   createAdminBatchPaymentSession,
-  createAdminPaymentSession,
   exportAdminPaymentActivationsCsv,
   exportAdminPaymentsCsv,
   fetchAdminPaymentActivations,
@@ -100,7 +99,6 @@ type PaymentStatus = IncomingPaymentRecord["status"];
 type ActivationStatus = ActivationRecord["activationStatus"];
 type StudentLevel = Extract<ActivationRecord["jenjang"], "SD" | "SMP" | "SMA">;
 type LevelFilterOption = StudentLevel | "Semua jenjang";
-type CreateBillingMode = "massal" | "individual";
 type BatchPackageMode = CreateAdminBatchPaymentSessionPayload["packageMode"];
 type BillingFeedbackTone = "success" | "warning" | "info";
 type BillingFeedback = {
@@ -156,7 +154,6 @@ const detailDialogClassName =
   "w-[calc(100%-1.5rem)] max-h-[90vh] max-w-2xl gap-0 overflow-hidden border-slate-200/80 bg-white p-0 shadow-[0_24px_48px_-30px_rgba(15,23,42,0.22)]";
 const billingDialogClassName =
   "w-[calc(100%-1rem)] max-h-[92vh] max-w-5xl gap-0 overflow-hidden border-slate-200/80 bg-white p-0 shadow-[0_24px_48px_-30px_rgba(15,23,42,0.22)]";
-const emptyStudentValue = "__empty_student__";
 const defaultIncomingPageLimit = 20;
 const emptyIncomingSummary: AdminPaymentsListData["summary"] = {
   totalItems: 0,
@@ -309,10 +306,6 @@ function formatCancelReasonLabel(value: IncomingPaymentRecord["cancelReason"]) {
     default:
       return "-";
   }
-}
-
-function formatStudentOptionLabel(student: AdminStudent) {
-  return `${student.id} • ${student.name} • ${student.className}`;
 }
 
 function buildPaymentStatusPagePath(paymentId: string | null | undefined) {
@@ -759,12 +752,10 @@ function StudentsWithoutMembershipPanel({
   students,
   isLoading,
   error,
-  onCreateBilling,
 }: {
   students: AdminStudent[];
   isLoading: boolean;
   error: string | null;
-  onCreateBilling: (student: AdminStudent) => void;
 }) {
   return (
     <div className="rounded-[24px] border border-orange-100/80 bg-[linear-gradient(180deg,rgba(255,247,237,0.72),rgba(255,255,255,0.96))] p-4 shadow-[0_16px_30px_-26px_rgba(15,23,42,0.14)]">
@@ -829,18 +820,6 @@ function StudentsWithoutMembershipPanel({
                 </p>
                 <p className="text-sm text-slate-500">{student.email}</p>
               </div>
-
-              <Button
-                type="button"
-                size="sm"
-                className="gap-2 self-start"
-                onClick={() => {
-                  onCreateBilling(student);
-                }}
-              >
-                <Plus className="size-4" />
-                Buat Transaksi Awal
-              </Button>
             </div>
           ))}
         </div>
@@ -852,10 +831,6 @@ function StudentsWithoutMembershipPanel({
 function CreateMembershipBillingDialog({
   open,
   onOpenChange,
-  students,
-  studentsLoading,
-  studentsError,
-  createMode,
   levelOptions,
   batchLevel,
   batchClassOptions,
@@ -868,29 +843,16 @@ function CreateMembershipBillingDialog({
   batchIncludeInactive,
   batchResult,
   batchError,
-  studentSearchQuery,
-  selectedStudentId,
-  selectedPackageKey,
-  expiresAtValue,
   isSubmitting,
-  onCreateModeChange,
   onBatchLevelChange,
   onBatchClassOptionChange,
   onBatchPackageModeChange,
   onBatchPackageKeyChange,
   onBatchIncludeInactiveChange,
-  onStudentSearchQueryChange,
-  onStudentIdChange,
-  onPackageKeyChange,
-  onExpiresAtChange,
   onSubmit,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  students: AdminStudent[];
-  studentsLoading: boolean;
-  studentsError: string | null;
-  createMode: CreateBillingMode;
   levelOptions: StudentLevel[];
   batchLevel: StudentLevel;
   batchClassOptions: string[];
@@ -903,41 +865,18 @@ function CreateMembershipBillingDialog({
   batchIncludeInactive: boolean;
   batchResult: CreateAdminBatchPaymentSessionData | null;
   batchError: string | null;
-  studentSearchQuery: string;
-  selectedStudentId: string;
-  selectedPackageKey: string;
-  expiresAtValue: string;
   isSubmitting: boolean;
-  onCreateModeChange: (value: CreateBillingMode) => void;
   onBatchLevelChange: (value: StudentLevel) => void;
   onBatchClassOptionChange: (value: string) => void;
   onBatchPackageModeChange: (value: BatchPackageMode) => void;
   onBatchPackageKeyChange: (value: string) => void;
   onBatchIncludeInactiveChange: (value: boolean) => void;
-  onStudentSearchQueryChange: (value: string) => void;
-  onStudentIdChange: (value: string) => void;
-  onPackageKeyChange: (value: string) => void;
-  onExpiresAtChange: (value: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
-  const filteredStudents = useMemo(() => {
-    const normalizedQuery = studentSearchQuery.trim().toLowerCase();
-
-    return [...students]
-      .sort((first, second) => first.name.localeCompare(second.name, "id-ID"))
-      .filter((student) =>
-        normalizedQuery
-          ? [
-              student.id,
-              student.name,
-              student.email,
-              student.className,
-              student.program,
-              student.branch,
-            ].some((value) => value.toLowerCase().includes(normalizedQuery))
-          : true,
-      );
-  }, [studentSearchQuery, students]);
+  const batchClassNameForPrice = buildCanonicalBatchClassName(
+    batchLevel,
+    batchClassOption,
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1025,21 +964,87 @@ function CreateMembershipBillingDialog({
                           </SelectItem>
                         ))}
                       </SelectContent>
-                      </Select>
-                    </div>
+                    </Select>
+                  </div>
 
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-800">
-                    Batas Waktu Pembayaran (Opsional)
-                  </label>
-                  <Input
-                    type="datetime-local"
-                    value={expiresAtValue}
-                    onChange={(event) => onExpiresAtChange(event.target.value)}
-                    className={warmFieldClassName}
-                  />
+                <div className="grid gap-4 xl:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-slate-800">
+                      Mode paket
+                    </label>
+                    <Select
+                      value={batchPackageMode}
+                      onValueChange={(value) =>
+                        onBatchPackageModeChange(value as BatchPackageMode)
+                      }
+                    >
+                      <SelectTrigger className={warmSelectTriggerClassName}>
+                        <SelectValue placeholder="Pilih mode paket" />
+                      </SelectTrigger>
+                      <SelectContent className={warmSelectContentClassName}>
+                        <SelectItem
+                          value="follow_latest_package"
+                          className={warmSelectItemClassName}
+                        >
+                          Ikuti paket terakhir siswa
+                        </SelectItem>
+                        <SelectItem
+                          value="fixed_package"
+                          className={warmSelectItemClassName}
+                        >
+                          Paket seragam satu kelas
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs leading-5 text-slate-500">
+                      {batchPackageMode === "follow_latest_package"
+                        ? "Siswa tanpa riwayat paket akan masuk laporan skipped."
+                        : "Paket ini dipakai untuk seluruh siswa target."}
+                    </p>
+                  </div>
+
+                  {batchPackageMode === "fixed_package" ? (
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-slate-800">
+                        Paket seragam
+                      </label>
+                      <Select
+                        value={batchPackageKey}
+                        onValueChange={onBatchPackageKeyChange}
+                      >
+                        <SelectTrigger className={warmSelectTriggerClassName}>
+                          <SelectValue placeholder="Pilih paket" />
+                        </SelectTrigger>
+                        <SelectContent className={warmSelectContentClassName}>
+                          {billingPackages.map((item) => {
+                            const dynamicAmount = getPriceByClassAndPackage(
+                              batchClassNameForPrice,
+                              item.packageKey,
+                              classPricingMatrix,
+                              packageLookupOptions,
+                            );
+
+                            return (
+                              <SelectItem
+                                key={item.packageKey}
+                                value={item.packageKey}
+                                className={warmSelectItemClassName}
+                              >
+                                {item.packageName} | {formatCurrency(dynamicAmount)}
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : (
+                    <div className="rounded-[20px] border border-slate-200/80 bg-slate-50/75 px-4 py-3 text-sm leading-6 text-slate-600">
+                      Sistem membaca paket membership terakhir setiap siswa lalu
+                      membuat draft perpanjangan massal untuk kelas terpilih.
+                    </div>
+                  )}
                 </div>
 
                 <label className="flex items-start gap-3 rounded-[20px] border border-slate-200/80 bg-slate-50/75 px-4 py-3 text-sm text-slate-700 shadow-[0_12px_22px_-24px_rgba(15,23,42,0.16)]">
@@ -1052,8 +1057,11 @@ function CreateMembershipBillingDialog({
                     className="mt-0.5 size-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
                   />
                   <span className="leading-6">
-                    <span className="font-semibold text-slate-800">Termasuk siswa nonaktif (berhenti/cuti).</span> Jika dimatikan, sistem pintar akan 
-                    otomatis mendeteksi dan melewati (skip) siswa yang sudah tidak aktif di kelas tersebut.
+                    <span className="font-semibold text-slate-800">
+                      Termasuk siswa nonaktif (berhenti/cuti).
+                    </span>{" "}
+                    Jika dimatikan, sistem pintar akan otomatis mendeteksi dan
+                    melewati (skip) siswa yang sudah tidak aktif di kelas tersebut.
                   </span>
                 </label>
 
@@ -1266,11 +1274,7 @@ function CreateMembershipBillingDialog({
               ) : (
                 <Plus className="size-4" />
               )}
-              {createMode === "massal"
-                ? batchResult
-                  ? "Proses Batch Lagi"
-                  : "Proses Transaksi Massal"
-                : "Buat Transaksi"}
+              {batchResult ? "Proses Batch Lagi" : "Proses Transaksi Massal"}
             </Button>
           </DialogFooter>
         </form>
@@ -1889,8 +1893,6 @@ export function AdminPaymentVerification({
   );
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
-  const [createBillingMode, setCreateBillingMode] =
-    useState<CreateBillingMode>("massal");
   const [batchLevel, setBatchLevel] = useState<StudentLevel>(defaultBatchLevel);
   const [batchClassOption, setBatchClassOption] =
     useState<string>(defaultBatchClassOption);
@@ -1902,11 +1904,6 @@ export function AdminPaymentVerification({
   const [batchResult, setBatchResult] =
     useState<CreateAdminBatchPaymentSessionData | null>(null);
   const [batchError, setBatchError] = useState<string | null>(null);
-  const [studentSearchQuery, setStudentSearchQuery] = useState("");
-  const [selectedStudentId, setSelectedStudentId] = useState("");
-  const [selectedPackageKey, setSelectedPackageKey] =
-    useState<string>(defaultBillingPackageKey);
-  const [expiresAtValue, setExpiresAtValue] = useState("");
   const [activePaymentActionKey, setActivePaymentActionKey] = useState<
     string | null
   >(null);
@@ -1926,7 +1923,6 @@ export function AdminPaymentVerification({
     membershipCoverageLoading;
 
   function resetCreateDialogState() {
-    setCreateBillingMode("massal");
     setBatchLevel(defaultBatchLevel);
     setBatchClassOption(defaultBatchClassOption);
     setBatchPackageMode("follow_latest_package");
@@ -1934,20 +1930,11 @@ export function AdminPaymentVerification({
     setBatchIncludeInactive(false);
     setBatchResult(null);
     setBatchError(null);
-    setStudentSearchQuery("");
-    setSelectedStudentId("");
-    setSelectedPackageKey(defaultBillingPackageKey);
-    setExpiresAtValue("");
   }
 
   function clearBatchOutcome() {
     setBatchError(null);
     setBatchResult(null);
-  }
-
-  function handleCreateModeChange(value: CreateBillingMode) {
-    setCreateBillingMode(value);
-    clearBatchOutcome();
   }
 
   function handleBatchLevelChange(value: StudentLevel) {
@@ -1973,11 +1960,6 @@ export function AdminPaymentVerification({
 
   function handleBatchIncludeInactiveChange(value: boolean) {
     setBatchIncludeInactive(value);
-    clearBatchOutcome();
-  }
-
-  function handleExpiresAtValueChange(value: string) {
-    setExpiresAtValue(value);
     clearBatchOutcome();
   }
 
@@ -2635,16 +2617,6 @@ export function AdminPaymentVerification({
     };
   }
 
-  function openCreateBillingForStudent(student: AdminStudent) {
-    setCreateBillingMode("individual");
-    clearBatchOutcome();
-    setStudentSearchQuery(`${student.id} ${student.name}`);
-    setSelectedStudentId(student.id);
-    setSelectedPackageKey(defaultBillingPackageKey);
-    setExpiresAtValue("");
-    setIsCreateDialogOpen(true);
-  }
-
   async function handleCreateBatchPaymentSession(
     event: FormEvent<HTMLFormElement>,
   ) {
@@ -2679,9 +2651,6 @@ export function AdminPaymentVerification({
         packageMode: batchPackageMode,
         packageKey:
           batchPackageMode === "fixed_package" ? batchPackageKey : undefined,
-        expiresAt: expiresAtValue
-          ? new Date(expiresAtValue).toISOString()
-          : undefined,
         includeInactive: batchIncludeInactive,
       });
 
@@ -2720,80 +2689,8 @@ export function AdminPaymentVerification({
     }
   }
 
-  async function handleCreatePaymentSession(
-    event: FormEvent<HTMLFormElement>,
-  ) {
-    event.preventDefault();
-
-    if (!selectedStudentId) {
-      window.alert("Pilih siswa existing terlebih dahulu.");
-      return;
-    }
-
-    if (!selectedPackageKey) {
-      window.alert(
-        "Belum ada paket membership yang tersedia untuk transaksi individual.",
-      );
-      return;
-    }
-
-    setIsCreatingPayment(true);
-
-    try {
-      const response = await createAdminPaymentSession({
-        studentId: selectedStudentId,
-        packageKey: selectedPackageKey,
-        expiresAt: expiresAtValue
-          ? new Date(expiresAtValue).toISOString()
-          : undefined,
-      });
-
-      const statusPagePath =
-        normalizeRegistrationPath(response.statusPagePath) ??
-        buildPaymentStatusPagePath(response.payment.paymentId);
-
-      setBillingFeedback({
-        tone: "success",
-        title: "Transaksi membership berhasil dibuat",
-        message: `Checkout link untuk ${response.student.name} sudah dibuat. Admin bisa mengirim link ini ke siswa tanpa approval manual tambahan.`,
-        checkoutUrl: response.payment.checkoutUrl ?? null,
-        statusPagePath,
-      });
-      window.alert("Transaksi membership berhasil dibuat.");
-      setIsCreateDialogOpen(false);
-      resetCreateDialogState();
-      setIncomingPage(1);
-      await Promise.allSettled([
-        refreshPaymentViews({
-          includeStudents: false,
-          page: 1,
-        }),
-        loadMembershipCoverage(),
-      ]);
-    } catch (requestError) {
-      const message =
-        requestError instanceof Error
-          ? requestError.message
-          : "Transaksi membership belum bisa dibuat.";
-
-      setBillingFeedback({
-        tone: "warning",
-        title: "Transaksi belum bisa dibuat",
-        message,
-      });
-      window.alert(message);
-    } finally {
-      setIsCreatingPayment(false);
-    }
-  }
-
   async function handleCreateBillingSubmit(event: FormEvent<HTMLFormElement>) {
-    if (createBillingMode === "massal") {
-      await handleCreateBatchPaymentSession(event);
-      return;
-    }
-
-    await handleCreatePaymentSession(event);
+    await handleCreateBatchPaymentSession(event);
   }
 
   async function handleResendPaymentLink(payment: IncomingPaymentRecord) {
@@ -4133,7 +4030,6 @@ export function AdminPaymentVerification({
                     students={filteredStudentsWithoutMembership}
                     isLoading={studentsLoading || membershipCoverageLoading}
                     error={studentsError ?? membershipCoverageError}
-                    onCreateBilling={openCreateBillingForStudent}
                   />
                 ) : activationsError ? (
                   <ErrorPanel
@@ -4204,10 +4100,6 @@ export function AdminPaymentVerification({
             resetCreateDialogState();
           }
         }}
-        students={scopedStudents}
-        studentsLoading={studentsLoading}
-        studentsError={studentsError}
-        createMode={createBillingMode}
         levelOptions={billingLevelOptions}
         batchLevel={batchLevel}
         batchClassOptions={batchClassOptionsByLevel[batchLevel] ?? []}
@@ -4220,21 +4112,12 @@ export function AdminPaymentVerification({
         batchIncludeInactive={batchIncludeInactive}
         batchResult={batchResult}
         batchError={batchError}
-        studentSearchQuery={studentSearchQuery}
-        selectedStudentId={selectedStudentId}
-        selectedPackageKey={selectedPackageKey}
-        expiresAtValue={expiresAtValue}
         isSubmitting={isCreatingPayment}
-        onCreateModeChange={handleCreateModeChange}
         onBatchLevelChange={handleBatchLevelChange}
         onBatchClassOptionChange={handleBatchClassOptionChange}
         onBatchPackageModeChange={handleBatchPackageModeChange}
         onBatchPackageKeyChange={handleBatchPackageKeyChange}
         onBatchIncludeInactiveChange={handleBatchIncludeInactiveChange}
-        onStudentSearchQueryChange={setStudentSearchQuery}
-        onStudentIdChange={setSelectedStudentId}
-        onPackageKeyChange={setSelectedPackageKey}
-        onExpiresAtChange={handleExpiresAtValueChange}
         onSubmit={(event) => {
           void handleCreateBillingSubmit(event);
         }}

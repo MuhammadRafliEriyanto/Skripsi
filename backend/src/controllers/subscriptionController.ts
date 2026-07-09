@@ -569,6 +569,16 @@ export const createMySubscriptionRenewal = asyncHandler(
       });
       createdXenditPaymentSessionId = paymentSession.id;
 
+      await Payment.updateMany(
+        { studentId: student._id, status: "draft_renewal", archivedAt: null },
+        {
+          $set: {
+            archivedAt: new Date(),
+            archiveReason: "Digantikan oleh perpanjangan yang dibuat mandiri oleh siswa",
+          },
+        },
+      );
+
       sendSuccess(res, {
         statusCode: 201,
         message: "Tagihan perpanjangan membership berhasil dibuat.",

@@ -468,6 +468,7 @@ export async function createPendingSubscriptionAndPayment(params: {
   startDate?: Date | null;
   targetProgram?: string | null;
   targetClassName?: string | null;
+  paymentStatus?: "pending" | "draft_renewal";
 }) {
   const subscriptionCode = await getNextPublicId(Subscription, "subscriptionCode", "SUB");
   const paymentId = await getNextPublicId(Payment, "paymentId", "PAY");
@@ -487,7 +488,7 @@ export async function createPendingSubscriptionAndPayment(params: {
     startDate,
     endDate: null,
     status: "pending",
-    paymentStatus: "pending",
+    paymentStatus: params.paymentStatus ?? "pending",
     source: params.source,
     createdByAdminId,
     renewalOfSubscriptionId: params.renewalOfSubscriptionId ?? null,
@@ -506,7 +507,7 @@ export async function createPendingSubscriptionAndPayment(params: {
     amount: params.packageDefinition.amount,
     provider: "xendit",
     method: "xendit_payment_link",
-    status: "pending",
+    status: params.paymentStatus ?? "pending",
     source: params.source,
     createdByAdminId,
     paidAt: null,
@@ -788,6 +789,7 @@ export async function createAdminPaymentSessionForStudent(params: {
   packageKey: string;
   expiresAt?: Date | null;
   adminId: Types.ObjectId | string;
+  isDraftRenewal?: boolean;
 }) {
   const selectedPackage = getOnlinePackageByKey(params.packageKey);
 
@@ -838,18 +840,21 @@ export async function createAdminPaymentSessionForStudent(params: {
       source: "admin",
       createdByAdminId: params.adminId,
       renewalOfSubscriptionId: renewalPreview.renewalOfSubscriptionId,
+      paymentStatus: params.isDraftRenewal ? "draft_renewal" : "pending",
     });
     createdPaymentId = payment._id.toString();
     createdSubscriptionId = subscription._id.toString();
 
-    const paymentSession = await attachXenditSessionToPayment({
-      payment,
-      subscription,
-      student: params.student,
-      user,
-      expiresAt: params.expiresAt ?? null,
-    });
-    createdXenditPaymentSessionId = paymentSession.id;
+    if (!params.isDraftRenewal) {
+      const paymentSession = await attachXenditSessionToPayment({
+        payment,
+        subscription,
+        student: params.student,
+        user,
+        expiresAt: params.expiresAt ?? null,
+      });
+      createdXenditPaymentSessionId = paymentSession.id;
+    }
 
     return {
       student: params.student,

@@ -77,7 +77,7 @@ export function getPriceByClass(
   return getPriceByClassAndPackage(className, "2-semester", classPricingMatrix, packages);
 }
 export type SubscriptionStatus = "pending" | "active" | "expired";
-export type PaymentStatus = "pending" | "paid" | "failed" | "expired";
+export type PaymentStatus = "pending" | "paid" | "failed" | "expired" | "draft_renewal";
 export type MembershipAccessStatus =
   | "active"
   | "pending"

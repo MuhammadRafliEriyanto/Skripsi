@@ -25,6 +25,7 @@ export const incomingStatusOptions = [
   "paid",
   "pending",
   combinedIncomingPaymentStatusFilter,
+  "draft_renewal",
   "failed",
   "expired",
 ] as const satisfies readonly IncomingPaymentStatusFilter[];
@@ -100,6 +101,10 @@ export const incomingStatusMeta = {
     badgeVariant: "danger",
     label: "Expired",
   },
+  draft_renewal: {
+    badgeVariant: "secondary",
+    label: "Draft Perpanjangan",
+  },
 } as const satisfies Record<Exclude<IncomingPaymentStatusFilter, "Semua" | typeof combinedIncomingPaymentStatusFilter>, ActivityStatusMeta>;
 
 export const outgoingStatusMeta = {
@@ -137,6 +142,10 @@ export const paymentStatusMeta = {
   expired: {
     badgeVariant: "danger",
     label: "Expired",
+  },
+  draft_renewal: {
+    badgeVariant: "secondary",
+    label: "Draft Perpanjangan",
   },
 } as const;
 

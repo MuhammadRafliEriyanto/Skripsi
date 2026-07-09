@@ -68,6 +68,8 @@ function formatPaymentStatusLabel(status: MembershipPaymentHistoryItem["status"]
       return "Gagal";
     case "expired":
       return "Kedaluwarsa";
+    case "draft_renewal":
+      return "Draft";
     default:
       return status;
   }
@@ -82,6 +84,8 @@ function formatPaymentStatusVariant(status: MembershipPaymentHistoryItem["status
     case "failed":
       return "danger";
     case "expired":
+      return "secondary";
+    case "draft_renewal":
       return "secondary";
     default:
       return "secondary";
@@ -282,8 +286,10 @@ export default function HistoriTagihanSiswa({
   const [selectedPayment, setSelectedPayment] =
     useState<MembershipPaymentHistoryItem | null>(null);
 
-  const loadPaymentHistory = useEffectEvent(async () => {
-    setIsLoading(true);
+  const loadPaymentHistory = useEffectEvent(async (isBackground = false) => {
+    if (!isBackground) {
+      setIsLoading(true);
+    }
     setError(null);
 
     try {
@@ -311,7 +317,8 @@ export default function HistoriTagihanSiswa({
 
   useEffect(() => {
     queueMicrotask(() => {
-      void loadPaymentHistory();
+      // If we already have payments and this is just a reloadSignal trigger, we can treat it as background
+      void loadPaymentHistory(reloadKey > 0);
     });
   }, [reloadKey, reloadSignal]);
 

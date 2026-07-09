@@ -333,6 +333,18 @@ export async function findLatestPaymentBySubscriptionId(subscriptionId: Types.Ob
   return Payment.findOne({ subscriptionId }).sort({ createdAt: -1 }).exec();
 }
 
+export async function findLatestDraftRenewalPaymentByStudentId(
+  studentId: Types.ObjectId | string,
+) {
+  return Payment.findOne({
+    studentId,
+    status: "draft_renewal",
+    archivedAt: null,
+  })
+    .sort({ createdAt: -1, _id: -1 })
+    .exec();
+}
+
 export async function getMembershipSnapshotByUserId(
   userId: Types.ObjectId | string,
 ): Promise<MembershipSnapshot> {
@@ -349,7 +361,12 @@ export async function getMembershipSnapshotByUserId(
   }
 
   const subscription = await findPrimarySubscriptionByStudentId(student._id);
-  const payment = subscription ? await findLatestPaymentBySubscriptionId(subscription._id) : null;
+  const draftRenewalPayment = await findLatestDraftRenewalPaymentByStudentId(
+    student._id,
+  );
+  const payment =
+    draftRenewalPayment ??
+    (subscription ? await findLatestPaymentBySubscriptionId(subscription._id) : null);
   const accessStatus = resolveMembershipAccessStatus(subscription);
 
   return {

@@ -571,7 +571,7 @@ async function buildAdminPaymentItems(
     throw new AppError(400, "dateFrom tidak boleh lebih besar dari dateTo.");
   }
 
-  const payments = await Payment.find({ archivedAt: null })
+  const payments = await Payment.find({ archivedAt: null, status: { $ne: "draft_renewal" } })
     .sort({ createdAt: -1, _id: -1 })
     .exec();
   const subscriptionIds = [
@@ -1078,7 +1078,7 @@ async function buildAdminPaymentsSummaryResponse(
 
 async function buildActivationStudentsCollection() {
   const [payments, subscriptions] = await Promise.all([
-    Payment.find({ archivedAt: null }).sort({ createdAt: -1, _id: -1 }).exec(),
+    Payment.find({ archivedAt: null, status: { $ne: "draft_renewal" } }).sort({ createdAt: -1, _id: -1 }).exec(),
     Subscription.find().sort({ createdAt: -1, _id: -1 }).exec(),
   ]);
   const subscriptionsByStudentId = new Map<string, SubscriptionDocument[]>();
@@ -1364,7 +1364,7 @@ async function buildAdminActivationsResponse(
 
 export async function buildOwnerActivitiesResponse() {
   const [payments, subscriptions, expenses] = await Promise.all([
-    Payment.find().sort({ createdAt: -1, _id: -1 }).exec(),
+    Payment.find({ status: { $ne: "draft_renewal" } }).sort({ createdAt: -1, _id: -1 }).exec(),
     Subscription.find().sort({ createdAt: -1, _id: -1 }).exec(),
     Expense.find().sort({ createdAt: -1, _id: -1 }).exec(),
   ]);
@@ -2056,6 +2056,7 @@ export const createAdminBatchPaymentSession = asyncHandler(
           packageKey: resolvedPackage.packageDefinition.packageKey,
           expiresAt: parsedExpiresAt,
           adminId: req.user._id,
+          isDraftRenewal: true,
         });
 
         items.push({
