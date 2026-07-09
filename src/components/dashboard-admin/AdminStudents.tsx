@@ -164,7 +164,7 @@ function createEmptyStudentForm(defaultClassName: string): StudentFormValues {
     email: "",
     phone: "",
     branch: "",
-    program: "",
+    program: "-",
     className: defaultClassName,
     birthDate: "",
     academicYear: "2025/2026",
@@ -802,11 +802,6 @@ export function AdminStudents({
 
     if (!normalizedPhone) {
       setFormError("No. HP wajib diisi.");
-      return;
-    }
-
-    if (!normalizedProgram) {
-      setFormError("Program wajib diisi.");
       return;
     }
 
@@ -1480,17 +1475,6 @@ export function AdminStudents({
                     updateFormValue("phone", event.target.value)
                   }
                   placeholder="Nomor telepon aktif"
-                />
-              </StudentField>
-
-              <StudentField label="Program">
-                <Input
-                  className={warmFieldClassName}
-                  value={formValues.program}
-                  onChange={(event) =>
-                    updateFormValue("program", event.target.value)
-                  }
-                  placeholder="Contoh: UTBK Intensif"
                 />
               </StudentField>
 
