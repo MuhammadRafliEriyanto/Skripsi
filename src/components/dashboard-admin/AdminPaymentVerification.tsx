@@ -945,11 +945,10 @@ function CreateMembershipBillingDialog({
         <form className="flex max-h-[90vh] flex-col" onSubmit={onSubmit}>
           <DialogHeader className="gap-3 border-b border-slate-100 px-5 pb-4 pt-5 pr-12 sm:px-6">
             <DialogTitle className="text-xl sm:text-2xl">
-              Buat Transaksi Membership
+              Buat Transaksi Perpanjangan
             </DialogTitle>
             <DialogDescription>
-              Buat transaksi baru untuk siswa lama. Status lunas
-              atau kedaluwarsa akan diperbarui secara otomatis.
+              Sistem akan otomatis mengecek masa aktif siswa dan membuatkan transaksi perpanjangan.
             </DialogDescription>
           </DialogHeader>
 
@@ -959,16 +958,15 @@ function CreateMembershipBillingDialog({
                   <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
                     <div className="space-y-1">
                       <p className="text-sm font-semibold text-slate-950">
-                        Mode massal per jenjang dan kelas
+                        Perpanjangan Massal per Kelas
                       </p>
                       <p className="text-sm leading-6 text-slate-600">
-                        Default batch akan mengikuti paket membership terakhir
-                        tiap siswa. Gunakan paket tetap jika admin ingin semua
-                        siswa memakai durasi yang sama.
+                        Otomatis membuat transaksi untuk satu kelas sekaligus. 
+                        Sistem dapat membaca riwayat langganan sebelumnya secara cerdas.
                       </p>
                     </div>
                     <Badge variant="info" className="w-fit">
-                      Default: follow latest package
+                      Sistem Cerdas Aktif
                     </Badge>
                   </div>
                 </div>
@@ -1035,7 +1033,7 @@ function CreateMembershipBillingDialog({
                 <div className="grid gap-4 xl:grid-cols-2">
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-slate-800">
-                      Mode paket
+                      Tipe Perpanjangan
                     </label>
                     <Select
                       value={batchPackageMode}
@@ -1044,20 +1042,20 @@ function CreateMembershipBillingDialog({
                       }
                     >
                       <SelectTrigger className={warmSelectTriggerClassName}>
-                        <SelectValue placeholder="Pilih mode paket" />
+                        <SelectValue placeholder="Pilih tipe perpanjangan" />
                       </SelectTrigger>
                       <SelectContent className={warmSelectContentClassName}>
                         <SelectItem
                           value="follow_latest_package"
                           className={warmSelectItemClassName}
                         >
-                          Ikuti paket membership terakhir siswa
+                          Otomatis (Ikuti riwayat paket siswa sebelumnya)
                         </SelectItem>
                         <SelectItem
                           value="fixed_package"
                           className={warmSelectItemClassName}
                         >
-                          Pilih paket sama untuk semua siswa
+                          Manual (Pilih 1 paket seragam untuk semua siswa)
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -1113,9 +1111,8 @@ function CreateMembershipBillingDialog({
                     className="mt-0.5 size-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
                   />
                   <span className="leading-6">
-                    Sertakan siswa nonaktif. Jika dimatikan, siswa nonaktif tetap
-                    ikut dihitung sebagai target batch tetapi akan ditandai
-                    skipped dengan reason code <code>STUDENT_INACTIVE</code>.
+                    <span className="font-semibold text-slate-800">Termasuk siswa nonaktif (berhenti/cuti).</span> Jika dimatikan, sistem pintar akan 
+                    otomatis mendeteksi dan melewati (skip) siswa yang sudah tidak aktif di kelas tersebut.
                   </span>
                 </label>
 
@@ -1124,16 +1121,16 @@ function CreateMembershipBillingDialog({
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                       <div>
                         <p className="text-base font-semibold text-slate-950">
-                          Hasil batch transaksi
+                          Laporan Sistem Perpanjangan
                         </p>
                         <p className="mt-1 text-sm leading-6 text-slate-500">
-                          Target {batchResult.filters.level}{" "}
-                          {batchResult.filters.className} dengan mode paket{" "}
+                          Target kelas {batchResult.filters.level}{" "}
+                          {batchResult.filters.className} (Tipe: {" "}
                           {batchResult.filters.packageMode ===
                           "follow_latest_package"
-                            ? "follow latest package"
-                            : "fixed package"}
-                          .
+                            ? "Sistem Cerdas / Otomatis"
+                            : "Manual Seragam"}
+                          ).
                         </p>
                       </div>
                       <Badge
