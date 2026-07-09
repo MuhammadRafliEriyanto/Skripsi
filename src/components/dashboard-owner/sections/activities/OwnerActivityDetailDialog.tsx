@@ -155,7 +155,7 @@ export function OwnerActivityDetailDialog({
                 />
                 <DetailItem
                   tone="orange"
-                  label="Payment ID"
+                  label="No. Referensi"
                   value={selectedIncomingPayment.paymentId ?? "-"}
                   icon={CreditCard}
                 />
@@ -387,7 +387,7 @@ export function OwnerActivityDetailDialog({
                 />
                 <DetailItem
                   tone="emerald"
-                  label="Payment ID"
+                  label="No. Referensi"
                   value={selectedStudent.paymentId ?? "-"}
                   icon={CreditCard}
                 />

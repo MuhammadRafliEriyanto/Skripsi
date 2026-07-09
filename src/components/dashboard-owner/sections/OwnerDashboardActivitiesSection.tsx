@@ -450,7 +450,7 @@ export function OwnerDashboardActivitiesSection({
     }
 
     const csvContent = [
-      "nama siswa,cabang,paket,metode,jumlah,status,tanggal bayar,expired at,payment id,subscription code",
+      "nama siswa,cabang,paket,metode,jumlah,status,tanggal bayar,expired at,no ref,kode layanan",
       ...exportRows.map((payment) =>
         [
           escapeCsvCell(payment.namaSiswa),
@@ -557,7 +557,7 @@ export function OwnerDashboardActivitiesSection({
     }
 
     const csvContent = [
-      "nama siswa,cabang,jenjang,kelas,paket membership,status pembayaran,status aktivasi,tanggal daftar,active until,payment id,subscription code",
+      "nama siswa,cabang,jenjang,kelas,paket membership,status pembayaran,status aktivasi,tanggal daftar,active until,no ref,kode layanan",
       ...exportRows.map((student) =>
         [
           escapeCsvCell(student.namaSiswa),

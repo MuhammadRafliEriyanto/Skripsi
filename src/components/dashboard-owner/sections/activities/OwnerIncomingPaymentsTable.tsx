@@ -112,7 +112,7 @@ export function OwnerIncomingPaymentsTable({
             <Input
               value={searchQuery}
               onChange={(event) => onSearchQueryChange(event.target.value)}
-              placeholder="Cari nama siswa, cabang, paket, metode, atau payment ID..."
+              placeholder="Cari nama siswa, cabang, paket, metode, atau no referensi..."
               className="h-12 rounded-2xl border-white/70 bg-white/88 pl-11 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]"
             />
           </div>
@@ -257,8 +257,8 @@ export function OwnerIncomingPaymentsTable({
                     <p className="font-semibold text-slate-900">{payment.studentName}</p>
                     <p className="text-xs text-slate-400">
                       {payment.paymentId
-                        ? `Payment ID: ${payment.paymentId}`
-                        : "Payment ID belum tersedia"}
+                        ? `No. Ref: ${payment.paymentId}`
+                        : "No. Ref belum tersedia"}
                     </p>
                   </div>
                 </TableCell>

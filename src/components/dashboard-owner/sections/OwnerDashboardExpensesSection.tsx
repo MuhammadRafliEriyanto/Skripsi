@@ -157,7 +157,7 @@ export function OwnerDashboardExpensesSection({
               <Input
                 value={manager.searchQuery}
                 onChange={(event) => manager.setSearchQuery(event.target.value)}
-                placeholder="Cari judul, cabang, vendor, kategori, metode, atau ID..."
+                placeholder="Cari judul, cabang, vendor, kategori, metode, atau no referensi..."
                 className="pl-10"
               />
             </div>
@@ -258,7 +258,7 @@ export function OwnerDashboardExpensesSection({
                   No
                 </TableHead>
                 <TableHead className="w-32 text-[11px] uppercase tracking-[0.18em] text-slate-500">
-                  ID
+                  No. Referensi
                 </TableHead>
                 <TableHead className="w-60 text-[11px] uppercase tracking-[0.18em] text-slate-500">
                   Judul / Cabang
@@ -413,7 +413,7 @@ export function OwnerDashboardExpensesSection({
 
           {selectedExpense ? (
             <div className="grid gap-3 sm:grid-cols-2">
-              <DetailItem label="ID" value={selectedExpense.expenseId} />
+              <DetailItem label="No. Referensi" value={selectedExpense.expenseId} />
               <DetailItem label="Cabang" value={selectedExpense.branch} />
               <DetailItem label="Judul" value={selectedExpense.title} />
               <DetailItem

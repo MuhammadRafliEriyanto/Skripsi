@@ -280,8 +280,8 @@ export function OwnerStudentActivationsTable({
                     <p className="font-semibold text-slate-900">{student.studentName}</p>
                     <p className="text-xs text-slate-400">
                       {student.paymentId
-                        ? `Payment ID: ${student.paymentId}`
-                        : "Payment ID belum tersedia"}
+                        ? `No. Ref: ${student.paymentId}`
+                        : "No. Ref belum tersedia"}
                     </p>
                   </div>
                 </TableCell>
