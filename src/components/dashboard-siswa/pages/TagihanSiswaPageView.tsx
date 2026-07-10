@@ -463,8 +463,9 @@ function PaymentPolicyCopy({
     return (
       <>
         <p>
-          Admin telah membukakan akses perpanjangan membership untuk akun ini.
-          Silakan klik tombol <strong>Perpanjang Sekarang</strong> untuk memilih paket (1 atau 2 semester) dan melanjutkan ke pembayaran.
+          Perpanjangan manual dari admin tidak lagi ditampilkan sebagai aksi
+          utama siswa. Tombol perpanjangan akan muncul otomatis saat masa aktif
+          membership sudah mendekati selesai.
         </p>
       </>
     );
@@ -505,9 +506,8 @@ function PaymentPolicyCopy({
     return (
       <>
         <p>
-          Masa aktif membership sudah berakhir. Saat tagihan perpanjangan
-          dibuat, siswa bisa melanjutkan pembayarannya langsung dari card
-          tagihan aktif di halaman tagihan.
+          Masa aktif membership sudah berakhir. Siswa dapat memperpanjang
+          membership dari halaman ini dan melanjutkan ke checkout pembayaran.
         </p>
         <p>
           Selama belum ada tagihan pending, belum ada pembayaran yang perlu
@@ -521,9 +521,9 @@ function PaymentPolicyCopy({
     return (
       <>
         <p>
-          Membership siswa masih aktif, tetapi masa aktifnya sudah mendekati
-          tanggal akhir. Siswa dapat menyiapkan perpanjangan sebelum akses
-          belajar berakhir.
+          Membership siswa masih aktif, tetapi sisa masa aktifnya sudah 14 hari
+          atau kurang. Siswa dapat menyiapkan perpanjangan sebelum akses belajar
+          berakhir.
         </p>
         <p>
           Masa aktif tetap dihitung dari tanggal aktivasi masing-masing siswa,
@@ -536,9 +536,8 @@ function PaymentPolicyCopy({
   return (
     <>
       <p>
-        Membership siswa sedang aktif. Jika nanti dibuat tagihan perpanjangan,
-        siswa bisa melanjutkan pembayaran dari card tagihan aktif atau tabel
-        histori tagihan.
+        Membership siswa sedang aktif. Tombol perpanjangan akan muncul otomatis
+        saat masa aktif tersisa 14 hari atau ketika membership sudah berakhir.
       </p>
       <p>
         Status tagihan dan masa aktif akan tersinkron otomatis setelah
@@ -672,7 +671,10 @@ export default function TagihanSiswaPageView() {
       effectiveRenewalFormValues.program,
       effectiveRenewalFormValues.classLevel,
     );
+  const canShowRenewalAction =
+    overview.accessStatus === "expiring" || overview.accessStatus === "expired";
   const canCreateRenewal =
+    canShowRenewalAction &&
     overview.studentId !== "-" &&
     Boolean(renewalClassSuggestion) &&
     !isSubscriptionConfigLoading &&
@@ -686,15 +688,17 @@ export default function TagihanSiswaPageView() {
       ? "Masih ada tagihan pending. Selesaikan atau batalkan tagihan lama terlebih dahulu."
       : overview.isScheduledAccess
         ? "Membership sudah lunas dan akses belajar terjadwal. Perpanjangan baru tersedia setelah membership berjalan."
-        : overview.accessStatus === "pending"
-          ? "Membership belum aktif. Selesaikan aktivasi terlebih dahulu sebelum membuat perpanjangan."
-          : "Perpanjangan tersedia setelah membership awal tercatat.";
+          : overview.accessStatus === "pending"
+            ? "Membership belum aktif. Selesaikan aktivasi terlebih dahulu sebelum membuat perpanjangan."
+            : !canShowRenewalAction
+              ? "Tombol perpanjangan muncul otomatis saat membership tersisa 14 hari atau sudah berakhir."
+              : "Perpanjangan tersedia setelah membership awal tercatat.";
 
   async function handleCreateRenewalPayment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!canCreateRenewal) {
-      setRenewalError("Perpanjangan belum bisa dibuat untuk status membership saat ini.");
+      setRenewalError("Perpanjangan belum tersedia untuk status membership saat ini.");
       return;
     }
 
@@ -710,7 +714,7 @@ export default function TagihanSiswaPageView() {
 
       setRenewalFeedback({
         tone: "success",
-        message: "Tagihan perpanjangan berhasil dibuat.",
+        message: "Perpanjangan membership berhasil disiapkan.",
         checkoutUrl,
       });
       setIsRenewalDialogOpen(false);
@@ -854,9 +858,7 @@ export default function TagihanSiswaPageView() {
               </div>
             </div>
 
-            {overview.accessStatus === "expired" ||
-            overview.accessStatus === "expiring" ||
-            overview.paymentStatus === "draft_renewal" ? (
+            {canShowRenewalAction ? (
               <aside className="rounded-[24px] border border-slate-200 bg-white p-4">
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-600">
@@ -935,7 +937,7 @@ export default function TagihanSiswaPageView() {
                         setIsRenewalDialogOpen(true);
                       }}
                     >
-                      Perpanjang Sekarang
+                      Perpanjang Membership
                       <ArrowUpRight className="h-4 w-4" />
                     </Button>
 
@@ -1080,7 +1082,7 @@ export default function TagihanSiswaPageView() {
               <div className="flex items-center justify-between gap-3 rounded-[18px] border border-slate-200 bg-white px-4 py-3">
                 <div className="min-w-0">
                   <p className="text-[11px] font-semibold uppercase text-slate-500">
-                    Total Tagihan
+                    Total Pembayaran
                   </p>
                   <p className="mt-1 truncate text-xs text-slate-500">
                     {selectedRenewalPackage?.packageName ?? "Paket belum tersedia"} | {renewalTargetClassLabel}
@@ -1119,7 +1121,7 @@ export default function TagihanSiswaPageView() {
                 ) : (
                   <CreditCard className="h-4 w-4" />
                 )}
-                Buat Tagihan
+                Perpanjang Membership
               </Button>
             </DialogFooter>
           </form>

@@ -513,6 +513,26 @@ export const createMySubscriptionRenewal = asyncHandler(
       return;
     }
 
+    const membershipSnapshot = await getMembershipSnapshotByUserId(req.user._id);
+    const isRenewalWindowOpen =
+      membershipSnapshot.accessStatus === "expiring" ||
+      membershipSnapshot.accessStatus === "expired";
+
+    if (!isRenewalWindowOpen) {
+      next(
+        new AppError(
+          409,
+          "Perpanjangan membership baru dibuka otomatis saat masa aktif tersisa 14 hari atau membership sudah berakhir.",
+          {
+            accessStatus: membershipSnapshot.accessStatus,
+            daysRemaining: membershipSnapshot.daysRemaining,
+          },
+          "RENEWAL_WINDOW_NOT_OPEN",
+        ),
+      );
+      return;
+    }
+
     const renewalPreview = await resolveRenewalWindow(
       student._id,
       selectedPackage.durationMonth,
@@ -556,7 +576,7 @@ export const createMySubscriptionRenewal = asyncHandler(
 
       sendSuccess(res, {
         statusCode: 201,
-        message: "Tagihan perpanjangan membership berhasil dibuat.",
+        message: "Perpanjangan membership berhasil disiapkan.",
         data: {
           student: toPublicStudentMembership({
             ...student.toObject(),

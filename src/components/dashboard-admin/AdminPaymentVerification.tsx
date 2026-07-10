@@ -884,7 +884,7 @@ function CreateMembershipBillingDialog({
         <form className="flex max-h-[90vh] flex-col" onSubmit={onSubmit}>
           <DialogHeader className="gap-3 border-b border-slate-100 px-5 pb-4 pt-5 pr-12 sm:px-6">
             <DialogTitle className="text-xl sm:text-2xl">
-              Buat Transaksi Perpanjangan
+              Perpanjangan Membership Massal
             </DialogTitle>
             <DialogDescription>
               Sistem akan otomatis mengecek masa aktif siswa dan membuatkan transaksi perpanjangan.
@@ -1274,7 +1274,7 @@ function CreateMembershipBillingDialog({
               ) : (
                 <Plus className="size-4" />
               )}
-              {batchResult ? "Proses Batch Lagi" : "Proses Transaksi Massal"}
+              {batchResult ? "Proses Batch Lagi" : "Proses Perpanjangan Massal"}
             </Button>
           </DialogFooter>
         </form>
@@ -3607,17 +3607,6 @@ export function AdminPaymentVerification({
                       </Badge>
                     </>
                   )}
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="gap-2"
-                    onClick={() => {
-                      setIsCreateDialogOpen(true);
-                    }}
-                  >
-                    <Plus className="size-4" />
-                    Buat Transaksi
-                  </Button>
                 </div>
               }
             >
