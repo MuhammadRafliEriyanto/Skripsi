@@ -5,7 +5,7 @@ import path from "path";
 import { Payment, type PaymentDocument } from "../models/Payment";
 import { Student, type StudentDocument } from "../models/Student";
 import { Subscription, type SubscriptionDocument } from "../models/Subscription";
-import { User } from "../models/User";
+import { User, type UserDocument } from "../models/User";
 import {
   buildSubscriptionEndDate,
   getOnlinePackageByKey,
@@ -22,10 +22,33 @@ type PackageResolution = {
   source: string;
 };
 
-type DateWindow = {
+type MonthWindow = {
+  key: string;
   label: string;
   start: Date;
   end: Date;
+  weight: number;
+};
+
+type PreparedSubscription = {
+  subscription: SubscriptionDocument;
+  student: StudentDocument | null;
+  user: UserDocument | null;
+  payments: PaymentDocument[];
+  paidPayments: PaymentDocument[];
+  referencePayment: PaymentDocument | null;
+  packageResolution: PackageResolution | null;
+};
+
+type PaymentPlan = {
+  payment: PaymentDocument;
+  beforeCreatedAt: Date;
+  beforePaidAt: Date | null;
+  beforeUpdatedAt: Date;
+  afterCreatedAt: Date;
+  afterPaidAt: Date;
+  afterUpdatedAt: Date;
+  willChange: boolean;
 };
 
 type MigrationRow = {
@@ -40,22 +63,75 @@ type MigrationRow = {
   startDate: Date | null;
   endDate: Date | null;
   nextStatus: string | null;
+  paymentPlans: PaymentPlan[];
+};
+
+type ValidationResult = {
+  rule: string;
+  violationCount: number;
 };
 
 const args = process.argv.slice(2);
 const isApply = args.includes("--apply");
+const now = new Date();
+const DAY_IN_MILLISECONDS = 1000 * 60 * 60 * 24;
+const HOUR_IN_MILLISECONDS = 1000 * 60 * 60;
+const MINUTE_IN_MILLISECONDS = 1000 * 60;
 
-const DATE_WINDOWS: Record<PackageType, DateWindow> = {
-  "1-semester": {
-    label: "Januari-Maret 2026",
-    start: new Date("2026-01-15T08:00:00+07:00"),
-    end: new Date("2026-03-31T17:00:00+07:00"),
-  },
-  "2-semester": {
-    label: "Agustus-November 2025",
-    start: new Date("2025-08-01T08:00:00+07:00"),
-    end: new Date("2025-11-30T17:00:00+07:00"),
-  },
+const MONTH_WINDOWS: Record<PackageType, MonthWindow[]> = {
+  "2-semester": [
+    {
+      key: "2025-08",
+      label: "Agustus 2025",
+      start: new Date("2025-08-01T08:00:00+07:00"),
+      end: new Date("2025-08-31T17:00:00+07:00"),
+      weight: 0.58,
+    },
+    {
+      key: "2025-09",
+      label: "September 2025",
+      start: new Date("2025-09-01T08:00:00+07:00"),
+      end: new Date("2025-09-30T17:00:00+07:00"),
+      weight: 0.27,
+    },
+    {
+      key: "2025-10",
+      label: "Oktober 2025",
+      start: new Date("2025-10-01T08:00:00+07:00"),
+      end: new Date("2025-10-31T17:00:00+07:00"),
+      weight: 0.11,
+    },
+    {
+      key: "2025-11",
+      label: "November 2025",
+      start: new Date("2025-11-01T08:00:00+07:00"),
+      end: new Date("2025-11-30T17:00:00+07:00"),
+      weight: 0.04,
+    },
+  ],
+  "1-semester": [
+    {
+      key: "2026-01",
+      label: "Januari 2026",
+      start: new Date("2026-01-01T08:00:00+07:00"),
+      end: new Date("2026-01-31T17:00:00+07:00"),
+      weight: 0.68,
+    },
+    {
+      key: "2026-02",
+      label: "Februari 2026",
+      start: new Date("2026-02-01T08:00:00+07:00"),
+      end: new Date("2026-02-28T17:00:00+07:00"),
+      weight: 0.24,
+    },
+    {
+      key: "2026-03",
+      label: "Maret 2026",
+      start: new Date("2026-03-01T08:00:00+07:00"),
+      end: new Date("2026-03-31T17:00:00+07:00"),
+      weight: 0.08,
+    },
+  ],
 };
 
 function normalizeText(value: string | null | undefined) {
@@ -134,16 +210,301 @@ function pickReferencePayment(payments: PaymentDocument[]) {
   );
 }
 
+function stableHash(value: string) {
+  let hash = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+
+  return hash;
+}
+
 function hasSameDate(first: Date | null | undefined, second: Date | null | undefined) {
   return (first?.toISOString() ?? null) === (second?.toISOString() ?? null);
 }
 
-function spreadDateInWindow(window: DateWindow, index: number, total: number) {
-  const ratio = total <= 1 ? 0.5 : index / (total - 1);
+function allocateWeightedCounts(total: number, windows: MonthWindow[]) {
+  const rawCounts = windows.map((window) => ({
+    window,
+    floorCount: Math.floor(total * window.weight),
+    remainder: total * window.weight - Math.floor(total * window.weight),
+  }));
+  let remaining = total - rawCounts.reduce((sum, item) => sum + item.floorCount, 0);
+
+  for (const item of [...rawCounts].sort((first, second) => second.remainder - first.remainder)) {
+    if (remaining <= 0) {
+      break;
+    }
+
+    item.floorCount += 1;
+    remaining -= 1;
+  }
+
+  return rawCounts.map((item) => ({
+    window: item.window,
+    count: item.floorCount,
+  }));
+}
+
+function spreadDateInMonth(window: MonthWindow, index: number, total: number, seed: string) {
+  const hash = stableHash(seed);
+  const baseRatio = total <= 1 ? 0.5 : (index + 0.5) / total;
+  const jitter = ((hash % 10_000) / 10_000 - 0.5) * (total <= 1 ? 0.2 : 0.8 / total);
+  const ratio = Math.min(0.98, Math.max(0.02, baseRatio + jitter));
   const timestamp =
     window.start.getTime() + Math.round((window.end.getTime() - window.start.getTime()) * ratio);
+  const date = new Date(timestamp);
+  const hour = 8 + (Math.floor(hash / 13) % 9);
+  const minute = Math.floor(hash / 29) % 60;
 
-  return new Date(timestamp);
+  date.setUTCHours(hour - 7, minute, 0, 0);
+
+  return date;
+}
+
+function buildPaymentPlan(payment: PaymentDocument, paidAt: Date): PaymentPlan {
+  const hash = stableHash(`${payment.paymentId}:${payment._id.toString()}`);
+  const createdOffsetHours = 24 + (hash % 48);
+  const createdOffsetMinutes = Math.floor(hash / 7) % 60;
+  const updatedOffsetMinutes = Math.floor(hash / 11) % (24 * 60);
+  const afterCreatedAt = new Date(
+    paidAt.getTime() -
+      createdOffsetHours * HOUR_IN_MILLISECONDS -
+      createdOffsetMinutes * MINUTE_IN_MILLISECONDS,
+  );
+  const afterPaidAt = new Date(paidAt);
+  const afterUpdatedAt = new Date(paidAt.getTime() + updatedOffsetMinutes * MINUTE_IN_MILLISECONDS);
+
+  return {
+    payment,
+    beforeCreatedAt: payment.createdAt,
+    beforePaidAt: payment.paidAt,
+    beforeUpdatedAt: payment.updatedAt,
+    afterCreatedAt,
+    afterPaidAt,
+    afterUpdatedAt,
+    willChange:
+      !hasSameDate(payment.createdAt, afterCreatedAt) ||
+      !hasSameDate(payment.paidAt, afterPaidAt) ||
+      !hasSameDate(payment.updatedAt, afterUpdatedAt),
+  };
+}
+
+function formatDate(value: Date | null | undefined) {
+  return value?.toISOString() ?? "-";
+}
+
+function getMonthKey(date: Date | null | undefined) {
+  if (!date) {
+    return "-";
+  }
+
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function buildCountTable<T>(
+  rows: T[],
+  getKey: (row: T) => string,
+  getExtra?: (row: T) => Record<string, string | number>,
+) {
+  const counters = new Map<string, { count: number; extra: Record<string, string | number> }>();
+
+  for (const row of rows) {
+    const key = getKey(row);
+    const current = counters.get(key) ?? { count: 0, extra: getExtra?.(row) ?? {} };
+    current.count += 1;
+    counters.set(key, current);
+  }
+
+  return [...counters.entries()]
+    .sort(([first], [second]) => first.localeCompare(second))
+    .map(([key, value]) => ({
+      key,
+      ...value.extra,
+      count: value.count,
+    }));
+}
+
+function isInRange(date: Date | null | undefined, start: Date, end: Date) {
+  return Boolean(date && date.getTime() >= start.getTime() && date.getTime() <= end.getTime());
+}
+
+function validateRows(rows: MigrationRow[]): ValidationResult[] {
+  const updatedRows = rows.filter((row) => row.status === "updated");
+  const twoSemesterStart = new Date("2025-08-01T00:00:00+07:00");
+  const twoSemesterEnd = new Date("2025-11-30T23:59:59+07:00");
+  const oneSemesterStart = new Date("2026-01-01T00:00:00+07:00");
+  const oneSemesterEnd = new Date("2026-03-31T23:59:59+07:00");
+
+  return [
+    {
+      rule: "2 Semester hanya Agustus-November 2025",
+      violationCount: updatedRows.filter(
+        (row) =>
+          row.packageType === "2-semester" &&
+          !isInRange(row.startDate, twoSemesterStart, twoSemesterEnd),
+      ).length,
+    },
+    {
+      rule: "1 Semester hanya Januari-Maret 2026",
+      violationCount: updatedRows.filter(
+        (row) =>
+          row.packageType === "1-semester" &&
+          !isInRange(row.startDate, oneSemesterStart, oneSemesterEnd),
+      ).length,
+    },
+    {
+      rule: "payment.createdAt <= payment.paidAt",
+      violationCount: updatedRows.flatMap((row) => row.paymentPlans).filter(
+        (plan) => plan.afterCreatedAt.getTime() > plan.afterPaidAt.getTime(),
+      ).length,
+    },
+    {
+      rule: "payment.paidAt == subscription.startDate",
+      violationCount: updatedRows.filter((row) =>
+        row.paymentPlans.some((plan) => !hasSameDate(plan.afterPaidAt, row.startDate)),
+      ).length,
+    },
+    {
+      rule: "subscription.endDate sesuai durasi paket",
+      violationCount: updatedRows.filter((row) => {
+        if (!row.startDate || !row.endDate || !row.packageType) {
+          return true;
+        }
+
+        const durationMonth = row.packageType === "1-semester" ? 6 : 12;
+        return !hasSameDate(row.endDate, buildSubscriptionEndDate(row.startDate, durationMonth));
+      }).length,
+    },
+    {
+      rule: "tidak ada tanggal payment setelah subscription.endDate",
+      violationCount: updatedRows.filter((row) =>
+        row.paymentPlans.some(
+          (plan) =>
+            Boolean(row.endDate) &&
+            (plan.afterCreatedAt.getTime() > row.endDate!.getTime() ||
+              plan.afterPaidAt.getTime() > row.endDate!.getTime() ||
+              plan.afterUpdatedAt.getTime() > row.endDate!.getTime()),
+        ),
+      ).length,
+    },
+    {
+      rule: "tidak ada tanggal payment lebih baru dari hari ini",
+      violationCount: updatedRows.flatMap((row) => row.paymentPlans).filter(
+        (plan) =>
+          plan.afterCreatedAt.getTime() > now.getTime() ||
+          plan.afterPaidAt.getTime() > now.getTime() ||
+          plan.afterUpdatedAt.getTime() > now.getTime(),
+      ).length,
+    },
+    {
+      rule: "payment.updatedAt maksimal 1 hari setelah paidAt",
+      violationCount: updatedRows.flatMap((row) => row.paymentPlans).filter(
+        (plan) =>
+          plan.afterUpdatedAt.getTime() >
+          plan.afterPaidAt.getTime() + DAY_IN_MILLISECONDS,
+      ).length,
+    },
+  ];
+}
+
+async function loadPreparedSubscriptions() {
+  const subscriptions = await Subscription.find()
+    .sort({ studentId: 1, createdAt: 1, _id: 1 })
+    .exec();
+  const payments = await Payment.find({ archivedAt: null }).exec();
+  const studentIds = Array.from(
+    new Set(subscriptions.map((subscription) => subscription.studentId.toString())),
+  );
+  const students = await Student.find({ _id: { $in: studentIds } }).exec();
+  const userIds = Array.from(new Set(students.map((student) => student.userId.toString())));
+  const users = await User.find({ _id: { $in: userIds } }).exec();
+  const studentsById = new Map(students.map((student) => [student._id.toString(), student]));
+  const usersById = new Map(users.map((user) => [user._id.toString(), user]));
+  const paymentsBySubscriptionId = new Map<string, PaymentDocument[]>();
+
+  for (const payment of payments) {
+    const key = payment.subscriptionId.toString();
+    paymentsBySubscriptionId.set(key, [
+      ...(paymentsBySubscriptionId.get(key) ?? []),
+      payment,
+    ]);
+  }
+
+  return subscriptions.map<PreparedSubscription>((subscription) => {
+    const student = studentsById.get(subscription.studentId.toString()) ?? null;
+    const user = student ? usersById.get(student.userId.toString()) ?? null : null;
+    const subscriptionPayments = paymentsBySubscriptionId.get(subscription._id.toString()) ?? [];
+    const referencePayment = pickReferencePayment(subscriptionPayments);
+    const packageResolution = resolvePackageForSubscription(subscription, referencePayment);
+
+    return {
+      subscription,
+      student,
+      user,
+      payments: subscriptionPayments,
+      paidPayments: subscriptionPayments.filter((payment) => payment.status === "paid"),
+      referencePayment,
+      packageResolution,
+    };
+  });
+}
+
+function buildPlannedStartDates(rows: PreparedSubscription[]) {
+  const processableRows = rows.filter(
+    (row): row is PreparedSubscription & {
+      student: StudentDocument;
+      user: UserDocument;
+      packageResolution: PackageResolution;
+    } =>
+      Boolean(row.student) &&
+      Boolean(row.user) &&
+      Boolean(row.packageResolution) &&
+      row.paidPayments.length > 0,
+  );
+  const startDatesBySubscriptionId = new Map<string, Date>();
+
+  for (const packageType of ["2-semester", "1-semester"] as const) {
+    const packageRows = processableRows.filter(
+      (row) => row.packageResolution.packageType === packageType,
+    );
+    const shuffledRows = [...packageRows].sort(
+      (first, second) =>
+        stableHash(
+          `${first.student.studentId}:${first.subscription.subscriptionCode}`,
+        ) -
+        stableHash(
+          `${second.student.studentId}:${second.subscription.subscriptionCode}`,
+        ),
+    );
+    const allocations = allocateWeightedCounts(
+      shuffledRows.length,
+      MONTH_WINDOWS[packageType],
+    );
+    let cursor = 0;
+
+    for (const allocation of allocations) {
+      const monthRows = shuffledRows.slice(cursor, cursor + allocation.count);
+      cursor += allocation.count;
+
+      monthRows
+        .sort((first, second) =>
+          first.student.studentId.localeCompare(second.student.studentId, "id-ID", {
+            numeric: true,
+          }),
+        )
+        .forEach((row, index) => {
+          const seed = `${row.student.studentId}:${row.subscription.subscriptionCode}:${allocation.window.key}`;
+          startDatesBySubscriptionId.set(
+            row.subscription._id.toString(),
+            spreadDateInMonth(allocation.window, index, monthRows.length, seed),
+          );
+        });
+    }
+  }
+
+  return startDatesBySubscriptionId;
 }
 
 async function main() {
@@ -154,105 +515,15 @@ async function main() {
   }
 
   console.log(`MODE: ${isApply ? "APPLY" : "DRY-RUN"}`);
-  console.log("RULE: sebar startDate membership lama/demo sesuai paket.");
-  console.log("- 1 Semester  -> Januari-Maret 2026");
-  console.log("- 2 Semester  -> Agustus-November 2025\n");
+  console.log("RULE: weighted spread membership dummy + normalisasi tanggal payment paid.");
+  console.log("- 2 Semester  -> 1 Agustus 2025 s/d 30 November 2025");
+  console.log("- 1 Semester  -> 1 Januari 2026 s/d 31 Maret 2026\n");
 
   await mongoose.connect(mongoUri);
 
   try {
-    const subscriptions = await Subscription.find()
-      .sort({ studentId: 1, createdAt: 1, _id: 1 })
-      .exec();
-    const payments = await Payment.find({ archivedAt: null }).exec();
-    const studentIds = Array.from(
-      new Set(subscriptions.map((subscription) => subscription.studentId.toString())),
-    );
-    const students = await Student.find({ _id: { $in: studentIds } }).exec();
-    const userIds = Array.from(new Set(students.map((student) => student.userId.toString())));
-    const users = await User.find({ _id: { $in: userIds } }).exec();
-    const studentsById = new Map(
-      students.map((student) => [student._id.toString(), student]),
-    );
-    const usersById = new Map(users.map((user) => [user._id.toString(), user]));
-    const paymentsBySubscriptionId = new Map<string, PaymentDocument[]>();
-
-    for (const payment of payments) {
-      const key = payment.subscriptionId.toString();
-      paymentsBySubscriptionId.set(key, [
-        ...(paymentsBySubscriptionId.get(key) ?? []),
-        payment,
-      ]);
-    }
-
-    const preparedRows = subscriptions.map((subscription) => {
-      const student = studentsById.get(subscription.studentId.toString()) ?? null;
-      const user = student ? usersById.get(student.userId.toString()) ?? null : null;
-      const subscriptionPayments =
-        paymentsBySubscriptionId.get(subscription._id.toString()) ?? [];
-      const referencePayment = pickReferencePayment(subscriptionPayments);
-      const packageResolution = resolvePackageForSubscription(subscription, referencePayment);
-
-      return {
-        subscription,
-        student,
-        user,
-        referencePayment,
-        packageResolution,
-      };
-    });
-
-    const processableRows = preparedRows.filter(
-      (row): row is typeof row & {
-        student: StudentDocument;
-        user: NonNullable<(typeof row)["user"]>;
-        packageResolution: PackageResolution;
-      } =>
-        Boolean(row.student) &&
-        Boolean(row.user) &&
-        Boolean(row.packageResolution) &&
-        row.subscription.paymentStatus === "paid",
-    );
-    const processableByPackage = new Map<PackageType, typeof processableRows>();
-
-    for (const row of processableRows) {
-      const key = row.packageResolution.packageType;
-      processableByPackage.set(key, [
-        ...(processableByPackage.get(key) ?? []),
-        row,
-      ]);
-    }
-
-    const startDatesBySubscriptionId = new Map<string, Date>();
-
-    for (const [packageType, rows] of processableByPackage) {
-      const window = DATE_WINDOWS[packageType];
-      const sortedRows = [...rows].sort((first, second) => {
-        const firstCode = first.student.studentId || first.subscription.subscriptionCode;
-        const secondCode = second.student.studentId || second.subscription.subscriptionCode;
-        const codeCompare = firstCode.localeCompare(secondCode, "id-ID", {
-          numeric: true,
-        });
-
-        if (codeCompare !== 0) {
-          return codeCompare;
-        }
-
-        return first.subscription.subscriptionCode.localeCompare(
-          second.subscription.subscriptionCode,
-          "id-ID",
-          { numeric: true },
-        );
-      });
-
-      sortedRows.forEach((row, index) => {
-        startDatesBySubscriptionId.set(
-          row.subscription._id.toString(),
-          spreadDateInWindow(window, index, sortedRows.length),
-        );
-      });
-    }
-
+    const preparedRows = await loadPreparedSubscriptions();
+    const startDatesBySubscriptionId = buildPlannedStartDates(preparedRows);
     const rows: MigrationRow[] = [];
 
     for (const row of preparedRows) {
@@ -273,6 +544,7 @@ async function main() {
           startDate: null,
           endDate: null,
           nextStatus: null,
+          paymentPlans: [],
         });
         continue;
       }
@@ -290,6 +562,7 @@ async function main() {
           startDate: null,
           endDate: null,
           nextStatus: null,
+          paymentPlans: [],
         });
         continue;
       }
@@ -311,15 +584,16 @@ async function main() {
           startDate: null,
           endDate: null,
           nextStatus: null,
+          paymentPlans: [],
         });
         continue;
       }
 
-      if (row.subscription.paymentStatus !== "paid") {
+      if (row.paidPayments.length === 0) {
         rows.push({
           status: "skipped",
           willChange: false,
-          reason: "paymentStatus bukan paid, jadi membership belum diaktivasi.",
+          reason: "Tidak ada payment paid; pending/failed/expired tidak diproses.",
           studentCode,
           studentName,
           subscriptionCode: row.subscription.subscriptionCode,
@@ -328,6 +602,7 @@ async function main() {
           startDate: null,
           endDate: null,
           nextStatus: null,
+          paymentPlans: [],
         });
         continue;
       }
@@ -347,6 +622,7 @@ async function main() {
           startDate: null,
           endDate: null,
           nextStatus: null,
+          paymentPlans: [],
         });
         continue;
       }
@@ -356,15 +632,17 @@ async function main() {
         row.packageResolution.durationMonth,
       );
       const nextStatus = resolveSubscriptionStatusByDates(startDate, endDate);
-      const willChange =
+      const paymentPlans = row.paidPayments.map((payment) => buildPaymentPlan(payment, startDate));
+      const subscriptionWillChange =
         !hasSameDate(row.subscription.startDate, startDate) ||
         !hasSameDate(row.subscription.endDate, endDate) ||
         row.subscription.status !== nextStatus;
+      const paymentWillChange = paymentPlans.some((plan) => plan.willChange);
 
       rows.push({
         status: "updated",
-        willChange,
-        reason: DATE_WINDOWS[row.packageResolution.packageType].label,
+        willChange: subscriptionWillChange || paymentWillChange,
+        reason: "OK",
         studentCode,
         studentName,
         subscriptionCode: row.subscription.subscriptionCode,
@@ -373,13 +651,29 @@ async function main() {
         startDate,
         endDate,
         nextStatus,
+        paymentPlans,
       });
 
-      if (isApply && willChange) {
-        row.subscription.startDate = startDate;
-        row.subscription.endDate = endDate;
-        row.subscription.status = nextStatus;
-        await row.subscription.save();
+      if (isApply && (subscriptionWillChange || paymentWillChange)) {
+        if (subscriptionWillChange) {
+          row.subscription.startDate = startDate;
+          row.subscription.endDate = endDate;
+          row.subscription.status = nextStatus;
+          await row.subscription.save();
+        }
+
+        for (const plan of paymentPlans.filter((plan) => plan.willChange)) {
+          await Payment.collection.updateOne(
+            { _id: plan.payment._id },
+            {
+              $set: {
+                createdAt: plan.afterCreatedAt,
+                paidAt: plan.afterPaidAt,
+                updatedAt: plan.afterUpdatedAt,
+              },
+            },
+          );
+        }
       }
     }
 
@@ -387,53 +681,91 @@ async function main() {
     const changedRows = updatedRows.filter((row) => row.willChange);
     const unchangedRows = updatedRows.filter((row) => !row.willChange);
     const skippedRows = rows.filter((row) => row.status === "skipped");
+    const changedPaymentCount = changedRows.flatMap((row) =>
+      row.paymentPlans.filter((plan) => plan.willChange),
+    ).length;
+    const validationResults = validateRows(rows);
+    const totalViolations = validationResults.reduce(
+      (sum, item) => sum + item.violationCount,
+      0,
+    );
 
-    console.log("RINGKASAN SEBAR TANGGAL MEMBERSHIP:");
-    console.log(`- ${isApply ? "Berhasil diperbarui" : "Akan diperbarui"}: ${changedRows.length}`);
-    console.log(`- Sudah sesuai: ${unchangedRows.length}`);
+    console.log("RINGKASAN DRY-RUN NORMALISASI DUMMY:");
+    console.log(`- Subscription akan diperbarui: ${changedRows.length}`);
+    console.log(`- Paid payment akan diperbarui: ${changedPaymentCount}`);
+    console.log(`- Subscription sudah sesuai: ${unchangedRows.length}`);
     console.log(`- Di-skip: ${skippedRows.length}`);
 
-    console.log("\nRINGKASAN STATUS HASIL:");
+    console.log("\nDISTRIBUSI PAKET PER BULAN:");
     console.table(
-      Object.entries(
-        updatedRows.reduce<Record<string, number>>((accumulator, item) => {
-          const key = `${item.packageType} / ${item.nextStatus}`;
-          accumulator[key] = (accumulator[key] ?? 0) + 1;
-          return accumulator;
-        }, {}),
-      ).map(([status, count]) => ({ status, count })),
+      buildCountTable(
+        updatedRows,
+        (row) => `${row.packageType} / ${getMonthKey(row.startDate)}`,
+        (row) => ({
+          packageType: row.packageType ?? "-",
+          month: getMonthKey(row.startDate),
+        }),
+      ),
+    );
+
+    console.log("\nDISTRIBUSI STARTDATE PER BULAN:");
+    console.table(
+      buildCountTable(updatedRows, (row) => getMonthKey(row.startDate)).map((item) => ({
+        month: item.key,
+        count: item.count,
+      })),
+    );
+
+    console.log("\nVALIDASI BUSINESS RULE:");
+    console.table(validationResults);
+    console.log(
+      totalViolations === 0
+        ? "Konfirmasi: tidak ada kombinasi yang melanggar business rule."
+        : `PERLU CEK: masih ada ${totalViolations} pelanggaran business rule.`,
     );
 
     if (skippedRows.length > 0) {
-      console.log("\nDAFTAR GAGAL / SKIP:");
+      console.log("\nRINGKASAN SKIP:");
       console.table(
-        skippedRows.map((item) => ({
-          studentCode: item.studentCode ?? "-",
-          studentName: item.studentName ?? "-",
-          subscriptionCode: item.subscriptionCode,
-          paymentStatus: item.paymentStatus,
-          reason: item.reason,
+        buildCountTable(skippedRows, (row) => row.reason).map((item) => ({
+          reason: item.key,
+          count: item.count,
         })),
       );
     }
 
-    console.log("\nCONTOH 10 DATA HASIL:");
+    console.log("\nCONTOH 20 DATA HASIL:");
     console.table(
-      updatedRows.slice(0, 10).map((item) => ({
-        studentCode: item.studentCode,
-        subscriptionCode: item.subscriptionCode,
-        startDate: item.startDate?.toISOString() ?? null,
-        endDate: item.endDate?.toISOString() ?? null,
-        packageType: item.packageType,
-        status: item.nextStatus,
-      })),
+      updatedRows
+        .slice()
+        .sort((first, second) => {
+          const firstTime = first.startDate?.getTime() ?? 0;
+          const secondTime = second.startDate?.getTime() ?? 0;
+          return firstTime - secondTime;
+        })
+        .slice(0, 20)
+        .map((item) => {
+          const firstPaymentPlan = item.paymentPlans[0] ?? null;
+
+          return {
+            studentCode: item.studentCode,
+            subscriptionCode: item.subscriptionCode,
+            packageType: item.packageType,
+            startDate: formatDate(item.startDate),
+            endDate: formatDate(item.endDate),
+            subscriptionStatus: item.nextStatus,
+            paymentCreatedAt: formatDate(firstPaymentPlan?.afterCreatedAt),
+            paymentPaidAt: formatDate(firstPaymentPlan?.afterPaidAt),
+            paymentUpdatedAt: formatDate(firstPaymentPlan?.afterUpdatedAt),
+          };
+        }),
     );
 
     if (!isApply) {
       console.log("\nDRY-RUN: belum ada perubahan database.");
-      console.log("Jalankan ulang dengan --apply untuk mengeksekusi sebar tanggal.");
+      console.log("Jalankan ulang dengan --apply hanya setelah hasil dry-run disetujui.");
     } else {
-      console.log("\nAPPLY selesai: tanggal membership berhasil disebar.");
+      console.log("\nAPPLY selesai: timeline membership dan payment paid berhasil dinormalisasi.");
     }
   } finally {
     await mongoose.disconnect();

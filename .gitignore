@@ -21,6 +21,7 @@
 /build
 /backend/dist
 /backend/storage
+/backend/backups
 
 # misc
 .DS_Store
