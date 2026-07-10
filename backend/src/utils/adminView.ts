@@ -19,6 +19,7 @@ export type PublicStudent = {
   className: string;
   birthDate: string;
   academicYear: string;
+  academicJoinedAt: string | null;
   generatedPassword: string;
   status: "Aktif" | "Nonaktif";
   membership?: {
@@ -121,6 +122,7 @@ export function toPublicStudent(
     className: student.className,
     birthDate,
     academicYear: student.academicYear || "2025/2026",
+    academicJoinedAt: student.academicJoinedAt?.toISOString() ?? null,
     generatedPassword: buildGeneratedPasswordForStudent({
       birthDate,
       studentId: student.studentId,

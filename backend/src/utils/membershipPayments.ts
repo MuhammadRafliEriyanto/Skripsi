@@ -22,6 +22,7 @@ import {
 } from "../services/xenditService";
 import { AppError } from "./apiResponse";
 import { getNextPublicId } from "./publicId";
+import { applyStudentAcademicActivation } from "./studentAcademicStatus";
 import {
   buildSubscriptionEndDate,
   getOnlinePackageByKey,
@@ -423,15 +424,108 @@ export async function markPaymentPaidFromProvider(
   };
 }
 
+export async function markPaymentPaidManually(params: {
+  payment: PaymentDocument;
+  subscription: SubscriptionDocument;
+  paidAt: Date;
+  method?: string | null;
+}) {
+  const { payment, subscription } = params;
+  let paymentChanged = false;
+  let subscriptionChanged = false;
+  const paidAt = payment.paidAt ?? params.paidAt;
+  const renewalWindow = await resolveRenewalWindow(
+    subscription.studentId,
+    subscription.durationMonth,
+    paidAt,
+    subscription._id,
+    { preferredStartDate: subscription.startDate },
+  );
+  const normalizedMethod = normalizeText(params.method);
+
+  if (payment.status !== "paid") {
+    payment.status = "paid";
+    paymentChanged = true;
+  }
+
+  if (normalizedMethod && payment.method !== normalizedMethod) {
+    payment.method = normalizedMethod;
+    paymentChanged = true;
+  }
+
+  if (payment.cancelReason !== null) {
+    payment.cancelReason = null;
+    paymentChanged = true;
+  }
+
+  if (payment.canceledAt !== null) {
+    payment.canceledAt = null;
+    paymentChanged = true;
+  }
+
+  if (payment.paidAt?.toISOString() !== paidAt.toISOString()) {
+    payment.paidAt = paidAt;
+    paymentChanged = true;
+  }
+
+  if (subscription.paymentStatus !== "paid") {
+    subscription.paymentStatus = "paid";
+    subscriptionChanged = true;
+  }
+
+  if (subscription.status !== renewalWindow.status) {
+    subscription.status = renewalWindow.status;
+    subscriptionChanged = true;
+  }
+
+  if (subscription.startDate?.toISOString() !== renewalWindow.startDate.toISOString()) {
+    subscription.startDate = renewalWindow.startDate;
+    subscriptionChanged = true;
+  }
+
+  if (subscription.endDate?.toISOString() !== renewalWindow.endDate.toISOString()) {
+    subscription.endDate = renewalWindow.endDate;
+    subscriptionChanged = true;
+  }
+
+  const nextRenewalOfSubscriptionId = renewalWindow.renewalOfSubscriptionId?.toString() ?? null;
+  const currentRenewalOfSubscriptionId =
+    subscription.renewalOfSubscriptionId?.toString() ?? null;
+
+  if (currentRenewalOfSubscriptionId !== nextRenewalOfSubscriptionId) {
+    subscription.renewalOfSubscriptionId = renewalWindow.renewalOfSubscriptionId;
+    subscriptionChanged = true;
+  }
+
+  return {
+    paymentChanged,
+    subscriptionChanged,
+  };
+}
+
 export async function syncPendingPaymentWithXendit(
   payment: PaymentDocument,
   subscription: SubscriptionDocument,
 ) {
   if (
     !isXenditBackedPayment(payment) ||
-    payment.status === "paid" ||
     !payment.xenditPaymentSessionId
   ) {
+    if (payment.status === "paid" && subscription.paymentStatus === "paid") {
+      await applyPaidSubscriptionStudentData(subscription);
+    }
+
+    return {
+      paymentChanged: false,
+      subscriptionChanged: false,
+    };
+  }
+
+  if (payment.status === "paid") {
+    if (subscription.paymentStatus === "paid") {
+      await applyPaidSubscriptionStudentData(subscription);
+    }
+
     return {
       paymentChanged: false,
       subscriptionChanged: false,
@@ -457,7 +551,7 @@ export async function syncPendingPaymentWithXendit(
   const syncedPaymentStatus = payment.status as PaymentDocument["status"];
 
   if (syncedPaymentStatus === "paid" && subscription.paymentStatus === "paid") {
-    await applySubscriptionTargetStudentData(subscription);
+    await applyPaidSubscriptionStudentData(subscription);
   }
 
   return syncResult;
@@ -541,6 +635,36 @@ export async function applySubscriptionTargetStudentData(
   }
 
   let changed = false;
+
+  if (targetProgram && student.program !== targetProgram) {
+    student.program = targetProgram;
+    changed = true;
+  }
+
+  if (targetClassName && student.className !== targetClassName) {
+    student.className = targetClassName;
+    changed = true;
+  }
+
+  if (changed) {
+    await student.save();
+  }
+
+  return student;
+}
+
+export async function applyPaidSubscriptionStudentData(
+  subscription: SubscriptionDocument,
+) {
+  const student = await Student.findById(subscription.studentId).exec();
+
+  if (!student) {
+    return null;
+  }
+
+  let changed = applyStudentAcademicActivation(student, subscription);
+  const targetProgram = normalizeText(subscription.targetProgram);
+  const targetClassName = normalizeText(subscription.targetClassName);
 
   if (targetProgram && student.program !== targetProgram) {
     student.program = targetProgram;

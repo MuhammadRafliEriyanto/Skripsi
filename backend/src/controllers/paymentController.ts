@@ -31,16 +31,16 @@ import {
 } from "../utils/branchFinanceScope";
 import {
   applyXenditSessionSnapshot,
-  applySubscriptionTargetStudentData,
+  applyPaidSubscriptionStudentData,
   buildXenditPermissionHelpMessage,
   createAdminPaymentSessionForStudent,
   expirePendingPayment,
   findStudentAndUserByPublicStudentId,
   isXenditBackedPayment,
+  markPaymentPaidManually,
   markPaymentPaidFromProvider,
   normalizeXenditSessionSnapshot,
   resolveLatestPackageForStudent,
-  resolveRenewalWindow,
   replaceAdminPaymentSessionForStudent,
   syncPendingPaymentWithXendit,
   type XenditSessionSnapshot,
@@ -2328,6 +2328,10 @@ export const updateAdminPaymentStatus = asyncHandler(
     const syncedPaymentStatus = payment.status as PaymentDocument["status"];
 
     if (syncedPaymentStatus === "paid") {
+      if (subscription.paymentStatus === "paid") {
+        await applyPaidSubscriptionStudentData(subscription);
+      }
+
       sendSuccess(res, {
         message: "Payment sudah berada pada status paid.",
         data: {
@@ -2354,27 +2358,20 @@ export const updateAdminPaymentStatus = asyncHandler(
       return;
     }
 
-    const renewalWindow = await resolveRenewalWindow(
-      subscription.studentId,
-      subscription.durationMonth,
+    const paidResult = await markPaymentPaidManually({
+      payment,
+      subscription,
       paidAt,
-      subscription._id,
-      { preferredStartDate: subscription.startDate },
-    );
+    });
 
-    payment.status = "paid";
-    payment.paidAt = paidAt;
-    payment.cancelReason = null;
-    payment.canceledAt = null;
+    if (paidResult.paymentChanged || paidResult.subscriptionChanged) {
+      await Promise.all([
+        paidResult.paymentChanged ? payment.save() : Promise.resolve(payment),
+        paidResult.subscriptionChanged ? subscription.save() : Promise.resolve(subscription),
+      ]);
+    }
 
-    subscription.paymentStatus = "paid";
-    subscription.status = renewalWindow.status;
-    subscription.startDate = renewalWindow.startDate;
-    subscription.endDate = renewalWindow.endDate;
-    subscription.renewalOfSubscriptionId = renewalWindow.renewalOfSubscriptionId;
-
-    await Promise.all([payment.save(), subscription.save()]);
-    await applySubscriptionTargetStudentData(subscription);
+    await applyPaidSubscriptionStudentData(subscription);
 
     sendSuccess(res, {
       message: "Status pembayaran berhasil diubah menjadi paid.",
@@ -3012,7 +3009,7 @@ export const handleXenditPaymentWebhook = asyncHandler(
     }
 
     if (payment.status === "paid" && subscription.paymentStatus === "paid") {
-      await applySubscriptionTargetStudentData(subscription);
+      await applyPaidSubscriptionStudentData(subscription);
     }
 
     sendSuccess(res, {
@@ -3162,28 +3159,22 @@ export const confirmDummyPayment = asyncHandler(
       return;
     }
 
-    if (payment.status !== "paid") {
-      const paidAt = new Date();
-      const renewalWindow = await resolveRenewalWindow(
-        subscription.studentId,
-        subscription.durationMonth,
-        paidAt,
-        subscription._id,
-        { preferredStartDate: subscription.startDate },
-      );
+    const paidResult = await markPaymentPaidManually({
+      payment,
+      subscription,
+      paidAt: new Date(),
+      method: paymentMethod,
+    });
 
-      payment.status = "paid";
-      payment.method = paymentMethod;
-      payment.paidAt = paidAt;
+    if (paidResult.paymentChanged || paidResult.subscriptionChanged) {
+      await Promise.all([
+        paidResult.paymentChanged ? payment.save() : Promise.resolve(payment),
+        paidResult.subscriptionChanged ? subscription.save() : Promise.resolve(subscription),
+      ]);
+    }
 
-      subscription.paymentStatus = "paid";
-      subscription.status = renewalWindow.status;
-      subscription.startDate = renewalWindow.startDate;
-      subscription.endDate = renewalWindow.endDate;
-      subscription.renewalOfSubscriptionId = renewalWindow.renewalOfSubscriptionId;
-
-      await Promise.all([payment.save(), subscription.save()]);
-      await applySubscriptionTargetStudentData(subscription);
+    if (payment.status === "paid" && subscription.paymentStatus === "paid") {
+      await applyPaidSubscriptionStudentData(subscription);
     }
 
     const payload = await buildPaymentStatusResponse(paymentId);

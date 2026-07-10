@@ -49,6 +49,17 @@ import {
 } from "../utils/subscription";
 import { resolveStudentAcademicContentAccess } from "../utils/studentAcademicAccess";
 import { resolveStudentMembershipContentAccess } from "../utils/studentMembershipAccess";
+import {
+  buildStudentAcademicTaskFilter,
+  buildStudentAcademicTryoutFilter,
+  getStudentEffectiveAcademicJoinedAt,
+  parseValidDate,
+} from "../utils/studentAcademicStatus";
+
+type StudentAcademicLearningContext = {
+  student: StudentWithUser;
+  academicJoinedAt: Date;
+};
 
 async function getAuthenticatedStudent(userId: string) {
   return Student.findOne({
@@ -67,7 +78,9 @@ async function getAuthenticatedStudentOrThrow(userId: string) {
   return student;
 }
 
-async function getAuthenticatedStudentWithActiveMembershipOrThrow(userId: string) {
+async function getAuthenticatedStudentAcademicLearningContextOrThrow(
+  userId: string,
+): Promise<StudentAcademicLearningContext> {
   const membershipSnapshot = await getMembershipSnapshotByUserId(userId);
   const student = membershipSnapshot.student;
 
@@ -92,7 +105,24 @@ async function getAuthenticatedStudentWithActiveMembershipOrThrow(userId: string
     );
   }
 
-  return student;
+  const academicJoinedAt = getStudentEffectiveAcademicJoinedAt(
+    student,
+    membershipSnapshot.subscription,
+  );
+
+  if (!academicJoinedAt) {
+    throw new AppError(
+      403,
+      "Akses akademik siswa belum aktif.",
+      { membershipAccess },
+      "ACADEMIC_ACCESS_REQUIRED",
+    );
+  }
+
+  return {
+    student,
+    academicJoinedAt,
+  };
 }
 
 const orderedScheduleDays = [
@@ -634,6 +664,7 @@ async function findStudentMaterialByParam(
 async function findStudentTaskByParam(
   taskId: string,
   student: Awaited<ReturnType<typeof getAuthenticatedStudentOrThrow>>,
+  academicJoinedAt: Date,
 ) {
   const academicAccess = await resolveStudentAcademicContentAccess(student);
 
@@ -647,10 +678,15 @@ async function findStudentTaskByParam(
   );
 
   return ClassTask.findOne({
-    ...classFilter,
-    $or: [
-      { taskId },
-      ...(Types.ObjectId.isValid(taskId) ? [{ _id: taskId }] : []),
+    $and: [
+      classFilter,
+      buildStudentAcademicTaskFilter(academicJoinedAt),
+      {
+        $or: [
+          { taskId },
+          ...(Types.ObjectId.isValid(taskId) ? [{ _id: taskId }] : []),
+        ],
+      },
     ],
   }).exec();
 }
@@ -712,24 +748,41 @@ export const getMyStudentLearningData = asyncHandler(
       return;
     }
 
-    const cutOffDate = student.createdAt;
-
     const classFilter = buildStudentLearningClassFilter(
       student.className,
       student.branch,
     );
+    const academicJoinedAt = getStudentEffectiveAcademicJoinedAt(
+      student,
+      membershipSnapshot.subscription,
+    );
+
+    if (!academicJoinedAt) {
+      sendSuccess(res, {
+        message: "Data materi dan tugas siswa berhasil diambil.",
+        data: {
+          materials: [],
+          tasks: [],
+          academicSummaries: [],
+          period: academicAccess.period,
+          academicAccess,
+          membershipAccess,
+        },
+      });
+      return;
+    }
+
     const [materials, tasks] = await Promise.all([
       ClassMaterial.find({
         ...classFilter,
         status: "Dipublikasikan",
-        createdAt: { $gte: cutOffDate },
       })
         .sort({ meetingNumber: 1, date: 1, updatedAt: -1 })
         .lean()
         .exec(),
       ClassTask.find({
         ...classFilter,
-        createdAt: { $gte: cutOffDate },
+        ...buildStudentAcademicTaskFilter(academicJoinedAt),
       })
         .sort({ deadline: 1, meetingNumber: 1, updatedAt: -1 })
         .lean()
@@ -753,7 +806,7 @@ export const getMyStudentLearningData = asyncHandler(
           .exec()
       : [];
     const period = academicAccess.period;
-    const [grades, academicGrades] = normalizedTaskIds.length
+    const [grades, rawAcademicGrades] = normalizedTaskIds.length
       ? await Promise.all([
           TaskGrade.find({
             studentId: normalizeText(student.studentId),
@@ -780,6 +833,15 @@ export const getMyStudentLearningData = asyncHandler(
             .exec(),
         ])
       : [[], []];
+    const academicGrades = rawAcademicGrades.filter((grade) => {
+      const gradeDate = parseValidDate(
+        grade.evaluatedAt ?? grade.updatedAt ?? grade.createdAt,
+      );
+
+      return Boolean(
+        gradeDate && gradeDate.getTime() >= academicJoinedAt.getTime(),
+      );
+    });
     const submissionMap = new Map(
       submissions.map((submission) => [
         normalizeText(submission.taskId),
@@ -918,7 +980,9 @@ export const getMyStudentDashboardData = asyncHandler(
     const eligibleTryoutFilter = isLearningLocked
       ? null
       : await buildEligibleTryoutFilter(student);
-    const cutOffDate = student.createdAt;
+    const academicJoinedAt = isLearningLocked
+      ? null
+      : getStudentEffectiveAcademicJoinedAt(student, membershipSnapshot.subscription);
 
     const [materialCount, taskCount, schedules, tryoutCount] = await Promise.all([
       isLearningLocked
@@ -926,20 +990,19 @@ export const getMyStudentDashboardData = asyncHandler(
         : ClassMaterial.countDocuments({
             ...classFilter,
             status: "Dipublikasikan",
-            createdAt: { $gte: cutOffDate },
           }).exec(),
-      isLearningLocked
+      isLearningLocked || !academicJoinedAt
         ? Promise.resolve(0)
         : ClassTask.countDocuments({
             ...classFilter,
-            createdAt: { $gte: cutOffDate },
+            ...buildStudentAcademicTaskFilter(academicJoinedAt),
           }).exec(),
       isLearningLocked
         ? Promise.resolve([])
         : getStudentDashboardSchedules(student),
-      eligibleTryoutFilter ? TeacherTryout.countDocuments({
+      eligibleTryoutFilter && academicJoinedAt ? TeacherTryout.countDocuments({
         ...eligibleTryoutFilter,
-        createdAt: { $gte: cutOffDate },
+        ...buildStudentAcademicTryoutFilter(academicJoinedAt),
       }).exec() : Promise.resolve(0),
     ]);
     const currentDay = normalizeText(getCurrentIndonesianDay()).toLowerCase();
@@ -998,10 +1061,11 @@ export const getMyStudentTaskSubmission = asyncHandler(
       return;
     }
 
-    const student = await getAuthenticatedStudentWithActiveMembershipOrThrow(
-      req.user._id.toString(),
-    );
-    const task = await findStudentTaskByParam(taskId, student);
+    const { student, academicJoinedAt } =
+      await getAuthenticatedStudentAcademicLearningContextOrThrow(
+        req.user._id.toString(),
+      );
+    const task = await findStudentTaskByParam(taskId, student, academicJoinedAt);
 
     if (!task) {
       next(new AppError(404, "Tugas siswa tidak ditemukan."));
@@ -1049,10 +1113,11 @@ export const createMyStudentTaskSubmission = asyncHandler(
       return;
     }
 
-    const student = await getAuthenticatedStudentWithActiveMembershipOrThrow(
-      req.user._id.toString(),
-    );
-    const task = await findStudentTaskByParam(taskId, student);
+    const { student, academicJoinedAt } =
+      await getAuthenticatedStudentAcademicLearningContextOrThrow(
+        req.user._id.toString(),
+      );
+    const task = await findStudentTaskByParam(taskId, student, academicJoinedAt);
 
     if (!task) {
       next(new AppError(404, "Tugas siswa tidak ditemukan."));
@@ -1181,10 +1246,11 @@ export const updateMyStudentTaskSubmission = asyncHandler(
       return;
     }
 
-    const student = await getAuthenticatedStudentWithActiveMembershipOrThrow(
-      req.user._id.toString(),
-    );
-    const task = await findStudentTaskByParam(taskId, student);
+    const { student, academicJoinedAt } =
+      await getAuthenticatedStudentAcademicLearningContextOrThrow(
+        req.user._id.toString(),
+      );
+    const task = await findStudentTaskByParam(taskId, student, academicJoinedAt);
 
     if (!task) {
       next(new AppError(404, "Tugas siswa tidak ditemukan."));
@@ -1319,10 +1385,11 @@ export const downloadMyStudentTaskSubmissionAttachment = asyncHandler(
       return;
     }
 
-    const student = await getAuthenticatedStudentWithActiveMembershipOrThrow(
-      req.user._id.toString(),
-    );
-    const task = await findStudentTaskByParam(taskId, student);
+    const { student, academicJoinedAt } =
+      await getAuthenticatedStudentAcademicLearningContextOrThrow(
+        req.user._id.toString(),
+      );
+    const task = await findStudentTaskByParam(taskId, student, academicJoinedAt);
 
     if (!task) {
       next(new AppError(404, "Tugas siswa tidak ditemukan."));
@@ -1370,7 +1437,7 @@ export const downloadMyStudentMaterialAttachment = asyncHandler(
       return;
     }
 
-    const student = await getAuthenticatedStudentWithActiveMembershipOrThrow(
+    const { student } = await getAuthenticatedStudentAcademicLearningContextOrThrow(
       req.user._id.toString(),
     );
     const material = await findStudentMaterialByParam(materialId, student);
@@ -1402,10 +1469,11 @@ export const downloadMyStudentTaskAttachment = asyncHandler(
       return;
     }
 
-    const student = await getAuthenticatedStudentWithActiveMembershipOrThrow(
-      req.user._id.toString(),
-    );
-    const task = await findStudentTaskByParam(taskId, student);
+    const { student, academicJoinedAt } =
+      await getAuthenticatedStudentAcademicLearningContextOrThrow(
+        req.user._id.toString(),
+      );
+    const task = await findStudentTaskByParam(taskId, student, academicJoinedAt);
 
     if (!task || !task.attachment) {
       next(new AppError(404, "Lampiran tugas tidak ditemukan."));

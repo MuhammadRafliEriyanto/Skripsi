@@ -23,6 +23,11 @@ import {
 } from "../utils/subscription";
 import { resolveStudentAcademicContentAccess } from "../utils/studentAcademicAccess";
 import { resolveStudentMembershipContentAccess } from "../utils/studentMembershipAccess";
+import {
+  buildStudentAcademicTaskFilter,
+  getStudentEffectiveAcademicJoinedAt,
+  parseValidDate,
+} from "../utils/studentAcademicStatus";
 
 type StudentNotificationType =
   | "schedule"
@@ -330,11 +335,18 @@ export const getMyStudentNotifications = asyncHandler(
       student.className,
       student.branch,
     );
+    const academicJoinedAt = getStudentEffectiveAcademicJoinedAt(
+      student,
+      membershipSnapshot.subscription,
+    );
     const shouldHideAcademicNotifications =
-      membershipAccess.isMembershipLocked || academicAccess.isUpcomingClassLocked;
-    const [materials, tasks, schedules] = shouldHideAcademicNotifications
-      ? [[], [], []]
-      : await Promise.all([
+      membershipAccess.isMembershipLocked ||
+      academicAccess.isUpcomingClassLocked ||
+      !academicJoinedAt;
+    const [materials, tasks, schedules] =
+      shouldHideAcademicNotifications || !academicJoinedAt
+        ? [[], [], []]
+        : await Promise.all([
           ClassMaterial.find({
             ...classFilter,
             status: "Dipublikasikan",
@@ -343,7 +355,10 @@ export const getMyStudentNotifications = asyncHandler(
             .sort({ updatedAt: -1, createdAt: -1 })
             .lean()
             .exec(),
-          ClassTask.find(classFilter)
+          ClassTask.find({
+            ...classFilter,
+            ...buildStudentAcademicTaskFilter(academicJoinedAt),
+          })
             .select("taskId classId title deadline createdAt updatedAt")
             .sort({ deadline: 1, updatedAt: -1, createdAt: -1 })
             .lean()
@@ -358,7 +373,7 @@ export const getMyStudentNotifications = asyncHandler(
       new Set(tasks.map((task) => normalizeText(task.classId)).filter(Boolean)),
     );
 
-    const [submissions, grades] = await Promise.all([
+    const [submissions, rawGrades] = await Promise.all([
       normalizedTaskIds.length > 0
         ? TaskSubmission.find({
             studentId: normalizeText(student.studentId),
@@ -388,6 +403,19 @@ export const getMyStudentNotifications = asyncHandler(
             .exec()
         : [],
     ]);
+    const grades = rawGrades.filter((grade) => {
+      if (!academicJoinedAt) {
+        return false;
+      }
+
+      const gradeDate = parseValidDate(
+        grade.gradedAt ?? grade.updatedAt ?? grade.createdAt,
+      );
+
+      return Boolean(
+        gradeDate && gradeDate.getTime() >= academicJoinedAt.getTime(),
+      );
+    });
 
     const notifications: StudentNotificationItem[] = [];
     const todayLabel = normalizeText(getCurrentIndonesianDay()).toLowerCase();

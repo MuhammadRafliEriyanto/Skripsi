@@ -38,6 +38,10 @@ import {
 import { getMembershipSnapshotByUserId } from "../utils/subscription";
 import { resolveStudentAcademicContentAccess } from "../utils/studentAcademicAccess";
 import { resolveStudentMembershipContentAccess } from "../utils/studentMembershipAccess";
+import {
+  buildStudentAcademicTryoutFilter,
+  getStudentEffectiveAcademicJoinedAt,
+} from "../utils/studentAcademicStatus";
 
 const OPTION_KEYS = ["A", "B", "C", "D"] as const;
 const SUBMISSION_GRACE_SECONDS = 5;
@@ -62,6 +66,11 @@ type NormalizedTryoutQuestion = {
   options: IAssessmentQuestionOption;
   correctAnswer: AssessmentCorrectAnswer;
   explanation: string;
+};
+
+type StudentTryoutAcademicContext = {
+  student: StudentDocument;
+  academicJoinedAt: Date;
 };
 
 function toRecordId(value: unknown): string {
@@ -119,7 +128,9 @@ async function getAuthenticatedStudentOrThrow(userId: string) {
   return student;
 }
 
-async function getAuthenticatedStudentWithActiveMembershipOrThrow(userId: string) {
+async function getAuthenticatedStudentTryoutContextOrThrow(
+  userId: string,
+): Promise<StudentTryoutAcademicContext> {
   const membershipSnapshot = await getMembershipSnapshotByUserId(userId);
   const student = membershipSnapshot.student;
 
@@ -144,7 +155,24 @@ async function getAuthenticatedStudentWithActiveMembershipOrThrow(userId: string
     );
   }
 
-  return student;
+  const academicJoinedAt = getStudentEffectiveAcademicJoinedAt(
+    student,
+    membershipSnapshot.subscription,
+  );
+
+  if (!academicJoinedAt) {
+    throw new AppError(
+      403,
+      "Akses akademik siswa belum aktif.",
+      { membershipAccess },
+      "ACADEMIC_ACCESS_REQUIRED",
+    );
+  }
+
+  return {
+    student,
+    academicJoinedAt,
+  };
 }
 
 function getStudentCanonicalClassName(student: StudentDocument) {
@@ -154,7 +182,10 @@ function getStudentCanonicalClassName(student: StudentDocument) {
   );
 }
 
-export async function buildEligibleTryoutFilter(student: StudentDocument) {
+export async function buildEligibleTryoutFilter(
+  student: StudentDocument,
+  academicJoinedAt?: Date | null,
+) {
   const academicAccess = await resolveStudentAcademicContentAccess(student);
 
   if (academicAccess.isUpcomingClassLocked) {
@@ -212,14 +243,18 @@ export async function buildEligibleTryoutFilter(student: StudentDocument) {
     questionCount: {
       $gt: 0,
     },
+    ...(academicJoinedAt
+      ? buildStudentAcademicTryoutFilter(academicJoinedAt)
+      : {}),
   };
 }
 
 async function findEligibleStudentTryout(
   tryoutParam: string,
   student: StudentDocument,
+  academicJoinedAt: Date,
 ) {
-  const eligibleFilter = await buildEligibleTryoutFilter(student);
+  const eligibleFilter = await buildEligibleTryoutFilter(student, academicJoinedAt);
 
   if (!eligibleFilter) {
     return null;
@@ -727,7 +762,6 @@ export const getMyStudentTryouts = asyncHandler(
       },
     );
     const academicAccess = await resolveStudentAcademicContentAccess(student);
-    const cutOffDate = student.createdAt;
 
     if (
       membershipAccess.isMembershipLocked ||
@@ -744,7 +778,27 @@ export const getMyStudentTryouts = asyncHandler(
       return;
     }
 
-    const eligibleFilter = await buildEligibleTryoutFilter(student);
+    const academicJoinedAt = getStudentEffectiveAcademicJoinedAt(
+      student,
+      membershipSnapshot.subscription,
+    );
+
+    if (!academicJoinedAt) {
+      sendSuccess(res, {
+        message: "Daftar ujian siswa berhasil diambil.",
+        data: {
+          tryouts: [],
+          academicAccess,
+          membershipAccess,
+        },
+      });
+      return;
+    }
+
+    const eligibleFilter = await buildEligibleTryoutFilter(
+      student,
+      academicJoinedAt,
+    );
 
     if (!eligibleFilter) {
       sendSuccess(res, {
@@ -760,7 +814,6 @@ export const getMyStudentTryouts = asyncHandler(
 
     const tryouts = await TeacherTryout.find({
       ...eligibleFilter,
-      createdAt: { $gte: cutOffDate },
     })
       .sort({ startAt: 1, stage: 1, createdAt: -1 })
       .exec();
@@ -803,9 +856,8 @@ export const startMyStudentExam = asyncHandler(
       return;
     }
 
-    const student = await getAuthenticatedStudentWithActiveMembershipOrThrow(
-      req.user._id.toString(),
-    );
+    const { student, academicJoinedAt } =
+      await getAuthenticatedStudentTryoutContextOrThrow(req.user._id.toString());
     const tryoutParam = normalizeText(req.params.tryoutId);
 
     if (!tryoutParam) {
@@ -813,7 +865,11 @@ export const startMyStudentExam = asyncHandler(
       return;
     }
 
-    const tryout = await findEligibleStudentTryout(tryoutParam, student);
+    const tryout = await findEligibleStudentTryout(
+      tryoutParam,
+      student,
+      academicJoinedAt,
+    );
 
     if (!tryout) {
       next(new AppError(404, "Ujian siswa tidak ditemukan."));
@@ -902,9 +958,8 @@ export const getMyStudentExamAttempt = asyncHandler(
       return;
     }
 
-    const student = await getAuthenticatedStudentWithActiveMembershipOrThrow(
-      req.user._id.toString(),
-    );
+    const { student, academicJoinedAt } =
+      await getAuthenticatedStudentTryoutContextOrThrow(req.user._id.toString());
     const attemptId = normalizeText(req.params.attemptId);
     const attempt = attemptId
       ? await StudentTryoutAttempt.findOne({
@@ -918,7 +973,11 @@ export const getMyStudentExamAttempt = asyncHandler(
       return;
     }
 
-    const tryout = await findEligibleStudentTryout(attempt.tryoutId, student);
+    const tryout = await findEligibleStudentTryout(
+      attempt.tryoutId,
+      student,
+      academicJoinedAt,
+    );
 
     if (!tryout) {
       next(new AppError(404, "Sesi ujian siswa tidak ditemukan."));
@@ -990,9 +1049,8 @@ export const getMyStudentTryoutDetail = asyncHandler(
       return;
     }
 
-    const student = await getAuthenticatedStudentWithActiveMembershipOrThrow(
-      req.user._id.toString(),
-    );
+    const { student, academicJoinedAt } =
+      await getAuthenticatedStudentTryoutContextOrThrow(req.user._id.toString());
     const tryoutParam = normalizeText(req.params.tryoutId);
 
     if (!tryoutParam) {
@@ -1000,7 +1058,11 @@ export const getMyStudentTryoutDetail = asyncHandler(
       return;
     }
 
-    const tryout = await findEligibleStudentTryout(tryoutParam, student);
+    const tryout = await findEligibleStudentTryout(
+      tryoutParam,
+      student,
+      academicJoinedAt,
+    );
 
     if (!tryout) {
       next(new AppError(404, "Ujian siswa tidak ditemukan."));
@@ -1067,9 +1129,8 @@ export const submitMyStudentTryout = asyncHandler(
       return;
     }
 
-    const student = await getAuthenticatedStudentWithActiveMembershipOrThrow(
-      req.user._id.toString(),
-    );
+    const { student, academicJoinedAt } =
+      await getAuthenticatedStudentTryoutContextOrThrow(req.user._id.toString());
     const tryoutParam = normalizeText(req.params.tryoutId);
 
     if (!tryoutParam) {
@@ -1077,7 +1138,11 @@ export const submitMyStudentTryout = asyncHandler(
       return;
     }
 
-    const tryout = await findEligibleStudentTryout(tryoutParam, student);
+    const tryout = await findEligibleStudentTryout(
+      tryoutParam,
+      student,
+      academicJoinedAt,
+    );
 
     if (!tryout) {
       next(new AppError(404, "Ujian siswa tidak ditemukan."));
@@ -1205,9 +1270,8 @@ export const submitMyStudentExamAttempt = asyncHandler(
       return;
     }
 
-    const student = await getAuthenticatedStudentWithActiveMembershipOrThrow(
-      req.user._id.toString(),
-    );
+    const { student, academicJoinedAt } =
+      await getAuthenticatedStudentTryoutContextOrThrow(req.user._id.toString());
     const attemptId = normalizeText(req.params.attemptId);
     const attempt = attemptId
       ? await StudentTryoutAttempt.findOne({
@@ -1226,7 +1290,11 @@ export const submitMyStudentExamAttempt = asyncHandler(
       return;
     }
 
-    const tryout = await findEligibleStudentTryout(attempt.tryoutId, student);
+    const tryout = await findEligibleStudentTryout(
+      attempt.tryoutId,
+      student,
+      academicJoinedAt,
+    );
 
     if (!tryout) {
       next(new AppError(404, "Sesi ujian siswa tidak ditemukan."));

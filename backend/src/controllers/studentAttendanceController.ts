@@ -11,6 +11,10 @@ import { resolveStudentAcademicContentAccess } from "../utils/studentAcademicAcc
 import { resolveStudentMembershipContentAccess } from "../utils/studentMembershipAccess";
 import { normalizeCanonicalClassName } from "../utils/studentClass";
 import { getMembershipSnapshotByUserId } from "../utils/subscription";
+import {
+  getStudentEffectiveAcademicJoinedAt,
+  isAttendanceSessionOnOrAfterAcademicJoin,
+} from "../utils/studentAcademicStatus";
 
 function normalizeText(value: string | null | undefined): string {
   return value?.trim().replace(/\s+/g, " ") ?? "";
@@ -116,6 +120,23 @@ export const getMyAttendanceHistory = asyncHandler(
       return;
     }
 
+    const academicJoinedAt = getStudentEffectiveAcademicJoinedAt(
+      student,
+      membershipSnapshot.subscription,
+    );
+
+    if (!academicJoinedAt) {
+      sendSuccess(res, {
+        message: "Riwayat absensi siswa berhasil diambil.",
+        data: {
+          records: [],
+          academicAccess,
+          membershipAccess,
+        },
+      });
+      return;
+    }
+
     const records = await AttendanceRecord.find({
       $or: [
         { studentId: normalizeText(student.studentId) },
@@ -147,7 +168,8 @@ export const getMyAttendanceHistory = asyncHandler(
     const matchedSessions = sessions.filter(
       (session) =>
         matchesStudentClass(session.className, student.className) &&
-        matchesStudentBranch(session.branch, student.branch),
+        matchesStudentBranch(session.branch, student.branch) &&
+        isAttendanceSessionOnOrAfterAcademicJoin(session, academicJoinedAt),
     );
     const sessionMap = new Map(
       matchedSessions.map((session) => [normalizeText(session.sessionId), session]),

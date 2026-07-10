@@ -404,6 +404,7 @@ export function toPublicStudentMembership(student: StudentWithUser) {
     program: student.program,
     className: student.className,
     status: student.status,
+    academicJoinedAt: student.academicJoinedAt,
     isEmailVerified: student.userId.isEmailVerified,
   };
 }

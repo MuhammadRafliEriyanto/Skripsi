@@ -12,6 +12,7 @@ import { AppError, sendSuccess } from "../utils/apiResponse";
 import { normalizeText } from "../utils/classroomLearning";
 import { getNextPublicId } from "../utils/publicId";
 import { resolveTeacherClassDetailContext } from "./teacherScheduleController";
+import { parseValidDate } from "../utils/studentAcademicStatus";
 
 type AcademicScoreInput = number | string | null;
 
@@ -65,13 +66,20 @@ export const upsertTeacherClassAcademicGrade = asyncHandler(
         req.params.classId,
       );
     const studentId = normalizeText(req.params.studentId);
-    const isParticipant = participants.some(
+    const participant = participants.find(
       (participant) =>
         normalizeText(participant.studentId).toLowerCase() ===
         studentId.toLowerCase(),
     );
 
-    if (!studentId || !isParticipant) {
+    if (!studentId || !participant) {
+      next(new AppError(404, "Siswa kelas untuk penilaian tidak ditemukan."));
+      return;
+    }
+
+    const academicJoinedAt = parseValidDate(participant.academicJoinedAt);
+
+    if (!academicJoinedAt || academicJoinedAt.getTime() > Date.now()) {
       next(new AppError(404, "Siswa kelas untuk penilaian tidak ditemukan."));
       return;
     }

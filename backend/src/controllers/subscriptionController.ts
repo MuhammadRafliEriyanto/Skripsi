@@ -262,7 +262,8 @@ export const registerOnline = asyncHandler(
         className,
         academicYear: studentAcademicPeriod.academicYear,
         birthDate: null,
-        status: "Aktif",
+        status: "Nonaktif",
+        academicJoinedAt: null,
       });
       createdStudentId = student._id.toString();
 

@@ -5,6 +5,7 @@ import { AssessmentQuestionSet } from "../models/AssessmentQuestionSet";
 import { Student } from "../models/Student";
 import { Schedule } from "../models/Schedule";
 import { StudentTryoutAttempt } from "../models/StudentTryoutAttempt";
+import { Subscription } from "../models/Subscription";
 import { Teacher } from "../models/Teacher";
 import {
   TeacherTryout,
@@ -39,6 +40,11 @@ import {
   getTeacherBranchNames,
 } from "../utils/teacherClassIdentity";
 import { getCurrentAcademicPeriod } from "../utils/academicGrade";
+import {
+  getStudentEffectiveAcademicJoinedAt,
+  isStudentAcademicTryoutAvailable,
+  parseValidDate,
+} from "../utils/studentAcademicStatus";
 
 type TryoutMutationBody = {
   assessmentType?: string;
@@ -1302,10 +1308,74 @@ export const getMyTeacherTryoutResults = asyncHandler(
             $in: studentIds,
           },
         })
-          .select("studentId userId")
+          .select("studentId userId academicJoinedAt")
           .lean()
           .exec()
       : [];
+    const studentObjectIds = students
+      .map((student) => student._id?.toString() ?? "")
+      .filter(Boolean);
+    const paidSubscriptions = studentObjectIds.length
+      ? await Subscription.find({
+          studentId: {
+            $in: studentObjectIds,
+          },
+          paymentStatus: "paid",
+          startDate: {
+            $ne: null,
+          },
+        })
+          .select("studentId startDate paymentStatus")
+          .sort({ startDate: 1, createdAt: 1 })
+          .lean()
+          .exec()
+      : [];
+    const paidSubscriptionByStudentObjectId = new Map<
+      string,
+      { startDate?: Date | string | null; paymentStatus?: string | null }
+    >();
+
+    for (const subscription of paidSubscriptions) {
+      const studentObjectId = subscription.studentId?.toString() ?? "";
+
+      if (!studentObjectId || paidSubscriptionByStudentObjectId.has(studentObjectId)) {
+        continue;
+      }
+
+      paidSubscriptionByStudentObjectId.set(studentObjectId, subscription);
+    }
+    const academicJoinedAtByStudentId = new Map<string, Date>();
+
+    for (const student of students) {
+      const academicJoinedAt = getStudentEffectiveAcademicJoinedAt(
+        student,
+        paidSubscriptionByStudentObjectId.get(student._id?.toString() ?? ""),
+      );
+
+      if (!academicJoinedAt) {
+        continue;
+      }
+
+      academicJoinedAtByStudentId.set(
+        normalizeText(student.studentId).toLowerCase(),
+        academicJoinedAt,
+      );
+    }
+    const visibleAttempts = attempts.filter((attempt) => {
+      const academicJoinedAt = academicJoinedAtByStudentId.get(
+        normalizeText(attempt.studentId).toLowerCase(),
+      );
+      const submittedAt = parseValidDate(
+        attempt.submittedAt ?? attempt.updatedAt ?? attempt.createdAt,
+      );
+
+      return Boolean(
+        academicJoinedAt &&
+          submittedAt &&
+          submittedAt.getTime() >= academicJoinedAt.getTime() &&
+          isStudentAcademicTryoutAvailable(tryout, academicJoinedAt),
+      );
+    });
     const userIds = students
       .map((student) => toRecordId(student.userId))
       .filter(Boolean);
@@ -1334,7 +1404,7 @@ export const getMyTeacherTryoutResults = asyncHandler(
       message: "Hasil tryout siswa berhasil diambil.",
       data: {
         tryout: toPublicTeacherTryout(tryout),
-        results: attempts.map((attempt) => {
+        results: visibleAttempts.map((attempt) => {
           const score =
             typeof attempt.score === "number" && Number.isFinite(attempt.score)
               ? attempt.score

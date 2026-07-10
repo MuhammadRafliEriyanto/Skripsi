@@ -14,6 +14,7 @@ export interface IStudent {
   academicYear: string;
   birthDate: Date | null;
   status: StudentStatus;
+  academicJoinedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -66,6 +67,11 @@ const studentSchema = new Schema<IStudent>(
       type: String,
       enum: STUDENT_STATUSES,
       default: "Aktif",
+    },
+    academicJoinedAt: {
+      type: Date,
+      default: null,
+      index: true,
     },
   },
   {

@@ -20,6 +20,10 @@ import {
   toPublicAcademicGrade,
 } from "../utils/academicGrade";
 import { resolveTeacherClassDetailContext } from "./teacherScheduleController";
+import {
+  isStudentAcademicTaskAvailable,
+  parseValidDate,
+} from "../utils/studentAcademicStatus";
 
 type UpsertTaskGradeBody = {
   taskId?: string;
@@ -38,6 +42,84 @@ function normalizeScore(value: number | string | undefined) {
   }
 
   return Math.round(parsedValue);
+}
+
+function getParticipantAcademicJoinedAt(
+  participants: Array<{ studentId: string; academicJoinedAt?: string | null }>,
+  studentId: string,
+) {
+  const participant = participants.find(
+    (item) =>
+      normalizeText(item.studentId).toLowerCase() ===
+      normalizeText(studentId).toLowerCase(),
+  );
+
+  if (!participant) {
+    return null;
+  }
+
+  return parseValidDate(participant.academicJoinedAt);
+}
+
+function isAcademicGradeVisibleForStudent(
+  grade: {
+    studentId?: string;
+    evaluatedAt?: Date | null;
+    updatedAt?: Date | null;
+    createdAt?: Date | null;
+  },
+  participants: Array<{ studentId: string; academicJoinedAt?: string | null }>,
+) {
+  const academicJoinedAt = getParticipantAcademicJoinedAt(
+    participants,
+    normalizeText(grade.studentId),
+  );
+  const gradeDate = parseValidDate(
+    grade.evaluatedAt ?? grade.updatedAt ?? grade.createdAt,
+  );
+
+  if (!academicJoinedAt || !gradeDate) {
+    return false;
+  }
+
+  return gradeDate.getTime() >= academicJoinedAt.getTime();
+}
+
+function isTaskGradeVisibleForStudent(
+  grade: { studentId?: string; taskId?: string },
+  tasksByTaskId: Map<
+    string,
+    { publishAt?: Date | string | null; createdAt?: Date | string | null }
+  >,
+  participants: Array<{ studentId: string; academicJoinedAt?: string | null }>,
+) {
+  const academicJoinedAt = getParticipantAcademicJoinedAt(
+    participants,
+    normalizeText(grade.studentId),
+  );
+  const task = tasksByTaskId.get(normalizeText(grade.taskId));
+
+  if (!academicJoinedAt || !task) {
+    return false;
+  }
+
+  return isStudentAcademicTaskAvailable(task, academicJoinedAt);
+}
+
+function ensureTaskGradeCanBeAssignedToStudent(params: {
+  task: { publishAt?: Date | string | null; createdAt?: Date | string | null };
+  participants: Array<{ studentId: string; academicJoinedAt?: string | null }>;
+  studentId: string;
+}) {
+  const academicJoinedAt = getParticipantAcademicJoinedAt(
+    params.participants,
+    params.studentId,
+  );
+
+  return Boolean(
+    academicJoinedAt &&
+      isStudentAcademicTaskAvailable(params.task, academicJoinedAt),
+  );
 }
 
 async function findTeacherTaskByParam(
@@ -81,7 +163,8 @@ export const getTeacherClassGrades = asyncHandler(
       return;
     }
 
-    const { teacher, classGroup } = await resolveTeacherClassDetailContext(
+    const { teacher, classGroup, participants } =
+      await resolveTeacherClassDetailContext(
       req.user._id.toString(),
       req.params.classId,
     );
@@ -95,7 +178,7 @@ export const getTeacherClassGrades = asyncHandler(
     if (academicYear) academicGradeQuery.academicYear = String(academicYear);
     if (semester) academicGradeQuery.semester = String(semester);
 
-    const [grades, academicGrades] = await Promise.all([
+    const [grades, academicGrades, tasks] = await Promise.all([
       getTeacherClassTaskGrades(
         teacher._id.toString(),
         classGroup.item.id,
@@ -104,14 +187,30 @@ export const getTeacherClassGrades = asyncHandler(
         .sort({ updatedAt: -1, createdAt: -1 })
         .lean()
         .exec(),
+      ClassTask.find({
+        teacherId: teacher._id,
+        classId: classGroup.item.id,
+      })
+        .select("taskId publishAt createdAt")
+        .lean()
+        .exec(),
     ]);
+    const tasksByTaskId = new Map(
+      tasks.map((task) => [normalizeText(task.taskId), task] as const),
+    );
+    const visibleGrades = grades.filter((grade) =>
+      isTaskGradeVisibleForStudent(grade, tasksByTaskId, participants),
+    );
+    const visibleAcademicGrades = academicGrades.filter((grade) =>
+      isAcademicGradeVisibleForStudent(grade, participants),
+    );
 
     const period = getCurrentAcademicPeriod();
     sendSuccess(res, {
       message: "Data nilai kelas berhasil diambil.",
       data: {
-        grades: grades.map(toPublicTaskGrade),
-        academicGrades: academicGrades.map(toPublicAcademicGrade),
+        grades: visibleGrades.map(toPublicTaskGrade),
+        academicGrades: visibleAcademicGrades.map(toPublicAcademicGrade),
         scheme: getAcademicGradeScheme(classGroup.className),
         period,
       },
@@ -176,6 +275,17 @@ export const createTeacherClassGrade = asyncHandler(
 
     if (!isParticipantInClass) {
       next(new AppError(404, "Siswa kelas untuk penilaian tidak ditemukan."));
+      return;
+    }
+
+    if (
+      !ensureTaskGradeCanBeAssignedToStudent({
+        task,
+        participants,
+        studentId,
+      })
+    ) {
+      next(new AppError(404, "Tugas tidak berlaku untuk siswa ini."));
       return;
     }
 
@@ -314,6 +424,17 @@ export const updateTeacherClassGrade = asyncHandler(
 
     if (!isParticipantInClass) {
       next(new AppError(404, "Siswa kelas untuk penilaian tidak ditemukan."));
+      return;
+    }
+
+    if (
+      !ensureTaskGradeCanBeAssignedToStudent({
+        task: nextTask,
+        participants,
+        studentId: nextStudentId,
+      })
+    ) {
+      next(new AppError(404, "Tugas tidak berlaku untuk siswa ini."));
       return;
     }
 

@@ -22,6 +22,11 @@ import { getNextPublicId } from "../utils/publicId";
 import { resolveStudentAcademicContentAccess } from "../utils/studentAcademicAccess";
 import { resolveStudentMembershipContentAccess } from "../utils/studentMembershipAccess";
 import { getMembershipSnapshotByUserId } from "../utils/subscription";
+import {
+  getStudentEffectiveAcademicJoinedAt,
+  isAttendanceSessionOnOrAfterAcademicJoin,
+  parseValidDate,
+} from "../utils/studentAcademicStatus";
 import { resolveTeacherClassDetailContext } from "./teacherScheduleController";
 
 type UpdateAttendanceRecordRequestBody = {
@@ -234,6 +239,7 @@ async function ensureAttendanceRecordsForSession(
     studentId: string;
     studentObjectId?: string | null;
     name: string;
+    academicJoinedAt?: string | null;
   }>,
 ) {
   const existingRecords = await getAttendanceSessionRecords(session.sessionId);
@@ -243,8 +249,14 @@ async function ensureAttendanceRecordsForSession(
 
   for (const participant of participants) {
     const studentId = normalizeText(participant.studentId);
+    const academicJoinedAt = parseValidDate(participant.academicJoinedAt);
 
-    if (!studentId || existingStudentIds.has(studentId.toLowerCase())) {
+    if (
+      !studentId ||
+      existingStudentIds.has(studentId.toLowerCase()) ||
+      !academicJoinedAt ||
+      !isAttendanceSessionOnOrAfterAcademicJoin(session, academicJoinedAt)
+    ) {
       continue;
     }
 
@@ -644,6 +656,19 @@ export const scanStudentAttendanceByQr = asyncHandler(
 
     if (normalizeText(session.date) !== getCurrentJakartaDate()) {
       next(new AppError(400, "QR absensi ini sudah tidak berlaku."));
+      return;
+    }
+
+    const academicJoinedAt = getStudentEffectiveAcademicJoinedAt(
+      student,
+      membershipSnapshot.subscription,
+    );
+
+    if (
+      !academicJoinedAt ||
+      !isAttendanceSessionOnOrAfterAcademicJoin(session, academicJoinedAt)
+    ) {
+      next(new AppError(403, "Siswa ini belum terdaftar pada tanggal sesi absensi."));
       return;
     }
 

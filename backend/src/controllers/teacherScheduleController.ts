@@ -10,6 +10,7 @@ import {
 } from "../models/AttendanceSession";
 import { Schedule, type ISchedule } from "../models/Schedule";
 import { Student, type IStudent } from "../models/Student";
+import { Subscription } from "../models/Subscription";
 import { Teacher } from "../models/Teacher";
 import { TeacherClassSetting } from "../models/TeacherClassSetting";
 import { ClassTask } from "../models/ClassTask";
@@ -33,6 +34,11 @@ import {
   type ScheduleWithTeacher,
 } from "../utils/scheduleConflicts";
 import { normalizeCanonicalClassName } from "../utils/studentClass";
+import {
+  getStudentEffectiveAcademicJoinedAt,
+  isAttendanceSessionOnOrAfterAcademicJoin,
+  parseValidDate,
+} from "../utils/studentAcademicStatus";
 
 type TeacherOwnedSchedule = Pick<
   ISchedule,
@@ -97,6 +103,7 @@ type TeacherClassParticipantItem = {
   level: string;
   branch: string;
   status: IStudent["status"];
+  academicJoinedAt: string | null;
   history: TeacherClassParticipantHistoryItem[];
 };
 
@@ -161,6 +168,7 @@ type StudentParticipantLookup = {
   fullName?: string | null;
   studentName?: string | null;
   status?: IStudent["status"];
+  academicJoinedAt?: Date | string | null;
   userId?: {
     _id?: unknown;
     nama?: string | null;
@@ -1056,7 +1064,7 @@ async function getTeacherClassParticipants(
     branch: new RegExp(`^${escapeRegex(normalizedBranch)}$`, "i"),
   })
     .select(
-      "studentId phone branch className status userId nama name fullName studentName",
+      "studentId phone branch className status academicJoinedAt userId nama name fullName studentName",
     )
     .populate({
       path: "userId",
@@ -1077,21 +1085,62 @@ async function getTeacherClassParticipants(
     matchedByClassName,
     normalizedBranch,
   );
+  const studentObjectIds = resolvedStudents
+    .map((student) => toRecordId(student._id))
+    .filter(Boolean);
+  const paidSubscriptions = studentObjectIds.length
+    ? await Subscription.find({
+        studentId: {
+          $in: studentObjectIds,
+        },
+        paymentStatus: "paid",
+        startDate: {
+          $ne: null,
+        },
+      })
+        .select("studentId startDate paymentStatus")
+        .sort({ startDate: 1, createdAt: 1 })
+        .lean()
+        .exec()
+    : [];
+  const paidSubscriptionByStudentObjectId = new Map<
+    string,
+    { startDate?: Date | string | null; paymentStatus?: string | null }
+  >();
+
+  for (const subscription of paidSubscriptions) {
+    const studentObjectId = toRecordId(subscription.studentId);
+
+    if (!studentObjectId || paidSubscriptionByStudentObjectId.has(studentObjectId)) {
+      continue;
+    }
+
+    paidSubscriptionByStudentObjectId.set(studentObjectId, subscription);
+  }
 
   return resolvedStudents
-    .map((student) => ({
-      id: toRecordId(student._id) || normalizeText(student.studentId),
-      studentId: normalizeText(student.studentId) || toRecordId(student._id),
-      studentObjectId: toRecordId(student._id) || null,
-      name: resolveParticipantName(student),
-      email: normalizeText(student.userId?.email),
-      phone: normalizeText(student.phone),
-      className: normalizeText(student.className) || normalizedClassName,
-      level: getClassLevel(normalizeText(student.className) || normalizedClassName),
-      branch: normalizeText(student.branch) || normalizedBranch || "-",
-      status: student.status ?? "Aktif",
-      history: [],
-    } satisfies TeacherClassParticipantItem))
+    .map((student) => {
+      const studentObjectId = toRecordId(student._id);
+      const academicJoinedAt = getStudentEffectiveAcademicJoinedAt(
+        student,
+        paidSubscriptionByStudentObjectId.get(studentObjectId),
+      );
+
+      return {
+        id: studentObjectId || normalizeText(student.studentId),
+        studentId: normalizeText(student.studentId) || studentObjectId,
+        studentObjectId: studentObjectId || null,
+        name: resolveParticipantName(student),
+        email: normalizeText(student.userId?.email),
+        phone: normalizeText(student.phone),
+        className: normalizeText(student.className) || normalizedClassName,
+        level: getClassLevel(normalizeText(student.className) || normalizedClassName),
+        branch: normalizeText(student.branch) || normalizedBranch || "-",
+        status: student.status ?? "Aktif",
+        academicJoinedAt: academicJoinedAt?.toISOString() ?? null,
+        history: [],
+      } satisfies TeacherClassParticipantItem;
+    })
     .sort((left, right) => left.name.localeCompare(right.name, "id-ID"));
 }
 
@@ -1204,13 +1253,25 @@ export async function resolveTeacherClassDetailContext(
     getTeacherClassMaterials(teacher._id.toString(), resolvedClassGroup.item.id),
     getTeacherClassTasks(teacher._id.toString(), resolvedClassGroup.item.id, filters),
   ]);
-  const participantsWithHistory = participants.map((participant) => ({
-    ...participant,
-    history:
+  const participantsWithHistory = participants.map((participant) => {
+    const academicJoinedAt = parseValidDate(participant.academicJoinedAt);
+    const history =
       historyByStudentId.get(
         normalizeText(participant.studentId).toLowerCase(),
-      ) ?? [],
-  }));
+      ) ?? [];
+
+    return {
+      ...participant,
+      history: academicJoinedAt
+        ? history.filter((entry) =>
+            isAttendanceSessionOnOrAfterAcademicJoin(
+              { date: entry.date },
+              academicJoinedAt,
+            ),
+          )
+        : [],
+    };
+  });
   const schedules = resolvedClassGroup.schedules.map((schedule) =>
     buildTeacherClassScheduleItem(schedule, teacher),
   );
