@@ -20,8 +20,8 @@ export default function BelumDinilaiTable({
             Peringatan Belum Dinilai
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            Monitoring latihan kelas {kelasName} yang status penilaiannya masih
-            tertunda berdasarkan data nilai backend.
+            Tugas dan soal latihan yang memerlukan review nilai secara manual. Anda dapat melihat jumlah tugas yang
+            tertunda berdasarkan data terbaru di sistem.
           </p>
         </div>
         <span

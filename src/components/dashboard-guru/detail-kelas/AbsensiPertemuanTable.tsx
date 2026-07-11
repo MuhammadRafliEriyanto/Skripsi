@@ -120,8 +120,8 @@ export default function AbsensiPertemuanTable({
           Belum ada sesi absensi untuk kelas ini.
         </p>
         <p className="mt-2 text-sm leading-6 text-slate-500">
-          Detail absensi per pertemuan akan muncul di sini setelah guru memulai
-          sesi absensi dan data tersimpan ke backend.
+          Pilih pertemuan dari jadwal untuk memulai
+          sesi absensi dan data tersimpan ke sistem.
         </p>
       </div>
     );
@@ -136,7 +136,7 @@ export default function AbsensiPertemuanTable({
               Absensi Tiap Pertemuan
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Rekap sesi absensi kelas {kelasName} yang sudah tersimpan di backend.
+              Rekap sesi absensi kelas {kelasName} yang sudah tersimpan di sistem.
             </p>
           </div>
           <span className="inline-flex items-center border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700">

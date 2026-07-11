@@ -220,10 +220,10 @@ const ABSENSI_EMPTY_PARTICIPANTS_MESSAGE =
   "Belum ada peserta yang terhubung dengan kelas ini.";
 const ABSENSI_SESSION_NOT_STARTED_MESSAGE =
   "Sesi absensi belum dimulai. Klik Mulai Absensi QR untuk membuat sesi hari ini.";
-const ABSENSI_SESSION_LOAD_ERROR_MESSAGE =
-  "Data sesi absensi belum bisa dimuat. Anda masih bisa memulai sesi baru.";
-const ABSENSI_SESSION_ACTIVE_MESSAGE =
-  "Sesi absensi aktif. Perubahan status siswa akan langsung tersimpan ke backend.";
+const ABSENSI_SESSION_LOAD_ERROR_MESSAGE = (isDirty: boolean) =>
+  isDirty
+    ? "Terdapat perubahan absensi yang belum disimpan. Pastikan Anda menyimpan sesi ini."
+    : "Sesi absensi aktif. Perubahan kehadiran siswa akan otomatis tersimpan.";
 const ABSENSI_SESSION_CLOSED_MESSAGE =
   "Sesi absensi ditutup. Status kehadiran tetap tersimpan dan tidak bisa diubah lagi.";
 const ABSENSI_SESSION_REFRESH_ERROR_MESSAGE =
@@ -716,7 +716,7 @@ export default function AbsensiKelasSection({
     setSessionNotice(
       session.status === "closed"
         ? ABSENSI_SESSION_CLOSED_MESSAGE
-        : ABSENSI_SESSION_ACTIVE_MESSAGE,
+        : ABSENSI_SESSION_LOAD_ERROR_MESSAGE(false),
     );
   }
 
@@ -848,7 +848,7 @@ export default function AbsensiKelasSection({
           applyAttendanceSessionState(
             null,
             [],
-            ABSENSI_SESSION_LOAD_ERROR_MESSAGE,
+            ABSENSI_SESSION_LOAD_ERROR_MESSAGE(false),
           );
           return;
         }
@@ -1301,7 +1301,7 @@ export default function AbsensiKelasSection({
             className: "border-slate-200 bg-slate-100 text-slate-700",
           }
         : {
-            label: "Status tersimpan ke backend",
+            label: "Status tersimpan ke sistem",
             className: "border-emerald-200 bg-emerald-50 text-emerald-700",
           };
 
@@ -1341,9 +1341,7 @@ export default function AbsensiKelasSection({
                   {activeClass.namaKelas}
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm text-slate-500 md:text-base">
-                  Peserta kelas tetap diambil dari backend detail kelas guru.
-                  Status kehadiran dan QR absensi sekarang sama-sama terhubung ke
-                  backend attendance session.
+                  Data peserta kelas diambil otomatis dari daftar siswa terdaftar.
                 </p>
 
                 <div className="mt-5 flex flex-wrap gap-2.5 text-sm">
@@ -1453,8 +1451,8 @@ export default function AbsensiKelasSection({
                   Daftar Kehadiran Siswa
                 </h2>
                 <p className="text-sm text-slate-500">
-                  Pilih status kehadiran per siswa. Saat sesi aktif, perubahan
-                  akan langsung dikirim ke backend.
+                  Pilih status kehadiran siswa di baris tabel. Perubahan
+                  akan langsung tersimpan ke sistem.
                 </p>
               </div>
 

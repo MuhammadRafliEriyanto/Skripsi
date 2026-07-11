@@ -640,7 +640,7 @@ export default function SemuaKelasGuruSection() {
               </p>
               <p className="mt-2 text-sm leading-6 text-slate-500">
                 Periksa sesi login guru atau refresh halaman untuk mencoba
-                memuat data backend sekali lagi.
+                memuat ulang data.
               </p>
             </div>
           ) : allClasses.length === 0 ? (

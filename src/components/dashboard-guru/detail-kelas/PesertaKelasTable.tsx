@@ -85,8 +85,8 @@ export default function PesertaKelasTable({
         </p>
         <p className="mt-2 text-sm leading-6 text-slate-500">
           {activeClass.totalSiswa > 0
-            ? `Ringkasan kelas mencatat ${activeClass.totalSiswa} siswa, tetapi daftar peserta detail dari backend masih kosong.`
-            : "Data peserta akan muncul di sini setelah kelas terhubung dengan backend siswa."}
+            ? `Ringkasan kelas mencatat ${activeClass.totalSiswa} siswa, namun rincian daftar peserta masih diproses.`
+            : "Daftar peserta akan otomatis tampil di sini setelah data terhubung."}
         </p>
       </div>
     );

@@ -98,7 +98,7 @@ export default function TabelNilaiTable({
           Belum ada nilai siswa yang ditampilkan.
         </p>
         <p className="mt-2 text-sm leading-6 text-slate-500">
-          Tabel nilai akan muncul setelah data evaluasi siswa tersedia dari backend.
+          Tabel nilai akan muncul setelah data evaluasi siswa tersedia di sistem.
         </p>
       </div>
     );

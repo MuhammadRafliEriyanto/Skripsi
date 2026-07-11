@@ -2669,7 +2669,7 @@ export default function DetailKelasGuruSection({
 
           <StatePanel
             title="Memuat Detail Kelas"
-            description="Data kelas guru sedang diambil dari backend. Mohon tunggu sebentar."
+            description="Data kelas Anda sedang dimuat. Mohon tunggu sebentar."
           />
         </div>
       </div>
@@ -2740,8 +2740,8 @@ export default function DetailKelasGuruSection({
                   </h1>
 
                   <p className="mt-2 max-w-2xl text-sm text-slate-500 md:text-base">
-                    Peserta, absensi, materi, latihan, dan penilaian latihan siswa
-                    sudah terhubung dengan backend kelas guru yang sedang login.
+                    Jadwal detail di bawah ini akan aktif setelah modul
+                    sudah terhubung dengan jadwal kelas Anda.
                   </p>
 
                   <div className="mt-4 grid grid-cols-2 gap-2 text-sm sm:flex sm:flex-wrap sm:gap-2.5">
