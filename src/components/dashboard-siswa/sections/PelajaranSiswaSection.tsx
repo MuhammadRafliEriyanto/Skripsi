@@ -17,7 +17,7 @@ import { useStudentLearningData } from "../data/useStudentLearningData";
 import { useStudentTryouts } from "../data/useStudentTryouts";
 import { getStudentAcademicAccessMessage } from "../data/studentAcademicAccess";
 
-type TabKey = "jadwal" | "materi" | "tugas" | "tryout";
+type TabKey = "materi" | "tugas" | "tryout";
 
 type TabConfig = {
   key: TabKey;
@@ -28,13 +28,6 @@ type TabConfig = {
 };
 
 const tabs: TabConfig[] = [
-  {
-    key: "jadwal",
-    label: "Jadwal Kelas",
-    shortLabel: "Jadwal",
-    icon: CalendarDays,
-    href: "/dashboard-siswa/jadwal",
-  },
   {
     key: "materi",
     label: "Daftar Materi",
@@ -94,7 +87,7 @@ function SectionAction({
 }
 
 export default function PelajaranSection() {
-  const [activeTab, setActiveTab] = useState<TabKey>("jadwal");
+  const [activeTab, setActiveTab] = useState<TabKey>("materi");
   const { dashboardData, isLoading: isDashboardLoading, loadError: dashboardError } = useStudentDashboardData();
   const { materials, tasks, academicAccess, isLoading, loadError } =
     useStudentLearningData();
@@ -119,80 +112,11 @@ export default function PelajaranSection() {
       return "Memuat data aktivitas...";
     }
 
-    if (activeTab === "jadwal") {
-      const scheduleCount = dashboardData?.schedules?.length || 0;
-      return `${scheduleCount} sesi kelas`;
-    }
     if (activeTab === "materi")
       return `${materials.length} materi tersedia`;
     if (activeTab === "tugas") return `${tasks.length} tugas aktif`;
     return `${tryouts.length} ujian tersedia`;
   }, [activeTab, isLoading, isDashboardLoading, isTryoutsLoading, materials.length, tasks.length, tryouts.length, dashboardData?.schedules?.length]);
-
-  const renderJadwal = () => {
-    if (isDashboardLoading) {
-      return (
-        <EmptyState
-          title="Memuat jadwal"
-          description="Sistem sedang mengambil jadwal kelas kamu."
-        />
-      );
-    }
-
-    const schedules = dashboardData?.schedules ?? [];
-
-    if (schedules.length === 0) {
-      return (
-        <EmptyState
-          title="Belum ada jadwal"
-          description={
-            dashboardError ??
-            "Jadwal belajar belum tersedia untuk kelas kamu."
-          }
-        />
-      );
-    }
-
-    return (
-      <div className="space-y-3 bg-white p-4 md:p-5">
-        {schedules.map((schedule) => (
-          <article
-            key={schedule.id}
-            className="flex flex-col gap-3 rounded-2xl border border-slate-100 px-4 py-4 transition hover:border-orange-200 hover:bg-orange-50/50 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-orange-50 px-2.5 py-1 text-[11px] font-semibold text-orange-700">
-                  {schedule.day}
-                </span>
-                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] text-slate-500">
-                  {schedule.time}
-                </span>
-                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-                  {schedule.room}
-                </span>
-              </div>
-
-              <h4 className="mt-2 text-sm font-semibold text-slate-800">
-                {schedule.subject}
-              </h4>
-              <p className="mt-1 text-xs text-slate-500">
-                Pengajar: {schedule.teacher}
-              </p>
-            </div>
-
-            <Link
-              href={`/dashboard-siswa/scan-absen?scheduleId=${schedule.id}`}
-              className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-orange-500 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-orange-600"
-            >
-              <Eye className="h-3.5 w-3.5" />
-              Detail Jadwal
-            </Link>
-          </article>
-        ))}
-      </div>
-    );
-  };
 
   const renderMateri = () => {
     if (isLoading) {
@@ -472,7 +396,6 @@ export default function PelajaranSection() {
           })}
         </div>
 
-        {activeTab === "jadwal" && renderJadwal()}
         {activeTab === "materi" && renderMateri()}
         {activeTab === "tugas" && renderTugas()}
         {activeTab === "tryout" && renderTryout()}
