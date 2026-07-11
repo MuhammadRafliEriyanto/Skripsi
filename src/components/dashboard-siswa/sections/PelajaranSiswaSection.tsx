@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
@@ -454,7 +455,7 @@ export default function PelajaranSection() {
             const Icon = tab.icon;
 
             return (
-              <button
+              <Button
                 key={tab.key}
                 type="button"
                 onClick={() => setActiveTab(tab.key)}
@@ -467,7 +468,7 @@ export default function PelajaranSection() {
                 <Icon className="h-4 w-4" />
                 <span className="hidden sm:inline">{tab.label}</span>
                 <span className="sm:hidden">{tab.shortLabel}</span>
-              </button>
+              </Button>
             );
           })}
         </div>

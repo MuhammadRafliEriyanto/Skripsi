@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Download, FolderOpenDot } from "lucide-react";
 
@@ -169,7 +170,7 @@ export default function KirimTugasSiswaPageView() {
                     const isSelected = task.id === activeTask?.id;
 
                     return (
-                      <button
+                      <Button
                         key={task.id}
                         type="button"
                         onClick={() => setSelectedTaskId(task.id)}
@@ -208,7 +209,7 @@ export default function KirimTugasSiswaPageView() {
                         <p className="mt-2 text-xs text-slate-400">
                           Deadline {task.deadline}
                         </p>
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>

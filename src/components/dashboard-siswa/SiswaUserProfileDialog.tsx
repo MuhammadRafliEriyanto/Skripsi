@@ -131,14 +131,14 @@ function PasswordField({
           className={`${warmFieldClassName} pr-12`}
           autoComplete="off"
         />
-        <button
+        <Button
           type="button"
           className="absolute inset-y-0 right-0 inline-flex w-12 items-center justify-center text-slate-400 transition hover:text-orange-600"
           onClick={onToggleVisibility}
           aria-label={visible ? "Sembunyikan password" : "Tampilkan password"}
         >
           {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-        </button>
+        </Button>
       </div>
       <InputError message={error} />
     </div>
@@ -648,13 +648,13 @@ export function SiswaUserProfileDialog({
 
               <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-sm text-slate-500">
                 <p>Lupa password lama akun ini?</p>
-                <button
+                <Button
                   type="button"
                   className="font-semibold text-orange-600 transition hover:text-orange-700"
                   onClick={() => setActiveTab("forgot-password")}
                 >
                   Buka bantuan reset
-                </button>
+                </Button>
               </div>
 
               <DialogFooter>

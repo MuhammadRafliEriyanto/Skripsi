@@ -1,5 +1,8 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+// from "@/components/ui/button";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
@@ -214,7 +217,7 @@ export default function HeaderAkademikSiswa({
           <div className="overflow-hidden text-slate-800">
             <p className="text-sm font-semibold md:text-base">{heroTitle}</p>
             <div className="overflow-hidden whitespace-nowrap">
-              <p className="animate-marquee text-xs text-slate-500 md:text-sm">
+              <p className="text-xs text-slate-500 md:text-sm">
                 {heroSubtitle}
               </p>
             </div>
@@ -239,18 +242,21 @@ export default function HeaderAkademikSiswa({
             {selectedProgram ? (
               <>
                 <div className="relative">
-                  <select
+                  <Select
                     value={selectedProgram?.name ?? ""}
-                    onChange={(event) => setSelectedProgramName(event.target.value)}
-                    className="w-full appearance-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 pr-10 text-sm font-medium text-gray-700 transition focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100"
+                    onValueChange={(value) => setSelectedProgramName(value)}
                   >
-                    {programOptions.map((program) => (
-                      <option key={program.name} value={program.name}>
-                        {program.name}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                    <SelectTrigger className="w-full rounded-xl border-gray-200 bg-gray-50 h-11 px-4 text-sm font-medium text-gray-700 transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100">
+                      <SelectValue placeholder="Pilih Panel" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {programOptions.map((program) => (
+                        <SelectItem key={program.name} value={program.name}>
+                          {program.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -259,7 +265,7 @@ export default function HeaderAkademikSiswa({
                     const isActive = selectedTab?.name === tab.name;
 
                     return (
-                      <button
+                      <Button
                         key={tab.name}
                         type="button"
                         onClick={() => setActiveTabName(tab.name)}
@@ -271,7 +277,7 @@ export default function HeaderAkademikSiswa({
                       >
                         <Icon className="h-3.5 w-3.5" />
                         {tab.name}
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>

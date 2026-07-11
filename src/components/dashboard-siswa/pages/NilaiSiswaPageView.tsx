@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useMemo, useState } from "react";
 import {
   ArrowLeft,
@@ -201,13 +202,13 @@ export default function NilaiSiswaPageView() {
           ) : (
             /* ======================= LEVEL 2: DETAILED TASKS TABLE ======================= */
             <div className="flex flex-col gap-5">
-              <button
+              <Button
                 onClick={() => setSelectedClassId(null)}
                 className="inline-flex w-fit items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Kembali ke Daftar Mata Pelajaran
-              </button>
+              </Button>
 
               <section className="rounded-[26px] border border-slate-100 bg-white p-5 shadow-sm md:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4">

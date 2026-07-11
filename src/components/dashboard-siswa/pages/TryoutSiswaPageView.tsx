@@ -1,5 +1,9 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+// from "@/components/ui/button";
+import toast from "react-hot-toast";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
@@ -136,14 +140,14 @@ function EmptyTryoutState({
       <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-500">
         {description}
       </p>
-      <button
+      <Button
         type="button"
         onClick={onRetry}
         className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-orange-200 bg-white px-5 text-sm font-semibold text-orange-700 transition hover:bg-orange-50"
       >
         <RefreshCcw className="h-4 w-4" />
         Muat Ulang
-      </button>
+      </Button>
     </section>
   );
 }
@@ -243,7 +247,7 @@ export default function TryoutSiswaPageView() {
     }
 
     if (!activeSession.isOpen && !activeSession.myAttempt?.submitted) {
-      window.alert(activeSession.availabilityMessage);
+      toast.error(activeSession.availabilityMessage);
       return;
     }
 
@@ -277,7 +281,7 @@ export default function TryoutSiswaPageView() {
       router.push(`/dashboard-siswa/ujian/${encodeURIComponent(nextAttemptId)}`);
     } catch (error) {
       console.error("[tryout-siswa-page] load_tryout_detail_failed", error);
-      window.alert(
+      toast.error(
         error instanceof Error && error.message
           ? error.message
           : "Detail ujian belum bisa dimuat.",
@@ -328,22 +332,25 @@ export default function TryoutSiswaPageView() {
               >
                 Pilih Ujian
               </label>
-              <select
-                id="student-assessment-selector"
+              <Select
                 value={activeSession.id}
-                onChange={(event) => handleSelectAssessment(event.target.value)}
-                className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                onValueChange={(value) => handleSelectAssessment(value)}
               >
-                {tryouts.map((item) => {
-                  const session = buildSessionFromTryout(item);
+                <SelectTrigger id="student-assessment-selector" className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 focus:border-orange-300 focus:ring-2 focus:ring-orange-100">
+                  <SelectValue placeholder="Pilih Ujian" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tryouts.map((item) => {
+                    const session = buildSessionFromTryout(item);
 
-                  return (
-                    <option key={session.id} value={session.id}>
-                      {session.assessmentLabel} · {session.title} · {session.subject}
-                    </option>
-                  );
-                })}
-              </select>
+                    return (
+                      <SelectItem key={session.id} value={session.id}>
+                        {session.assessmentLabel} · {session.title} · {session.subject}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
             </section>
           ) : null}
 
@@ -416,7 +423,7 @@ export default function TryoutSiswaPageView() {
                 </div>
 
                 <div className="mt-6 flex flex-wrap gap-3">
-                  <button
+                  <Button
                     type="button"
                     onClick={handleStartTryout}
                     disabled={
@@ -434,7 +441,7 @@ export default function TryoutSiswaPageView() {
                     {activeSession.myAttempt?.submitted
                       ? "Lihat Hasil"
                       : `Mulai ${activeSession.assessmentLabel}`}
-                  </button>
+                  </Button>
                   <div className="inline-flex items-center gap-2 rounded-2xl border border-slate-100 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
                     <ShieldCheck className="h-4 w-4 text-orange-500" />
                     {activeSession.availabilityMessage}
