@@ -4,7 +4,6 @@ import {
   Download,
   Eye,
   Pencil,
-  Plus,
   Power,
   PowerOff,
   RotateCcw,
@@ -709,13 +708,6 @@ export function AdminStudents({
   const studentNumberMap = new Map(
     filteredStudents.map((student, index) => [student.id, (page - 1) * pageLimit + index + 1]),
   );
-
-  const openCreateDialog = () => {
-    setEditingStudentId(null);
-    setFormValues(createEmptyStudentForm(defaultStudentClassName));
-    setFormError(null);
-    setIsFormOpen(true);
-  };
 
   const openEditDialog = (student: AdminStudent) => {
     setEditingStudentId(student.id);

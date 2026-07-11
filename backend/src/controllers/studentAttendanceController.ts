@@ -2,7 +2,6 @@ import type { NextFunction, Request, Response } from "express";
 
 import { AttendanceRecord } from "../models/AttendanceRecord";
 import { AttendanceSession } from "../models/AttendanceSession";
-import { Student } from "../models/Student";
 import { Teacher } from "../models/Teacher";
 import { User } from "../models/User";
 import { AppError, sendSuccess } from "../utils/apiResponse";
@@ -10,10 +9,14 @@ import asyncHandler from "../utils/asyncHandler";
 import { resolveStudentAcademicContentAccess } from "../utils/studentAcademicAccess";
 import { resolveStudentMembershipContentAccess } from "../utils/studentMembershipAccess";
 import { normalizeCanonicalClassName } from "../utils/studentClass";
-import { getMembershipSnapshotByUserId } from "../utils/subscription";
+import {
+  buildAcademicRecordSubscriptionFilter,
+  getMembershipSnapshotByUserId,
+} from "../utils/subscription";
 import {
   getStudentEffectiveAcademicJoinedAt,
   isAttendanceSessionOnOrAfterAcademicJoin,
+  parseValidDate,
 } from "../utils/studentAcademicStatus";
 
 function normalizeText(value: string | null | undefined): string {
@@ -70,13 +73,6 @@ function getAttendanceHistoryOrderKey(date: string, startTime: string) {
   }
 
   return `${normalizedDate}T${normalizedStartTime || "00:00"}`;
-}
-
-async function getAuthenticatedStudent(userId: string) {
-  return Student.findOne({
-    userId,
-    status: "Aktif",
-  }).exec();
 }
 
 export const getMyAttendanceHistory = asyncHandler(
@@ -136,11 +132,19 @@ export const getMyAttendanceHistory = asyncHandler(
       });
       return;
     }
+    const subscriptionId = membershipSnapshot.subscription?._id ?? null;
+    const subscriptionStartAt =
+      parseValidDate(membershipSnapshot.subscription?.startDate) ?? academicJoinedAt;
 
     const records = await AttendanceRecord.find({
-      $or: [
-        { studentId: normalizeText(student.studentId) },
-        { studentObjectId: student._id },
+      $and: [
+        {
+          $or: [
+            { studentId: normalizeText(student.studentId) },
+            { studentObjectId: student._id },
+          ],
+        },
+        buildAcademicRecordSubscriptionFilter(subscriptionId),
       ],
     })
       .sort({ createdAt: -1 })
@@ -169,7 +173,7 @@ export const getMyAttendanceHistory = asyncHandler(
       (session) =>
         matchesStudentClass(session.className, student.className) &&
         matchesStudentBranch(session.branch, student.branch) &&
-        isAttendanceSessionOnOrAfterAcademicJoin(session, academicJoinedAt),
+        isAttendanceSessionOnOrAfterAcademicJoin(session, subscriptionStartAt),
     );
     const sessionMap = new Map(
       matchedSessions.map((session) => [normalizeText(session.sessionId), session]),

@@ -21,7 +21,6 @@ import {
   readPersistedAuthUser,
 } from "@/lib/auth";
 import {
-  type AssignmentReviewStatus,
   type ClassDetailData,
   type ClassStatus,
   type ClassStudent,
@@ -276,7 +275,7 @@ type TeacherClassAcademicGradeMutationResponse = {
   };
 };
 
-import { buildGuruApiUrl, buildGuruUrl, getSelectedAcademicPeriod } from "@/lib/guru-helpers";
+import { buildGuruApiUrl } from "@/lib/guru-helpers";
 
 type TeacherClassSettingMutationResponse = {
   success: boolean;
@@ -1249,14 +1248,6 @@ function getClassStatusClass(status: ClassStatus) {
   return "border-slate-200 bg-slate-50 text-slate-600";
 }
 
-function getProgressPercentage(completedMeetings: number, totalMeetings: number) {
-  if (totalMeetings === 0) {
-    return 0;
-  }
-
-  return Math.min(Math.round((completedMeetings / totalMeetings) * 100), 100);
-}
-
 function StatePanel({
   title,
   description,
@@ -1323,7 +1314,6 @@ export default function DetailKelasGuruSection({
   kelasId,
 }: DetailKelasGuruSectionProps) {
   const searchParams = useSearchParams();
-  const { academicYear } = getSelectedAcademicPeriod(searchParams);
   const [teacherName, setTeacherName] = useState(
     () => readPersistedAuthUser()?.nama ?? "Guru login",
   );
@@ -2000,10 +1990,6 @@ export default function DetailKelasGuruSection({
         (task) => task.statusPenilaian === "Belum Dinilai",
       ),
     [tasksWithGradeStatus],
-  );
-  const progressPercentage = useMemo(
-    () => getProgressPercentage(materials.length, activeClass.totalPertemuan),
-    [activeClass.totalPertemuan, materials.length],
   );
   const taskSubmissionsWithLatestGrades = useMemo(
     () =>

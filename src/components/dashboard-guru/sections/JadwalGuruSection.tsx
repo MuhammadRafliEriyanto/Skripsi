@@ -748,11 +748,9 @@ function PerluDinilaiCard({ item }: { item: ReviewItem }) {
 
 function GuruClassCard({
   kelas,
-  index,
   academicYear,
 }: {
   kelas: GuruClassCardItem;
-  index: number;
   academicYear: string;
 }) {
   const gradClass =
@@ -1228,8 +1226,8 @@ export default function JadwalGuruSection() {
             {isLoading ? (
               <LoadingStack count={3} />
             ) : filteredKelas.length > 0 ? (
-                filteredKelas.map((kelas, index) => (
-                  <GuruClassCard key={kelas.kelasId} kelas={kelas} index={index} academicYear={academicYear} />
+                filteredKelas.map((kelas) => (
+                  <GuruClassCard key={kelas.kelasId} kelas={kelas} academicYear={academicYear} />
                 ))
             ) : (
               <div className="flex flex-col items-center justify-center py-10 text-center text-gray-400">

@@ -7,7 +7,6 @@ import {
   Plus,
   Power,
   PowerOff,
-  RotateCcw,
   Trash2,
   Upload,
 } from "lucide-react";
@@ -892,13 +891,6 @@ export function AdminSchedule({
           : "",
       };
     });
-  };
-
-  const handleResetFilters = () => {
-    setSearch("");
-    setDayFilter(scheduleDayAllLabel);
-    setStatusFilter(allScheduleStatusFilterLabel);
-    setAcademicYearFilter("2025/2026");
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {

@@ -133,13 +133,34 @@ async function findTeacherMaterialByParam(
   materialId: string,
   classId: string,
   teacherId: string,
+  filters?: { academicYear?: string; semester?: string },
 ) {
+  const periodFilter: Record<string, string> = {};
+
+  if (filters?.academicYear) periodFilter.academicYear = filters.academicYear;
+  if (filters?.semester) periodFilter.semester = filters.semester;
+
   return ClassMaterial.findOne({
-    classId,
-    teacherId,
-    $or: [
-      { materialId },
-      ...(Types.ObjectId.isValid(materialId) ? [{ _id: materialId }] : []),
+    $and: [
+      {
+        classId,
+        teacherId,
+      },
+      Object.keys(periodFilter).length > 0
+        ? {
+            $or: [
+              periodFilter,
+              { academicYear: null },
+              { academicYear: { $exists: false } },
+            ],
+          }
+        : {},
+      {
+        $or: [
+          { materialId },
+          ...(Types.ObjectId.isValid(materialId) ? [{ _id: materialId }] : []),
+        ],
+      },
     ],
   }).exec();
 }
@@ -148,13 +169,34 @@ async function findTeacherTaskByParam(
   taskId: string,
   classId: string,
   teacherId: string,
+  filters?: { academicYear?: string; semester?: string },
 ) {
+  const periodFilter: Record<string, string> = {};
+
+  if (filters?.academicYear) periodFilter.academicYear = filters.academicYear;
+  if (filters?.semester) periodFilter.semester = filters.semester;
+
   return ClassTask.findOne({
-    classId,
-    teacherId,
-    $or: [
-      { taskId },
-      ...(Types.ObjectId.isValid(taskId) ? [{ _id: taskId }] : []),
+    $and: [
+      {
+        classId,
+        teacherId,
+      },
+      Object.keys(periodFilter).length > 0
+        ? {
+            $or: [
+              periodFilter,
+              { academicYear: null },
+              { academicYear: { $exists: false } },
+            ],
+          }
+        : {},
+      {
+        $or: [
+          { taskId },
+          ...(Types.ObjectId.isValid(taskId) ? [{ _id: taskId }] : []),
+        ],
+      },
     ],
   }).exec();
 }
@@ -285,6 +327,7 @@ export const updateTeacherClassMaterial = asyncHandler(
       materialId,
       classGroup.item.id,
       teacher._id.toString(),
+      getCurrentAcademicPeriod(),
     );
 
     if (!material) {
@@ -546,6 +589,7 @@ export const updateTeacherClassTask = asyncHandler(
       taskId,
       classGroup.item.id,
       teacher._id.toString(),
+      getCurrentAcademicPeriod(),
     );
 
     if (!task) {

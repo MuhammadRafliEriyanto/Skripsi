@@ -13,6 +13,7 @@ export interface ITaskGrade {
   classId: string;
   taskId: string;
   studentId: string;
+  subscriptionId: Types.ObjectId | null;
   score: number;
   note: string;
   status: TaskGradeStatus;
@@ -54,6 +55,11 @@ const taskGradeSchema = new Schema<ITaskGrade>(
       required: [true, "Student ID wajib diisi."],
       trim: true,
       index: true,
+    },
+    subscriptionId: {
+      type: Schema.Types.ObjectId,
+      ref: "Subscription",
+      default: null,
     },
     score: {
       type: Number,

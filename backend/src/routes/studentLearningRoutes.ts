@@ -10,6 +10,10 @@ import {
   getMyStudentLearningData,
   updateMyStudentTaskSubmission,
 } from "../controllers/studentLearningController";
+import {
+  getMyStudentAcademicHistory,
+  getMyStudentAcademicHistoryDetail,
+} from "../controllers/academicHistoryController";
 import { getMyStudentNotifications } from "../controllers/studentNotificationController";
 import {
   getMyStudentExamAttempt,
@@ -29,6 +33,11 @@ router.use(apiKeyMiddleware, protect, authorizeRole("siswa"));
 
 router.get("/me/dashboard", getMyStudentDashboardData);
 router.get("/me/notifications", getMyStudentNotifications);
+router.get("/me/academic-history", getMyStudentAcademicHistory);
+router.get(
+  "/me/academic-history/:subscriptionId",
+  getMyStudentAcademicHistoryDetail,
+);
 router.get("/me/learning", getMyStudentLearningData);
 router.get("/me/tryouts", getMyStudentTryouts);
 router.post("/me/exams/:tryoutId/start", startMyStudentExam);

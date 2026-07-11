@@ -24,6 +24,7 @@ export interface IStudentTryoutAttempt {
   classId: string;
   branch: string;
   studentId: string;
+  subscriptionId: Types.ObjectId | null;
   questionSetId: string;
   packageId: string;
   stage: number | null;
@@ -103,6 +104,11 @@ const studentTryoutAttemptSchema = new Schema<IStudentTryoutAttempt>(
       required: true,
       trim: true,
       index: true,
+    },
+    subscriptionId: {
+      type: Schema.Types.ObjectId,
+      ref: "Subscription",
+      default: null,
     },
     questionSetId: {
       type: String,

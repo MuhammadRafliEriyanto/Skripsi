@@ -13,6 +13,7 @@ import { normalizeText } from "../utils/classroomLearning";
 import { getNextPublicId } from "../utils/publicId";
 import { resolveTeacherClassDetailContext } from "./teacherScheduleController";
 import { parseValidDate } from "../utils/studentAcademicStatus";
+import { findActiveSubscriptionIdForAcademicRecord } from "../utils/subscription";
 
 type AcademicScoreInput = number | string | null;
 
@@ -138,6 +139,9 @@ export const upsertTeacherClassAcademicGrade = asyncHandler(
     const academicGradeId =
       existingGrade?.academicGradeId ??
       (await getNextPublicId(AcademicGrade, "academicGradeId", "ACG"));
+    const subscriptionId = await findActiveSubscriptionIdForAcademicRecord({
+      publicStudentId: studentId,
+    });
     const academicGrade = await AcademicGrade.findOneAndUpdate(
       {
         teacherId: teacher._id,
@@ -153,6 +157,9 @@ export const upsertTeacherClassAcademicGrade = asyncHandler(
           ...scoreUpdates,
           note,
           evaluatedAt: new Date(),
+        },
+        $setOnInsert: {
+          subscriptionId,
         },
       },
       {

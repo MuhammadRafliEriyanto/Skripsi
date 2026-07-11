@@ -18,6 +18,7 @@ import {
 } from "../utils/scheduleConflicts";
 import { normalizeCanonicalClassName } from "../utils/studentClass";
 import {
+  buildAcademicRecordSubscriptionFilter,
   getMembershipSnapshotByUserId,
   type StudentWithUser,
 } from "../utils/subscription";
@@ -90,8 +91,11 @@ function getCurrentIndonesianDay() {
   }).format(new Date());
 }
 
-function getJakartaDateKey(offsetDays = 0) {
-  const date = new Date(Date.now() + offsetDays * 24 * 60 * 60 * 1000);
+function getJakartaDateKey(value: Date | number = 0) {
+  const date =
+    value instanceof Date
+      ? value
+      : new Date(Date.now() + value * 24 * 60 * 60 * 1000);
   const parts = new Intl.DateTimeFormat("en-US", {
     year: "numeric",
     month: "2-digit",
@@ -103,6 +107,31 @@ function getJakartaDateKey(offsetDays = 0) {
   const day = parts.find((part) => part.type === "day")?.value ?? "01";
 
   return `${year}-${month}-${day}`;
+}
+
+function buildClassContentPeriodFilter(
+  period: { academicYear: string; semester: string },
+  legacyFilter: Record<string, unknown> = {},
+) {
+  return {
+    $or: [
+      {
+        academicYear: period.academicYear,
+        semester: period.semester,
+      },
+      {
+        $and: [
+          {
+            $or: [
+              { academicYear: null },
+              { academicYear: { $exists: false } },
+            ],
+          },
+          legacyFilter,
+        ],
+      },
+    ],
+  };
 }
 
 function parseDateValue(value: string | Date | null | undefined) {
@@ -240,12 +269,17 @@ function isWithinRecentWindow(
   return difference >= 0 && difference <= windowMs;
 }
 
-async function getStudentSchedules(student: StudentWithUser) {
+async function getStudentSchedules(
+  student: StudentWithUser,
+  period?: { academicYear: string; semester: string },
+) {
   const canonicalClassName =
     normalizeCanonicalClassName(student.className)?.toLowerCase() ?? "";
   const normalizedBranch = normalizeText(student.branch).toLowerCase();
   const currentDay = getCurrentIndonesianDay();
-  const scheduleDocuments = (await Schedule.find()
+  const scheduleDocuments = (await Schedule.find(
+    period ? buildClassContentPeriodFilter(period) : {},
+  )
     .populate<{
       teacherId: {
         teacherId: string;
@@ -339,6 +373,20 @@ export const getMyStudentNotifications = asyncHandler(
       student,
       membershipSnapshot.subscription,
     );
+    const subscriptionId = membershipSnapshot.subscription?._id ?? null;
+    const subscriptionStartAt =
+      parseValidDate(membershipSnapshot.subscription?.startDate) ?? academicJoinedAt;
+    const subscriptionEndAt = parseValidDate(membershipSnapshot.subscription?.endDate);
+    const materialDateRange: Record<string, string> = {};
+
+    if (subscriptionStartAt) {
+      materialDateRange.$gte = getJakartaDateKey(subscriptionStartAt);
+    }
+
+    if (subscriptionEndAt) {
+      materialDateRange.$lt = getJakartaDateKey(subscriptionEndAt);
+    }
+
     const shouldHideAcademicNotifications =
       membershipAccess.isMembershipLocked ||
       academicAccess.isUpcomingClassLocked ||
@@ -348,22 +396,33 @@ export const getMyStudentNotifications = asyncHandler(
         ? [[], [], []]
         : await Promise.all([
           ClassMaterial.find({
-            ...classFilter,
-            status: "Dipublikasikan",
+            $and: [
+              classFilter,
+              { status: "Dipublikasikan" },
+              buildClassContentPeriodFilter(
+                academicAccess.period,
+                Object.keys(materialDateRange).length > 0
+                  ? { date: materialDateRange }
+                  : {},
+              ),
+            ],
           })
             .select("materialId subject title date createdAt updatedAt")
             .sort({ updatedAt: -1, createdAt: -1 })
             .lean()
             .exec(),
           ClassTask.find({
-            ...classFilter,
-            ...buildStudentAcademicTaskFilter(academicJoinedAt),
+            $and: [
+              classFilter,
+              buildStudentAcademicTaskFilter(subscriptionStartAt ?? academicJoinedAt),
+              buildClassContentPeriodFilter(academicAccess.period),
+            ],
           })
             .select("taskId classId title deadline createdAt updatedAt")
             .sort({ deadline: 1, updatedAt: -1, createdAt: -1 })
             .lean()
             .exec(),
-          getStudentSchedules(student),
+          getStudentSchedules(student, academicAccess.period),
         ]);
 
     const normalizedTaskIds = tasks
@@ -380,6 +439,7 @@ export const getMyStudentNotifications = asyncHandler(
             taskId: {
               $in: normalizedTaskIds,
             },
+            ...buildAcademicRecordSubscriptionFilter(subscriptionId),
           })
             .select("taskId submittedAt createdAt updatedAt")
             .sort({ updatedAt: -1, createdAt: -1 })
@@ -396,6 +456,7 @@ export const getMyStudentNotifications = asyncHandler(
               $in: normalizedTaskIds,
             },
             status: "Sudah Dinilai",
+            ...buildAcademicRecordSubscriptionFilter(subscriptionId),
           })
             .select("taskId score status gradedAt createdAt updatedAt")
             .sort({ gradedAt: -1, updatedAt: -1, createdAt: -1 })
@@ -413,7 +474,9 @@ export const getMyStudentNotifications = asyncHandler(
       );
 
       return Boolean(
-        gradeDate && gradeDate.getTime() >= academicJoinedAt.getTime(),
+        gradeDate &&
+          gradeDate.getTime() >=
+            (subscriptionStartAt ?? academicJoinedAt).getTime(),
       );
     });
 

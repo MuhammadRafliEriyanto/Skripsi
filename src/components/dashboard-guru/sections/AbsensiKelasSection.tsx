@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 
 import { clearAuthClientState } from "@/lib/auth";
-import { buildGuruApiUrl, buildGuruUrl, getSelectedAcademicPeriod } from "@/lib/guru-helpers";
+import { buildGuruApiUrl } from "@/lib/guru-helpers";
 import { DEFAULT_SEMESTER_MEETING_TARGET } from "@/components/dashboard-guru/data/guruClassTypes";
 import {
   Dialog,
@@ -674,7 +674,6 @@ export default function AbsensiKelasSection({
   kelasId,
 }: AbsensiKelasSectionProps) {
   const searchParams = useSearchParams();
-  const { academicYear } = getSelectedAcademicPeriod(searchParams);
   const [activeClass, setActiveClass] = useState<AttendanceClassData | null>(null);
   const [attendanceSession, setAttendanceSession] =
     useState<TeacherAttendanceSession | null>(null);
@@ -1143,8 +1142,6 @@ export default function AbsensiKelasSection({
     }
   });
 
-  const [refreshTicks, setRefreshTicks] = useState(0);
-
   useEffect(() => {
     if (!attendanceSession || attendanceSession.status !== "open") {
       return;
@@ -1154,13 +1151,8 @@ export default function AbsensiKelasSection({
       if (sessionLoading || closingSession || updatingRecordId !== null) {
         return;
       }
-      
-      setRefreshTicks(t => {
-        const nextTick = t + 1;
-        // Rotate QR every tick (4 seconds)
-        void refreshAttendanceSessionWhileOpen(true);
-        return nextTick;
-      });
+
+      void refreshAttendanceSessionWhileOpen(true);
     }, ATTENDANCE_SESSION_REFRESH_INTERVAL);
 
     return () => window.clearInterval(intervalId);
@@ -1223,37 +1215,6 @@ export default function AbsensiKelasSection({
 
     return [...rows, ...extraRows];
   }, [activeClass, attendanceRecords]);
-
-  const attendanceSummary = useMemo(
-    () =>
-      attendanceRows.reduce(
-        (summary, student) => {
-          switch (student.status) {
-            case "H":
-              summary.H += 1;
-              break;
-            case "S":
-              summary.S += 1;
-              break;
-            case "I":
-              summary.I += 1;
-              break;
-            case "A":
-              summary.A += 1;
-              break;
-          }
-
-          return summary;
-        },
-        {
-          H: 0,
-          S: 0,
-          I: 0,
-          A: 0,
-        } satisfies Record<Exclude<AttendanceDisplayStatus, "Belum Absen">, number>,
-      ),
-    [attendanceRows],
-  );
 
   const isSessionOpen = attendanceSession?.status === "open";
   const isSessionClosed = attendanceSession?.status === "closed";

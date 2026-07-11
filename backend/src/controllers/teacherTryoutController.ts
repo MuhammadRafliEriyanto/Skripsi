@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { Types } from "mongoose";
+import { Types, type FilterQuery } from "mongoose";
 
 import { AssessmentQuestionSet } from "../models/AssessmentQuestionSet";
 import { Student } from "../models/Student";
@@ -13,6 +13,7 @@ import {
   TEACHER_TRYOUT_JENJANG,
   TEACHER_TRYOUT_PUBLISH_STATUSES,
   TEACHER_TRYOUT_QUESTION_SOURCES,
+  type ITeacherTryout,
   type TeacherAssessmentType,
   type TeacherTryoutDocument,
   type TeacherTryoutJenjang,
@@ -45,6 +46,9 @@ import {
   isStudentAcademicTryoutAvailable,
   parseValidDate,
 } from "../utils/studentAcademicStatus";
+import {
+  findActiveSubscriptionIdsForAcademicRecords,
+} from "../utils/subscription";
 
 type TryoutMutationBody = {
   assessmentType?: string;
@@ -167,12 +171,6 @@ function getGradeFromCanonicalClassName(className: string) {
 
 function isFinalAssessmentClass(className: string) {
   return [6, 9, 12].includes(getGradeFromCanonicalClassName(className));
-}
-
-function toKelasLabelFromCanonicalClassName(className: string) {
-  const grade = getGradeFromCanonicalClassName(className);
-
-  return grade ? `Kelas ${grade}` : "";
 }
 
 function normalizePublishStatus(
@@ -910,14 +908,27 @@ export const getMyTeacherTryouts = asyncHandler(
       return;
     }
 
-    const { academicYear, semester } = _req.query;
-    
-    const filter: any = {
-      teacherId: teacher._id,
+    const currentPeriod = getCurrentAcademicPeriod();
+    const academicYear =
+      typeof _req.query.academicYear === "string" && _req.query.academicYear
+        ? _req.query.academicYear
+        : currentPeriod.academicYear;
+    const semester =
+      typeof _req.query.semester === "string" && _req.query.semester
+        ? _req.query.semester
+        : currentPeriod.semester;
+    const filter: FilterQuery<ITeacherTryout> = {
+      $and: [
+        { teacherId: teacher._id },
+        {
+          $or: [
+            { academicYear, semester },
+            { academicYear: null },
+            { academicYear: { $exists: false } },
+          ],
+        },
+      ],
     };
-
-    if (academicYear) filter.academicYear = String(academicYear);
-    if (semester) filter.semester = String(semester);
 
     const tryouts = await TeacherTryout.find(filter)
       .sort({ startAt: 1, createdAt: -1 })
@@ -1127,11 +1138,6 @@ export const deleteMyTeacherTryout = asyncHandler(
       return;
     }
 
-    const hasStudentAttempt = await StudentTryoutAttempt.exists({
-      teacherId: teacher._id,
-      tryoutId: tryout.tryoutId,
-    });
-
     // if (hasStudentAttempt) {
     //   next(
     //     new AppError(
@@ -1291,7 +1297,7 @@ export const getMyTeacherTryoutResults = asyncHandler(
       return;
     }
 
-    const attempts = await StudentTryoutAttempt.find({
+    const rawAttempts = await StudentTryoutAttempt.find({
       teacherId: teacher._id,
       tryoutId: tryout.tryoutId,
       status: "submitted",
@@ -1300,8 +1306,24 @@ export const getMyTeacherTryoutResults = asyncHandler(
       .lean()
       .exec();
     const studentIds = Array.from(
-      new Set(attempts.map((attempt) => normalizeText(attempt.studentId))),
+      new Set(rawAttempts.map((attempt) => normalizeText(attempt.studentId))),
     ).filter(Boolean);
+    const activeSubscriptionIds =
+      await findActiveSubscriptionIdsForAcademicRecords({
+        publicStudentIds: studentIds,
+      });
+    const activeSubscriptionIdSet = new Set(
+      activeSubscriptionIds.map(toRecordId).filter(Boolean),
+    );
+    const attempts = rawAttempts.filter((attempt) => {
+      const attemptSubscriptionId = toRecordId(attempt.subscriptionId);
+
+      if (!attemptSubscriptionId) {
+        return true;
+      }
+
+      return activeSubscriptionIdSet.has(attemptSubscriptionId);
+    });
     const students = studentIds.length
       ? await Student.find({
           studentId: {
@@ -1325,11 +1347,16 @@ export const getMyTeacherTryoutResults = asyncHandler(
             $ne: null,
           },
         })
-          .select("studentId startDate paymentStatus")
+          .select("_id studentId startDate endDate paymentStatus")
           .sort({ startDate: 1, createdAt: 1 })
           .lean()
           .exec()
       : [];
+    const now = Date.now();
+    const fallbackPaidSubscriptionByStudentObjectId = new Map<
+      string,
+      { startDate?: Date | string | null; paymentStatus?: string | null }
+    >();
     const paidSubscriptionByStudentObjectId = new Map<
       string,
       { startDate?: Date | string | null; paymentStatus?: string | null }
@@ -1338,18 +1365,34 @@ export const getMyTeacherTryoutResults = asyncHandler(
     for (const subscription of paidSubscriptions) {
       const studentObjectId = subscription.studentId?.toString() ?? "";
 
-      if (!studentObjectId || paidSubscriptionByStudentObjectId.has(studentObjectId)) {
+      if (!studentObjectId) {
         continue;
       }
 
-      paidSubscriptionByStudentObjectId.set(studentObjectId, subscription);
+      if (!fallbackPaidSubscriptionByStudentObjectId.has(studentObjectId)) {
+        fallbackPaidSubscriptionByStudentObjectId.set(studentObjectId, subscription);
+      }
+
+      const startAt = parseValidDate(subscription.startDate);
+      const endAt = parseValidDate(subscription.endDate);
+
+      if (
+        startAt &&
+        endAt &&
+        startAt.getTime() <= now &&
+        endAt.getTime() > now &&
+        !paidSubscriptionByStudentObjectId.has(studentObjectId)
+      ) {
+        paidSubscriptionByStudentObjectId.set(studentObjectId, subscription);
+      }
     }
     const academicJoinedAtByStudentId = new Map<string, Date>();
 
     for (const student of students) {
       const academicJoinedAt = getStudentEffectiveAcademicJoinedAt(
         student,
-        paidSubscriptionByStudentObjectId.get(student._id?.toString() ?? ""),
+        paidSubscriptionByStudentObjectId.get(student._id?.toString() ?? "") ??
+          fallbackPaidSubscriptionByStudentObjectId.get(student._id?.toString() ?? ""),
       );
 
       if (!academicJoinedAt) {

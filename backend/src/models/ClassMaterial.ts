@@ -30,6 +30,8 @@ export interface IClassMaterial {
   linkUrl: string;
   attachment: IClassMaterialAttachment | null;
   status: ClassMaterialStatus;
+  academicYear?: string | null;
+  semester?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -139,6 +141,16 @@ const classMaterialSchema = new Schema<IClassMaterial>(
       enum: CLASS_MATERIAL_STATUSES,
       default: "Draft",
       index: true,
+    },
+    academicYear: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    semester: {
+      type: String,
+      default: null,
+      trim: true,
     },
   },
   {

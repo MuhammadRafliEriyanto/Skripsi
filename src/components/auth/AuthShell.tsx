@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 import Image from "next/image";
 import { Poppins } from "next/font/google";
@@ -62,12 +62,6 @@ const authHighlights = [
   },
 ];
 
-const splitRotatingMessages = [
-  "Selamat datang di Bina Cendekia. Bersiap untuk meraih prestasi terbaikmu bersama kami.",
-  "Pantau jadwal kelas, kerjakan tugas, dan raih nilai impianmu.",
-  "Dapatkan pengalaman belajar yang interaktif dan menyenangkan bersama tutor berpengalaman.",
-] as const;
-
 function LoginIllustration() {
   return (
     <div className="mt-2 flex w-full justify-center">
@@ -128,6 +122,7 @@ function LoginIllustration() {
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- retained dormant visual asset for the split auth layout.
 function SplitLearningIllustration() {
   return (
     <div className="relative mx-auto w-full max-w-[500px]">
@@ -233,16 +228,6 @@ export function AuthShell({
   allowDesktopScroll = false,
   splitPosition = "left",
 }: AuthShellProps) {
-  const [activeSplitMessage, setActiveSplitMessage] = useState(0);
-
-  useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      setActiveSplitMessage((current) => (current + 1) % splitRotatingMessages.length);
-    }, 3500);
-
-    return () => window.clearInterval(intervalId);
-  }, []);
-
   useEffect(() => {
     if (variant !== "split" || allowDesktopScroll) {
       return;
@@ -272,7 +257,7 @@ export function AuthShell({
       htmlElement.style.overflow = previousHtmlOverflow;
       bodyElement.style.overflow = previousBodyOverflow;
     };
-  }, [variant]);
+  }, [allowDesktopScroll, variant]);
 
   if (variant === "split") {
     const useImageShowcase = Boolean(image);

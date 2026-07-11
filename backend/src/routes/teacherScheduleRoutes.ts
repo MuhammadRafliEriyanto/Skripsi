@@ -1,6 +1,10 @@
 import { Router } from "express";
 
 import { getMyTeacherDashboard } from "../controllers/teacherDashboardController";
+import {
+  getTeacherStudentAcademicHistory,
+  getTeacherStudentAcademicHistoryDetail,
+} from "../controllers/academicHistoryController";
 import { upsertTeacherClassAcademicGrade } from "../controllers/teacherAcademicGradeController";
 import { getMyTeacherNotifications } from "../controllers/teacherNotificationController";
 import {
@@ -45,6 +49,14 @@ router.use(apiKeyMiddleware, protect, authorizeRole("guru"));
 
 router.get("/me/dashboard", getMyTeacherDashboard);
 router.get("/me/notifications", getMyTeacherNotifications);
+router.get(
+  "/students/:studentId/academic-history",
+  getTeacherStudentAcademicHistory,
+);
+router.get(
+  "/students/:studentId/academic-history/:subscriptionId",
+  getTeacherStudentAcademicHistoryDetail,
+);
 router.get("/me/classes", getMyTeacherClasses);
 router.get("/me/classes/:classId", getMyTeacherClassDetail);
 router

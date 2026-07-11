@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
-import { Types } from "mongoose";
+import { Types, type FilterQuery } from "mongoose";
 
-import { AcademicGrade } from "../models/AcademicGrade";
+import { AcademicGrade, type IAcademicGrade } from "../models/AcademicGrade";
 import { ClassTask } from "../models/ClassTask";
 import { TaskGrade } from "../models/TaskGrade";
 import asyncHandler from "../utils/asyncHandler";
@@ -24,6 +24,11 @@ import {
   isStudentAcademicTaskAvailable,
   parseValidDate,
 } from "../utils/studentAcademicStatus";
+import {
+  buildAcademicRecordSubscriptionFilter,
+  findActiveSubscriptionIdForAcademicRecord,
+  findActiveSubscriptionIdsForAcademicRecords,
+} from "../utils/subscription";
 
 type UpsertTaskGradeBody = {
   taskId?: string;
@@ -168,28 +173,52 @@ export const getTeacherClassGrades = asyncHandler(
       req.user._id.toString(),
       req.params.classId,
     );
-    const { academicYear, semester } = req.query;
+    const currentPeriod = getCurrentAcademicPeriod();
+    const academicYear =
+      typeof req.query.academicYear === "string" && req.query.academicYear
+        ? req.query.academicYear
+        : currentPeriod.academicYear;
+    const semester =
+      typeof req.query.semester === "string" && req.query.semester
+        ? req.query.semester
+        : currentPeriod.semester;
+    const participantSubscriptionIds =
+      await findActiveSubscriptionIdsForAcademicRecords({
+        publicStudentIds: participants.map((participant) => participant.studentId),
+      });
 
-    const academicGradeQuery: any = {
+    const academicGradeQuery: FilterQuery<IAcademicGrade> = {
       teacherId: teacher._id,
       classId: classGroup.item.id,
+      academicYear,
+      semester,
+      ...buildAcademicRecordSubscriptionFilter(participantSubscriptionIds),
     };
-
-    if (academicYear) academicGradeQuery.academicYear = String(academicYear);
-    if (semester) academicGradeQuery.semester = String(semester);
 
     const [grades, academicGrades, tasks] = await Promise.all([
       getTeacherClassTaskGrades(
         teacher._id.toString(),
         classGroup.item.id,
+        participantSubscriptionIds,
       ),
       AcademicGrade.find(academicGradeQuery)
         .sort({ updatedAt: -1, createdAt: -1 })
         .lean()
         .exec(),
       ClassTask.find({
-        teacherId: teacher._id,
-        classId: classGroup.item.id,
+        $and: [
+          {
+            teacherId: teacher._id,
+            classId: classGroup.item.id,
+          },
+          {
+            $or: [
+              { academicYear, semester },
+              { academicYear: null },
+              { academicYear: { $exists: false } },
+            ],
+          },
+        ],
       })
         .select("taskId publishAt createdAt")
         .lean()
@@ -308,12 +337,16 @@ export const createTeacherClassGrade = asyncHandler(
     }
 
     const gradeId = await getNextPublicId(TaskGrade, "gradeId", "GRD");
+    const subscriptionId = await findActiveSubscriptionIdForAcademicRecord({
+      publicStudentId: studentId,
+    });
     const grade = await TaskGrade.create({
       gradeId,
       teacherId: teacher._id,
       classId: classGroup.item.id,
       taskId: normalizedTaskId,
       studentId,
+      subscriptionId,
       score,
       note,
       status,

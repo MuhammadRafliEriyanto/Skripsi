@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import type {
   PresenceStatus,
@@ -18,6 +19,7 @@ import type {
 } from "@/components/dashboard-guru/data/guruClassTypes";
 
 import type { PesertaKelasTableProps } from "./types";
+import StudentAcademicHistoryTab from "./StudentAcademicHistoryTab";
 
 function getStudentStatusClass(status: StudentStatus) {
   if (status === "Aktif") {
@@ -51,6 +53,7 @@ export default function PesertaKelasTable({
 }: PesertaKelasTableProps) {
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [activeDetailTab, setActiveDetailTab] = useState("attendance");
   const displayedParticipantCount = activeClass.participants.length;
   const hasParticipantCountGap = activeClass.totalSiswa > displayedParticipantCount;
 
@@ -67,6 +70,7 @@ export default function PesertaKelasTable({
 
   function openStudentDetail(studentId: string) {
     setSelectedStudentId(studentId);
+    setActiveDetailTab("attendance");
     setIsDetailOpen(true);
   }
 
@@ -173,13 +177,13 @@ export default function PesertaKelasTable({
       </div>
 
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-4xl rounded-[24px] border border-slate-200 bg-white p-0 shadow-lg">
+        <DialogContent className="max-h-[calc(100vh-2rem)] max-w-6xl overflow-y-auto rounded-[24px] border border-slate-200 bg-white p-0 shadow-lg">
           <DialogHeader className="border-b border-slate-200 bg-gradient-to-r from-orange-50/60 via-white to-amber-50/30 px-5 py-4 text-left">
             <DialogTitle className="text-lg font-semibold text-slate-800">
               Detail Peserta
             </DialogTitle>
             <DialogDescription className="text-sm text-slate-500">
-              Riwayat kehadiran dan catatan peserta dari kelas {activeClass.namaKelas}.
+              Riwayat kehadiran kelas dan histori akademik peserta dari kelas {activeClass.namaKelas}.
             </DialogDescription>
           </DialogHeader>
 
@@ -205,54 +209,72 @@ export default function PesertaKelasTable({
               </span>
             </div>
 
-            <div className="overflow-x-auto border border-slate-200 bg-white">
-              <table className="min-w-[760px] w-full">
-                <thead className="bg-orange-50/50 text-left backdrop-blur-sm">
-                  <tr className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                    <th className="px-4 py-4 font-semibold">Pertemuan</th>
-                    <th className="px-4 py-4 font-semibold">Tanggal</th>
-                    <th className="px-4 py-4 font-semibold">Materi</th>
-                    <th className="px-4 py-4 font-semibold">Kehadiran</th>
-                    <th className="px-4 py-4 font-semibold">Catatan</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedStudent && selectedStudent.history.length > 0 ? (
-                    selectedStudent.history.map((entry) => (
-                      <tr
-                        key={`${selectedStudent.id}-${entry.meeting}`}
-                        className="border-t border-slate-200 text-sm"
-                      >
-                        <td className="px-4 py-4 font-medium text-slate-700">
-                          {entry.meeting}
-                        </td>
-                        <td className="px-4 py-4 text-slate-600">{entry.date}</td>
-                        <td className="px-4 py-4 text-slate-700">
-                          {entry.material}
-                        </td>
-                        <td className="px-4 py-4">
-                          <span
-                            className={`inline-flex items-center border px-2.5 py-1 text-xs font-semibold ${getPresenceClass(entry.attendance)}`}
-                          >
-                            {entry.attendance}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 text-slate-500">{entry.note}</td>
+            <Tabs value={activeDetailTab} onValueChange={setActiveDetailTab}>
+              <TabsList className="w-full justify-start">
+                <TabsTrigger value="attendance">Kehadiran Kelas</TabsTrigger>
+                <TabsTrigger value="academic-history">Riwayat Akademik</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="attendance" className="mt-4">
+                <div className="overflow-x-auto border border-slate-200 bg-white">
+                  <table className="min-w-[760px] w-full">
+                    <thead className="bg-orange-50/50 text-left backdrop-blur-sm">
+                      <tr className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                        <th className="px-4 py-4 font-semibold">Pertemuan</th>
+                        <th className="px-4 py-4 font-semibold">Tanggal</th>
+                        <th className="px-4 py-4 font-semibold">Materi</th>
+                        <th className="px-4 py-4 font-semibold">Kehadiran</th>
+                        <th className="px-4 py-4 font-semibold">Catatan</th>
                       </tr>
-                    ))
-                  ) : (
-                    <tr className="border-t border-slate-200 text-sm">
-                      <td
-                        colSpan={5}
-                        className="px-4 py-6 text-center text-slate-500"
-                      >
-                        Riwayat kehadiran peserta ini belum tersedia.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    </thead>
+                    <tbody>
+                      {selectedStudent && selectedStudent.history.length > 0 ? (
+                        selectedStudent.history.map((entry) => (
+                          <tr
+                            key={`${selectedStudent.id}-${entry.meeting}`}
+                            className="border-t border-slate-200 text-sm"
+                          >
+                            <td className="px-4 py-4 font-medium text-slate-700">
+                              {entry.meeting}
+                            </td>
+                            <td className="px-4 py-4 text-slate-600">{entry.date}</td>
+                            <td className="px-4 py-4 text-slate-700">
+                              {entry.material}
+                            </td>
+                            <td className="px-4 py-4">
+                              <span
+                                className={`inline-flex items-center border px-2.5 py-1 text-xs font-semibold ${getPresenceClass(entry.attendance)}`}
+                              >
+                                {entry.attendance}
+                              </span>
+                            </td>
+                            <td className="px-4 py-4 text-slate-500">{entry.note}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr className="border-t border-slate-200 text-sm">
+                          <td
+                            colSpan={5}
+                            className="px-4 py-6 text-center text-slate-500"
+                          >
+                            Riwayat kehadiran peserta ini belum tersedia.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="academic-history" className="mt-4">
+                {selectedStudent ? (
+                  <StudentAcademicHistoryTab
+                    studentId={selectedStudent.id}
+                    studentName={selectedStudent.name}
+                  />
+                ) : null}
+              </TabsContent>
+            </Tabs>
 
             <div className="flex justify-end">
               <DialogClose asChild>

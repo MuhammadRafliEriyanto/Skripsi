@@ -8,13 +8,10 @@ import {
   ImageUp,
   KeyRound,
   LoaderCircle,
-  Mail,
-  ShieldCheck,
   UserRound,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -65,21 +62,6 @@ function getInitials(name: string) {
     .slice(0, 2)
     .join("")
     .toUpperCase();
-}
-
-function formatRoleLabel(role: AuthUser["role"]) {
-  switch (role) {
-    case "owner":
-      return "Owner";
-    case "admin":
-      return "Admin";
-    case "guru":
-      return "Guru";
-    case "siswa":
-      return "Siswa";
-    default:
-      return role;
-  }
 }
 
 function InputError({ message }: { message?: string }) {
@@ -190,7 +172,6 @@ export function SiswaUserProfileDialog({
   user,
   isUserLoading = false,
   onProfileUpdated,
-  profileLabel = null,
 }: SiswaUserProfileDialogProps) {
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const [activeTab, setActiveTab] = useState("profile");
@@ -204,7 +185,6 @@ export function SiswaUserProfileDialog({
     newPassword: "",
     confirmNewPassword: "",
   });
-  const [forgotEmail, setForgotEmail] = useState(() => user?.email ?? "");
   const [passwordVisibility, setPasswordVisibility] =
     useState<PasswordVisibilityState>({
       currentPassword: false,
@@ -215,21 +195,14 @@ export function SiswaUserProfileDialog({
   const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
-  const [forgotError, setForgotError] = useState<string | null>(null);
-  const [forgotSuccess, setForgotSuccess] = useState<string | null>(null);
   const [profileFieldErrors, setProfileFieldErrors] = useState<
     Record<string, string>
   >({});
   const [passwordFieldErrors, setPasswordFieldErrors] = useState<
     Record<string, string>
   >({});
-  const [forgotFieldErrors, setForgotFieldErrors] = useState<
-    Record<string, string>
-  >({});
   const [isSubmittingProfile, setIsSubmittingProfile] = useState(false);
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
-  const [isSubmittingForgotPassword, setIsSubmittingForgotPassword] =
-    useState(false);
 
   function resetDialogState(baseUser: AuthUser | null) {
     setActiveTab("profile");
@@ -237,11 +210,8 @@ export function SiswaUserProfileDialog({
     setProfileSuccess(null);
     setPasswordError(null);
     setPasswordSuccess(null);
-    setForgotError(null);
-    setForgotSuccess(null);
     setProfileFieldErrors({});
     setPasswordFieldErrors({});
-    setForgotFieldErrors({});
     setPasswordValues({
       currentPassword: "",
       newPassword: "",
@@ -257,7 +227,6 @@ export function SiswaUserProfileDialog({
       email: baseUser?.email ?? "",
       avatar: baseUser?.avatar ?? null,
     });
-    setForgotEmail(baseUser?.email ?? "");
 
     if (avatarInputRef.current) {
       avatarInputRef.current.value = "";
@@ -347,7 +316,6 @@ export function SiswaUserProfileDialog({
         email: response.data.user.email,
         avatar: response.data.user.avatar,
       });
-      setForgotEmail(response.data.user.email);
       setProfileSuccess(response.message || "Profil berhasil diperbarui.");
     } catch (error) {
       if (
@@ -423,53 +391,9 @@ export function SiswaUserProfileDialog({
     }
   }
 
-  async function handleForgotPasswordSubmit(
-    event: React.FormEvent<HTMLFormElement>,
-  ) {
-    event.preventDefault();
-    setIsSubmittingForgotPassword(true);
-    setForgotError(null);
-    setForgotSuccess(null);
-    setForgotFieldErrors({});
-
-    try {
-      const response = await authService.forgotPassword({
-        email: forgotEmail.trim(),
-      });
-
-      setForgotSuccess(
-        response.message ||
-          "Jika email terdaftar, instruksi reset password sudah dikirim.",
-      );
-    } catch (error) {
-      if (
-        error instanceof AuthRequestError &&
-        error.errors &&
-        typeof error.errors === "object" &&
-        !Array.isArray(error.errors)
-      ) {
-        setForgotFieldErrors(error.errors as Record<string, string>);
-      }
-
-      setForgotError(
-        error instanceof AuthRequestError
-          ? error.message
-          : "Gagal memproses permintaan lupa password.",
-      );
-    } finally {
-      setIsSubmittingForgotPassword(false);
-    }
-  }
-
   const profileDisplayName = profileValues.nama || user?.nama || "Siswa";
   const profileInitials = getInitials(profileDisplayName);
   const profileAvatarSrc = profileValues.avatar ?? user?.avatar ?? null;
-  const updatedLabel = user
-    ? new Intl.DateTimeFormat("id-ID", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }).format(new Date(user.updatedAt))
-    : null;
 
   return (
     <Dialog

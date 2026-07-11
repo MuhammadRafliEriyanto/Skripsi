@@ -6,6 +6,7 @@ import { Teacher } from "../models/Teacher";
 import { TeacherTryout } from "../models/TeacherTryout";
 import asyncHandler from "../utils/asyncHandler";
 import { AppError, sendSuccess } from "../utils/apiResponse";
+import { getCurrentAcademicPeriod } from "../utils/academicGrade";
 
 type TeacherNotificationType = "schedule" | "class" | "task" | "tryout";
 
@@ -34,6 +35,22 @@ function toIsoDate(value: Date | null | undefined) {
   return value instanceof Date && !Number.isNaN(value.getTime())
     ? value.toISOString()
     : new Date().toISOString();
+}
+
+function buildAcademicPeriodOrLegacyFilter(filters: {
+  academicYear: string;
+  semester: string;
+}) {
+  return {
+    $or: [
+      {
+        academicYear: filters.academicYear,
+        semester: filters.semester,
+      },
+      { academicYear: null },
+      { academicYear: { $exists: false } },
+    ],
+  };
 }
 
 function buildTryoutStatusMessage(draftCount: number, publishedCount: number) {
@@ -65,21 +82,38 @@ export const getMyTeacherNotifications = asyncHandler(
       return;
     }
 
+    const currentPeriod = getCurrentAcademicPeriod();
+    const periodFilter = buildAcademicPeriodOrLegacyFilter(currentPeriod);
     const [schedules, pendingTasks, tryouts] = await Promise.all([
-      Schedule.find({ teacherId: teacher._id })
+      Schedule.find({
+        $and: [
+          { teacherId: teacher._id },
+          periodFilter,
+        ],
+      })
         .select("className day time createdAt updatedAt")
         .sort({ updatedAt: -1, createdAt: -1 })
         .lean()
         .exec(),
       ClassTask.find({
-        teacherId: teacher._id,
-        reviewStatus: "Belum Dinilai",
+        $and: [
+          {
+            teacherId: teacher._id,
+            reviewStatus: "Belum Dinilai",
+          },
+          periodFilter,
+        ],
       })
         .select("taskId title classId createdAt updatedAt")
         .sort({ updatedAt: -1, createdAt: -1 })
         .lean()
         .exec(),
-      TeacherTryout.find({ teacherId: teacher._id })
+      TeacherTryout.find({
+        $and: [
+          { teacherId: teacher._id },
+          periodFilter,
+        ],
+      })
         .select("tryoutId publishStatus createdAt updatedAt")
         .sort({ updatedAt: -1, createdAt: -1 })
         .lean()

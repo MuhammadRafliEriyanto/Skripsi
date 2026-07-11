@@ -444,7 +444,6 @@ export default function GuruTopbar() {
 
   const displayName = currentUser?.nama ?? profile.nama;
   const displayRole = profile.role;
-  const displayEmail = profile.email ?? currentUser?.email ?? null;
   const avatarFallback = getInitials(displayName || "Guru");
   const avatarSrc = currentUser?.avatar ?? profile.avatar ?? null;
   const notificationBadgeLabel =

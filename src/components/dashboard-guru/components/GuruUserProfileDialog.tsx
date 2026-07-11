@@ -8,12 +8,10 @@ import {
   ImageUp,
   KeyRound,
   LoaderCircle,
-  ShieldCheck,
   UserRound,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -70,17 +68,6 @@ function getInitials(name: string) {
       .join("")
       .toUpperCase() || "GU"
   );
-}
-
-function getTeacherStatusBadgeVariant(status: string | null | undefined) {
-  switch (status) {
-    case "Aktif":
-      return "success";
-    case "Nonaktif":
-      return "danger";
-    default:
-      return "secondary";
-  }
 }
 
 function InputError({ message }: { message?: string }) {
@@ -191,10 +178,6 @@ export function GuruUserProfileDialog({
   user,
   isUserLoading = false,
   onProfileUpdated,
-  roleLabel = null,
-  subject = null,
-  branch = null,
-  status = null,
 }: GuruUserProfileDialogProps) {
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const [activeTab, setActiveTab] = useState("profile");
@@ -417,13 +400,6 @@ export function GuruUserProfileDialog({
   const profileDisplayName = profileValues.nama || user?.nama || "Guru";
   const profileInitials = getInitials(profileDisplayName);
   const profileAvatarSrc = profileValues.avatar ?? user?.avatar ?? null;
-  const updatedLabel = user
-    ? new Intl.DateTimeFormat("id-ID", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }).format(new Date(user.updatedAt))
-    : null;
-  const resolvedRoleLabel = roleLabel?.trim() || "Guru";
 
   return (
     <Dialog

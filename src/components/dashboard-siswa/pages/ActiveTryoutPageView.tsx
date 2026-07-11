@@ -14,9 +14,7 @@ import {
   Loader2,
   RefreshCcw,
   SendHorizontal,
-  ShieldCheck,
   Target,
-  TimerReset,
 } from "lucide-react";
 
 import { Progress } from "@/components/ui/progress";
@@ -36,7 +34,6 @@ import {
   type ActiveTryoutSession,
   type AnswerMap,
   type StudentTryoutDetailResponse,
-  type StudentTryoutItem,
   type StudentTryoutQuestion,
   type StudentTryoutResult,
   type StudentTryoutSubmitResponse,
@@ -160,7 +157,7 @@ export default function ActiveTryoutPageView({ attemptId }: ActiveTryoutPageView
   const [bookmarkedIds, setBookmarkedIds] = useState<string[]>([]);
 
   // Anti-cheat states
-  const [cheatWarnings, setCheatWarnings] = useState(0);
+  const [, setCheatWarnings] = useState(0);
   const [isCheatModalOpen, setIsCheatModalOpen] = useState(false);
   const [cheatModalMessage, setCheatModalMessage] = useState("");
   const lastCheatRef = useRef<number>(0);
@@ -179,7 +176,6 @@ export default function ActiveTryoutPageView({ attemptId }: ActiveTryoutPageView
   const progressValue = totalQuestions
     ? Math.round((answeredCount / totalQuestions) * 100)
     : 0;
-  const reviewCount = bookmarkedIds.length;
   const timeUsedSeconds =
     isSubmitted && typeof activeSession?.myAttempt?.timeUsedSeconds === "number"
       ? activeSession.myAttempt.timeUsedSeconds

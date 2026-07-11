@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import type { FilterQuery } from "mongoose";
 
 import {
   AttendanceRecord,
@@ -23,6 +24,7 @@ import type {
 } from "../utils/classroomLearning";
 import asyncHandler from "../utils/asyncHandler";
 import { AppError, sendSuccess } from "../utils/apiResponse";
+import { getCurrentAcademicPeriod } from "../utils/academicGrade";
 import {
   getTeacherClassMaterials,
   getTeacherClassTasks,
@@ -39,6 +41,10 @@ import {
   isAttendanceSessionOnOrAfterAcademicJoin,
   parseValidDate,
 } from "../utils/studentAcademicStatus";
+import {
+  buildAcademicRecordSubscriptionFilter,
+  findActiveSubscriptionIdsForAcademicRecords,
+} from "../utils/subscription";
 
 type TeacherOwnedSchedule = Pick<
   ISchedule,
@@ -52,7 +58,9 @@ type TeacherOwnedSchedule = Pick<
   | "status"
 >;
 
-type StudentClassLookup = Pick<IStudent, "branch" | "className">;
+type StudentClassLookup = Pick<IStudent, "branch" | "className"> & {
+  _id?: unknown;
+};
 
 type TeacherClassStatus = "Aktif" | "Berjalan";
 
@@ -197,8 +205,51 @@ const DAY_ORDER = [
 ] as const;
 const DEFAULT_MONTHLY_MEETINGS_PER_SCHEDULE = 4;
 
+type TeacherAcademicPeriodFilters = {
+  academicYear?: string;
+  semester?: string;
+};
+
 function normalizeText(value: string | null | undefined): string {
   return value?.trim().replace(/\s+/g, " ") ?? "";
+}
+
+function resolveTeacherAcademicPeriodFilters(query?: {
+  academicYear?: unknown;
+  semester?: unknown;
+}): TeacherAcademicPeriodFilters {
+  const currentPeriod = getCurrentAcademicPeriod();
+  const academicYear = normalizeText(String(query?.academicYear ?? ""));
+  const semester = normalizeText(String(query?.semester ?? ""));
+
+  return {
+    academicYear: academicYear || currentPeriod.academicYear,
+    semester: semester || currentPeriod.semester,
+  };
+}
+
+function buildAcademicPeriodOrLegacyFilter(filters?: TeacherAcademicPeriodFilters) {
+  const periodFilter: Record<string, string> = {};
+
+  if (filters?.academicYear) {
+    periodFilter.academicYear = filters.academicYear;
+  }
+
+  if (filters?.semester) {
+    periodFilter.semester = filters.semester;
+  }
+
+  if (Object.keys(periodFilter).length === 0) {
+    return {};
+  }
+
+  return {
+    $or: [
+      periodFilter,
+      { academicYear: null },
+      { academicYear: { $exists: false } },
+    ],
+  };
 }
 
 function escapeRegex(value: string) {
@@ -269,6 +320,63 @@ function parseStartMinutes(time: string): number | null {
   }
 
   return hours * 60 + minutes;
+}
+
+async function filterStudentsWithActiveOrLegacySubscription<
+  T extends { _id?: unknown },
+>(students: T[]) {
+  const studentObjectIds = students
+    .map((student) => toRecordId(student._id))
+    .filter(Boolean);
+
+  if (studentObjectIds.length === 0) {
+    return students;
+  }
+
+  const subscriptions = await Subscription.find({
+    studentId: {
+      $in: studentObjectIds,
+    },
+    paymentStatus: "paid",
+  })
+    .select("studentId startDate endDate")
+    .lean()
+    .exec();
+  const now = Date.now();
+  const paidStudentIds = new Set<string>();
+  const activeStudentIds = new Set<string>();
+
+  for (const subscription of subscriptions) {
+    const studentObjectId = toRecordId(subscription.studentId);
+
+    if (!studentObjectId) {
+      continue;
+    }
+
+    paidStudentIds.add(studentObjectId);
+
+    const startAt = parseValidDate(subscription.startDate);
+    const endAt = parseValidDate(subscription.endDate);
+
+    if (
+      startAt &&
+      endAt &&
+      startAt.getTime() <= now &&
+      endAt.getTime() > now
+    ) {
+      activeStudentIds.add(studentObjectId);
+    }
+  }
+
+  return students.filter((student) => {
+    const studentObjectId = toRecordId(student._id);
+
+    if (!studentObjectId) {
+      return true;
+    }
+
+    return !paidStudentIds.has(studentObjectId) || activeStudentIds.has(studentObjectId);
+  });
 }
 
 function getCurrentJakartaDayKey() {
@@ -512,10 +620,18 @@ function buildAttendanceSummary(
 async function getTeacherClassAttendanceData(
   teacherId: string,
   classId: string,
+  subscriptionIds: Awaited<ReturnType<typeof findActiveSubscriptionIdsForAcademicRecords>> = [],
+  participants: Array<{ studentId: string; academicJoinedAt?: string | null }> = [],
+  filters?: TeacherAcademicPeriodFilters,
 ) {
   const sessions = await AttendanceSession.find({
-    teacherId,
-    classId,
+    $and: [
+      {
+        teacherId,
+        classId,
+      },
+      buildAcademicPeriodOrLegacyFilter(filters),
+    ],
   })
     .select("sessionId date startTime subject room status createdAt")
     .sort({ date: 1, startTime: 1, createdAt: 1 })
@@ -532,15 +648,40 @@ async function getTeacherClassAttendanceData(
     };
   }
 
-  const records = await AttendanceRecord.find({
+  const sessionById = new Map(
+    sessions.map((session) => [normalizeText(session.sessionId), session] as const),
+  );
+  const participantAcademicStartByStudentId = new Map(
+    participants
+      .map((participant) => [
+        normalizeText(participant.studentId).toLowerCase(),
+        parseValidDate(participant.academicJoinedAt),
+      ] as const)
+      .filter(([studentId, academicJoinedAt]) => Boolean(studentId && academicJoinedAt)),
+  );
+  const rawRecords = await AttendanceRecord.find({
     sessionId: {
       $in: normalizedSessionIds,
     },
+    ...buildAcademicRecordSubscriptionFilter(subscriptionIds),
   })
     .select("sessionId studentId status note markedAt")
     .sort({ createdAt: 1, name: 1 })
     .lean()
     .exec();
+  const records = rawRecords.filter((record) => {
+    const normalizedSessionId = normalizeText(record.sessionId);
+    const normalizedStudentId = normalizeText(record.studentId).toLowerCase();
+    const session = sessionById.get(normalizedSessionId);
+    const academicJoinedAt =
+      participantAcademicStartByStudentId.get(normalizedStudentId) ?? null;
+
+    return Boolean(
+      session &&
+        (!academicJoinedAt ||
+          isAttendanceSessionOnOrAfterAcademicJoin(session, academicJoinedAt)),
+    );
+  });
   const recordsBySessionId = new Map<
     string,
     Array<{
@@ -618,6 +759,7 @@ async function getTeacherClassAttendanceData(
 async function getCompletedMeetingCountMap(
   teacherId: string,
   classIds: string[],
+  filters?: TeacherAcademicPeriodFilters,
 ) {
   const normalizedClassIds = classIds.map((classId) => normalizeText(classId)).filter(Boolean);
 
@@ -626,11 +768,16 @@ async function getCompletedMeetingCountMap(
   }
 
   const closedSessions = await AttendanceSession.find({
-    teacherId,
-    classId: {
-      $in: normalizedClassIds,
-    },
-    status: "closed",
+    $and: [
+      {
+        teacherId,
+        classId: {
+          $in: normalizedClassIds,
+        },
+        status: "closed",
+      },
+      buildAcademicPeriodOrLegacyFilter(filters),
+    ],
   })
     .select("classId")
     .lean()
@@ -693,6 +840,7 @@ async function getTargetMeetingCountMap(
 async function getPendingTaskCountMap(
   teacherId: string,
   classIds: string[],
+  filters?: TeacherAcademicPeriodFilters,
 ) {
   const normalizedClassIds = classIds
     .map((classId) => normalizeText(classId))
@@ -703,10 +851,15 @@ async function getPendingTaskCountMap(
   }
 
   const tasks = await ClassTask.find({
-    teacherId,
-    classId: {
-      $in: normalizedClassIds,
-    },
+    $and: [
+      {
+        teacherId,
+        classId: {
+          $in: normalizedClassIds,
+        },
+      },
+      buildAcademicPeriodOrLegacyFilter(filters),
+    ],
   })
     .select("taskId classId")
     .lean()
@@ -789,6 +942,7 @@ async function getPendingTaskCountMap(
 async function getOverdueTaskCountMap(
   teacherId: string,
   classIds: string[],
+  filters?: TeacherAcademicPeriodFilters,
 ) {
   const normalizedClassIds = classIds
     .map((classId) => normalizeText(classId))
@@ -799,14 +953,19 @@ async function getOverdueTaskCountMap(
   }
 
   const overdueTasks = await ClassTask.find({
-    teacherId,
-    classId: {
-      $in: normalizedClassIds,
-    },
-    reviewStatus: "Belum Ada Pengumpulan",
-    deadline: {
-      $lt: getCurrentJakartaDateKey(),
-    },
+    $and: [
+      {
+        teacherId,
+        classId: {
+          $in: normalizedClassIds,
+        },
+        reviewStatus: "Belum Ada Pengumpulan",
+        deadline: {
+          $lt: getCurrentJakartaDateKey(),
+        },
+      },
+      buildAcademicPeriodOrLegacyFilter(filters),
+    ],
   })
     .select("classId")
     .lean()
@@ -1098,11 +1257,16 @@ async function getTeacherClassParticipants(
           $ne: null,
         },
       })
-        .select("studentId startDate paymentStatus")
+        .select("_id studentId startDate endDate paymentStatus")
         .sort({ startDate: 1, createdAt: 1 })
         .lean()
         .exec()
     : [];
+  const now = Date.now();
+  const fallbackPaidSubscriptionByStudentObjectId = new Map<
+    string,
+    { startDate?: Date | string | null; paymentStatus?: string | null }
+  >();
   const paidSubscriptionByStudentObjectId = new Map<
     string,
     { startDate?: Date | string | null; paymentStatus?: string | null }
@@ -1111,19 +1275,48 @@ async function getTeacherClassParticipants(
   for (const subscription of paidSubscriptions) {
     const studentObjectId = toRecordId(subscription.studentId);
 
-    if (!studentObjectId || paidSubscriptionByStudentObjectId.has(studentObjectId)) {
+    if (!studentObjectId) {
       continue;
     }
 
-    paidSubscriptionByStudentObjectId.set(studentObjectId, subscription);
+    if (!fallbackPaidSubscriptionByStudentObjectId.has(studentObjectId)) {
+      fallbackPaidSubscriptionByStudentObjectId.set(studentObjectId, subscription);
+    }
+
+    const startAt = parseValidDate(subscription.startDate);
+    const endAt = parseValidDate(subscription.endDate);
+
+    if (
+      startAt &&
+      endAt &&
+      startAt.getTime() <= now &&
+      endAt.getTime() > now &&
+      !paidSubscriptionByStudentObjectId.has(studentObjectId)
+    ) {
+      paidSubscriptionByStudentObjectId.set(studentObjectId, subscription);
+    }
   }
 
-  return resolvedStudents
+  const currentStudents = resolvedStudents.filter((student) => {
+    const studentObjectId = toRecordId(student._id);
+
+    if (!studentObjectId) {
+      return true;
+    }
+
+    return (
+      !fallbackPaidSubscriptionByStudentObjectId.has(studentObjectId) ||
+      paidSubscriptionByStudentObjectId.has(studentObjectId)
+    );
+  });
+
+  return currentStudents
     .map((student) => {
       const studentObjectId = toRecordId(student._id);
       const academicJoinedAt = getStudentEffectiveAcademicJoinedAt(
         student,
-        paidSubscriptionByStudentObjectId.get(studentObjectId),
+        paidSubscriptionByStudentObjectId.get(studentObjectId) ??
+          fallbackPaidSubscriptionByStudentObjectId.get(studentObjectId),
       );
 
       return {
@@ -1145,9 +1338,7 @@ async function getTeacherClassParticipants(
 }
 
 async function getTeacherSchedules(filters?: { academicYear?: string; semester?: string }) {
-  const query: any = {};
-  if (filters?.academicYear) query.academicYear = filters.academicYear;
-  if (filters?.semester) query.semester = filters.semester;
+  const query: FilterQuery<ISchedule> = buildAcademicPeriodOrLegacyFilter(filters);
 
   return (await Schedule.find(query)
     .populate<{
@@ -1173,9 +1364,12 @@ async function getTeacherOwnedSchedules(
   teacherId: string,
   filters?: { academicYear?: string; semester?: string },
 ) {
-  const query: any = { teacherId };
-  if (filters?.academicYear) query.academicYear = filters.academicYear;
-  if (filters?.semester) query.semester = filters.semester;
+  const query: FilterQuery<ISchedule> = {
+    $and: [
+      { teacherId },
+      buildAcademicPeriodOrLegacyFilter(filters),
+    ],
+  };
 
   return (await Schedule.find(query)
     .select("scheduleId day time className branch subject room status academicYear semester")
@@ -1210,11 +1404,12 @@ export async function resolveTeacherClassDetailContext(
   const [ownedSchedules, students] = await Promise.all([
     getTeacherOwnedSchedules(teacher._id.toString(), filters),
     Student.find({ status: "Aktif" })
-      .select("branch className")
+      .select("_id branch className")
       .lean()
       .exec() as Promise<StudentClassLookup[]>,
   ]);
-  const studentCountMaps = buildStudentCountMaps(students);
+  const currentStudents = await filterStudentsWithActiveOrLegacySubscription(students);
+  const studentCountMaps = buildStudentCountMaps(currentStudents);
   const classGroup = buildTeacherClassGroups(
     teacher,
     ownedSchedules,
@@ -1244,14 +1439,30 @@ export async function resolveTeacherClassDetailContext(
     resolvedClassGroup.className,
     resolvedClassGroup.branch,
   );
+  const participantSubscriptionIds =
+    await findActiveSubscriptionIdsForAcademicRecords({
+      publicStudentIds: participants.map((participant) => participant.studentId),
+    });
   const { attendanceSessions, historyByStudentId } =
     await getTeacherClassAttendanceData(
       teacher._id.toString(),
       resolvedClassGroup.item.id,
+      participantSubscriptionIds,
+      participants,
+      filters,
     );
   const [materials, tasks] = await Promise.all([
-    getTeacherClassMaterials(teacher._id.toString(), resolvedClassGroup.item.id),
-    getTeacherClassTasks(teacher._id.toString(), resolvedClassGroup.item.id, filters),
+    getTeacherClassMaterials(
+      teacher._id.toString(),
+      resolvedClassGroup.item.id,
+      filters,
+    ),
+    getTeacherClassTasks(
+      teacher._id.toString(),
+      resolvedClassGroup.item.id,
+      filters,
+      participantSubscriptionIds,
+    ),
   ]);
   const participantsWithHistory = participants.map((participant) => {
     const academicJoinedAt = parseValidDate(participant.academicJoinedAt);
@@ -1310,11 +1521,8 @@ export const getMyTeacherSchedules = asyncHandler(
       return;
     }
 
-    const { academicYear, semester } = req.query;
-    const schedules = await getTeacherSchedules({
-      academicYear: academicYear ? String(academicYear) : undefined,
-      semester: semester ? String(semester) : undefined,
-    });
+    const filters = resolveTeacherAcademicPeriodFilters(req.query);
+    const schedules = await getTeacherSchedules(filters);
 
     sendSuccess(res, {
       data: {
@@ -1341,19 +1549,17 @@ export const getMyTeacherClasses = asyncHandler(
       return;
     }
 
-    const { academicYear, semester } = req.query;
+    const filters = resolveTeacherAcademicPeriodFilters(req.query);
 
     const [ownedSchedules, students] = await Promise.all([
-      getTeacherOwnedSchedules(teacher._id.toString(), {
-        academicYear: academicYear ? String(academicYear) : undefined,
-        semester: semester ? String(semester) : undefined,
-      }),
+      getTeacherOwnedSchedules(teacher._id.toString(), filters),
       Student.find({ status: "Aktif" })
-        .select("branch className")
+        .select("_id branch className")
         .lean()
         .exec() as Promise<StudentClassLookup[]>,
     ]);
-    const studentCountMaps = buildStudentCountMaps(students);
+    const currentStudents = await filterStudentsWithActiveOrLegacySubscription(students);
+    const studentCountMaps = buildStudentCountMaps(currentStudents);
     const classGroups = buildTeacherClassGroups(
       teacher,
       ownedSchedules,
@@ -1367,9 +1573,9 @@ export const getMyTeacherClasses = asyncHandler(
       overdueTaskCountMap,
     ] = await Promise.all([
       getTargetMeetingCountMap(teacher._id.toString(), classIds),
-      getCompletedMeetingCountMap(teacher._id.toString(), classIds),
-      getPendingTaskCountMap(teacher._id.toString(), classIds),
-      getOverdueTaskCountMap(teacher._id.toString(), classIds),
+      getCompletedMeetingCountMap(teacher._id.toString(), classIds, filters),
+      getPendingTaskCountMap(teacher._id.toString(), classIds, filters),
+      getOverdueTaskCountMap(teacher._id.toString(), classIds, filters),
     ]);
     const classes = classGroups
       .map((classGroup) => ({
@@ -1407,15 +1613,12 @@ export const getMyTeacherClassDetail = asyncHandler(
       next(new AppError(401, "User belum terautentikasi."));
       return;
     }
-    const { academicYear, semester } = req.query;
+    const filters = resolveTeacherAcademicPeriodFilters(req.query);
     const { classGroup, participants, schedules, attendanceSessions, materials, tasks } =
       await resolveTeacherClassDetailContext(
         req.user._id.toString(),
         req.params.classId,
-        {
-          academicYear: academicYear ? String(academicYear) : undefined,
-          semester: semester ? String(semester) : undefined,
-        }
+        filters,
       );
 
     sendSuccess(res, {

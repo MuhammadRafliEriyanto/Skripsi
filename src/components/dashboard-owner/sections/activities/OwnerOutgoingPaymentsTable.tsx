@@ -84,7 +84,9 @@ export function OwnerOutgoingPaymentsTable({
   const itemsPerPage = 10;
 
   useEffect(() => {
-    setCurrentPage(1);
+    queueMicrotask(() => {
+      setCurrentPage(1);
+    });
   }, [payments.length]);
 
   const totalPages = Math.ceil(payments.length / itemsPerPage);

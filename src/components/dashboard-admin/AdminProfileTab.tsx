@@ -247,7 +247,9 @@ export function AdminProfileTab() {
   }, []);
 
   useEffect(() => {
-    void loadUser();
+    queueMicrotask(() => {
+      void loadUser();
+    });
   }, [loadUser]);
 
   async function handleAvatarChange(

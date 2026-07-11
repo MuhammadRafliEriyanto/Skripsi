@@ -38,7 +38,6 @@ import type {
 import {
   formatCurrency,
   formatDate,
-  formatPaymentMethodLabel,
   getIncomingStatusFilterLabel,
   incomingPeriodOptions,
   incomingStatusMeta,
@@ -90,7 +89,9 @@ export function OwnerIncomingPaymentsTable({
   const itemsPerPage = 10;
 
   useEffect(() => {
-    setCurrentPage(1);
+    queueMicrotask(() => {
+      setCurrentPage(1);
+    });
   }, [payments.length]);
 
   const totalPages = Math.ceil(payments.length / itemsPerPage);

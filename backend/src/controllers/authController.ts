@@ -11,12 +11,10 @@ import { sendPasswordResetEmail, sendVerificationEmail } from "../utils/email";
 import { generateJwtToken, getRedirectPathByRole } from "../utils/generateToken";
 import { Teacher } from "../models/Teacher";
 import { Student } from "../models/Student";
-import { getNextPublicId } from "../utils/publicId";
 import {
   buildStudentLoginCode,
   buildTeacherLoginCode,
   getLoginCodeLookupCandidates,
-  normalizeLoginCode,
 } from "../utils/accountCode";
 
 interface RegisterRequestBody {
@@ -376,7 +374,6 @@ export const login = asyncHandler(
       return;
     }
 
-    const normalizedEmail = normalizeEmail(identifier);
     const loginLookup = await findUserByLoginIdentifier(identifier);
     const user = loginLookup.user;
 

@@ -11,6 +11,7 @@ export interface IAcademicGrade {
   teacherId: Types.ObjectId;
   classId: string;
   studentId: string;
+  subscriptionId: Types.ObjectId | null;
   academicYear: string;
   semester: AcademicGradeSemester;
   scheme: AcademicGradeScheme;
@@ -62,6 +63,11 @@ const academicGradeSchema = new Schema<IAcademicGrade>(
       required: true,
       trim: true,
       index: true,
+    },
+    subscriptionId: {
+      type: Schema.Types.ObjectId,
+      ref: "Subscription",
+      default: null,
     },
     academicYear: {
       type: String,

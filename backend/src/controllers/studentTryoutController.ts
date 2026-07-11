@@ -8,7 +8,7 @@ import {
   type IAssessmentQuestionItem,
   type IAssessmentQuestionOption,
 } from "../models/AssessmentQuestionSet";
-import { Student, type StudentDocument } from "../models/Student";
+import { type StudentDocument } from "../models/Student";
 import { Teacher } from "../models/Teacher";
 import {
   StudentTryoutAttempt,
@@ -35,12 +35,16 @@ import {
   buildStableTeacherClassId,
   getTeacherBranchNames,
 } from "../utils/teacherClassIdentity";
-import { getMembershipSnapshotByUserId } from "../utils/subscription";
+import {
+  buildAcademicRecordSubscriptionFilter,
+  getMembershipSnapshotByUserId,
+} from "../utils/subscription";
 import { resolveStudentAcademicContentAccess } from "../utils/studentAcademicAccess";
 import { resolveStudentMembershipContentAccess } from "../utils/studentMembershipAccess";
 import {
   buildStudentAcademicTryoutFilter,
   getStudentEffectiveAcademicJoinedAt,
+  parseValidDate,
 } from "../utils/studentAcademicStatus";
 
 const OPTION_KEYS = ["A", "B", "C", "D"] as const;
@@ -71,6 +75,8 @@ type NormalizedTryoutQuestion = {
 type StudentTryoutAcademicContext = {
   student: StudentDocument;
   academicJoinedAt: Date;
+  subscriptionId: Types.ObjectId | null;
+  subscriptionStartAt: Date;
 };
 
 function toRecordId(value: unknown): string {
@@ -113,19 +119,6 @@ function normalizeNonNegativeInteger(value: number | string | undefined) {
   }
 
   return Math.round(parsedValue);
-}
-
-async function getAuthenticatedStudentOrThrow(userId: string) {
-  const student = await Student.findOne({
-    userId,
-    status: "Aktif",
-  }).exec();
-
-  if (!student) {
-    throw new AppError(404, "Profil siswa tidak ditemukan.");
-  }
-
-  return student;
 }
 
 async function getAuthenticatedStudentTryoutContextOrThrow(
@@ -172,6 +165,9 @@ async function getAuthenticatedStudentTryoutContextOrThrow(
   return {
     student,
     academicJoinedAt,
+    subscriptionId: membershipSnapshot.subscription?._id ?? null,
+    subscriptionStartAt:
+      parseValidDate(membershipSnapshot.subscription?.startDate) ?? academicJoinedAt,
   };
 }
 
@@ -232,6 +228,16 @@ export async function buildEligibleTryoutFilter(
         $or: [
           { assessmentType: { $in: [...TEACHER_ASSESSMENT_TYPES] } },
           { assessmentType: { $exists: false } },
+        ],
+      },
+      {
+        $or: [
+          {
+            academicYear: academicAccess.period.academicYear,
+            semester: academicAccess.period.semester,
+          },
+          { academicYear: null },
+          { academicYear: { $exists: false } },
         ],
       },
     ],
@@ -578,10 +584,12 @@ async function ensureStudentTryoutAttempt(
   student: StudentDocument,
   tryout: TeacherTryoutDocument,
   questionSetId: string,
+  subscriptionId: Types.ObjectId | null,
 ) {
   const existingAttempt = await StudentTryoutAttempt.findOne({
     tryoutId: tryout.tryoutId,
     studentId: student.studentId,
+    ...buildAcademicRecordSubscriptionFilter(subscriptionId),
   }).exec();
 
   if (existingAttempt) {
@@ -601,6 +609,7 @@ async function ensureStudentTryoutAttempt(
     classId: normalizeText(tryout.classId),
     branch: normalizeText(tryout.branch),
     studentId: normalizeText(student.studentId),
+    subscriptionId,
     questionSetId,
     packageId: normalizeText(tryout.packageId),
     stage:
@@ -661,6 +670,7 @@ async function upsertAcademicGradeFromAssessment(input: {
   student: StudentDocument;
   tryout: TeacherTryoutDocument;
   score: number;
+  subscriptionId: Types.ObjectId | null;
 }) {
   const assessmentType = input.tryout.assessmentType ?? "Tryout";
   const stage =
@@ -724,6 +734,9 @@ async function upsertAcademicGradeFromAssessment(input: {
         scheme,
         [scoreKey]: input.score,
         evaluatedAt: new Date(),
+      },
+      $setOnInsert: {
+        subscriptionId: input.subscriptionId,
       },
     },
     {
@@ -794,10 +807,13 @@ export const getMyStudentTryouts = asyncHandler(
       });
       return;
     }
+    const subscriptionId = membershipSnapshot.subscription?._id ?? null;
+    const subscriptionStartAt =
+      parseValidDate(membershipSnapshot.subscription?.startDate) ?? academicJoinedAt;
 
     const eligibleFilter = await buildEligibleTryoutFilter(
       student,
-      academicJoinedAt,
+      subscriptionStartAt,
     );
 
     if (!eligibleFilter) {
@@ -823,6 +839,7 @@ export const getMyStudentTryouts = asyncHandler(
             $in: tryouts.map((tryout) => tryout.tryoutId),
           },
           studentId: normalizeText(student.studentId),
+          ...buildAcademicRecordSubscriptionFilter(subscriptionId),
         }).exec()
       : [];
     const attemptByTryoutId = new Map(
@@ -856,7 +873,7 @@ export const startMyStudentExam = asyncHandler(
       return;
     }
 
-    const { student, academicJoinedAt } =
+    const { student, subscriptionStartAt, subscriptionId } =
       await getAuthenticatedStudentTryoutContextOrThrow(req.user._id.toString());
     const tryoutParam = normalizeText(req.params.tryoutId);
 
@@ -868,7 +885,7 @@ export const startMyStudentExam = asyncHandler(
     const tryout = await findEligibleStudentTryout(
       tryoutParam,
       student,
-      academicJoinedAt,
+      subscriptionStartAt,
     );
 
     if (!tryout) {
@@ -879,6 +896,7 @@ export const startMyStudentExam = asyncHandler(
     const existingAttempt = await StudentTryoutAttempt.findOne({
       tryoutId: tryout.tryoutId,
       studentId: normalizeText(student.studentId),
+      ...buildAcademicRecordSubscriptionFilter(subscriptionId),
     }).exec();
 
     if (existingAttempt?.status === "submitted") {
@@ -921,6 +939,7 @@ export const startMyStudentExam = asyncHandler(
         student,
         tryout,
         loadedQuestions.questionSetId,
+        subscriptionId,
       ));
     const timing = getAttemptTiming(attempt, tryout);
 
@@ -958,13 +977,14 @@ export const getMyStudentExamAttempt = asyncHandler(
       return;
     }
 
-    const { student, academicJoinedAt } =
+    const { student, subscriptionStartAt, subscriptionId } =
       await getAuthenticatedStudentTryoutContextOrThrow(req.user._id.toString());
     const attemptId = normalizeText(req.params.attemptId);
     const attempt = attemptId
       ? await StudentTryoutAttempt.findOne({
           attemptId,
           studentId: normalizeText(student.studentId),
+          ...buildAcademicRecordSubscriptionFilter(subscriptionId),
         }).exec()
       : null;
 
@@ -976,7 +996,7 @@ export const getMyStudentExamAttempt = asyncHandler(
     const tryout = await findEligibleStudentTryout(
       attempt.tryoutId,
       student,
-      academicJoinedAt,
+      subscriptionStartAt,
     );
 
     if (!tryout) {
@@ -1049,7 +1069,7 @@ export const getMyStudentTryoutDetail = asyncHandler(
       return;
     }
 
-    const { student, academicJoinedAt } =
+    const { student, subscriptionStartAt, subscriptionId } =
       await getAuthenticatedStudentTryoutContextOrThrow(req.user._id.toString());
     const tryoutParam = normalizeText(req.params.tryoutId);
 
@@ -1061,7 +1081,7 @@ export const getMyStudentTryoutDetail = asyncHandler(
     const tryout = await findEligibleStudentTryout(
       tryoutParam,
       student,
-      academicJoinedAt,
+      subscriptionStartAt,
     );
 
     if (!tryout) {
@@ -1074,6 +1094,7 @@ export const getMyStudentTryoutDetail = asyncHandler(
     let attempt = await StudentTryoutAttempt.findOne({
       tryoutId: tryout.tryoutId,
       studentId: student.studentId,
+      ...buildAcademicRecordSubscriptionFilter(subscriptionId),
     }).exec();
     const isSubmitted = attempt?.status === "submitted";
 
@@ -1087,6 +1108,7 @@ export const getMyStudentTryoutDetail = asyncHandler(
         student,
         tryout,
         loadedQuestions.questionSetId,
+        subscriptionId,
       );
     }
 
@@ -1129,7 +1151,7 @@ export const submitMyStudentTryout = asyncHandler(
       return;
     }
 
-    const { student, academicJoinedAt } =
+    const { student, subscriptionStartAt, subscriptionId } =
       await getAuthenticatedStudentTryoutContextOrThrow(req.user._id.toString());
     const tryoutParam = normalizeText(req.params.tryoutId);
 
@@ -1141,7 +1163,7 @@ export const submitMyStudentTryout = asyncHandler(
     const tryout = await findEligibleStudentTryout(
       tryoutParam,
       student,
-      academicJoinedAt,
+      subscriptionStartAt,
     );
 
     if (!tryout) {
@@ -1173,6 +1195,7 @@ export const submitMyStudentTryout = asyncHandler(
     const existingAttempt = await StudentTryoutAttempt.findOne({
       tryoutId: tryout.tryoutId,
       studentId: student.studentId,
+      ...buildAcademicRecordSubscriptionFilter(subscriptionId),
     }).exec();
     const attemptId =
       existingAttempt?.attemptId ??
@@ -1204,6 +1227,9 @@ export const submitMyStudentTryout = asyncHandler(
           submittedAt: new Date(),
           status: "submitted",
         },
+        $setOnInsert: {
+          subscriptionId,
+        },
       },
       {
         new: true,
@@ -1222,6 +1248,7 @@ export const submitMyStudentTryout = asyncHandler(
       student,
       tryout,
       score,
+      subscriptionId,
     });
     const answerByQuestionId = buildSubmittedAnswerMap(attempt);
 
@@ -1270,13 +1297,14 @@ export const submitMyStudentExamAttempt = asyncHandler(
       return;
     }
 
-    const { student, academicJoinedAt } =
+    const { student, subscriptionStartAt, subscriptionId } =
       await getAuthenticatedStudentTryoutContextOrThrow(req.user._id.toString());
     const attemptId = normalizeText(req.params.attemptId);
     const attempt = attemptId
       ? await StudentTryoutAttempt.findOne({
           attemptId,
           studentId: normalizeText(student.studentId),
+          ...buildAcademicRecordSubscriptionFilter(subscriptionId),
         }).exec()
       : null;
 
@@ -1293,7 +1321,7 @@ export const submitMyStudentExamAttempt = asyncHandler(
     const tryout = await findEligibleStudentTryout(
       attempt.tryoutId,
       student,
-      academicJoinedAt,
+      subscriptionStartAt,
     );
 
     if (!tryout) {
@@ -1341,6 +1369,7 @@ export const submitMyStudentExamAttempt = asyncHandler(
       student,
       tryout,
       score,
+      subscriptionId,
     });
     const answerByQuestionId = buildSubmittedAnswerMap(attempt);
 

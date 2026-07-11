@@ -3,14 +3,12 @@
 import {
   Check,
   ChevronRight,
-  Clock3,
   GraduationCap,
   Info,
   type LucideIcon,
   LoaderCircle,
   MapPin,
   Package,
-  Phone,
   User,
 } from "lucide-react";
 
@@ -28,7 +26,6 @@ import {
 import {
   MembershipRequestError,
   formatRupiah,
-  getPackageByKey,
   membershipService,
   type OnlinePackageKey,
   type ProgramOptionValue,
@@ -132,46 +129,35 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
     [classOptionsByProgram, formValues.program],
   );
   
-  const basePackage = getPackageByKey(formValues.packageKey, packageOptions);
-  const dynamicAmount = getPriceByClassAndPackage(
-    formValues.classLevel,
-    formValues.packageKey,
-    subscriptionConfig.classPricingMatrix,
-    packageOptions,
-  );
-  const selectedPackage = { 
-    durationMonth: basePackage?.durationMonth ?? 0,
-    amount: dynamicAmount, 
-    packageName: basePackage?.packageName ?? "Paket Belajar" 
-  };
-
   useEffect(() => {
     if (!packageOptions.length || !programOptions.length) {
       return;
     }
 
-    setFormValues((current) => {
-      const nextProgram = programOptions.some((item) => item.value === current.program)
-        ? current.program
-        : programOptions[0]?.value ?? "";
-      const nextClassOptions = classOptionsByProgram[nextProgram] ?? [];
-      const nextClassLevel = nextClassOptions.includes(current.classLevel)
-        ? current.classLevel
-        : nextClassOptions[0] ?? "";
-      const nextPackageKey = packageOptions.some(
-        (item) => item.packageKey === current.packageKey,
-      )
-        ? current.packageKey
-        : packageOptions.some((item) => item.packageKey === resolvedInitialPackageKey)
-          ? resolvedInitialPackageKey
-          : packageOptions[0]?.packageKey ?? "";
+    queueMicrotask(() => {
+      setFormValues((current) => {
+        const nextProgram = programOptions.some((item) => item.value === current.program)
+          ? current.program
+          : programOptions[0]?.value ?? "";
+        const nextClassOptions = classOptionsByProgram[nextProgram] ?? [];
+        const nextClassLevel = nextClassOptions.includes(current.classLevel)
+          ? current.classLevel
+          : nextClassOptions[0] ?? "";
+        const nextPackageKey = packageOptions.some(
+          (item) => item.packageKey === current.packageKey,
+        )
+          ? current.packageKey
+          : packageOptions.some((item) => item.packageKey === resolvedInitialPackageKey)
+            ? resolvedInitialPackageKey
+            : packageOptions[0]?.packageKey ?? "";
 
-      return {
-        ...current,
-        program: nextProgram,
-        classLevel: nextClassLevel,
-        packageKey: nextPackageKey,
-      };
+        return {
+          ...current,
+          program: nextProgram,
+          classLevel: nextClassLevel,
+          packageKey: nextPackageKey,
+        };
+      });
     });
   }, [
     classOptionsByProgram,

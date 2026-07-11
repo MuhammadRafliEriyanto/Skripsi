@@ -38,7 +38,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { clearAuthClientState } from "@/lib/auth";
-import { buildGuruApiUrl, buildGuruUrl, getSelectedAcademicPeriod } from "@/lib/guru-helpers";
+import { buildGuruApiUrl, getSelectedAcademicPeriod } from "@/lib/guru-helpers";
 
 type TryoutJenjang = "SD" | "SMP" | "SMA";
 type AssessmentType = "UTS" | "UAS" | "Tryout";
@@ -267,32 +267,6 @@ const ACTION_BUTTON_CLASS =
   "inline-flex h-8 w-8 shrink-0 items-center justify-center border transition";
 const DRAFT_ONLY_QUESTION_MESSAGE =
   "Soal hanya dapat diubah saat ujian masih berstatus draft.";
-
-const QUESTION_SOURCE_OPTIONS: Array<{
-  value: QuestionSource;
-  label: string;
-  description: string;
-  available: boolean;
-}> = [
-  {
-    value: "bank",
-    label: "Bank Soal",
-    description: "Paket bank soal import aktif untuk ujian yang dibuat backend.",
-    available: false,
-  },
-  {
-    value: "file",
-    label: "Upload File",
-    description: "Upload XLSX, lalu sistem convert menjadi soal backend.",
-    available: true,
-  },
-  {
-    value: "manual",
-    label: "Input Manual",
-    description: "Buat ujian dulu, lalu tambahkan soal manual kapan saja.",
-    available: true,
-  },
-];
 
 function createId(prefix: string) {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -1180,7 +1154,6 @@ function ActionIconButton({
 function TryoutFormDialog({
   draft,
   classOptions,
-  teacherSubject,
   mode,
   open,
   onClose,
@@ -1193,7 +1166,6 @@ function TryoutFormDialog({
 }: {
   draft: TryoutDraft | null;
   classOptions: TeacherAssessmentClassOption[];
-  teacherSubject: string;
   mode: DialogMode;
   open: boolean;
   onClose: () => void;
@@ -1204,7 +1176,6 @@ function TryoutFormDialog({
   isSubmitting: boolean;
   questionsLocked: boolean;
 }) {
-  const isBankSource = draft?.questionSource === "bank";
   const isFileSource = draft?.questionSource === "file";
   const isManualSource = draft?.questionSource === "manual";
   const selectedClassOption =
@@ -2109,6 +2080,7 @@ export default function TryoutGuruSection() {
   >(null);
   const [isQuestionSubmitting, setIsQuestionSubmitting] = useState(false);
   const [isXlsxUploading, setIsXlsxUploading] = useState(false);
+  const [tryoutReloadSignal, setTryoutReloadSignal] = useState(0);
   const saveTryoutInFlightRef = useRef(false);
   const questionSubmitInFlightRef = useRef(false);
   const xlsxUploadInFlightRef = useRef(false);
@@ -2297,7 +2269,7 @@ export default function TryoutGuruSection() {
       void loadTeacherTryouts();
       void loadTeacherBranches();
     });
-  }, [academicYear]);
+  }, [academicYear, tryoutReloadSignal]);
 
   const loadManualQuestions = useCallback(async (tryoutId: string) => {
     try {
@@ -2806,7 +2778,7 @@ export default function TryoutGuruSection() {
     setIsQuestionLoading(false);
     setIsQuestionSubmitting(false);
     setIsXlsxUploading(false);
-    loadTeacherTryouts();
+    setTryoutReloadSignal((current) => current + 1);
   }
 
   function resetQuestionEditor() {
@@ -3753,7 +3725,6 @@ export default function TryoutGuruSection() {
       <TryoutFormDialog
         draft={draftTryout}
         classOptions={classOptions}
-        teacherSubject={teacherSubject}
         mode={formMode}
         open={isFormOpen}
         onClose={closeFormDialog}

@@ -344,6 +344,125 @@ export async function findActiveSubscriptionByStudentId(studentId: Types.ObjectI
   return refreshSubscriptionLifecycle(subscription);
 }
 
+function normalizeText(value: string | null | undefined) {
+  return value?.trim().replace(/\s+/g, " ") ?? "";
+}
+
+export async function findActiveSubscriptionIdForAcademicRecord(params: {
+  studentObjectId?: Types.ObjectId | string | null;
+  publicStudentId?: string | null;
+  now?: Date;
+}) {
+  const now = params.now ?? new Date();
+  let studentObjectId: Types.ObjectId | string | null = null;
+  const studentObjectIdCandidate =
+    params.studentObjectId instanceof Types.ObjectId
+      ? params.studentObjectId
+      : normalizeText(params.studentObjectId);
+
+  if (
+    studentObjectIdCandidate instanceof Types.ObjectId ||
+    (studentObjectIdCandidate && Types.ObjectId.isValid(studentObjectIdCandidate))
+  ) {
+    studentObjectId = studentObjectIdCandidate;
+  }
+
+  if (!studentObjectId) {
+    const publicStudentId = normalizeText(params.publicStudentId);
+    const student = publicStudentId
+      ? await Student.findOne({ studentId: publicStudentId }).select("_id").exec()
+      : null;
+
+    studentObjectId = student?._id ?? null;
+  }
+
+  if (!studentObjectId) {
+    return null;
+  }
+
+  const subscription = await Subscription.findOne({
+    studentId: studentObjectId,
+    paymentStatus: "paid",
+    startDate: { $lte: now },
+    endDate: { $gt: now },
+  })
+    .select("_id")
+    .sort({ endDate: -1, createdAt: -1, _id: -1 })
+    .exec();
+
+  return subscription?._id ?? null;
+}
+
+export function buildAcademicRecordSubscriptionFilter(
+  subscriptionId?: Types.ObjectId | string | Array<Types.ObjectId | string | null | undefined> | null,
+) {
+  const legacyFilters: Record<string, unknown>[] = [
+    { subscriptionId: null },
+    { subscriptionId: { $exists: false } },
+  ];
+  const subscriptionIds = (Array.isArray(subscriptionId) ? subscriptionId : [subscriptionId])
+    .filter((id): id is Types.ObjectId | string => Boolean(id));
+
+  if (subscriptionIds.length === 0) {
+    return {
+      $or: legacyFilters,
+    };
+  }
+
+  return {
+    $or: [
+      { subscriptionId: { $in: subscriptionIds } },
+      ...legacyFilters,
+    ],
+  };
+}
+
+export async function findActiveSubscriptionIdsForAcademicRecords(params: {
+  publicStudentIds: string[];
+  now?: Date;
+}) {
+  const normalizedStudentIds = Array.from(
+    new Set(
+      params.publicStudentIds
+        .map((studentId) => normalizeText(studentId))
+        .filter(Boolean),
+    ),
+  );
+
+  if (normalizedStudentIds.length === 0) {
+    return [];
+  }
+
+  const students = await Student.find({
+    studentId: {
+      $in: normalizedStudentIds,
+    },
+  })
+    .select("_id")
+    .lean()
+    .exec();
+  const studentObjectIds = students.map((student) => student._id).filter(Boolean);
+
+  if (studentObjectIds.length === 0) {
+    return [];
+  }
+
+  const now = params.now ?? new Date();
+  const subscriptions = await Subscription.find({
+    studentId: {
+      $in: studentObjectIds,
+    },
+    paymentStatus: "paid",
+    startDate: { $lte: now },
+    endDate: { $gt: now },
+  })
+    .select("_id")
+    .lean()
+    .exec();
+
+  return subscriptions.map((subscription) => subscription._id);
+}
+
 export async function findLatestPaymentBySubscriptionId(subscriptionId: Types.ObjectId | string) {
   return Payment.findOne({ subscriptionId }).sort({ createdAt: -1 }).exec();
 }

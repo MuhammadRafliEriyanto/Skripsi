@@ -1,3 +1,5 @@
+import type { FilterQuery, Types } from "mongoose";
+
 import {
   ClassMaterial,
   CLASS_MATERIAL_STATUSES,
@@ -8,6 +10,7 @@ import {
   ClassTask,
   CLASS_TASK_REVIEW_STATUSES,
   type IClassTaskAttachment,
+  type IClassTask,
   type ClassTaskReviewStatus,
 } from "../models/ClassTask";
 import {
@@ -16,6 +19,7 @@ import {
   type TaskGradeStatus,
 } from "../models/TaskGrade";
 import { TaskSubmission } from "../models/TaskSubmission";
+import { buildAcademicRecordSubscriptionFilter } from "./subscription";
 import { normalizeCanonicalClassName } from "./studentClass";
 
 type LearningClassScopedDocument = {
@@ -237,13 +241,46 @@ export function buildStudentLearningClassFilter(
   };
 }
 
+function buildAcademicPeriodOrLegacyFilter(filters?: {
+  academicYear?: string;
+  semester?: string;
+}) {
+  const periodFilter: Record<string, string> = {};
+
+  if (filters?.academicYear) {
+    periodFilter.academicYear = filters.academicYear;
+  }
+
+  if (filters?.semester) {
+    periodFilter.semester = filters.semester;
+  }
+
+  if (Object.keys(periodFilter).length === 0) {
+    return {};
+  }
+
+  return {
+    $or: [
+      periodFilter,
+      { academicYear: null },
+      { academicYear: { $exists: false } },
+    ],
+  };
+}
+
 export async function getTeacherClassMaterials(
   teacherId: string,
   classId: string,
+  filters?: { academicYear?: string; semester?: string },
 ) {
   return ClassMaterial.find({
-    teacherId,
-    classId,
+    $and: [
+      {
+        teacherId,
+        classId,
+      },
+      buildAcademicPeriodOrLegacyFilter(filters),
+    ],
   })
     .sort({ meetingNumber: 1, date: 1, createdAt: 1 })
     .lean()
@@ -254,14 +291,17 @@ export async function getTeacherClassTasks(
   teacherId: string,
   classId: string,
   filters?: { academicYear?: string; semester?: string },
+  subscriptionIds?: Array<Types.ObjectId | string>,
 ) {
-  const query: any = {
-    teacherId,
-    classId,
+  const query: FilterQuery<IClassTask> = {
+    $and: [
+      {
+        teacherId,
+        classId,
+      },
+      buildAcademicPeriodOrLegacyFilter(filters),
+    ],
   };
-
-  if (filters?.academicYear) query.academicYear = filters.academicYear;
-  if (filters?.semester) query.semester = filters.semester;
 
   const tasks = await ClassTask.find(query)
     .sort({ meetingNumber: 1, deadline: 1, createdAt: 1 })
@@ -272,6 +312,7 @@ export async function getTeacherClassTasks(
     teacherId,
     classId,
     tasks.map((task) => normalizeText(task.taskId)),
+    subscriptionIds,
   );
 
   return tasks.map((task) => {
@@ -292,10 +333,12 @@ export async function getTeacherClassTasks(
 export async function getTeacherClassTaskGrades(
   teacherId: string,
   classId: string,
+  subscriptionIds?: Array<Types.ObjectId | string>,
 ) {
   return TaskGrade.find({
     teacherId,
     classId,
+    ...(subscriptionIds ? buildAcademicRecordSubscriptionFilter(subscriptionIds) : {}),
   })
     .sort({ updatedAt: -1, createdAt: -1 })
     .lean()
@@ -321,6 +364,7 @@ export async function getTeacherTaskMetricMaps(
   teacherId: string,
   classId: string,
   taskIds: string[],
+  subscriptionIds?: Array<Types.ObjectId | string>,
 ): Promise<TeacherTaskMetricMaps> {
   const normalizedTaskIds = Array.from(
     new Set(taskIds.map((taskId) => normalizeText(taskId)).filter(Boolean)),
@@ -344,6 +388,7 @@ export async function getTeacherTaskMetricMaps(
       taskId: {
         $in: normalizedTaskIds,
       },
+      ...(subscriptionIds ? buildAcademicRecordSubscriptionFilter(subscriptionIds) : {}),
     })
       .select("taskId studentId")
       .lean()
@@ -355,6 +400,7 @@ export async function getTeacherTaskMetricMaps(
         $in: normalizedTaskIds,
       },
       status: "Sudah Dinilai",
+      ...(subscriptionIds ? buildAcademicRecordSubscriptionFilter(subscriptionIds) : {}),
     })
       .select("taskId studentId status")
       .lean()

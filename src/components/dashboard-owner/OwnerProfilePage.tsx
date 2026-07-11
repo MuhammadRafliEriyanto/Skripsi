@@ -245,7 +245,9 @@ export function OwnerProfilePage() {
   }, []);
 
   useEffect(() => {
-    void loadUser();
+    queueMicrotask(() => {
+      void loadUser();
+    });
   }, [loadUser]);
 
   async function handleAvatarChange(

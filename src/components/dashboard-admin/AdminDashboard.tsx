@@ -11,7 +11,6 @@ import {
   Users,
   WalletCards,
 } from "lucide-react";
-import type { ReactNode } from "react";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -58,16 +57,6 @@ import {
   AdminListPanelSkeleton,
   AdminMetricGridSkeleton,
 } from "./components/AdminLoadingState";
-import { AdminPaymentVerification } from "./AdminPaymentVerification";
-import { AdminSchedule } from "./AdminSchedule";
-import { AdminProfileTab } from "./AdminProfileTab";
-import {
-  AdminSidebar,
-  type AdminSidebarBadgeCounts,
-} from "./AdminSidebar";
-import { AdminStudents } from "./AdminStudents";
-import { AdminTeachers } from "./AdminTeachers";
-import { AdminTopbar } from "./AdminTopbar";
 import type {
   AdminSchedule as AdminScheduleItem,
   AdminStudent,
@@ -897,22 +886,6 @@ function BranchFinanceOverviewPanel({
   );
 }
 
-function DashboardPanel({
-  active,
-  mounted,
-  children,
-}: {
-  active: boolean;
-  mounted: boolean;
-  children: ReactNode;
-}) {
-  if (!mounted) {
-    return null;
-  }
-
-  return <div className={active ? "block" : "hidden"}>{children}</div>;
-}
-
 function OverviewSearchResultsSection({
   query,
   results,
@@ -1114,7 +1087,7 @@ export function AdminDashboard() {
   const searchParams = useSearchParams();
   const globalSearchQuery = searchParams.get("q") || "";
   
-  const [dashboardConfig, setDashboardConfig] = useState<AdminDashboardConfigData>(
+  const [, setDashboardConfig] = useState<AdminDashboardConfigData>(
     defaultAdminDashboardConfig,
   );
   const [paymentOverviewPeriod, setPaymentOverviewPeriod] =
@@ -1159,22 +1132,6 @@ export function AdminDashboard() {
   const [studentSummaryLoading, setStudentSummaryLoading] = useState(true);
   const [teacherSummaryLoading, setTeacherSummaryLoading] = useState(true);
   const [scheduleSummaryLoading, setScheduleSummaryLoading] = useState(true);
-
-  const [activeTab, setActiveTab] = useState<AdminTab>("overview");
-  const [mountedTabs, setMountedTabs] = useState<Set<AdminTab>>(() => new Set(["overview"]));
-
-  const selectAdminTab = useCallback((tab: AdminTab) => {
-    setMountedTabs((currentTabs) => {
-      if (currentTabs.has(tab)) {
-        return currentTabs;
-      }
-
-      const nextTabs = new Set(currentTabs);
-      nextTabs.add(tab);
-      return nextTabs;
-    });
-    setActiveTab(tab);
-  }, []);
 
   const refreshStudentSummary = useCallback(async () => {
     try {
@@ -1572,13 +1529,6 @@ export function AdminDashboard() {
       isLoading: financeLoading && !financeSummary,
     },
   ];
-  const sidebarBadgeCounts: AdminSidebarBadgeCounts = {
-    students: studentSummary.totalItems,
-    teachers: teacherSummary.totalItems,
-    schedule: scheduleSummary.totalItems,
-    payments: paymentSummary?.totalTransactions ?? 0,
-  };
-
   return (
     <div className="space-y-6">
       {globalSearchQuery.trim() ? (

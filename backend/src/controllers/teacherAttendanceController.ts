@@ -14,14 +14,16 @@ import {
   AttendanceSession,
   type AttendanceSessionDocument,
 } from "../models/AttendanceSession";
-import { Student } from "../models/Student";
 import { Teacher } from "../models/Teacher";
 import asyncHandler from "../utils/asyncHandler";
 import { AppError, sendSuccess } from "../utils/apiResponse";
 import { getNextPublicId } from "../utils/publicId";
 import { resolveStudentAcademicContentAccess } from "../utils/studentAcademicAccess";
 import { resolveStudentMembershipContentAccess } from "../utils/studentMembershipAccess";
-import { getMembershipSnapshotByUserId } from "../utils/subscription";
+import {
+  findActiveSubscriptionIdForAcademicRecord,
+  getMembershipSnapshotByUserId,
+} from "../utils/subscription";
 import {
   getStudentEffectiveAcademicJoinedAt,
   isAttendanceSessionOnOrAfterAcademicJoin,
@@ -270,12 +272,17 @@ async function ensureAttendanceRecordsForSession(
     const studentObjectId = Types.ObjectId.isValid(studentObjectIdCandidate)
       ? studentObjectIdCandidate
       : null;
+    const subscriptionId = await findActiveSubscriptionIdForAcademicRecord({
+      studentObjectId,
+      publicStudentId: studentId,
+    });
 
     await AttendanceRecord.create({
       recordId,
       sessionId: session.sessionId,
       studentId,
       studentObjectId,
+      subscriptionId,
       name: normalizeText(participant.name) || "Nama siswa belum diatur",
       status: "Belum Absen",
       note: "",

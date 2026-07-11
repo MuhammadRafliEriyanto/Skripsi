@@ -23,6 +23,7 @@ export interface IAttendanceRecord {
   sessionId: string;
   studentId: string;
   studentObjectId: Types.ObjectId | null;
+  subscriptionId: Types.ObjectId | null;
   name: string;
   status: AttendanceRecordStatus;
   note: string;
@@ -60,6 +61,11 @@ const attendanceRecordSchema = new Schema<IAttendanceRecord>(
       ref: "Student",
       default: null,
       index: true,
+    },
+    subscriptionId: {
+      type: Schema.Types.ObjectId,
+      ref: "Subscription",
+      default: null,
     },
     name: {
       type: String,

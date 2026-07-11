@@ -1,7 +1,9 @@
 import type { NextFunction, Request, Response } from "express";
+import type { FilterQuery } from "mongoose";
 
 import { Student, type StudentDocument } from "../models/Student";
-import { Schedule } from "../models/Schedule";
+import { Schedule, type ISchedule } from "../models/Schedule";
+import { Subscription } from "../models/Subscription";
 import { Teacher } from "../models/Teacher";
 import { User, type UserDocument } from "../models/User";
 import {
@@ -14,6 +16,7 @@ import {
   buildSchedulePresentation,
   type ScheduleWithTeacher,
 } from "../utils/scheduleConflicts";
+import { getCurrentAcademicPeriod } from "../utils/academicGrade";
 
 type StudentWithUser = StudentDocument & {
   userId: UserDocument | null;
@@ -126,9 +129,25 @@ async function getTeacherSchedules(
   teacherId: string,
   filters?: { academicYear?: string; semester?: string },
 ) {
-  const query: any = { teacherId };
-  if (filters?.academicYear) query.academicYear = filters.academicYear;
-  if (filters?.semester) query.semester = filters.semester;
+  const periodFilter: Record<string, string> = {};
+
+  if (filters?.academicYear) periodFilter.academicYear = filters.academicYear;
+  if (filters?.semester) periodFilter.semester = filters.semester;
+
+  const query: FilterQuery<ISchedule> = {
+    $and: [
+      { teacherId },
+      Object.keys(periodFilter).length > 0
+        ? {
+            $or: [
+              periodFilter,
+              { academicYear: null },
+              { academicYear: { $exists: false } },
+            ],
+          }
+        : {},
+    ],
+  };
 
   return (await Schedule.find(query)
     .populate<{
@@ -151,14 +170,61 @@ async function getTeacherSchedules(
 }
 
 async function getStudentsByClassKey() {
-  const students = (await Student.find()
+  const students = (await Student.find({ status: "Aktif" })
     .populate<{ userId: StudentWithUser["userId"] }>("userId")
     .sort({ createdAt: -1 })
     .exec()) as StudentWithUser[];
+  const studentObjectIds = students.map((student) => student._id).filter(Boolean);
+  const paidSubscriptions = studentObjectIds.length
+    ? await Subscription.find({
+        studentId: {
+          $in: studentObjectIds,
+        },
+        paymentStatus: "paid",
+      })
+        .select("studentId startDate endDate")
+        .lean()
+        .exec()
+    : [];
+  const now = Date.now();
+  const studentsWithPaidSubscription = new Set<string>();
+  const studentsWithActiveSubscription = new Set<string>();
+
+  for (const subscription of paidSubscriptions) {
+    const studentObjectId = subscription.studentId?.toString() ?? "";
+    const startAt = subscription.startDate ? new Date(subscription.startDate) : null;
+    const endAt = subscription.endDate ? new Date(subscription.endDate) : null;
+
+    if (!studentObjectId) {
+      continue;
+    }
+
+    studentsWithPaidSubscription.add(studentObjectId);
+
+    if (
+      startAt &&
+      endAt &&
+      !Number.isNaN(startAt.getTime()) &&
+      !Number.isNaN(endAt.getTime()) &&
+      startAt.getTime() <= now &&
+      endAt.getTime() > now
+    ) {
+      studentsWithActiveSubscription.add(studentObjectId);
+    }
+  }
 
   const studentsByClassKey = new Map<string, ReturnType<typeof toPublicStudent>[]>();
 
   for (const student of students) {
+    const studentObjectId = student._id.toString();
+
+    if (
+      studentsWithPaidSubscription.has(studentObjectId) &&
+      !studentsWithActiveSubscription.has(studentObjectId)
+    ) {
+      continue;
+    }
+
     if (!hasPopulatedUserDocument(student.userId)) {
       console.warn("[teacher-dashboard] skipped_orphan_student", {
         studentId: student.studentId,
@@ -204,13 +270,21 @@ export const getMyTeacherDashboard = asyncHandler(
       return;
     }
 
-    const { academicYear, semester } = req.query;
+    const currentPeriod = getCurrentAcademicPeriod();
+    const academicYear =
+      typeof req.query.academicYear === "string" && req.query.academicYear
+        ? req.query.academicYear
+        : currentPeriod.academicYear;
+    const semester =
+      typeof req.query.semester === "string" && req.query.semester
+        ? req.query.semester
+        : currentPeriod.semester;
     console.log("[DEBUG getMyTeacherDashboard] req.query:", req.query);
 
     const [scheduleDocuments, studentsByClassKey] = await Promise.all([
       getTeacherSchedules(teacher._id.toString(), {
-        academicYear: academicYear ? String(academicYear) : undefined,
-        semester: semester ? String(semester) : undefined,
+        academicYear,
+        semester,
       }),
       getStudentsByClassKey(),
     ]);

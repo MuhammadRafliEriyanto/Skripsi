@@ -62,24 +62,6 @@ function normalizeText(value: string | undefined | null) {
   return value?.trim().replace(/\s+/g, " ") ?? "";
 }
 
-function normalizeXenditMetadata(
-  metadata: Record<string, unknown> | null | undefined,
-) {
-  if (!metadata) {
-    return undefined;
-  }
-
-  const normalizedEntries = Object.entries(metadata)
-    .map(([key, value]) => [normalizeText(key), normalizeText(String(value ?? ""))] as const)
-    .filter(([key, value]) => key && value);
-
-  if (!normalizedEntries.length) {
-    return undefined;
-  }
-
-  return Object.fromEntries(normalizedEntries);
-}
-
 export function buildUniqueXenditReferenceId(paymentId: string) {
   const normalizedPaymentId = normalizeText(paymentId);
   const timestamp = Date.now();

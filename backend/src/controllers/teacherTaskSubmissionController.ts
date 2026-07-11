@@ -12,6 +12,10 @@ import {
   normalizeText,
 } from "../utils/classroomLearning";
 import { resolveLearningAttachmentPath } from "../utils/learningAttachmentStorage";
+import {
+  buildAcademicRecordSubscriptionFilter,
+  findActiveSubscriptionIdsForAcademicRecords,
+} from "../utils/subscription";
 import { resolveTeacherClassDetailContext } from "./teacherScheduleController";
 
 type StudentNameLookup = {
@@ -122,14 +126,22 @@ async function findTeacherSubmissionByParam(
   taskId: string,
   classId: string,
   teacherId: string,
+  subscriptionIds?: Awaited<ReturnType<typeof findActiveSubscriptionIdsForAcademicRecords>>,
 ) {
   return TaskSubmission.findOne({
-    teacherId,
-    classId,
-    taskId,
-    $or: [
-      { submissionId },
-      ...(Types.ObjectId.isValid(submissionId) ? [{ _id: submissionId }] : []),
+    $and: [
+      {
+        teacherId,
+        classId,
+        taskId,
+      },
+      subscriptionIds ? buildAcademicRecordSubscriptionFilter(subscriptionIds) : {},
+      {
+        $or: [
+          { submissionId },
+          ...(Types.ObjectId.isValid(submissionId) ? [{ _id: submissionId }] : []),
+        ],
+      },
     ],
   }).exec();
 }
@@ -372,11 +384,16 @@ export const getTeacherTaskSubmissions = asyncHandler(
     }
 
     const normalizedTaskId = normalizeText(task.taskId);
+    const participantSubscriptionIds =
+      await findActiveSubscriptionIdsForAcademicRecords({
+        publicStudentIds: participants.map((participant) => participant.studentId),
+      });
     const [submissions, grades] = await Promise.all([
       TaskSubmission.find({
         teacherId: teacher._id,
         classId: classGroup.item.id,
         taskId: normalizedTaskId,
+        ...buildAcademicRecordSubscriptionFilter(participantSubscriptionIds),
       })
         .sort({ submittedAt: -1, updatedAt: -1, createdAt: -1 })
         .lean()
@@ -385,6 +402,7 @@ export const getTeacherTaskSubmissions = asyncHandler(
         teacherId: teacher._id,
         classId: classGroup.item.id,
         taskId: normalizedTaskId,
+        ...buildAcademicRecordSubscriptionFilter(participantSubscriptionIds),
       })
         .select("studentId status score")
         .lean()
@@ -463,11 +481,16 @@ export const getTeacherTaskSubmissionDetail = asyncHandler(
     }
 
     const normalizedTaskId = normalizeText(task.taskId);
+    const participantSubscriptionIds =
+      await findActiveSubscriptionIdsForAcademicRecords({
+        publicStudentIds: participants.map((participant) => participant.studentId),
+      });
     const submission = await findTeacherSubmissionByParam(
       submissionParam,
       normalizedTaskId,
       classGroup.item.id,
       teacher._id.toString(),
+      participantSubscriptionIds,
     );
 
     if (!submission) {
@@ -482,6 +505,7 @@ export const getTeacherTaskSubmissionDetail = asyncHandler(
         classId: classGroup.item.id,
         taskId: normalizedTaskId,
         studentId: normalizeText(submission.studentId),
+        ...buildAcademicRecordSubscriptionFilter(participantSubscriptionIds),
       })
         .select("studentId status score")
         .lean()
@@ -526,7 +550,7 @@ export const downloadTeacherTaskSubmissionAttachment = asyncHandler(
       return;
     }
 
-    const { teacher, classGroup } = await resolveTeacherClassDetailContext(
+    const { teacher, classGroup, participants } = await resolveTeacherClassDetailContext(
       req.user._id.toString(),
       req.params.classId,
     );
@@ -549,11 +573,16 @@ export const downloadTeacherTaskSubmissionAttachment = asyncHandler(
       return;
     }
 
+    const participantSubscriptionIds =
+      await findActiveSubscriptionIdsForAcademicRecords({
+        publicStudentIds: participants.map((participant) => participant.studentId),
+      });
     const submission = await findTeacherSubmissionByParam(
       submissionParam,
       normalizeText(task.taskId),
       classGroup.item.id,
       teacher._id.toString(),
+      participantSubscriptionIds,
     );
 
     if (!submission?.attachment) {

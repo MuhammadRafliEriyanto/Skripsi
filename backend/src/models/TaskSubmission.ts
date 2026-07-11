@@ -22,6 +22,7 @@ export interface ITaskSubmission {
   classId: string;
   taskId: string;
   studentId: string;
+  subscriptionId: Types.ObjectId | null;
   submissionMode: TaskSubmissionMode;
   answerText: string;
   driveUrl: string;
@@ -65,6 +66,11 @@ const taskSubmissionSchema = new Schema<ITaskSubmission>(
       required: [true, "Student ID wajib diisi."],
       trim: true,
       index: true,
+    },
+    subscriptionId: {
+      type: Schema.Types.ObjectId,
+      ref: "Subscription",
+      default: null,
     },
     submissionMode: {
       type: String,

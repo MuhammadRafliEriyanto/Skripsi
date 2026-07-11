@@ -16,6 +16,8 @@ export interface IAttendanceSession {
   room: string;
   date: string;
   startTime: string;
+  academicYear?: string | null;
+  semester?: string | null;
   status: AttendanceSessionStatus;
   qrToken: string | null;
   createdAt: Date;
@@ -77,6 +79,16 @@ const attendanceSessionSchema = new Schema<IAttendanceSession>(
     startTime: {
       type: String,
       required: [true, "Jam mulai absensi wajib diisi."],
+      trim: true,
+    },
+    academicYear: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    semester: {
+      type: String,
+      default: null,
       trim: true,
     },
     status: {

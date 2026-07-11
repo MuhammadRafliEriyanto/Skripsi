@@ -65,6 +65,11 @@ const menus = [
     exact: false,
   },
   {
+    name: "Riwayat Akademik",
+    path: "/dashboard-siswa/riwayat-akademik",
+    exact: false,
+  },
+  {
     name: "Transaksi",
     path: "/dashboard-siswa/tagihan",
     exact: true,
@@ -370,7 +375,7 @@ export default function SiswaTopbar() {
     } finally {
       setIsNotificationsLoading(false);
     }
-  }, [redirectToLogin]);
+  }, []);
 
   const navigateTo = useCallback(
     (href: string) => {
