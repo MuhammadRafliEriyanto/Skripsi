@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -501,7 +500,7 @@ export default function SiswaTopbar() {
               }}
             >
               <DropdownMenuTrigger asChild>
-                <Button
+                <button
                   type="button"
                   className="relative text-white/80 transition hover:text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/20"
                   aria-label="Notifikasi siswa"
@@ -513,7 +512,7 @@ export default function SiswaTopbar() {
                     </span>
                   ) : null}
                   <span className="sr-only">Notifikasi siswa</span>
-                </Button>
+                </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-[360px] p-0 sm:w-[380px]">
                 <div className="border-b border-slate-100 px-4 py-3">
@@ -614,7 +613,7 @@ export default function SiswaTopbar() {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
+                <button
                   type="button"
                   className="flex items-center gap-2 text-white transition-all duration-200 hover:text-white/90 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/20"
                 >
@@ -640,7 +639,7 @@ export default function SiswaTopbar() {
                   </div>
 
                   <ChevronDown className="hidden size-4 text-white/80 transition-transform duration-200 md:block" />
-                </Button>
+                </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64">
                 <DropdownMenuLabel>Akun siswa</DropdownMenuLabel>
@@ -665,14 +664,14 @@ export default function SiswaTopbar() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button
+            <button
               type="button"
               className="text-white md:hidden"
               onClick={() => setMobileOpen((prev) => !prev)}
               aria-label="Toggle menu siswa"
             >
               {mobileOpen ? <X /> : <Menu />}
-            </Button>
+            </button>
           </div>
         </div>
 

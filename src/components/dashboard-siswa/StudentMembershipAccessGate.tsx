@@ -374,14 +374,14 @@ function LockedAcademicAccessView({
                   {formatRupiah(pendingPayment.amount)}
                 </p>
                 {pendingPayment.checkoutUrl ? (
-                  <Button
+                  <button
                     type="button"
                     onClick={() => openCheckoutUrl(pendingPayment.checkoutUrl)}
                     className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-orange-600 transition hover:text-orange-700"
                   >
                     Buka checkout
                     <ArrowUpRight className="h-4 w-4" />
-                  </Button>
+                  </button>
                 ) : null}
               </div>
             ) : null}
@@ -420,14 +420,14 @@ function MembershipGateBanner({
 
         <div className="flex items-center gap-2">
           {pendingPayment?.checkoutUrl ? (
-            <Button
+            <button
               type="button"
               onClick={() => openCheckoutUrl(pendingPayment.checkoutUrl)}
               className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-orange-600 px-3 text-xs font-semibold text-white transition hover:bg-orange-700"
             >
               Lanjut Bayar
               <ArrowUpRight className="h-3.5 w-3.5" />
-            </Button>
+            </button>
           ) : (
             <Link
               href={TAGIHAN_PATH}
@@ -437,14 +437,14 @@ function MembershipGateBanner({
               <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
           )}
-          <Button
+          <button
             type="button"
             onClick={onClose}
             className="flex h-9 w-9 items-center justify-center rounded-xl border border-orange-200 bg-white text-orange-600 transition hover:bg-orange-100"
             aria-label="Tutup pemberitahuan membership"
           >
             <X className="h-4 w-4" />
-          </Button>
+          </button>
         </div>
       </div>
     </div>

@@ -1,7 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import toast from "react-hot-toast";
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
@@ -127,14 +125,14 @@ function EmptyTryoutState({
       <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-500">
         {description}
       </p>
-      <Button
+      <button
         type="button"
         onClick={onRetry}
         className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-orange-200 bg-white px-5 text-sm font-semibold text-orange-700 transition hover:bg-orange-50"
       >
         <RefreshCcw className="h-4 w-4" />
         Muat Ulang
-      </Button>
+      </button>
     </section>
   );
 }
@@ -312,7 +310,7 @@ export default function ActiveTryoutPageView({ attemptId }: ActiveTryoutPageView
       normalizeText(activeSession.myAttempt?.attemptId);
 
     if (!activeAttemptId) {
-      toast.error("Sesi ujian tidak ditemukan.");
+      window.alert("Sesi ujian tidak ditemukan.");
       return;
     }
 
@@ -370,7 +368,7 @@ export default function ActiveTryoutPageView({ attemptId }: ActiveTryoutPageView
       if (fromTimer) {
         setSubmittedByTimer(false);
       }
-      toast.error(
+      window.alert(
         error instanceof Error && error.message
           ? error.message
           : "Jawaban ujian belum bisa dikirim.",
@@ -526,12 +524,12 @@ export default function ActiveTryoutPageView({ attemptId }: ActiveTryoutPageView
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-4 sm:justify-center">
-            <Button
+            <button
               onClick={() => setIsCheatModalOpen(false)}
               className="inline-flex h-11 items-center justify-center rounded-xl bg-rose-600 px-6 font-semibold text-white transition hover:bg-rose-700"
             >
               Saya Mengerti
-            </Button>
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -576,14 +574,14 @@ export default function ActiveTryoutPageView({ attemptId }: ActiveTryoutPageView
               </h2>
             </div>
 
-            <Button
+            <button
               type="button"
               onClick={handleBackToDashboard}
               className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-orange-200 bg-orange-50 px-5 text-sm font-semibold text-orange-700 transition hover:bg-orange-100"
             >
               <ArrowLeft className="h-4 w-4" />
               Kembali ke Daftar
-            </Button>
+            </button>
           </div>
 
           <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -656,7 +654,7 @@ export default function ActiveTryoutPageView({ attemptId }: ActiveTryoutPageView
                     selectedOptionId={answers[getQuestionKey(currentQuestion)]}
                   />
                 ) : (
-                  <Button
+                  <button
                     type="button"
                     onClick={() =>
                       handleToggleBookmark(getQuestionKey(currentQuestion))
@@ -672,7 +670,7 @@ export default function ActiveTryoutPageView({ attemptId }: ActiveTryoutPageView
                     {bookmarkedIds.includes(getQuestionKey(currentQuestion))
                       ? "Ditandai"
                       : "Tandai Review"}
-                  </Button>
+                  </button>
                 )}
               </div>
             </div>
@@ -693,7 +691,7 @@ export default function ActiveTryoutPageView({ attemptId }: ActiveTryoutPageView
                     isSubmitted && isSelected && !isCorrect;
 
                   return (
-                    <Button
+                    <button
                       key={option.id}
                       type="button"
                       disabled={isSubmitted || isSubmitting}
@@ -727,14 +725,14 @@ export default function ActiveTryoutPageView({ attemptId }: ActiveTryoutPageView
                       <span className="flex-1 pt-1 text-sm leading-6">
                         {option.content}
                       </span>
-                    </Button>
+                    </button>
                   );
                 })}
               </div>
             </div>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <Button
+              <button
                 type="button"
                 onClick={() =>
                   setCurrentQuestionIndex((currentIndex) =>
@@ -746,11 +744,11 @@ export default function ActiveTryoutPageView({ attemptId }: ActiveTryoutPageView
               >
                 <ArrowLeft className="h-4 w-4" />
                 Soal Sebelumnya
-              </Button>
+              </button>
 
               <div className="flex flex-wrap gap-3">
                 {!isSubmitted ? (
-                  <Button
+                  <button
                     type="button"
                     onClick={() => void handleSubmitTryout(false)}
                     disabled={isSubmitting}
@@ -764,10 +762,10 @@ export default function ActiveTryoutPageView({ attemptId }: ActiveTryoutPageView
                     {isSubmitting
                       ? "Mengirim..."
                       : `Kirim ${activeSession.assessmentLabel}`}
-                  </Button>
+                  </button>
                 ) : null}
 
-                <Button
+                <button
                   type="button"
                   onClick={() =>
                     setCurrentQuestionIndex((currentIndex) =>
@@ -779,7 +777,7 @@ export default function ActiveTryoutPageView({ attemptId }: ActiveTryoutPageView
                 >
                   Soal Berikutnya
                   <ArrowRight className="h-4 w-4" />
-                </Button>
+                </button>
               </div>
             </div>
           </section>
@@ -869,7 +867,7 @@ export default function ActiveTryoutPageView({ attemptId }: ActiveTryoutPageView
                   const questionId = getQuestionKey(question);
 
                   return (
-                    <Button
+                    <button
                       key={questionId}
                       type="button"
                       onClick={() => setCurrentQuestionIndex(index)}
@@ -883,7 +881,7 @@ export default function ActiveTryoutPageView({ attemptId }: ActiveTryoutPageView
                       )}
                     >
                       {index + 1}
-                    </Button>
+                    </button>
                   );
                 })}
               </div>

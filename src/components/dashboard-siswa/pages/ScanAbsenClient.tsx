@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -353,14 +352,14 @@ export default function ScanAbsenClient() {
                 Posisikan QR Code di area kotak
               </div>
               {visibleError ? (
-                <Button
+                <button
                   type="button"
                   onClick={handleRetryScan}
                   className="inline-flex items-center justify-center gap-2 rounded-full bg-orange-500 px-4 py-2 text-xs font-semibold text-white shadow-[0_14px_28px_-22px_rgba(249,115,22,0.8)] transition hover:bg-orange-600"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
                   Scan Ulang
-                </Button>
+                </button>
               ) : null}
             </div>
           </div>

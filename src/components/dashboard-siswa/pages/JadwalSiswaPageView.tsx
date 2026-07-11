@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useState } from "react";
 import type { LucideIcon } from "lucide-react";
@@ -292,7 +291,7 @@ export default function JadwalSiswaPageView() {
                   const isActive = selectedDay === day;
 
                   return (
-                    <Button
+                    <button
                       key={day}
                       type="button"
                       onClick={() => selectDay(day)}
@@ -304,7 +303,7 @@ export default function JadwalSiswaPageView() {
                       )}
                     >
                       {day}
-                    </Button>
+                    </button>
                   );
                 })}
               </div>
@@ -318,7 +317,7 @@ export default function JadwalSiswaPageView() {
                     currentDay.toLowerCase();
 
                   return (
-                    <Button
+                    <button
                       key={schedule.id}
                       type="button"
                       onClick={() => setSelectedScheduleId(schedule.id)}
@@ -399,7 +398,7 @@ export default function JadwalSiswaPageView() {
                           <ChevronRight className="h-3.5 w-3.5" />
                         </Link>
                       </div>
-                    </Button>
+                    </button>
                   );
                 })}
               </div>

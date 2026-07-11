@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import {
   BookOpen,
@@ -116,14 +115,14 @@ export default function MateriSiswaPageView() {
               </div>
 
               <div className="mt-5 flex flex-wrap gap-2">
-                <Button
+                <button
                   type="button"
                   onClick={() => setSelectedMaterialId(selectedMaterial.id)}
                   className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-red-800 via-orange-600 to-amber-500 px-5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-px"
                 >
                   <PlayCircle className="h-4 w-4" />
                   Lihat Materi
-                </Button>
+                </button>
                 <a
                   href={selectedMaterial.downloadUrl}
                   download={selectedMaterial.downloadName}
@@ -132,13 +131,13 @@ export default function MateriSiswaPageView() {
                   <Download className="h-4 w-4" />
                   Download Materi
                 </a>
-                <Button
+                <button
                   type="button"
                   className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-orange-200 bg-white px-5 text-sm font-semibold text-orange-700 transition hover:bg-orange-50"
                 >
                   <CalendarClock className="h-4 w-4" />
                   Simpan ke Jadwal Belajar
-                </Button>
+                </button>
               </div>
             </section>
 
@@ -233,14 +232,14 @@ export default function MateriSiswaPageView() {
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      <Button
+                      <button
                         type="button"
                         onClick={() => setSelectedMaterialId(material.id)}
                         className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
                       >
                         <Eye className="h-3.5 w-3.5" />
                         Lihat Materi
-                      </Button>
+                      </button>
                       <a
                         href={material.downloadUrl}
                         download={material.downloadName}

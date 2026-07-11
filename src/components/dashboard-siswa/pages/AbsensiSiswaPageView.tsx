@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
   ChevronRight,
@@ -271,14 +270,14 @@ export default function AbsensiSiswaPageView() {
                     {selectedGroup.branch ? ` | ${selectedGroup.branch}` : ""}
                   </p>
                 </div>
-                <Button
+                <button
                   type="button"
                   onClick={() => setSelectedGroupKey(null)}
                   className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-2xl border border-orange-200 bg-white px-4 text-sm font-semibold text-orange-700 transition hover:bg-orange-50"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   Kembali
-                </Button>
+                </button>
               </div>
 
               <div className="overflow-x-auto">

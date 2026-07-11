@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import {
@@ -592,7 +591,7 @@ export default function FlexibleSubmissionPanel({
           const isActive = resolvedActiveMode === mode;
 
           return (
-            <Button
+            <button
               key={mode}
               type="button"
               onClick={() => handleModeChange(mode)}
@@ -604,7 +603,7 @@ export default function FlexibleSubmissionPanel({
             >
               <Icon className="h-4 w-4" />
               {meta.label}
-            </Button>
+            </button>
           );
         })}
       </div>
@@ -642,13 +641,13 @@ export default function FlexibleSubmissionPanel({
               Format file bebas sesuai kebutuhan tugas, maksimal{" "}
               {MAX_ATTACHMENT_SIZE_LABEL}.
             </p>
-            <Button
+            <button
               type="button"
               onClick={handlePickFile}
               className="mt-4 inline-flex h-11 items-center justify-center rounded-2xl border border-orange-200 bg-white px-5 text-sm font-semibold text-orange-700 transition hover:bg-orange-50"
             >
               Pilih File
-            </Button>
+            </button>
 
             {selectedFile ? (
               <div className="mt-4 rounded-2xl border border-orange-100 bg-white/90 px-4 py-3 text-left">
@@ -662,13 +661,13 @@ export default function FlexibleSubmissionPanel({
                   <span className="text-xs text-slate-400">
                     {formatFileSize(selectedFile.size)}
                   </span>
-                  <Button
+                  <button
                     type="button"
                     onClick={handleClearSelectedFile}
                     className="text-xs font-semibold text-orange-600 hover:underline"
                   >
                     Batalkan file baru
-                  </Button>
+                  </button>
                 </div>
               </div>
             ) : currentAttachment ? (
@@ -802,7 +801,7 @@ export default function FlexibleSubmissionPanel({
           </div>
         ) : null}
 
-        <Button
+        <button
           type="button"
           disabled={isSubmitting || isLoadingSubmission}
           onClick={() => {
@@ -816,7 +815,7 @@ export default function FlexibleSubmissionPanel({
             <Send className="h-4 w-4" />
           )}
           {hasExistingSubmission ? "Update Submission" : submitLabel}
-        </Button>
+        </button>
       </div>
     </div>
   );
