@@ -82,7 +82,10 @@ export default function StudentAttendanceScanPageClient({
   initialSessionId = "",
   initialToken = "",
 }: StudentAttendanceScanPageClientProps) {
-  const sessionId = useMemo(() => normalizeText(initialSessionId), [initialSessionId]);
+  const sessionId = useMemo(
+    () => normalizeText(initialSessionId),
+    [initialSessionId],
+  );
   const token = useMemo(() => normalizeText(initialToken), [initialToken]);
   const [screenState, setScreenState] = useState<ScanScreenState>("loading");
   const [message, setMessage] = useState("Memproses absensi QR...");
@@ -93,7 +96,10 @@ export default function StudentAttendanceScanPageClient({
 
   const loginHref = useMemo(() => {
     const params = new URLSearchParams();
-    params.set("next", `/absensi/scan?sessionId=${encodeURIComponent(sessionId)}&token=${encodeURIComponent(token)}`);
+    params.set(
+      "next",
+      `/absensi/scan?sessionId=${encodeURIComponent(sessionId)}&token=${encodeURIComponent(token)}`,
+    );
     return `/login?${params.toString()}`;
   }, [sessionId, token]);
 
@@ -170,7 +176,8 @@ export default function StudentAttendanceScanPageClient({
             token,
           }),
         });
-        const payload = await readJsonResponse<StudentAttendanceScanResponse>(response);
+        const payload =
+          await readJsonResponse<StudentAttendanceScanResponse>(response);
 
         if (isCancelled) {
           return;

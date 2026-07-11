@@ -141,7 +141,7 @@ export default function DetailPertemuanTable({
                           onClick={() => {
                             if (
                               window.confirm(
-                                "Hapus materi ini dari pertemuan kelas?",
+                                "Apakah Anda yakin ingin menghapus materi ini?",
                               )
                             ) {
                               onDelete(material.id);

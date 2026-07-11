@@ -152,7 +152,7 @@ export default function TugasPertemuanTable({
                           onClick={() => {
                             if (
                               window.confirm(
-                                "Hapus latihan ini dari daftar pertemuan kelas?",
+                                "Apakah Anda yakin ingin menghapus latihan ini?",
                               )
                             ) {
                               onDelete(task.id);

@@ -133,7 +133,7 @@ function EmptyProgramState({ message }: { message: string }) {
       </div>
       <p className="text-xs font-semibold text-slate-600">{message}</p>
       <p className="text-[11px] text-gray-400">
-        Akses menu ini disesuaikan dengan kesiapan modul pada dashboard guru.
+        Fitur ini sedang disiapkan dan akan segera tersedia untuk Anda.
       </p>
     </div>
   );
@@ -391,7 +391,7 @@ export default function HeaderGuruSection() {
               Halo, {profile.nama}
             </p>
             <div className="overflow-hidden whitespace-nowrap mt-0.5 md:mt-1">
-              <p className="animate-marquee text-xs text-slate-500 md:text-sm">
+              <p className="text-xs text-slate-500 md:text-sm">
                 Kelola kelas, materi, penilaian, dan evaluasi dari satu panel kerja yang ringkas.
               </p>
             </div>
@@ -414,17 +414,19 @@ export default function HeaderGuruSection() {
         
         <div className="grid grid-cols-1 gap-3">
           <div className="relative">
-            <select
+            <Select
               value={rawAcademicYear}
-              onChange={(e) => handlePeriodChange("academicYear", e.target.value)}
-              className="w-full appearance-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 pr-8 text-xs font-medium text-gray-700 transition focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400"
+              onValueChange={(value) => handlePeriodChange("academicYear", value)}
             >
-              <option value="" disabled>--Pilih Tahun Ajaran--</option>
-              {academicYearOptions.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-gray-500" />
+              <SelectTrigger className="w-full rounded-xl border-gray-200 bg-gray-50 focus:ring-orange-400 h-9 text-xs">
+                <SelectValue placeholder="--Pilih Tahun Ajaran--" />
+              </SelectTrigger>
+              <SelectContent>
+                {academicYearOptions.map((opt) => (
+                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
@@ -444,24 +446,25 @@ export default function HeaderGuruSection() {
             </div>
 
             <div className="relative">
-              <select
+              <Select
                 value={selectedProgram?.name ?? ""}
-                onChange={(event) => {
-                  setProgram(event.target.value);
-                  const nextProgram = guruConfig.find(
-                    (item) => item.name === event.target.value,
-                  );
+                onValueChange={(value) => {
+                  setProgram(value);
+                  const nextProgram = guruConfig.find((item) => item.name === value);
                   setActiveTab(nextProgram?.tabs[0]?.name ?? "");
                 }}
-                className="w-full appearance-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 pr-10 text-sm font-medium text-gray-700 transition focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100"
               >
-                {guruConfig.map((item) => (
-                  <option key={item.name} value={item.name}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                <SelectTrigger className="w-full rounded-xl border-gray-200 bg-gray-50 focus:ring-orange-100 h-11 text-sm px-4">
+                  <SelectValue placeholder="Pilih Program" />
+                </SelectTrigger>
+                <SelectContent>
+                  {guruConfig.map((item) => (
+                    <SelectItem key={item.name} value={item.name}>
+                      {item.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {tabs.length > 0 ? (
@@ -508,31 +511,30 @@ export default function HeaderGuruSection() {
                       {selectedTab.enabled ? (
                         profile.totalClasses > 0 || selectedTab.name === "Ujian" ? (
                           <>
-                            <button
-                              type="button"
+                            <Button
                               onClick={() => handleNavigation(selectedTab.href)}
-                              className="rounded-xl bg-orange-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-orange-700"
+                              className="rounded-xl bg-orange-600 hover:bg-orange-700 text-xs h-9 px-4"
                             >
                               Buka Sekarang
-                            </button>
-                            <button
-                              type="button"
+                            </Button>
+                            <Button
+                              variant="outline"
                               onClick={() => handleNavigation(selectedTab.href)}
-                              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
+                              className="rounded-xl text-xs h-9 px-4 border-slate-200 hover:bg-slate-50"
                             >
                               Lihat Detail
-                            </button>
+                            </Button>
                           </>
                         ) : null
                       ) : (
-                        <button
-                          type="button"
-                          className="inline-flex h-10 items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-5 text-sm font-semibold text-orange-700 md:h-11 md:px-6"
+                        <Button
+                          variant="outline"
                           disabled
+                          className="rounded-xl border-orange-200 bg-orange-50 text-orange-700 h-10 md:h-11 px-5 md:px-6 font-semibold opacity-70"
                         >
-                          <Lock className="h-4 w-4" />
+                          <Lock className="h-4 w-4 mr-2" />
                           Menunggu Integrasi
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </div>

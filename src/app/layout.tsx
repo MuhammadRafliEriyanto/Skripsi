@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
+import { Toaster } from "react-hot-toast";
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans', preload: false });
 
@@ -24,6 +25,7 @@ export default function RootLayout({
     <html lang="id" className={cn("h-full antialiased", "font-sans", geist.variable)} suppressHydrationWarning data-scroll-behavior="smooth">
       <body className="min-h-full bg-background text-foreground">
         <div className="relative min-h-screen">{children}</div>
+        <Toaster position="bottom-right" />
       </body>
     </html>
   );

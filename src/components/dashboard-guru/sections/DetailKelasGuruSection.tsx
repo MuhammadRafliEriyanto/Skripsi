@@ -276,6 +276,7 @@ type TeacherClassAcademicGradeMutationResponse = {
 };
 
 import { buildGuruApiUrl } from "@/lib/guru-helpers";
+import toast from "react-hot-toast";
 
 type TeacherClassSettingMutationResponse = {
   success: boolean;
@@ -2028,7 +2029,7 @@ export default function DetailKelasGuruSection({
     );
 
     if (!Number.isInteger(normalizedTarget) || normalizedTarget < 1) {
-      window.alert("Target total pertemuan wajib berupa angka bulat minimal 1.");
+      toast.error("Target total pertemuan wajib berupa angka bulat minimal 1.");
       return;
     }
 
@@ -2049,7 +2050,7 @@ export default function DetailKelasGuruSection({
       setMeetingTargetDraft(String(savedTargetMeetingCount));
       setIsMeetingTargetEditing(false);
     } catch (error) {
-      window.alert(
+      toast.error(
         error instanceof Error
           ? error.message
           : "Target total pertemuan belum bisa disimpan.",
@@ -2120,7 +2121,7 @@ export default function DetailKelasGuruSection({
 
       setSelectedSubmissionDetail(submissionDetail);
     } catch (error) {
-      window.alert(
+      toast.error(
         error instanceof Error
           ? error.message
           : "Detail submission latihan belum bisa diambil.",
@@ -2161,7 +2162,7 @@ export default function DetailKelasGuruSection({
         void handleSelectTaskSubmission(submissions[0].submissionId, task);
       }
     } catch (error) {
-      window.alert(
+      toast.error(
         error instanceof Error
           ? error.message
           : "Daftar submission latihan belum bisa diambil.",
@@ -2207,7 +2208,7 @@ export default function DetailKelasGuruSection({
 
   function handleMateriAttachmentChange(file: File | null) {
     if (file && file.size > MAX_ATTACHMENT_SIZE_BYTES) {
-      window.alert(`Ukuran lampiran materi maksimal ${ATTACHMENT_LIMIT_LABEL}.`);
+      toast.error(`Ukuran lampiran materi maksimal ${ATTACHMENT_LIMIT_LABEL}.`);
       return;
     }
 
@@ -2244,7 +2245,7 @@ export default function DetailKelasGuruSection({
       !materiDraft.judulMateri.trim() ||
       !materiDraft.deskripsi.trim()
     ) {
-      window.alert("Lengkapi tanggal, judul materi, dan deskripsi terlebih dahulu.");
+      toast.error("Mohon lengkapi tanggal, judul materi, dan deskripsi terlebih dahulu.");
       return;
     }
 
@@ -2265,7 +2266,7 @@ export default function DetailKelasGuruSection({
       setMateriAttachmentFile(null);
       setMateriAttachmentMarkedForRemoval(false);
     } catch (error) {
-      window.alert(
+      toast.error(
         error instanceof Error
           ? error.message
           : "Materi kelas belum bisa disimpan.",
@@ -2280,7 +2281,7 @@ export default function DetailKelasGuruSection({
         current.filter((material) => material.id !== materialId),
       );
     } catch (error) {
-      window.alert(
+      toast.error(
         error instanceof Error
           ? error.message
           : "Materi kelas belum bisa dihapus.",
@@ -2325,7 +2326,7 @@ export default function DetailKelasGuruSection({
 
   function handleTugasAttachmentChange(file: File | null) {
     if (file && file.size > MAX_ATTACHMENT_SIZE_BYTES) {
-      window.alert(`Ukuran lampiran latihan maksimal ${ATTACHMENT_LIMIT_LABEL}.`);
+      toast.error(`Ukuran lampiran latihan maksimal ${ATTACHMENT_LIMIT_LABEL}.`);
       return;
     }
 
@@ -2362,7 +2363,7 @@ export default function DetailKelasGuruSection({
       !tugasDraft.judulTugas.trim() ||
       !tugasDraft.deskripsi.trim()
     ) {
-      window.alert("Lengkapi judul latihan, deskripsi, dan deadline terlebih dahulu.");
+      toast.error("Mohon isi judul latihan, deskripsi, dan tenggat waktu terlebih dahulu.");
       return;
     }
 
@@ -2383,7 +2384,7 @@ export default function DetailKelasGuruSection({
       setTugasAttachmentFile(null);
       setTugasAttachmentMarkedForRemoval(false);
     } catch (error) {
-      window.alert(
+      toast.error(
         error instanceof Error ? error.message : "Latihan kelas belum bisa disimpan.",
       );
     }
@@ -2411,7 +2412,7 @@ export default function DetailKelasGuruSection({
         return nextGradeEntries;
       });
     } catch (error) {
-      window.alert(
+      toast.error(
         error instanceof Error ? error.message : "Latihan kelas belum bisa dihapus.",
       );
     }
@@ -2452,7 +2453,7 @@ export default function DetailKelasGuruSection({
     const nextStudentId = findDefaultStudentIdForTask(task.id);
 
     if (!nextStudentId) {
-      window.alert("Belum ada siswa aktif untuk diberi nilai.");
+      toast.error("Belum ada siswa aktif untuk diberi nilai.");
       return;
     }
 
@@ -2590,7 +2591,7 @@ export default function DetailKelasGuruSection({
       setSelectedTaskForScore(null);
       setNilaiDraft(null);
     } catch (error) {
-      window.alert(
+      toast.error(
         error instanceof Error ? error.message : "Nilai siswa belum bisa disimpan.",
       );
     }

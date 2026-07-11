@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/dialog";
 import { clearAuthClientState } from "@/lib/auth";
 import { buildGuruApiUrl, getSelectedAcademicPeriod } from "@/lib/guru-helpers";
+import toast from "react-hot-toast";
 
 type TryoutJenjang = "SD" | "SMP" | "SMA";
 type AssessmentType = "UTS" | "UAS" | "Tryout";
@@ -1884,7 +1885,7 @@ export default function TryoutGuruSection() {
 
   function handleOpenManualManagerFromForm() {
     if (!draftTryout?.id) {
-      window.alert(
+      toast.error(
         "Simpan ujian sebagai draft terlebih dahulu sebelum menambahkan soal manual.",
       );
       return;
@@ -1893,7 +1894,7 @@ export default function TryoutGuruSection() {
     const persistedTryout = tryouts.find((item) => item.id === draftTryout.id);
 
     if (persistedTryout?.publishStatus !== "Draft") {
-      window.alert(DRAFT_ONLY_QUESTION_MESSAGE);
+      toast.error(DRAFT_ONLY_QUESTION_MESSAGE);
       return;
     }
 
@@ -1903,7 +1904,7 @@ export default function TryoutGuruSection() {
 
   function handleOpenFileUploaderFromForm() {
     if (!draftTryout?.id) {
-      window.alert(
+      toast.error(
         "Lengkapi metadata ujian, lalu klik Simpan & Lanjut Upload XLSX untuk memilih file soal.",
       );
       return;
@@ -1912,7 +1913,7 @@ export default function TryoutGuruSection() {
     const persistedTryout = tryouts.find((item) => item.id === draftTryout.id);
 
     if (persistedTryout?.publishStatus !== "Draft") {
-      window.alert(DRAFT_ONLY_QUESTION_MESSAGE);
+      toast.error(DRAFT_ONLY_QUESTION_MESSAGE);
       return;
     }
 
@@ -1936,7 +1937,7 @@ export default function TryoutGuruSection() {
       !draftForSave.tanggalMulai ||
       !draftForSave.tanggalSelesai
     ) {
-      window.alert(
+      toast.error(
         "Pilih kelas, lalu lengkapi judul, tanggal mulai, dan tanggal selesai.",
       );
       return;
@@ -1946,12 +1947,12 @@ export default function TryoutGuruSection() {
       new Date(draftForSave.tanggalSelesai) <=
       new Date(draftForSave.tanggalMulai)
     ) {
-      window.alert("Tanggal selesai harus lebih besar dari tanggal mulai.");
+      toast.error("Tanggal selesai harus lebih besar dari tanggal mulai.");
       return;
     }
 
     if (draftForSave.durasiMenit < 15) {
-      window.alert("Durasi assessment minimal 15 menit.");
+      toast.error("Durasi assessment minimal 15 menit.");
       return;
     }
 
@@ -1959,7 +1960,7 @@ export default function TryoutGuruSection() {
       draftForSave.publishStatus === "Published" &&
       !isTryoutQuestionSourceReady(draftForSave.questionSource)
     ) {
-      window.alert(
+      toast.error(
         "Sumber soal ini belum siap dipublish.",
       );
       return;
@@ -1969,7 +1970,7 @@ export default function TryoutGuruSection() {
       draftForSave.publishStatus === "Published" &&
       draftForSave.jumlahSoal === 0
     ) {
-      window.alert(
+      toast.error(
         draftForSave.questionSource === "manual"
           ? "Ujian manual belum dapat dipublish karena belum memiliki soal."
           : "Ujian belum dapat dipublish karena sumber soal belum siap.",
@@ -2022,7 +2023,7 @@ export default function TryoutGuruSection() {
       }
     } catch (error) {
       console.error("[tryout-guru-section] save_tryout_failed", error);
-      window.alert(
+      toast.error(
         error instanceof Error && error.message
           ? error.message
           : "Tryout guru belum bisa disimpan.",
@@ -2037,7 +2038,7 @@ export default function TryoutGuruSection() {
     const targetTryout = tryouts.find((item) => item.id === tryoutId);
 
     if (!targetTryout || targetTryout.publishStatus !== "Draft") {
-      window.alert("Ujian hanya dapat dihapus saat masih berstatus draft.");
+      toast.error("Ujian hanya bisa dihapus jika masih berstatus draft.");
       return;
     }
 
@@ -2066,7 +2067,7 @@ export default function TryoutGuruSection() {
       setLoadError(null);
     } catch (error) {
       console.error("[tryout-guru-section] delete_tryout_failed", error);
-      window.alert(
+      toast.error(
         error instanceof Error && error.message
           ? error.message
           : "Tryout guru belum bisa dihapus.",
@@ -2082,7 +2083,7 @@ export default function TryoutGuruSection() {
       targetTryout.publishStatus === "Draft" &&
       !isTryoutQuestionSourceReady(targetTryout.questionSource)
     ) {
-      window.alert(
+      toast.error(
         "Sumber soal ini belum siap dipublish.",
       );
       return;
@@ -2093,7 +2094,7 @@ export default function TryoutGuruSection() {
       targetTryout.publishStatus === "Draft" &&
       targetTryout.jumlahSoal === 0
     ) {
-      window.alert(
+      toast.error(
         targetTryout.questionSource === "manual"
       ? "Ujian manual belum dapat dipublish karena belum memiliki soal."
       : "Ujian belum dapat dipublish karena sumber soal belum siap.",
@@ -2109,7 +2110,7 @@ export default function TryoutGuruSection() {
       targetTryout.publishStatus === "Draft" &&
       !isTryoutReadyToPublish(targetTryout)
     ) {
-      window.alert(
+      toast.error(
         "Lengkapi judul, kelas, mapel, durasi, dan minimal 1 soal sebelum publish.",
       );
       return;
@@ -2164,7 +2165,7 @@ export default function TryoutGuruSection() {
       setLoadError(null);
     } catch (error) {
       console.error("[tryout-guru-section] toggle_publish_failed", error);
-      window.alert(
+      toast.error(
         error instanceof Error && error.message
           ? error.message
           : "Status tryout belum bisa diperbarui.",
@@ -2229,12 +2230,12 @@ export default function TryoutGuruSection() {
     }
 
     if (uploadTargetTryout?.publishStatus !== "Draft") {
-      window.alert(DRAFT_ONLY_QUESTION_MESSAGE);
+      toast.error(DRAFT_ONLY_QUESTION_MESSAGE);
       return;
     }
 
     if (!/\.(xlsx|xls)$/i.test(file.name)) {
-      window.alert("File soal wajib berformat .xlsx atau .xls.");
+      toast.error("Format file tidak didukung. Harap unggah file .xlsx atau .xls.");
       return;
     }
 
@@ -2302,7 +2303,7 @@ export default function TryoutGuruSection() {
     }
 
     if (uploadTargetTryout.publishStatus !== "Draft") {
-      window.alert(DRAFT_ONLY_QUESTION_MESSAGE);
+      toast.error(DRAFT_ONLY_QUESTION_MESSAGE);
       return;
     }
 
@@ -2315,7 +2316,7 @@ export default function TryoutGuruSection() {
     ];
 
     if (fields.some((field) => !field.trim())) {
-      window.alert("Lengkapi pertanyaan dan seluruh opsi jawaban terlebih dahulu.");
+      toast.error("Mohon lengkapi pertanyaan dan semua opsi jawaban terlebih dahulu.");
       return;
     }
 
@@ -2374,7 +2375,7 @@ export default function TryoutGuruSection() {
       );
     } catch (error) {
       console.error("[tryout-guru-section] save_question_failed", error);
-      window.alert(
+      toast.error(
         error instanceof Error && error.message
           ? error.message
           : "Soal tryout belum bisa disimpan.",
@@ -2394,7 +2395,7 @@ export default function TryoutGuruSection() {
     }
 
     if (uploadTargetTryout.publishStatus !== "Draft") {
-      window.alert(DRAFT_ONLY_QUESTION_MESSAGE);
+      toast.error(DRAFT_ONLY_QUESTION_MESSAGE);
       return;
     }
 
@@ -2430,7 +2431,7 @@ export default function TryoutGuruSection() {
       await loadManualQuestions(selectedUploadTryoutId);
     } catch (error) {
       console.error("[tryout-guru-section] delete_question_failed", error);
-      window.alert(
+      toast.error(
         error instanceof Error && error.message
           ? error.message
           : "Soal tryout belum bisa dihapus.",
@@ -2452,7 +2453,7 @@ export default function TryoutGuruSection() {
     }
 
     if (uploadTargetTryout.publishStatus !== "Draft") {
-      window.alert(DRAFT_ONLY_QUESTION_MESSAGE);
+      toast.error(DRAFT_ONLY_QUESTION_MESSAGE);
       return;
     }
 
@@ -2503,7 +2504,7 @@ export default function TryoutGuruSection() {
       await loadManualQuestions(selectedUploadTryoutId);
     } catch (error) {
       console.error("[tryout-guru-section] reorder_question_failed", error);
-      window.alert(
+      toast.error(
         error instanceof Error && error.message
           ? error.message
           : "Urutan soal tryout belum bisa diperbarui.",
