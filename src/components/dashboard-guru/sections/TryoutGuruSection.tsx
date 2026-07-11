@@ -1,4 +1,5 @@
 /*  */"use client";
+import toast from "react-hot-toast";
 
 import {
   useCallback,
@@ -39,7 +40,6 @@ import {
 } from "@/components/ui/dialog";
 import { clearAuthClientState } from "@/lib/auth";
 import { buildGuruApiUrl, getSelectedAcademicPeriod } from "@/lib/guru-helpers";
-import toast from "react-hot-toast";
 
 type TryoutJenjang = "SD" | "SMP" | "SMA";
 type AssessmentType = "UTS" | "UAS" | "Tryout";
@@ -1035,201 +1035,6 @@ function getTryoutQuestionStatusLabel(item: Pick<TryoutItem, "questionSource" | 
 
   return item.jumlahSoal > 0 ? "Soal Siap" : "Menunggu Soal";
 }
-}
-
-function createEmptyTryoutDraft(
-  jenjang: TryoutJenjang,
-  branch = "",
-): TryoutDraft {
-  return {
-    id: "",
-    branch,
-    assessmentType: "Tryout",
-    judulTryout: "",
-    jenjang,
-    kelas: FINAL_CLASS_BY_JENJANG[jenjang],
-    mapel: "",
-    stage: 1,
-    jumlahSoal: 0,
-    durasiMenit: 90,
-    tanggalMulai: "",
-    tanggalSelesai: "",
-    publishStatus: "Draft",
-    questionSource: "file",
-    questionBankId: undefined,
-    fileName: undefined,
-  };
-}
-
-function createEmptyQuestionDraft(): QuestionDraft {
-  return {
-    pertanyaan: "",
-    opsiA: "",
-    opsiB: "",
-    opsiC: "",
-    opsiD: "",
-    jawabanBenar: "A",
-  };
-}
-
-function createQuestionDraftFromQuestion(question: TryoutQuestion): QuestionDraft {
-  return {
-    pertanyaan: question.pertanyaan,
-    opsiA: question.opsiA,
-    opsiB: question.opsiB,
-    opsiC: question.opsiC,
-    opsiD: question.opsiD,
-    jawabanBenar: question.jawabanBenar,
-  };
-}
-
-function formatDateTime(value: string) {
-  if (!value) {
-    return "-";
-  }
-
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
-
-function formatScheduleRange(start: string, end: string) {
-  return `${formatDateTime(start)} - ${formatDateTime(end)}`;
-}
-
-function normalizeTryoutDraft(
-  draft: TryoutDraft,
-  tryouts: TryoutItem[],
-): TryoutDraft {
-  if (draft.questionSource === "bank") {
-    return {
-      ...draft,
-      questionBankId: draft.questionBankId,
-      fileName: undefined,
-    };
-  }
-
-  if (draft.questionSource === "file") {
-    return {
-      ...draft,
-      questionBankId: undefined,
-    };
-  }
-
-  const existingTryout = tryouts.find((item) => item.id === draft.id);
-
-  return {
-    ...draft,
-    jumlahSoal: Math.max(
-      existingTryout?.jumlahSoal ?? 0,
-      existingTryout?.soal.length ?? 0,
-    ),
-    questionBankId: undefined,
-    fileName: undefined,
-  };
-}
-
-function forceFileUploadDraftBeforeUpload(draft: TryoutDraft): TryoutDraft {
-  if (draft.questionSource !== "file" || draft.jumlahSoal > 0) {
-    return draft;
-  }
-
-  return {
-    ...draft,
-    publishStatus: "Draft",
-  };
-}
-
-function getPublishBadgeClass(status: PublishStatus) {
-  return status === "Published"
-    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-    : "border-slate-200 bg-slate-50 text-slate-600";
-}
-
-function getQuestionBadgeClass(totalQuestion: number) {
-  return totalQuestion > 0
-    ? "border-orange-200 bg-orange-50 text-orange-700"
-    : "border-amber-200 bg-amber-50 text-amber-700";
-}
-
-function getResultStatusClass(status: ResultStatus) {
-  if (status === "Sangat Baik") {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  }
-
-  if (status === "Baik") {
-    return "border-sky-200 bg-sky-50 text-sky-700";
-  }
-
-  return "border-orange-200 bg-orange-50 text-orange-700";
-}
-
-function getQuestionSourceLabel(source: QuestionSource) {
-  if (source === "bank") {
-    return "Bank Soal";
-  }
-
-  if (source === "file") {
-    return "File";
-  }
-
-  return "Manual";
-}
-
-function getQuestionSourceBadgeClass(source: QuestionSource) {
-  if (source === "bank") {
-    return "border-orange-200 bg-orange-50 text-orange-700";
-  }
-
-  if (source === "file") {
-    return "border-sky-200 bg-sky-50 text-sky-700";
-  }
-
-  return "border-emerald-200 bg-emerald-50 text-emerald-700";
-}
-
-function isTryoutQuestionSourceReady(source: QuestionSource) {
-  return source === "manual" || source === "file";
-}
-
-function isTryoutReadyToPublish(item: TryoutItem) {
-  return Boolean(
-    normalizeText(item.judulTryout) &&
-      (normalizeText(item.canonicalClassName) || normalizeText(item.kelas)) &&
-      normalizeText(item.mapel) &&
-      item.durasiMenit > 0 &&
-      item.jumlahSoal > 0 &&
-      isTryoutQuestionSourceReady(item.questionSource),
-  );
-}
-
-function getTryoutQuestionCountLabel(item: Pick<TryoutItem, "questionSource" | "jumlahSoal">) {
-  if (item.questionSource === "manual") {
-    return `${item.jumlahSoal} soal`;
-  }
-
-  if (item.questionSource === "bank") {
-    return `${item.jumlahSoal} soal bank`;
-  }
-
-  return item.jumlahSoal > 0 ? `${item.jumlahSoal} soal XLSX` : "Menunggu Upload";
-}
-
-function getTryoutQuestionStatusLabel(item: Pick<TryoutItem, "questionSource" | "jumlahSoal">) {
-  if (item.questionSource === "file") {
-    return item.jumlahSoal > 0 ? "File Siap" : "Menunggu File";
-  }
-
-  if (item.questionSource === "bank") {
-    return item.jumlahSoal > 0 ? "Bank Siap" : "Bank Kosong";
-  }
-
-  return item.jumlahSoal > 0 ? "Soal Siap" : "Menunggu Soal";
-}
 
 function getQuestionSourceDetail(item: TryoutItem) {
   if (item.questionSource === "bank") {
@@ -1237,7 +1042,7 @@ function getQuestionSourceDetail(item: TryoutItem) {
 
     return packageLabel
       ? `Bank soal terhubung: ${packageLabel}`
-      : "Bank soal terhubung ke sistem.";
+      : "Bank soal terhubung dari backend.";
   }
 
   if (item.questionSource === "file") {
@@ -1374,6 +1179,788 @@ function TryoutFormDialog({
 }) {
   const isFileSource = draft?.questionSource === "file";
   const isManualSource = draft?.questionSource === "manual";
+  const selectedClassOption =
+    classOptions.find((option) => option.id === draft?.classId) ??
+    classOptions.find(
+      (option) =>
+        option.branch === draft?.branch &&
+        option.canonicalClassName === draft?.canonicalClassName,
+    ) ??
+    null;
+  const allowedAssessmentTypes: AssessmentType[] =
+    selectedClassOption?.assessmentMode === "tryout"
+      ? ["Tryout"]
+      : ["UTS", "UAS"];
+  const currentAssessmentType =
+    draft?.assessmentType ??
+    (selectedClassOption?.assessmentMode === "tryout" ? "Tryout" : "UTS");
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => !isOpen && !isSubmitting && onClose()}
+    >
+      <DialogContent className="max-h-[85vh] max-w-3xl gap-0 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] rounded-[24px] border border-orange-100 bg-white p-0 [&>button]:rounded-full [&>button]:border [&>button]:border-orange-100 [&>button]:bg-white [&>button]:text-slate-400 [&>button]:hover:bg-orange-50 [&>button]:hover:text-orange-700">
+        <DialogHeader className="border-b border-orange-100 bg-gradient-to-r from-orange-50/90 via-white to-amber-50/70 px-4 py-4 md:px-5">
+          <DialogTitle>
+            {mode === "add" ? "Tambah Assessment Baru" : "Edit Assessment"}
+          </DialogTitle>
+          <DialogDescription>
+            Isi detail ujian di bawah ini.
+          </DialogDescription>
+        </DialogHeader>
+
+        {questionsLocked ? (
+          <div className="mx-4 mt-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 md:mx-5">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              Soal terkunci karena ujian sudah dipublish. Ubah status menjadi
+              Draft terlebih dahulu untuk mengelola soal.
+            </span>
+          </div>
+        ) : null}
+
+        <div className="grid gap-4 px-4 py-4 md:grid-cols-2 md:px-5">
+          <label className="grid gap-2 md:col-span-2">
+            <span className={LABEL_CLASS}>Judul Ujian</span>
+            <input
+              type="text"
+              value={draft?.judulTryout ?? ""}
+              onChange={(event) => onChange("judulTryout", event.target.value)}
+              placeholder="Contoh: UTS Bahasa Indonesia Kelas 8"
+              className={FIELD_CLASS}
+            />
+          </label>
+
+          <label className="grid gap-2 md:col-span-2">
+            <span className={LABEL_CLASS}>Kelas yang Diajar</span>
+            <select
+              value={draft?.classId ?? ""}
+              onChange={(event) => onChange("classId", event.target.value)}
+              className={FIELD_CLASS}
+            >
+              <option value="" disabled>
+                Pilih kelas dari jadwal guru
+              </option>
+              {classOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.branch} - {option.className} - {option.subject}
+                </option>
+              ))}
+            </select>
+          </label>
+
+
+          <label className="grid gap-2">
+            <span className={LABEL_CLASS}>Jenis Ujian</span>
+            <select
+              value={currentAssessmentType}
+              onChange={(event) =>
+                onChange("assessmentType", event.target.value)
+              }
+              disabled={allowedAssessmentTypes.length === 1}
+              className={`${FIELD_CLASS} ${
+                allowedAssessmentTypes.length === 1
+                  ? "bg-orange-50/40 text-slate-600"
+                  : ""
+              }`}
+            >
+              {allowedAssessmentTypes.map((item) => (
+                <option key={item} value={item}>
+                  {getAssessmentTypeLabel(item)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {currentAssessmentType === "Tryout" ? (
+            <label className="grid gap-2">
+              <span className={LABEL_CLASS}>Tahap Tryout</span>
+              <select
+                value={String(draft?.stage ?? 1)}
+                onChange={(event) => onChange("stage", Number(event.target.value))}
+                className={FIELD_CLASS}
+              >
+                <option value="1">Tryout 1</option>
+                <option value="2">Tryout 2</option>
+                <option value="3">Tryout 3</option>
+              </select>
+            </label>
+          ) : null}
+
+          <label className="grid gap-2">
+            <span className={LABEL_CLASS}>Status Publish</span>
+            <select
+              value={draft?.publishStatus ?? "Draft"}
+              onChange={(event) =>
+                onChange("publishStatus", event.target.value)
+              }
+              className={FIELD_CLASS}
+            >
+              <option value="Draft">Draft</option>
+              <option value="Published">Published</option>
+            </select>
+          </label>
+
+          <label className="grid gap-2">
+            <span className={LABEL_CLASS}>Durasi Menit</span>
+            <input
+              type="number"
+              min={15}
+              value={draft?.durasiMenit ?? 90}
+              onChange={(event) => onChange("durasiMenit", event.target.value)}
+              className={FIELD_CLASS}
+            />
+          </label>
+
+          <label className="grid gap-2">
+            <span className={LABEL_CLASS}>Tanggal Mulai</span>
+            <input
+              type="datetime-local"
+              value={draft?.tanggalMulai ?? ""}
+              onChange={(event) => onChange("tanggalMulai", event.target.value)}
+              className={FIELD_CLASS}
+            />
+          </label>
+
+          <label className="grid gap-2">
+            <span className={LABEL_CLASS}>Tanggal Selesai</span>
+            <input
+              type="datetime-local"
+              value={draft?.tanggalSelesai ?? ""}
+              onChange={(event) =>
+                onChange("tanggalSelesai", event.target.value)
+              }
+              className={FIELD_CLASS}
+            />
+          </label>
+
+          <div className="grid gap-4 md:col-span-2">
+            {isManualSource ? (
+              <div className="flex flex-col gap-3 rounded-2xl border border-orange-100 bg-orange-50/40 p-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className={LABEL_CLASS}>Kelola Soal</p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Ujian ini dibuat dengan metode input soal manual.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={isSubmitting || questionsLocked}
+                  onClick={onOpenManualManager}
+                  className="shrink-0 border border-orange-500 bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:border-orange-200 disabled:bg-orange-200"
+                >
+                  Kelola Soal Manual
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3 rounded-2xl border border-orange-100 bg-orange-50/40 p-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className={LABEL_CLASS}>File Soal XLSX</p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {draft?.id
+                      ? "Silakan upload file XLSX untuk menambahkan soal."
+                      : "Simpan draft ujian ini terlebih dahulu untuk mengaktifkan fitur upload XLSX."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={isSubmitting || questionsLocked}
+                  onClick={onOpenFileUploader}
+                  className="shrink-0 border border-orange-500 bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:border-orange-200 disabled:bg-orange-200"
+                >
+                  {draft?.id ? "Upload File XLSX" : "Simpan Dulu untuk Upload"}
+                </button>
+              </div>
+            )}
+          </div>
+              <div className="flex flex-wrap items-center gap-2 md:col-span-2">
+                <StatusBadge className={getQuestionSourceBadgeClass(draft?.questionSource ?? "file")}>
+                  {getQuestionSourceLabel(draft?.questionSource ?? "file")}
+                </StatusBadge>
+                <StatusBadge className={getQuestionBadgeClass(draft?.jumlahSoal ?? 0)}>
+                  {draft
+                    ? getTryoutQuestionCountLabel(draft)
+                    : "0 soal"}
+                </StatusBadge>
+              </div>
+        </div>
+
+        <DialogFooter className="border-t border-orange-100 px-4 py-3 md:px-5">
+          <DialogClose asChild>
+            <button
+              type="button"
+              disabled={isSubmitting}
+              className="border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Batal
+            </button>
+          </DialogClose>
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={onSubmit}
+            aria-busy={isSubmitting}
+            className="inline-flex items-center justify-center gap-2 border border-orange-500 bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:cursor-wait disabled:border-orange-300 disabled:bg-orange-300"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {isFileSource ? "Menyiapkan Upload..." : "Menyimpan..."}
+              </>
+            ) : isFileSource && !questionsLocked
+              ? mode === "add"
+                ? "Simpan & Lanjut Upload XLSX"
+                : "Perbarui & Buka Upload XLSX"
+              : mode === "add"
+                ? "Simpan Ujian"
+                : "Perbarui Ujian"}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function UploadSoalDialog({
+  open,
+  tryout,
+  draft,
+  editingQuestionId,
+  isQuestionLoading,
+  questionLoadError,
+  questionSuccessMessage,
+  isQuestionSubmitting,
+  isXlsxUploading,
+  onClose,
+  onChange,
+  onUploadXlsx,
+  onSubmitQuestion,
+  onCancelEditQuestion,
+  onEditQuestion,
+  onDeleteQuestion,
+  onMoveQuestion,
+}: {
+  open: boolean;
+  tryout: TryoutItem | null;
+  draft: QuestionDraft;
+  editingQuestionId: string | null;
+  isQuestionLoading: boolean;
+  questionLoadError: string | null;
+  questionSuccessMessage: string | null;
+  isQuestionSubmitting: boolean;
+  isXlsxUploading: boolean;
+  onClose: () => void;
+  onChange: (field: keyof QuestionDraft, value: string) => void;
+  onUploadXlsx: (file: File) => void;
+  onSubmitQuestion: () => void;
+  onCancelEditQuestion: () => void;
+  onEditQuestion: (question: TryoutQuestion) => void;
+  onDeleteQuestion: (questionId: string) => void;
+  onMoveQuestion: (questionId: string, direction: "up" | "down") => void;
+}) {
+  const source = tryout?.questionSource ?? "manual";
+  const isManualSource = source === "manual";
+  const isBankSource = source === "bank";
+  const isFileSource = source === "file";
+  const isReadonlyQuestionSource = isBankSource || isFileSource;
+  const isEditingQuestion = Boolean(editingQuestionId);
+  const isBusy = isQuestionSubmitting || isXlsxUploading;
+  const questionsLocked = tryout?.publishStatus !== "Draft";
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => !isOpen && !isBusy && onClose()}
+    >
+      <DialogContent className="max-h-[85vh] max-w-4xl gap-0 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] rounded-[24px] border border-orange-100 bg-white p-0 [&>button]:rounded-full [&>button]:border [&>button]:border-orange-100 [&>button]:bg-white [&>button]:text-slate-400 [&>button]:hover:bg-orange-50 [&>button]:hover:text-orange-700">
+        <DialogHeader className="border-b border-orange-100 bg-gradient-to-r from-orange-50/90 via-white to-amber-50/70 px-4 py-4 md:px-5">
+          <DialogTitle>Upload Soal Ujian</DialogTitle>
+          <DialogDescription>
+            Kelola sumber soal untuk {tryout?.judulTryout ?? "-"} sesuai mode
+            yang dipilih saat ujian dibuat.
+          </DialogDescription>
+        </DialogHeader>
+
+        {questionsLocked ? (
+          <div className="mx-4 mt-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 md:mx-5">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              Soal terkunci karena ujian sudah dipublish. Unpublish ujian untuk
+              mengembalikannya ke Draft sebelum mengubah soal.
+            </span>
+          </div>
+        ) : null}
+
+        {questionSuccessMessage ? (
+          <div className="mx-4 mt-4 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 md:mx-5">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{questionSuccessMessage}</span>
+          </div>
+        ) : null}
+
+        <div className="grid gap-4 px-4 py-4 md:px-5 lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="grid gap-4">
+            {isManualSource ? (
+              <div className="grid gap-4 rounded-2xl border border-orange-100 bg-white p-3">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-orange-100 pb-3">
+                  <div>
+                    <p className={LABEL_CLASS}>Input Manual Soal</p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {isEditingQuestion
+                        ? "Perbarui pertanyaan, opsi jawaban, dan kunci jawaban soal yang sedang dipilih."
+                        : "Tambahkan pertanyaan, empat opsi jawaban, dan kunci jawaban untuk setiap soal ujian."}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled
+                    className="border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-400 opacity-80"
+                  >
+                    Mode Manual
+                  </button>
+                </div>
+
+                <label className="grid gap-2">
+                  <span className={LABEL_CLASS}>Pertanyaan</span>
+                  <textarea
+                    value={draft.pertanyaan ?? ""}
+                    disabled={questionsLocked || isQuestionSubmitting}
+                    onChange={(event) => onChange("pertanyaan", event.target.value)}
+                    rows={3}
+                    placeholder="Masukkan pertanyaan ujian..."
+                    className={FIELD_CLASS}
+                  />
+                </label>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="grid gap-2">
+                    <span className={LABEL_CLASS}>Opsi A</span>
+                    <input
+                      type="text"
+                      value={draft.opsiA ?? ""}
+                      disabled={questionsLocked || isQuestionSubmitting}
+                      onChange={(event) => onChange("opsiA", event.target.value)}
+                      className={FIELD_CLASS}
+                    />
+                  </label>
+                  <label className="grid gap-2">
+                    <span className={LABEL_CLASS}>Opsi B</span>
+                    <input
+                      type="text"
+                      value={draft.opsiB ?? ""}
+                      disabled={questionsLocked || isQuestionSubmitting}
+                      onChange={(event) => onChange("opsiB", event.target.value)}
+                      className={FIELD_CLASS}
+                    />
+                  </label>
+                  <label className="grid gap-2">
+                    <span className={LABEL_CLASS}>Opsi C</span>
+                    <input
+                      type="text"
+                      value={draft.opsiC ?? ""}
+                      disabled={questionsLocked || isQuestionSubmitting}
+                      onChange={(event) => onChange("opsiC", event.target.value)}
+                      className={FIELD_CLASS}
+                    />
+                  </label>
+                  <label className="grid gap-2">
+                    <span className={LABEL_CLASS}>Opsi D</span>
+                    <input
+                      type="text"
+                      value={draft.opsiD ?? ""}
+                      disabled={questionsLocked || isQuestionSubmitting}
+                      onChange={(event) => onChange("opsiD", event.target.value)}
+                      className={FIELD_CLASS}
+                    />
+                  </label>
+                </div>
+
+                <label className="grid gap-2 md:max-w-[220px]">
+                  <span className={LABEL_CLASS}>Jawaban Benar</span>
+                  <select
+                    value={draft.jawabanBenar ?? "A"}
+                    disabled={questionsLocked || isQuestionSubmitting}
+                    onChange={(event) =>
+                      onChange("jawabanBenar", event.target.value)
+                    }
+                    className={FIELD_CLASS}
+                  >
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                  </select>
+                </label>
+
+                <div className="flex flex-wrap justify-end gap-2">
+                  {isEditingQuestion ? (
+                    <button
+                      type="button"
+                      disabled={questionsLocked || isQuestionSubmitting}
+                      onClick={onCancelEditQuestion}
+                      className="border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Batal Edit
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    disabled={
+                      questionsLocked ||
+                      isQuestionLoading ||
+                      isQuestionSubmitting
+                    }
+                    onClick={onSubmitQuestion}
+                    className="border border-orange-500 bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:border-orange-200 disabled:bg-orange-200"
+                  >
+                    {isQuestionSubmitting
+                      ? "Menyimpan..."
+                      : isEditingQuestion
+                        ? "Simpan Perubahan"
+                        : "Tambah Soal"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid gap-4 rounded-2xl border border-orange-100 bg-white p-3">
+                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-orange-100 pb-3">
+                  <div>
+                    <p className={LABEL_CLASS}>
+                      {isBankSource ? "Sumber Bank Soal" : "Sumber File Soal"}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {isBankSource
+                        ? "Ujian ini menggunakan bank soal import sebagai sumber utama. Butir soal real dibaca dari backend."
+                        : "Ujian ini menggunakan file XLSX. Sistem akan mengubahnya menjadi soal backend untuk direview."}
+                    </p>
+                  </div>
+                  <StatusBadge
+                    className={getQuestionSourceBadgeClass(source)}
+                  >
+                    {getQuestionSourceLabel(source)}
+                  </StatusBadge>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="rounded-2xl border border-orange-100 bg-orange-50/30 p-3">
+                    <p className={LABEL_CLASS}>
+                      {isBankSource ? "Status Bank Soal" : "Status File Soal"}
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-slate-800">
+                      {isBankSource
+                        ? tryout?.packageId ?? tryout?.questionSetId ?? "Bank soal backend"
+                        : tryout?.fileName ?? "File soal belum diunggah"}
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                      {isBankSource
+                        ? `${tryout?.jumlahSoal ?? 0} soal bank siap direview guru.`
+                        : `${tryout?.jumlahSoal ?? 0} soal hasil XLSX siap direview guru.`}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-orange-100 bg-white p-3">
+                    <p className={LABEL_CLASS}>Kesiapan Publish</p>
+                    <p className="mt-2 text-sm font-semibold text-slate-800">
+                      {isTryoutQuestionSourceReady(source)
+                        ? (tryout?.jumlahSoal ?? 0) > 0
+                          ? "Siap dipublish"
+                          : "Belum siap dipublish"
+                        : "Menunggu integrasi sumber soal"}
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                      {isTryoutQuestionSourceReady(source)
+                        ? "Ujian hanya dapat dipublish ketika jumlah soal lebih dari nol."
+                        : "Publish akan dibuka setelah sumber soal ini terhubung penuh ke backend."}
+                    </p>
+                  </div>
+                </div>
+
+                {isFileSource ? (
+                  <div className="rounded-2xl border border-orange-100 bg-orange-50/30 p-3">
+                    <p className={LABEL_CLASS}>Upload Template XLSX</p>
+                    <p className="mt-2 text-xs leading-5 text-slate-500">
+                      Kolom wajib: No, Pertanyaan, Opsi A, Opsi B, Opsi C,
+                      Opsi D, Jawaban Benar. Kolom opsional: Pembahasan, Topik,
+                      Kesulitan.
+                    </p>
+                    <label className="mt-3 inline-flex cursor-pointer items-center justify-center border border-orange-500 bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600 has-[:disabled]:cursor-not-allowed has-[:disabled]:border-orange-200 has-[:disabled]:bg-orange-200">
+                      {isXlsxUploading ? "Mengupload..." : "Pilih File XLSX"}
+                      <input
+                        key={`${tryout?.id ?? "tryout"}-${isXlsxUploading ? "uploading" : "idle"}-${tryout?.fileName ?? "empty"}`}
+                        type="file"
+                        accept=".xlsx,.xls"
+                        disabled={
+                          questionsLocked ||
+                          isXlsxUploading ||
+                          isQuestionLoading
+                        }
+                        className="sr-only"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0] ?? null;
+
+                          if (file) {
+                            onUploadXlsx(file);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+                ) : null}
+              </div>
+            )}
+          </div>
+
+          <div className="grid gap-4">
+            <div className="rounded-[24px] border border-orange-100 bg-gradient-to-br from-orange-50/80 via-white to-amber-50/50 p-3">
+              <p className={LABEL_CLASS}>Ringkasan Sumber Soal</p>
+              <h3 className="mt-2 text-lg font-semibold text-slate-800">
+                {tryout?.judulTryout ?? "-"}
+              </h3>
+              <p className="mt-2 text-sm text-slate-500">
+                {tryout?.jenjang ?? "-"} - {tryout?.kelas ?? "-"} -{" "}
+                {tryout?.mapel ?? "-"}
+              </p>
+              <div className="mt-4 grid gap-3">
+                <StatusBadge
+                  className={getQuestionSourceBadgeClass(source)}
+                >
+                  {getQuestionSourceLabel(source)}
+                </StatusBadge>
+                <StatusBadge className={getQuestionBadgeClass(tryout?.jumlahSoal ?? 0)}>
+                  {tryout
+                    ? getTryoutQuestionCountLabel(tryout)
+                    : "0 soal"}
+                </StatusBadge>
+              </div>
+              <p className="mt-3 text-xs leading-5 text-slate-500">
+                {getQuestionSourceDetail(tryout ?? {
+                  id: "",
+                  assessmentType: "Tryout",
+                  judulTryout: "",
+                  jenjang: "SMA",
+                  kelas: "Kelas 12",
+                  mapel: "",
+                  jumlahSoal: 0,
+                  durasiMenit: 0,
+                  tanggalMulai: "",
+                  tanggalSelesai: "",
+                  publishStatus: "Draft",
+                  questionSource: source,
+                  soal: [],
+                  hasil: [],
+                })}
+              </p>
+            </div>
+
+            <div className="overflow-hidden rounded-[24px] border border-orange-100 bg-white">
+              <div className="border-b border-orange-100 px-4 py-3">
+                <p className="text-sm font-semibold text-slate-800">
+                  {isManualSource ? "Daftar Soal Tersimpan" : "Detail Sumber Soal"}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {isManualSource
+                    ? "Soal yang sudah diinput manual akan muncul di sini."
+                    : "Ringkasan sumber soal aktif ditampilkan di panel ini."}
+                </p>
+              </div>
+
+              <div className="max-h-[320px] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] px-4 py-4">
+                {(isManualSource || isReadonlyQuestionSource) && isQuestionLoading ? (
+                  <div className="rounded-2xl border border-dashed border-orange-200 bg-orange-50/30 px-4 py-8 text-center">
+                    <p className="text-sm font-semibold text-slate-700">
+                      Memuat soal dari backend...
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                      Daftar soal tersimpan sedang disinkronkan untuk tryout ini.
+                    </p>
+                  </div>
+                ) : (isManualSource || isReadonlyQuestionSource) && questionLoadError ? (
+                  <div className="border border-rose-200 bg-rose-50/70 px-4 py-4 text-sm text-rose-700">
+                    {questionLoadError}
+                  </div>
+                ) : isManualSource && tryout && tryout.soal.length > 0 ? (
+                  <div className="grid gap-3">
+                    {tryout.soal.map((question, index) => (
+                      <div
+                        key={question.id}
+                        className="rounded-2xl border border-orange-100 bg-orange-50/30 p-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="text-sm font-semibold text-slate-800">
+                            {(question.order || index + 1).toString()}.{" "}
+                            {question.pertanyaan}
+                          </p>
+                          <div className="flex shrink-0 items-center gap-2">
+                            <ActionIconButton
+                              title="Naikkan Urutan"
+                              disabled={
+                                questionsLocked ||
+                                isQuestionLoading ||
+                                isQuestionSubmitting ||
+                                index === 0
+                              }
+                              onClick={() => onMoveQuestion(question.id, "up")}
+                              className="border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
+                            >
+                              <ChevronUp className="h-4 w-4 shrink-0" />
+                            </ActionIconButton>
+                            <ActionIconButton
+                              title="Turunkan Urutan"
+                              disabled={
+                                questionsLocked ||
+                                isQuestionLoading ||
+                                isQuestionSubmitting ||
+                                index === tryout.soal.length - 1
+                              }
+                              onClick={() => onMoveQuestion(question.id, "down")}
+                              className="border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
+                            >
+                              <ChevronDown className="h-4 w-4 shrink-0" />
+                            </ActionIconButton>
+                            <ActionIconButton
+                              title="Edit Soal"
+                              disabled={
+                                questionsLocked ||
+                                isQuestionLoading ||
+                                isQuestionSubmitting
+                              }
+                              onClick={() => onEditQuestion(question)}
+                              className="border-orange-200 bg-white text-orange-700 hover:bg-orange-100"
+                            >
+                              <Pencil className="h-4 w-4 shrink-0" />
+                            </ActionIconButton>
+                            <ActionIconButton
+                              title="Hapus Soal"
+                              disabled={
+                                questionsLocked ||
+                                isQuestionLoading ||
+                                isQuestionSubmitting
+                              }
+                              onClick={() => onDeleteQuestion(question.id)}
+                              className="border-rose-200 bg-white text-rose-700 hover:bg-rose-100"
+                            >
+                              <Trash2 className="h-4 w-4 shrink-0" />
+                            </ActionIconButton>
+                            <StatusBadge className="border-emerald-200 bg-emerald-50 text-emerald-700">
+                              Jawaban {question.jawabanBenar}
+                            </StatusBadge>
+                          </div>
+                        </div>
+                        <div className="mt-3 grid gap-2 text-xs text-slate-600">
+                          <p>A. {question.opsiA}</p>
+                          <p>B. {question.opsiB}</p>
+                          <p>C. {question.opsiC}</p>
+                          <p>D. {question.opsiD}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : isReadonlyQuestionSource && tryout && tryout.soal.length > 0 ? (
+                  <div className="grid gap-3">
+                    {tryout.soal.map((question, index) => (
+                      <div
+                        key={question.id}
+                        className="rounded-2xl border border-orange-100 bg-orange-50/30 p-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="text-sm font-semibold text-slate-800">
+                            {(question.order || index + 1).toString()}.{" "}
+                            {question.pertanyaan}
+                          </p>
+                          <StatusBadge className="border-emerald-200 bg-emerald-50 text-emerald-700">
+                            Jawaban {question.jawabanBenar}
+                          </StatusBadge>
+                        </div>
+                        <div className="mt-3 grid gap-2 text-xs text-slate-600">
+                          <p>A. {question.opsiA}</p>
+                          <p>B. {question.opsiB}</p>
+                          <p>C. {question.opsiC}</p>
+                          <p>D. {question.opsiD}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : isReadonlyQuestionSource ? (
+                  <div className="grid gap-3">
+                    <div className="rounded-2xl border border-orange-100 bg-orange-50/30 p-3">
+                      <p className="text-sm font-semibold text-slate-800">
+                        Soal belum berhasil dimuat
+                      </p>
+                      <p className="mt-2 text-xs leading-5 text-slate-500">
+                        Klik ulang tombol upload soal, pilih file XLSX, atau
+                        refresh halaman untuk mengambil butir soal dari backend.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-orange-200 bg-orange-50/30 px-4 py-8 text-center">
+                    <p className="text-sm font-semibold text-slate-700">
+                      Tryout ini belum memiliki soal.
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                      Tambahkan soal manual terlebih dahulu agar tryout siap
+                      dipublikasikan dan dikerjakan siswa.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter className="border-t border-orange-100 px-4 py-3 md:px-5">
+          <DialogClose asChild>
+            <button
+              type="button"
+              disabled={isBusy}
+              className="border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Tutup
+            </button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function HasilTryoutDialog({
+  open,
+  tryout,
+  isLoading,
+  error,
+  onRetry,
+  onClose,
+}: {
+  open: boolean;
+  tryout: TryoutItem | null;
+  isLoading: boolean;
+  error: string | null;
+  onRetry: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent className="max-h-[85vh] max-w-3xl gap-0 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] rounded-[24px] border border-orange-100 bg-white p-0 [&>button]:rounded-full [&>button]:border [&>button]:border-orange-100 [&>button]:bg-white [&>button]:text-slate-400 [&>button]:hover:bg-orange-50 [&>button]:hover:text-orange-700">
+        <DialogHeader className="border-b border-orange-100 bg-gradient-to-r from-orange-50/90 via-white to-amber-50/70 px-4 py-4 md:px-5">
+          <DialogTitle>Hasil Ujian Siswa</DialogTitle>
+          <DialogDescription>
+            Hasil ujian akan tersedia setelah siswa mengerjakan dan submit.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="px-4 py-4 md:px-5">
+          {isLoading ? (
+            <div className="rounded-[24px] border border-dashed border-orange-200 bg-orange-50/30 px-5 py-10 text-center">
+              <p className="text-sm font-semibold text-slate-700">
+                Memuat hasil ujian dari backend...
+              </p>
+              <p className="mt-2 text-xs leading-5 text-slate-500">
+                Sistem sedang membaca attempt siswa yang sudah submit.
+              </p>
+            </div>
           ) : error ? (
             <div className="rounded-[24px] border border-rose-200 bg-rose-50/70 px-5 py-6 text-center">
               <p className="text-sm font-semibold text-rose-700">{error}</p>
@@ -2038,7 +2625,7 @@ export default function TryoutGuruSection() {
     const targetTryout = tryouts.find((item) => item.id === tryoutId);
 
     if (!targetTryout || targetTryout.publishStatus !== "Draft") {
-      toast.error("Ujian hanya bisa dihapus jika masih berstatus draft.");
+      toast.error("Ujian hanya dapat dihapus saat masih berstatus draft.");
       return;
     }
 
@@ -2235,7 +2822,7 @@ export default function TryoutGuruSection() {
     }
 
     if (!/\.(xlsx|xls)$/i.test(file.name)) {
-      toast.error("Format file tidak didukung. Harap unggah file .xlsx atau .xls.");
+      toast.error("File soal wajib berformat .xlsx atau .xls.");
       return;
     }
 
@@ -2316,7 +2903,7 @@ export default function TryoutGuruSection() {
     ];
 
     if (fields.some((field) => !field.trim())) {
-      toast.error("Mohon lengkapi pertanyaan dan semua opsi jawaban terlebih dahulu.");
+      toast.error("Lengkapi pertanyaan dan seluruh opsi jawaban terlebih dahulu.");
       return;
     }
 
