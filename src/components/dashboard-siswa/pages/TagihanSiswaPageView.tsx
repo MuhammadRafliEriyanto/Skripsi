@@ -434,19 +434,19 @@ function SummaryCard({
 }) {
   return (
     <article
-      className="h-full flex flex-col justify-center rounded-[24px] border border-slate-200 bg-white px-5 py-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+      className="h-full flex flex-col justify-center rounded-[24px] border border-slate-200/60 bg-white px-5 py-4 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)]"
     >
       <div className="flex items-center gap-4">
         <div
-          className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-slate-100 bg-slate-50 text-slate-600"
+          className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-md"
         >
           <Icon className="size-4" />
         </div>
         <div className="min-w-0">
-          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-slate-400">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
             {label}
           </p>
-          <p className="mt-1 text-sm font-semibold text-slate-900">{value}</p>
+          <p className="mt-1 text-sm font-bold text-slate-900">{value}</p>
         </div>
       </div>
     </article>
@@ -647,14 +647,14 @@ export default function TagihanSiswaPageView() {
 
   return (
     <section className="mx-auto flex w-full max-w-7xl flex-col gap-7 px-4 py-6 md:px-6 md:py-8">
-      <div className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+      <div className="relative overflow-hidden rounded-[32px] border border-slate-200/60 bg-white p-5 shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.1)] md:p-6">
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600 shadow-sm">
+            <div className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-white shadow-sm">
               <CreditCard className="h-3.5 w-3.5" />
               Pembayaran Siswa
             </div>
-            <h1 className="mt-4 text-2xl font-semibold tracking-tight text-slate-950 md:text-3xl">
+            <h1 className="mt-4 text-2xl font-bold tracking-tight text-slate-950 md:text-3xl">
               Paket Belajar dan Riwayat Pembayaran
             </h1>
           </div>
@@ -690,12 +690,12 @@ export default function TagihanSiswaPageView() {
       ) : null}
 
       {!isLoading && !error ? (
-        <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm">
+        <section className="overflow-hidden rounded-[32px] border border-slate-200/60 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.1)]">
           <div className="grid gap-6 px-5 py-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.9fr)] lg:px-6">
             <div className={`space-y-4 ${canShowRenewalAction ? "" : "lg:col-span-2"}`}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h2 className="mt-2 text-lg font-semibold text-slate-900">
+                  <h2 className="mt-2 text-lg font-bold text-slate-900">
                     {overview.studentName}
                   </h2>
                   <div className="mt-3 flex flex-wrap gap-2 text-xs font-medium text-slate-600">
@@ -719,13 +719,13 @@ export default function TagihanSiswaPageView() {
                 </Badge>
               </div>
 
-              <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="rounded-[28px] border border-slate-200/60 bg-slate-50/80 p-5 shadow-sm transition-all duration-300 hover:shadow-md">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div className="space-y-2">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
                       Paket Saat Ini
                     </p>
-                    <h3 className="text-lg font-semibold text-slate-900">
+                    <h3 className="text-lg font-bold text-slate-900">
                       {overview.packageName}
                     </h3>
                     <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-600">
@@ -775,13 +775,13 @@ export default function TagihanSiswaPageView() {
             </div>
 
             {canShowRenewalAction ? (
-              <aside className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+              <aside className="rounded-[28px] border border-slate-200/60 bg-white p-5 shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.1)]">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-100 bg-slate-50 text-slate-600">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-md">
                     <CreditCard className="h-5 w-5" />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-900">
+                  <div className="min-w-0 flex items-center pt-2">
+                    <p className="text-sm font-bold text-slate-900">
                       Perpanjang Paket
                     </p>
                   </div>
@@ -809,7 +809,7 @@ export default function TagihanSiswaPageView() {
                             {renewalClassSuggestion?.currentClassLabel ?? overview.className}
                           </p>
                         </div>
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-white shadow-md">
                           <ArrowRight className="h-4 w-4" />
                         </div>
                         <div className="min-w-0 rounded-2xl border border-slate-200 bg-white px-3 py-3 shadow-sm">
@@ -823,19 +823,18 @@ export default function TagihanSiswaPageView() {
                       </div>
                     </div>
 
-                    <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                      <p className="text-xs font-medium text-slate-500">
+                    <div className="mt-4 rounded-2xl border border-slate-200/60 bg-slate-50/80 px-4 py-3 shadow-sm transition-all duration-300 hover:shadow-md">
+                      <p className="text-xs font-bold text-slate-500">
                         {selectedRenewalPackage?.packageName ?? "Paket belum tersedia"}
                       </p>
-                      <p className="mt-1 text-xl font-semibold tracking-tight text-slate-950">
+                      <p className="mt-1 text-xl font-bold tracking-tight text-slate-950">
                         {formatRupiah(selectedRenewalAmount)}
                       </p>
                     </div>
 
                     <Button
                       type="button"
-                      variant="secondary"
-                      className="mt-4 w-full"
+                      className="mt-4 w-full rounded-xl bg-slate-900 font-bold text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-lg"
                       disabled={!canCreateRenewal || isCreatingRenewal}
                       onClick={() => {
                         setRenewalError(null);
