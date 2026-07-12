@@ -1,12 +1,19 @@
+import { Types } from "mongoose";
 import type { Request, Response } from "express";
 
-import { Payment } from "../models/Payment";
-import { Room } from "../models/Room";
+import { Payment, type PaymentStatus } from "../models/Payment";
+import { Room, type RoomDocument } from "../models/Room";
 import { Schedule } from "../models/Schedule";
 import { Subscription } from "../models/Subscription";
+import { Student, type StudentDocument } from "../models/Student";
 import { User } from "../models/User";
 import asyncHandler from "../utils/asyncHandler";
 import { sendSuccess } from "../utils/apiResponse";
+import {
+  matchesBranchScope,
+  resolveAdminBranchScope,
+  type AdminBranchScope,
+} from "../utils/adminBranchScope";
 import {
   buildSchedulePresentation,
   type ScheduleWithTeacher,
@@ -29,6 +36,24 @@ type AdminNotificationSummaryItem = {
 
 function formatItemCount(count: number, singularLabel: string, pluralLabel: string) {
   return `${count} ${count === 1 ? singularLabel : pluralLabel}`;
+}
+
+function normalizeText(value: string | null | undefined) {
+  return value?.trim().replace(/\s+/g, " ") ?? "";
+}
+
+function inferRoomBranch(roomId: string | undefined): string {
+  const normalizedRoomId = normalizeText(roomId).toUpperCase();
+
+  if (normalizedRoomId.includes("SLW")) {
+    return "Slawi";
+  }
+
+  if (normalizedRoomId.includes("ADI")) {
+    return "Adiwerna";
+  }
+
+  return "";
 }
 
 function buildPaymentMessage(counts: {
@@ -102,8 +127,56 @@ function getNotificationContribution(item: AdminNotificationSummaryItem) {
   return 0;
 }
 
-async function getScheduleDocuments() {
-  return (await Schedule.find()
+async function getScopedStudentIds(scope: AdminBranchScope) {
+  if (!scope.isScopedToManagedBranches) {
+    return null;
+  }
+
+  const students = await Student.find().select("_id branch").exec();
+
+  return students
+    .filter((student: StudentDocument) => matchesBranchScope(student.branch, scope))
+    .map((student) => student._id as Types.ObjectId);
+}
+
+function buildStudentScopedQuery<T extends Record<string, unknown>>(
+  query: T,
+  studentIds: Types.ObjectId[] | null,
+) {
+  return studentIds ? { ...query, studentId: { $in: studentIds } } : query;
+}
+
+async function countScopedPayments(
+  status: PaymentStatus,
+  studentIds: Types.ObjectId[] | null,
+) {
+  return Payment.countDocuments(
+    buildStudentScopedQuery({ status }, studentIds),
+  ).exec();
+}
+
+async function countScopedPendingSubscriptions(studentIds: Types.ObjectId[] | null) {
+  return Subscription.countDocuments(
+    buildStudentScopedQuery(
+      {
+        status: "pending",
+        paymentStatus: "pending",
+      },
+      studentIds,
+    ),
+  ).exec();
+}
+
+function filterScopedRooms(rooms: RoomDocument[], scope: AdminBranchScope) {
+  if (!scope.isScopedToManagedBranches) {
+    return rooms;
+  }
+
+  return rooms.filter((room) => matchesBranchScope(inferRoomBranch(room.roomId), scope));
+}
+
+async function getScheduleDocuments(scope: AdminBranchScope) {
+  const scheduleDocuments = (await Schedule.find()
     .populate<{
       teacherId: {
         teacherId: string;
@@ -121,32 +194,43 @@ async function getScheduleDocuments() {
     .sort({ createdAt: -1 })
     .lean()
     .exec()) as unknown as ScheduleWithTeacher[];
+
+  if (!scope.isScopedToManagedBranches) {
+    return scheduleDocuments;
+  }
+
+  return scheduleDocuments.filter((schedule) =>
+    matchesBranchScope(schedule.branch, scope),
+  );
 }
 
 export const getAdminNotificationSummary = asyncHandler(
-  async (_req: Request, res: Response) => {
+  async (req: Request, res: Response) => {
+    const scope = await resolveAdminBranchScope(req.user, {
+      requireManagedBranchesForAdmin: true,
+    });
+    const scopedStudentIds = await getScopedStudentIds(scope);
+    const rooms = await Room.find().sort({ createdAt: -1 }).exec();
+    const scopedRooms = filterScopedRooms(rooms, scope);
     const [
       pendingSubscriptionsCount,
       pendingPaymentsCount,
       paidPaymentsCount,
       failedPaymentsCount,
       expiredPaymentsCount,
-      totalRoomsCount,
-      emptyRoomsCount,
       scheduleDocuments,
     ] = await Promise.all([
-      Subscription.countDocuments({
-        status: "pending",
-        paymentStatus: "pending",
-      }).exec(),
-      Payment.countDocuments({ status: "pending" }).exec(),
-      Payment.countDocuments({ status: "paid" }).exec(),
-      Payment.countDocuments({ status: "failed" }).exec(),
-      Payment.countDocuments({ status: "expired" }).exec(),
-      Room.countDocuments().exec(),
-      Room.countDocuments({ status: "Kosong" }).exec(),
-      getScheduleDocuments(),
+      countScopedPendingSubscriptions(scopedStudentIds),
+      countScopedPayments("pending", scopedStudentIds),
+      countScopedPayments("paid", scopedStudentIds),
+      countScopedPayments("failed", scopedStudentIds),
+      countScopedPayments("expired", scopedStudentIds),
+      getScheduleDocuments(scope),
     ]);
+    const totalRoomsCount = scopedRooms.length;
+    const emptyRoomsCount = scopedRooms.filter(
+      (room) => room.status === "Kosong",
+    ).length;
 
     const schedules = buildSchedulePresentation(scheduleDocuments);
     const conflictedSchedulesCount = schedules.filter(
