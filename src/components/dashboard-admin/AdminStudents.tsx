@@ -4,6 +4,7 @@ import {
   Download,
   Eye,
   Pencil,
+  Plus,
   Power,
   PowerOff,
   RotateCcw,
@@ -30,6 +31,12 @@ import {
   fetchAdminStudents,
   type AdminStudentsSummary,
 } from "@/lib/admin-directory";
+import {
+  getPriceByClassAndPackage,
+  type OnlinePackageDefinition,
+} from "@/lib/subscription";
+import { useSubscriptionConfig } from "@/lib/use-subscription-config";
+import { formatCurrency } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -87,6 +94,10 @@ type StudentFormValues = {
   academicYear: string;
   password?: string;
   status: AdminStudent["status"];
+  membershipPaymentMode: StudentMembershipPaymentMode;
+  membershipPackageKey: string;
+  membershipPaymentMethod: StudentMembershipPaymentMethod;
+  membershipPaidAt: string;
 };
 
 type StudentImportSummary = {
@@ -126,12 +137,22 @@ type StudentActionFeedback = {
 type StudentLevelFilterOption = AdminStudent["level"] | "Semua";
 type StudentStatusFilterOption = AdminStudent["status"] | "Semua";
 type StudentMembershipTone = "default" | "success" | "warning" | "danger";
+type StudentMembershipPaymentMode = "none" | "paid" | "pending";
+type StudentMembershipPaymentMethod = "cash" | "manual_transfer" | "qris_offline";
 
 type BranchApiItem = {
   name?: string;
 };
 
 const unassignedBranchValue = "__unassigned_branch__";
+const noOfflineMembershipValue = "none" satisfies StudentMembershipPaymentMode;
+const paidOfflineMembershipValue = "paid" satisfies StudentMembershipPaymentMode;
+const pendingOfflineMembershipValue = "pending" satisfies StudentMembershipPaymentMode;
+const offlinePaymentMethodLabels: Record<StudentMembershipPaymentMethod, string> = {
+  cash: "Tunai",
+  manual_transfer: "Transfer Manual",
+  qris_offline: "QRIS Offline",
+};
 const studentImportColumns = [
   "nama",
   "kelas",
@@ -157,7 +178,16 @@ const warmAvatarFallbackClassName =
 const warmFileInputClassName =
   "block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition hover:border-orange-200 focus:border-orange-300 focus:ring-4 focus:ring-orange-500/10 focus-visible:border-orange-300 focus-visible:ring-4 focus-visible:ring-orange-500/10 file:mr-4 file:rounded-xl file:border-0 file:bg-orange-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-orange-700";
 
-function createEmptyStudentForm(defaultClassName: string): StudentFormValues {
+function toDateInputValue(date = new Date()) {
+  const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+
+  return offsetDate.toISOString().slice(0, 10);
+}
+
+function createEmptyStudentForm(
+  defaultClassName: string,
+  defaultPackageKey = "",
+): StudentFormValues {
   return {
     name: "",
     email: "",
@@ -169,6 +199,10 @@ function createEmptyStudentForm(defaultClassName: string): StudentFormValues {
     academicYear: "2025/2026",
     password: "",
     status: "Aktif",
+    membershipPaymentMode: noOfflineMembershipValue,
+    membershipPackageKey: defaultPackageKey,
+    membershipPaymentMethod: "cash",
+    membershipPaidAt: toDateInputValue(),
   };
 }
 
@@ -286,6 +320,10 @@ function toStudentFormValues(student: AdminStudent): StudentFormValues {
     academicYear: student.academicYear || "2025/2026",
     password: "",
     status: student.status,
+    membershipPaymentMode: noOfflineMembershipValue,
+    membershipPackageKey: student.membership?.packageKey ?? "",
+    membershipPaymentMethod: "cash",
+    membershipPaidAt: toDateInputValue(),
   };
 }
 
@@ -495,6 +533,17 @@ export function AdminStudents({
   const classValueOptions = dashboardConfig.student.classOptions;
   const classOptionsByLevel = dashboardConfig.student.classOptionsByLevel;
   const defaultStudentClassName = classValueOptions[0] ?? "SD 4";
+  const billingPackages = dashboardConfig.payment.billingPackages;
+  const defaultMembershipPackageKey = billingPackages[0]?.packageKey ?? "";
+  const { config: subscriptionConfig, isLoading: isSubscriptionConfigLoading } =
+    useSubscriptionConfig();
+  const packageLookupOptions: OnlinePackageDefinition[] =
+    subscriptionConfig.packages.length > 0
+      ? subscriptionConfig.packages
+      : billingPackages.map((item) => ({
+          ...item,
+          highlight: "",
+        }));
   const [students, setStudents] = useState<AdminStudent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -512,7 +561,9 @@ export function AdminStudents({
     null,
   );
   const [formValues, setFormValues] =
-    useState<StudentFormValues>(createEmptyStudentForm(defaultStudentClassName));
+    useState<StudentFormValues>(
+      createEmptyStudentForm(defaultStudentClassName, defaultMembershipPackageKey),
+    );
   const [formError, setFormError] = useState<string | null>(null);
   const [actionFeedback, setActionFeedback] =
     useState<StudentActionFeedback | null>(null);
@@ -705,9 +756,37 @@ export function AdminStudents({
   const isEditing = editingStudentId !== null;
   const generatedPasswordPreview =
     buildGeneratedPasswordFromBirthDate(formValues.birthDate) || "-";
+  const selectedMembershipPackage =
+    packageLookupOptions.find(
+      (item) => item.packageKey === formValues.membershipPackageKey,
+    ) ??
+    billingPackages.find(
+      (item) => item.packageKey === formValues.membershipPackageKey,
+    ) ??
+    null;
+  const selectedMembershipAmount =
+    formValues.membershipPackageKey
+      ? getPriceByClassAndPackage(
+          formValues.className,
+          formValues.membershipPackageKey,
+          subscriptionConfig.classPricingMatrix,
+          packageLookupOptions,
+        )
+      : 0;
+  const showOfflineMembershipFields =
+    !isEditing && formValues.membershipPaymentMode !== noOfflineMembershipValue;
   const studentNumberMap = new Map(
     filteredStudents.map((student, index) => [student.id, (page - 1) * pageLimit + index + 1]),
   );
+
+  const openCreateDialog = () => {
+    setEditingStudentId(null);
+    setFormValues(
+      createEmptyStudentForm(defaultStudentClassName, defaultMembershipPackageKey),
+    );
+    setFormError(null);
+    setIsFormOpen(true);
+  };
 
   const openEditDialog = (student: AdminStudent) => {
     setEditingStudentId(student.id);
@@ -719,7 +798,9 @@ export function AdminStudents({
   const closeFormDialog = () => {
     setIsFormOpen(false);
     setEditingStudentId(null);
-    setFormValues(createEmptyStudentForm(defaultStudentClassName));
+    setFormValues(
+      createEmptyStudentForm(defaultStudentClassName, defaultMembershipPackageKey),
+    );
     setFormError(null);
   };
 
@@ -803,6 +884,21 @@ export function AdminStudents({
       return;
     }
 
+    if (!isEditing && formValues.membershipPaymentMode !== noOfflineMembershipValue) {
+      if (!formValues.membershipPackageKey) {
+        setFormError("Paket membership offline wajib dipilih.");
+        return;
+      }
+
+      if (
+        formValues.membershipPaymentMode === paidOfflineMembershipValue &&
+        !normalizeBirthDateInput(formValues.membershipPaidAt)
+      ) {
+        setFormError("Tanggal pembayaran offline belum valid.");
+        return;
+      }
+    }
+
     const duplicateStudent = students.find(
       (student) =>
         normalizedEmail &&
@@ -836,11 +932,31 @@ export function AdminStudents({
             academicYear: formValues.academicYear,
             ...(formValues.password ? { password: formValues.password } : {}),
             status: formValues.status,
+            ...(!isEditing && formValues.membershipPaymentMode !== noOfflineMembershipValue
+              ? {
+                  membershipPaymentMode: formValues.membershipPaymentMode,
+                  membershipPackageKey: formValues.membershipPackageKey,
+                  membershipPaymentMethod: formValues.membershipPaymentMethod,
+                  membershipPaidAt:
+                    formValues.membershipPaymentMode === paidOfflineMembershipValue
+                      ? formValues.membershipPaidAt
+                      : undefined,
+                }
+              : {}),
           }),
         },
       );
 
       await refreshStudentViews();
+      setActionFeedback({
+        tone: "success",
+        message:
+          !isEditing && formValues.membershipPaymentMode === paidOfflineMembershipValue
+            ? "Siswa berhasil ditambahkan dan pembayaran offline masuk ke pemasukan cabang."
+            : !isEditing && formValues.membershipPaymentMode === pendingOfflineMembershipValue
+              ? "Siswa berhasil ditambahkan dan tagihan offline masuk ke daftar pembayaran."
+              : "Data siswa berhasil disimpan.",
+      });
       closeFormDialog();
     } catch (requestError) {
       setFormError(
@@ -1161,6 +1277,14 @@ export function AdminStudents({
             >
               <Upload className="size-4" />
               <span className="hidden sm:inline">Import</span>
+            </Button>
+            <Button
+              variant="secondary"
+              className={warmPrimaryButtonClassName}
+              onClick={openCreateDialog}
+            >
+              <Plus className="size-4" />
+              <span className="hidden sm:inline">Tambah</span>
             </Button>
           </div>
         }
@@ -1588,6 +1712,143 @@ export function AdminStudents({
                 </Select>
               </StudentField>
             </div>
+
+            {!isEditing ? (
+              <div className="rounded-lg border border-slate-200/80 bg-slate-50/75 p-4">
+                <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+                  <StudentField label="Membership">
+                    <Select
+                      value={formValues.membershipPaymentMode}
+                      onValueChange={(value) =>
+                        updateFormValue(
+                          "membershipPaymentMode",
+                          value as StudentMembershipPaymentMode,
+                        )
+                      }
+                    >
+                      <SelectTrigger className={warmSelectTriggerClassName}>
+                        <SelectValue placeholder="Status membership" />
+                      </SelectTrigger>
+                      <SelectContent className={warmSelectContentClassName}>
+                        <SelectItem
+                          value={noOfflineMembershipValue}
+                          className={warmSelectItemClassName}
+                        >
+                          Tanpa membership
+                        </SelectItem>
+                        <SelectItem
+                          value={paidOfflineMembershipValue}
+                          className={warmSelectItemClassName}
+                        >
+                          Bayar offline
+                        </SelectItem>
+                        <SelectItem
+                          value={pendingOfflineMembershipValue}
+                          className={warmSelectItemClassName}
+                        >
+                          Tagihan offline
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </StudentField>
+
+                  {showOfflineMembershipFields ? (
+                    <>
+                      <StudentField label="Paket">
+                        <Select
+                          value={formValues.membershipPackageKey}
+                          onValueChange={(value) =>
+                            updateFormValue("membershipPackageKey", value)
+                          }
+                        >
+                          <SelectTrigger className={warmSelectTriggerClassName}>
+                            <SelectValue placeholder="Pilih paket" />
+                          </SelectTrigger>
+                          <SelectContent className={warmSelectContentClassName}>
+                            {billingPackages.map((item) => {
+                              const amount = getPriceByClassAndPackage(
+                                formValues.className,
+                                item.packageKey,
+                                subscriptionConfig.classPricingMatrix,
+                                packageLookupOptions,
+                              );
+
+                              return (
+                                <SelectItem
+                                  key={item.packageKey}
+                                  value={item.packageKey}
+                                  className={warmSelectItemClassName}
+                                >
+                                  {item.packageName} | {formatCurrency(amount)}
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                        {isSubscriptionConfigLoading ? (
+                          <p className="text-xs text-slate-500">
+                            Nominal paket sedang dimuat...
+                          </p>
+                        ) : null}
+                      </StudentField>
+
+                      <StudentField label="Metode bayar">
+                        <Select
+                          value={formValues.membershipPaymentMethod}
+                          onValueChange={(value) =>
+                            updateFormValue(
+                              "membershipPaymentMethod",
+                              value as StudentMembershipPaymentMethod,
+                            )
+                          }
+                        >
+                          <SelectTrigger className={warmSelectTriggerClassName}>
+                            <SelectValue placeholder="Metode" />
+                          </SelectTrigger>
+                          <SelectContent className={warmSelectContentClassName}>
+                            {Object.entries(offlinePaymentMethodLabels).map(
+                              ([value, label]) => (
+                                <SelectItem
+                                  key={value}
+                                  value={value}
+                                  className={warmSelectItemClassName}
+                                >
+                                  {label}
+                                </SelectItem>
+                              ),
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </StudentField>
+
+                      {formValues.membershipPaymentMode === paidOfflineMembershipValue ? (
+                        <StudentField label="Tanggal bayar">
+                          <Input
+                            className={warmFieldClassName}
+                            type="date"
+                            value={formValues.membershipPaidAt}
+                            onChange={(event) =>
+                              updateFormValue("membershipPaidAt", event.target.value)
+                            }
+                          />
+                        </StudentField>
+                      ) : (
+                        <div className="rounded-lg border border-amber-100 bg-white px-4 py-3 text-sm leading-6 text-amber-700">
+                          Masuk daftar pembayaran sebagai pending.
+                        </div>
+                      )}
+                    </>
+                  ) : null}
+                </div>
+
+                {showOfflineMembershipFields ? (
+                  <p className="mt-3 text-sm text-slate-600">
+                    {selectedMembershipPackage?.packageName ?? "Paket membership"} -{" "}
+                    {formatCurrency(selectedMembershipAmount)}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
 
             {formError ? (
               <p className="rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-sm text-rose-600">
