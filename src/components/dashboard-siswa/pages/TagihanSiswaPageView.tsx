@@ -409,7 +409,7 @@ function MembershipSkeleton() {
   return (
     <div className="space-y-5">
       <div className="h-52 animate-pulse rounded-[32px] border border-orange-100 bg-gradient-to-br from-orange-50 via-white to-amber-50" />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-4 sm:gap-5">
         {Array.from({ length: 4 }).map((_, index) => (
           <div
             key={index}
@@ -794,22 +794,7 @@ export default function TagihanSiswaPageView() {
             </p>
           </div>
 
-          <div className="rounded-[24px] border border-white/80 bg-white/90 px-4 py-4 shadow-[0_18px_34px_-30px_rgba(15,23,42,0.25)] lg:min-w-[310px]">
-            <div className="flex items-start gap-3">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-orange-600">
-                <Sparkles className="size-4" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-900">
-                  Status Otomatis Diperbarui
-                </p>
-                <p className="mt-1 text-sm leading-6 text-slate-500">
-                  Setelah pembayaran terkonfirmasi, akses belajar akan
-                  menyesuaikan tanpa perlu mengisi ulang data.
-                </p>
-              </div>
-            </div>
-          </div>
+
         </div>
       </div>
 
@@ -897,7 +882,7 @@ export default function TagihanSiswaPageView() {
                   </div>
                 </div>
 
-                <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="mt-5 grid grid-cols-2 gap-4 sm:gap-5">
                   <SummaryCard
                     label="Status Akses"
                     value={overview.accessLabel}
