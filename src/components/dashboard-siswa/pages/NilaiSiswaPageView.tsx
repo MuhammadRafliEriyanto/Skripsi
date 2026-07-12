@@ -166,7 +166,7 @@ export default function NilaiSiswaPageView() {
                       </div>
                       {summary.hasUngraded && (
                         <span className="shrink-0 rounded-full bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-700">
-                          Menunggu Review
+                          Menunggu Penilaian
                         </span>
                       )}
                     </div>

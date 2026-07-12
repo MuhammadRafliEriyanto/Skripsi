@@ -267,7 +267,7 @@ const LABEL_CLASS =
 const ACTION_BUTTON_CLASS =
   "inline-flex h-8 w-8 shrink-0 items-center justify-center border transition";
 const DRAFT_ONLY_QUESTION_MESSAGE =
-  "Soal hanya dapat diubah saat ujian masih berstatus draft.";
+  "Soal hanya dapat diubah saat ujian belum diterbitkan.";
 
 function createId(prefix: string) {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -535,12 +535,12 @@ function readFileAsBase64(file: File) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
 
-    reader.onerror = () => reject(new Error("File XLSX belum bisa dibaca."));
+    reader.onerror = () => reject(new Error("File Excel belum bisa dibaca."));
     reader.onload = () => {
       const result = reader.result;
 
       if (typeof result !== "string") {
-        reject(new Error("File XLSX belum bisa diproses."));
+        reject(new Error("File Excel belum bisa diproses."));
         return;
       }
 
@@ -955,6 +955,18 @@ function getPublishBadgeClass(status: PublishStatus) {
     : "border-slate-200 bg-slate-50 text-slate-600";
 }
 
+function getPublishStatusLabel(status: StatusFilter) {
+  if (status === "Published") {
+    return "Diterbitkan";
+  }
+
+  if (status === "Draft") {
+    return "Belum Diterbitkan";
+  }
+
+  return status;
+}
+
 function getQuestionBadgeClass(totalQuestion: number) {
   return totalQuestion > 0
     ? "border-orange-200 bg-orange-50 text-orange-700"
@@ -979,7 +991,7 @@ function getQuestionSourceLabel(source: QuestionSource) {
   }
 
   if (source === "file") {
-    return "File";
+    return "File Excel";
   }
 
   return "Manual";
@@ -1021,7 +1033,7 @@ function getTryoutQuestionCountLabel(item: Pick<TryoutItem, "questionSource" | "
     return `${item.jumlahSoal} soal bank`;
   }
 
-  return item.jumlahSoal > 0 ? `${item.jumlahSoal} soal XLSX` : "Menunggu Upload";
+  return item.jumlahSoal > 0 ? `${item.jumlahSoal} soal Excel` : "Menunggu File";
 }
 
 function getTryoutQuestionStatusLabel(item: Pick<TryoutItem, "questionSource" | "jumlahSoal">) {
@@ -1030,7 +1042,7 @@ function getTryoutQuestionStatusLabel(item: Pick<TryoutItem, "questionSource" | 
   }
 
   if (item.questionSource === "bank") {
-    return item.jumlahSoal > 0 ? "Bank Siap" : "Bank Kosong";
+    return item.jumlahSoal > 0 ? "Bank Soal Siap" : "Bank Soal Kosong";
   }
 
   return item.jumlahSoal > 0 ? "Soal Siap" : "Menunggu Soal";
@@ -1038,17 +1050,13 @@ function getTryoutQuestionStatusLabel(item: Pick<TryoutItem, "questionSource" | 
 
 function getQuestionSourceDetail(item: TryoutItem) {
   if (item.questionSource === "bank") {
-    const packageLabel = item.packageId || item.questionSetId || item.questionBankId;
-
-    return packageLabel
-      ? `Bank soal terhubung: ${packageLabel}`
-      : "Bank soal terhubung dari backend.";
+    return "Bank soal sudah terhubung.";
   }
 
   if (item.questionSource === "file") {
     return item.fileName
-      ? `Soal hasil upload XLSX: ${item.fileName}`
-      : "Belum ada file XLSX yang diupload.";
+      ? `Soal dari file Excel: ${item.fileName}`
+      : "Belum ada file Excel yang diunggah.";
   }
 
   const totalManualQuestions = Math.max(item.jumlahSoal, item.soal.length);
@@ -1203,7 +1211,7 @@ function TryoutFormDialog({
       <DialogContent className="max-h-[85vh] max-w-3xl gap-0 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] rounded-[24px] border border-orange-100 bg-white p-0 [&>button]:rounded-full [&>button]:border [&>button]:border-orange-100 [&>button]:bg-white [&>button]:text-slate-400 [&>button]:hover:bg-orange-50 [&>button]:hover:text-orange-700">
         <DialogHeader className="border-b border-orange-100 bg-gradient-to-r from-orange-50/90 via-white to-amber-50/70 px-4 py-4 md:px-5">
           <DialogTitle>
-            {mode === "add" ? "Tambah Assessment Baru" : "Edit Assessment"}
+            {mode === "add" ? "Tambah Ujian Baru" : "Edit Ujian"}
           </DialogTitle>
           <DialogDescription>
             Isi detail ujian di bawah ini.
@@ -1214,8 +1222,8 @@ function TryoutFormDialog({
           <div className="mx-4 mt-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 md:mx-5">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>
-              Soal terkunci karena ujian sudah dipublish. Ubah status menjadi
-              Draft terlebih dahulu untuk mengelola soal.
+              Soal terkunci karena ujian sudah diterbitkan. Ubah status menjadi
+              belum diterbitkan terlebih dahulu untuk mengelola soal.
             </span>
           </div>
         ) : null}
@@ -1289,7 +1297,7 @@ function TryoutFormDialog({
           ) : null}
 
           <label className="grid gap-2">
-            <span className={LABEL_CLASS}>Status Publish</span>
+            <span className={LABEL_CLASS}>Status Ujian</span>
             <select
               value={draft?.publishStatus ?? "Draft"}
               onChange={(event) =>
@@ -1297,8 +1305,8 @@ function TryoutFormDialog({
               }
               className={FIELD_CLASS}
             >
-              <option value="Draft">Draft</option>
-              <option value="Published">Published</option>
+              <option value="Draft">Belum Diterbitkan</option>
+              <option value="Published">Diterbitkan</option>
             </select>
           </label>
 
@@ -1356,11 +1364,11 @@ function TryoutFormDialog({
             ) : (
               <div className="flex flex-col gap-3 rounded-2xl border border-orange-100 bg-orange-50/40 p-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <p className={LABEL_CLASS}>File Soal XLSX</p>
+                  <p className={LABEL_CLASS}>File Soal Excel</p>
                   <p className="mt-1 text-sm text-slate-500">
                     {draft?.id
-                      ? "Silakan upload file XLSX untuk menambahkan soal."
-                      : "Simpan draft ujian ini terlebih dahulu untuk mengaktifkan fitur upload XLSX."}
+                      ? "Silakan unggah file Excel untuk menambahkan soal."
+                      : "Simpan ujian ini terlebih dahulu untuk mengaktifkan fitur unggah file Excel."}
                   </p>
                 </div>
                 <button
@@ -1369,7 +1377,7 @@ function TryoutFormDialog({
                   onClick={onOpenFileUploader}
                   className="shrink-0 border border-orange-500 bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:border-orange-200 disabled:bg-orange-200"
                 >
-                  {draft?.id ? "Upload File XLSX" : "Simpan Dulu untuk Upload"}
+                  {draft?.id ? "Unggah File Excel" : "Simpan Dulu"}
                 </button>
               </div>
             )}
@@ -1406,12 +1414,12 @@ function TryoutFormDialog({
             {isSubmitting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                {isFileSource ? "Menyiapkan Upload..." : "Menyimpan..."}
+                {isFileSource ? "Menyiapkan Unggahan..." : "Menyimpan..."}
               </>
             ) : isFileSource && !questionsLocked
               ? mode === "add"
-                ? "Simpan & Lanjut Upload XLSX"
-                : "Perbarui & Buka Upload XLSX"
+                ? "Simpan & Lanjut Unggah"
+                : "Perbarui & Buka Unggahan"
               : mode === "add"
                 ? "Simpan Ujian"
                 : "Perbarui Ujian"}
@@ -1475,7 +1483,7 @@ function UploadSoalDialog({
     >
       <DialogContent className="max-h-[85vh] max-w-4xl gap-0 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] rounded-[24px] border border-orange-100 bg-white p-0 [&>button]:rounded-full [&>button]:border [&>button]:border-orange-100 [&>button]:bg-white [&>button]:text-slate-400 [&>button]:hover:bg-orange-50 [&>button]:hover:text-orange-700">
         <DialogHeader className="border-b border-orange-100 bg-gradient-to-r from-orange-50/90 via-white to-amber-50/70 px-4 py-4 md:px-5">
-          <DialogTitle>Upload Soal Ujian</DialogTitle>
+          <DialogTitle>Unggah Soal Ujian</DialogTitle>
           <DialogDescription>
             Kelola sumber soal untuk {tryout?.judulTryout ?? "-"} sesuai mode
             yang dipilih saat ujian dibuat.
@@ -1486,8 +1494,8 @@ function UploadSoalDialog({
           <div className="mx-4 mt-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 md:mx-5">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>
-              Soal terkunci karena ujian sudah dipublish. Unpublish ujian untuk
-              mengembalikannya ke Draft sebelum mengubah soal.
+              Soal terkunci karena ujian sudah diterbitkan. Tarik publikasi
+              ujian terlebih dahulu sebelum mengubah soal.
             </span>
           </div>
         ) : null}
@@ -1632,8 +1640,8 @@ function UploadSoalDialog({
                     </p>
                     <p className="mt-1 text-sm text-slate-500">
                       {isBankSource
-                        ? "Ujian ini menggunakan bank soal import sebagai sumber utama. Butir soal real dibaca dari backend."
-                        : "Ujian ini menggunakan file XLSX. Sistem akan mengubahnya menjadi soal backend untuk direview."}
+                        ? "Ujian ini memakai bank soal yang sudah terhubung. Butir soal dapat ditinjau sebelum diterbitkan."
+                        : "Ujian ini memakai file Excel. Sistem akan membaca isi file agar soal bisa ditinjau."}
                     </p>
                   </div>
                   <StatusBadge
@@ -1650,43 +1658,43 @@ function UploadSoalDialog({
                     </p>
                     <p className="mt-2 text-sm font-semibold text-slate-800">
                       {isBankSource
-                        ? tryout?.packageId ?? tryout?.questionSetId ?? "Bank soal backend"
+                        ? "Bank soal terhubung"
                         : tryout?.fileName ?? "File soal belum diunggah"}
                     </p>
                     <p className="mt-1 text-xs leading-5 text-slate-500">
                       {isBankSource
-                        ? `${tryout?.jumlahSoal ?? 0} soal bank siap direview guru.`
-                        : `${tryout?.jumlahSoal ?? 0} soal hasil XLSX siap direview guru.`}
+                        ? `${tryout?.jumlahSoal ?? 0} soal bank siap ditinjau guru.`
+                        : `${tryout?.jumlahSoal ?? 0} soal dari file Excel siap ditinjau guru.`}
                     </p>
                   </div>
 
                   <div className="rounded-2xl border border-orange-100 bg-white p-3">
-                    <p className={LABEL_CLASS}>Kesiapan Publish</p>
+                    <p className={LABEL_CLASS}>Kesiapan Terbit</p>
                     <p className="mt-2 text-sm font-semibold text-slate-800">
                       {isTryoutQuestionSourceReady(source)
                         ? (tryout?.jumlahSoal ?? 0) > 0
-                          ? "Siap dipublish"
-                          : "Belum siap dipublish"
-                        : "Menunggu integrasi sumber soal"}
+                          ? "Siap diterbitkan"
+                          : "Belum siap diterbitkan"
+                        : "Sumber soal belum siap"}
                     </p>
                     <p className="mt-1 text-xs leading-5 text-slate-500">
                       {isTryoutQuestionSourceReady(source)
-                        ? "Ujian hanya dapat dipublish ketika jumlah soal lebih dari nol."
-                        : "Publish akan dibuka setelah sumber soal ini terhubung penuh ke backend."}
+                        ? "Ujian hanya dapat diterbitkan ketika jumlah soal lebih dari nol."
+                        : "Tombol terbit akan aktif setelah sumber soal siap digunakan."}
                     </p>
                   </div>
                 </div>
 
                 {isFileSource ? (
                   <div className="rounded-2xl border border-orange-100 bg-orange-50/30 p-3">
-                    <p className={LABEL_CLASS}>Upload Template XLSX</p>
+                    <p className={LABEL_CLASS}>Unggah Template Excel</p>
                     <p className="mt-2 text-xs leading-5 text-slate-500">
                       Kolom wajib: No, Pertanyaan, Opsi A, Opsi B, Opsi C,
                       Opsi D, Jawaban Benar. Kolom opsional: Pembahasan, Topik,
                       Kesulitan.
                     </p>
                     <label className="mt-3 inline-flex cursor-pointer items-center justify-center border border-orange-500 bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600 has-[:disabled]:cursor-not-allowed has-[:disabled]:border-orange-200 has-[:disabled]:bg-orange-200">
-                      {isXlsxUploading ? "Mengupload..." : "Pilih File XLSX"}
+                      {isXlsxUploading ? "Mengunggah..." : "Pilih File Excel"}
                       <input
                         key={`${tryout?.id ?? "tryout"}-${isXlsxUploading ? "uploading" : "idle"}-${tryout?.fileName ?? "empty"}`}
                         type="file"
@@ -1770,7 +1778,7 @@ function UploadSoalDialog({
                 {(isManualSource || isReadonlyQuestionSource) && isQuestionLoading ? (
                   <div className="rounded-2xl border border-dashed border-orange-200 bg-orange-50/30 px-4 py-8 text-center">
                     <p className="text-sm font-semibold text-slate-700">
-                      Memuat soal dari backend...
+                      Memuat soal ujian...
                     </p>
                     <p className="mt-1 text-xs leading-5 text-slate-500">
                       Daftar soal tersimpan sedang disinkronkan untuk tryout ini.
@@ -1889,8 +1897,8 @@ function UploadSoalDialog({
                         Soal belum berhasil dimuat
                       </p>
                       <p className="mt-2 text-xs leading-5 text-slate-500">
-                        Klik ulang tombol upload soal, pilih file XLSX, atau
-                        refresh halaman untuk mengambil butir soal dari backend.
+                        Klik ulang tombol unggah soal, pilih file Excel, atau
+                        muat ulang halaman untuk menampilkan butir soal.
                       </p>
                     </div>
                   </div>
@@ -1947,7 +1955,7 @@ function HasilTryoutDialog({
         <DialogHeader className="border-b border-orange-100 bg-gradient-to-r from-orange-50/90 via-white to-amber-50/70 px-4 py-4 md:px-5">
           <DialogTitle>Hasil Ujian Siswa</DialogTitle>
           <DialogDescription>
-            Hasil ujian akan tersedia setelah siswa mengerjakan dan submit.
+            Hasil ujian akan tersedia setelah siswa mengerjakan dan mengirim jawaban.
           </DialogDescription>
         </DialogHeader>
 
@@ -1955,10 +1963,10 @@ function HasilTryoutDialog({
           {isLoading ? (
             <div className="rounded-[24px] border border-dashed border-orange-200 bg-orange-50/30 px-5 py-10 text-center">
               <p className="text-sm font-semibold text-slate-700">
-                Memuat hasil ujian dari backend...
+                Memuat hasil ujian...
               </p>
               <p className="mt-2 text-xs leading-5 text-slate-500">
-                Sistem sedang membaca attempt siswa yang sudah submit.
+                Sistem sedang membaca jawaban siswa yang sudah dikirim.
               </p>
             </div>
           ) : error ? (
@@ -2169,7 +2177,7 @@ export default function TryoutGuruSection() {
 
       if (!response.ok || !payload?.success) {
         throw new Error(
-          payload?.message || "Data tryout guru belum bisa dimuat.",
+          payload?.message || "Data ujian guru belum bisa dimuat.",
         );
       }
 
@@ -2177,8 +2185,6 @@ export default function TryoutGuruSection() {
       const loadedTryouts = apiTryouts.map((item) =>
         mapTeacherTryoutApiItem(item),
       );
-
-      console.log("[DEBUG TryoutGuruSection] fetched tryouts length:", apiTryouts.length, "for url:", buildGuruApiUrl("/api/teacher/me/tryouts", searchParams));
 
       setTryouts((current) => replaceTryoutsFromApi(apiTryouts, current));
       setSelectedJenjang((currentJenjang) => {
@@ -2202,7 +2208,7 @@ export default function TryoutGuruSection() {
       setLoadError(
         error instanceof Error && error.message
           ? error.message
-          : "Data tryout guru belum bisa dimuat.",
+          : "Data ujian guru belum bisa dimuat.",
       );
     } finally {
       setIsLoading(false);
@@ -2473,7 +2479,7 @@ export default function TryoutGuruSection() {
   function handleOpenManualManagerFromForm() {
     if (!draftTryout?.id) {
       toast.error(
-        "Simpan ujian sebagai draft terlebih dahulu sebelum menambahkan soal manual.",
+    "Simpan ujian terlebih dahulu sebelum menambahkan soal manual.",
       );
       return;
     }
@@ -2492,7 +2498,7 @@ export default function TryoutGuruSection() {
   function handleOpenFileUploaderFromForm() {
     if (!draftTryout?.id) {
       toast.error(
-        "Lengkapi metadata ujian, lalu klik Simpan & Lanjut Upload XLSX untuk memilih file soal.",
+        "Lengkapi detail ujian, lalu klik Simpan & Lanjut Unggah untuk memilih file soal.",
       );
       return;
     }
@@ -2548,7 +2554,7 @@ export default function TryoutGuruSection() {
       !isTryoutQuestionSourceReady(draftForSave.questionSource)
     ) {
       toast.error(
-        "Sumber soal ini belum siap dipublish.",
+        "Sumber soal ini belum siap diterbitkan.",
       );
       return;
     }
@@ -2559,8 +2565,8 @@ export default function TryoutGuruSection() {
     ) {
       toast.error(
         draftForSave.questionSource === "manual"
-          ? "Ujian manual belum dapat dipublish karena belum memiliki soal."
-          : "Ujian belum dapat dipublish karena sumber soal belum siap.",
+          ? "Ujian manual belum dapat diterbitkan karena belum memiliki soal."
+          : "Ujian belum dapat diterbitkan karena sumber soal belum siap.",
       );
       return;
     }
@@ -2625,7 +2631,7 @@ export default function TryoutGuruSection() {
     const targetTryout = tryouts.find((item) => item.id === tryoutId);
 
     if (!targetTryout || targetTryout.publishStatus !== "Draft") {
-      toast.error("Ujian hanya dapat dihapus saat masih berstatus draft.");
+      toast.error("Ujian hanya dapat dihapus saat belum diterbitkan.");
       return;
     }
 
@@ -2671,7 +2677,7 @@ export default function TryoutGuruSection() {
       !isTryoutQuestionSourceReady(targetTryout.questionSource)
     ) {
       toast.error(
-        "Sumber soal ini belum siap dipublish.",
+        "Sumber soal ini belum siap diterbitkan.",
       );
       return;
     }
@@ -2683,8 +2689,8 @@ export default function TryoutGuruSection() {
     ) {
       toast.error(
         targetTryout.questionSource === "manual"
-      ? "Ujian manual belum dapat dipublish karena belum memiliki soal."
-      : "Ujian belum dapat dipublish karena sumber soal belum siap.",
+      ? "Ujian manual belum dapat diterbitkan karena belum memiliki soal."
+      : "Ujian belum dapat diterbitkan karena sumber soal belum siap.",
       );
       return;
     }
@@ -2698,7 +2704,7 @@ export default function TryoutGuruSection() {
       !isTryoutReadyToPublish(targetTryout)
     ) {
       toast.error(
-        "Lengkapi judul, kelas, mapel, durasi, dan minimal 1 soal sebelum publish.",
+        "Lengkapi judul, kelas, mapel, durasi, dan minimal 1 soal sebelum diterbitkan.",
       );
       return;
     }
@@ -2851,7 +2857,7 @@ export default function TryoutGuruSection() {
       }
 
       if (!response.ok || !payload?.success) {
-        throw new Error(payload?.message || "File XLSX belum bisa diproses.");
+        throw new Error(payload?.message || "File Excel belum bisa diproses.");
       }
 
       setTryouts((current) =>
@@ -2872,7 +2878,7 @@ export default function TryoutGuruSection() {
       setQuestionLoadError(
         error instanceof Error && error.message
           ? error.message
-          : "File XLSX belum bisa diproses.",
+          : "File Excel belum bisa diproses.",
       );
     } finally {
       xlsxUploadInFlightRef.current = false;
@@ -3183,19 +3189,19 @@ export default function TryoutGuruSection() {
               icon={ClipboardList}
               label="Total Ujian"
               value={stats.total}
-              helper="Seluruh ujian aktif dan draft milik guru."
+              helper="Seluruh ujian aktif dan belum diterbitkan milik guru."
             />
             <SummaryCard
               icon={CheckCircle2}
-              label="Published"
+              label="Diterbitkan"
               value={stats.published}
               helper="Tryout yang sudah siap dibuka untuk siswa."
             />
             <SummaryCard
               icon={FileText}
-              label="Draft"
+              label="Belum Terbit"
               value={stats.draft}
-              helper="Tryout yang masih perlu dilengkapi sebelum publish."
+              helper="Tryout yang masih perlu dilengkapi sebelum diterbitkan."
             />
             <SummaryCard
               icon={AlertTriangle}
@@ -3213,7 +3219,7 @@ export default function TryoutGuruSection() {
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
                   Kombinasikan pencarian, jenjang, kelas akhir otomatis, dan
-                  status publish untuk menjaga daftar tryout tetap fokus.
+                  status terbit untuk menjaga daftar tryout tetap fokus.
                 </p>
               </div>
 
@@ -3259,13 +3265,13 @@ export default function TryoutGuruSection() {
               </div>
 
               <div className="grid gap-3">
-                <p className={LABEL_CLASS}>Status Publish</p>
+                <p className={LABEL_CLASS}>Status Terbit</p>
                 <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-100 bg-slate-50/50 p-2">
                   {STATUS_FILTERS.map((item) => (
                     <SegmentedButton
                       key={item}
                       active={selectedStatus === item}
-                      label={item}
+                      label={getPublishStatusLabel(item)}
                       onClick={() => setSelectedStatus(item)}
                     />
                   ))}
@@ -3282,7 +3288,7 @@ export default function TryoutGuruSection() {
                   {selectedKelas}
                 </StatusBadge>
                 <StatusBadge className="border-slate-200 bg-slate-50 text-slate-600">
-                  {selectedStatus}
+                  {getPublishStatusLabel(selectedStatus)}
                 </StatusBadge>
               </div>
 
@@ -3302,7 +3308,7 @@ export default function TryoutGuruSection() {
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
                   Pantau UTS/UAS dan Tryout aktif, progress soal, dan jadwal
-                  publish sesuai kelas yang diajar guru.
+                  terbit sesuai kelas yang diajar guru.
                 </p>
               </div>
 
@@ -3378,11 +3384,10 @@ export default function TryoutGuruSection() {
                                       {tryout.judulTryout}
                                     </p>
                                     <p className="text-xs text-slate-500">
-                                      ID {tryout.id}
+                                      Cabang {tryout.branch ?? "-"}
                                     </p>
-                                    <p className="text-xs text-slate-500">
+                                    <p className="hidden">
                                       {tryout.branch ?? "-"} ·{" "}
-                                      {tryout.classId ?? "classId belum ada"}
                                     </p>
                                   </div>
                                 </div>
@@ -3438,7 +3443,7 @@ export default function TryoutGuruSection() {
                                       tryout.publishStatus,
                                     )}
                                   >
-                                    {tryout.publishStatus}
+                                    {getPublishStatusLabel(tryout.publishStatus)}
                                   </StatusBadge>
                                   <StatusBadge
                                     className={getQuestionBadgeClass(
@@ -3460,7 +3465,7 @@ export default function TryoutGuruSection() {
                                 </p>
                                 {tryout.publishStatus !== "Draft" ? (
                                   <p className="text-xs font-medium text-amber-700">
-                                    Soal terkunci setelah ujian dipublish.
+                                    Soal terkunci setelah ujian diterbitkan.
                                   </p>
                                 ) : null}
                               </div>
@@ -3468,7 +3473,7 @@ export default function TryoutGuruSection() {
                             <td className="px-4 py-4 align-middle text-center">
                               <div className="mx-auto flex w-fit items-center justify-center gap-2">
                                 <ActionIconButton
-                                  title="Edit Tryout"
+                                  title="Edit Ujian"
                                   onClick={() => openEditDialog(tryout)}
                                   className="border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100"
                                 >
@@ -3495,10 +3500,10 @@ export default function TryoutGuruSection() {
                                 <ActionIconButton
                                   title={
                                     tryout.publishStatus === "Published"
-                                      ? "Unpublish Ujian"
+                                      ? "Tarik Publikasi Ujian"
                                       : isTryoutReadyToPublish(tryout)
-                                        ? "Publish Ujian"
-                                        : "Lengkapi data dan soal sebelum publish"
+                                        ? "Terbitkan Ujian"
+                                        : "Lengkapi data dan soal sebelum diterbitkan"
                                   }
                                   disabled={
                                     tryout.publishStatus === "Draft" &&
@@ -3521,7 +3526,7 @@ export default function TryoutGuruSection() {
                                   title={
                                     tryout.publishStatus === "Draft"
                                       ? "Hapus Ujian"
-                                      : "Unpublish ujian sebelum menghapus"
+                                      : "Tarik publikasi ujian sebelum menghapus"
                                   }
                                   disabled={tryout.publishStatus !== "Draft"}
                                   onClick={() => handleDeleteTryout(tryout.id)}
@@ -3565,7 +3570,7 @@ export default function TryoutGuruSection() {
                                 tryout.publishStatus,
                               )}
                             >
-                              {tryout.publishStatus}
+                              {getPublishStatusLabel(tryout.publishStatus)}
                             </StatusBadge>
                           </div>
 
@@ -3624,13 +3629,13 @@ export default function TryoutGuruSection() {
                           </p>
                           {tryout.publishStatus !== "Draft" ? (
                             <p className="text-xs font-medium text-amber-700">
-                              Soal terkunci setelah ujian dipublish.
+                              Soal terkunci setelah ujian diterbitkan.
                             </p>
                           ) : null}
 
                           <div className="flex flex-wrap items-center justify-end gap-2 border-t border-orange-100 pt-4">
                             <ActionIconButton
-                              title="Edit Tryout"
+                              title="Edit Ujian"
                               onClick={() => openEditDialog(tryout)}
                               className="border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100"
                             >
@@ -3657,10 +3662,10 @@ export default function TryoutGuruSection() {
                             <ActionIconButton
                               title={
                                 tryout.publishStatus === "Published"
-                                  ? "Unpublish Ujian"
+                                  ? "Tarik Publikasi Ujian"
                                   : isTryoutReadyToPublish(tryout)
-                                    ? "Publish Ujian"
-                                    : "Lengkapi data dan soal sebelum publish"
+                                    ? "Terbitkan Ujian"
+                                    : "Lengkapi data dan soal sebelum diterbitkan"
                               }
                               disabled={
                                 tryout.publishStatus === "Draft" &&
@@ -3683,7 +3688,7 @@ export default function TryoutGuruSection() {
                               title={
                                 tryout.publishStatus === "Draft"
                                   ? "Hapus Ujian"
-                                  : "Unpublish ujian sebelum menghapus"
+                                  : "Tarik publikasi ujian sebelum menghapus"
                               }
                               disabled={tryout.publishStatus !== "Draft"}
                               onClick={() => handleDeleteTryout(tryout.id)}

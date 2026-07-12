@@ -75,7 +75,7 @@ export default function KirimTugasSiswaPageView() {
   return (
     <StudentLearningShell
       title="Kirim Jawaban"
-      description="Gunakan halaman ini sebagai tempat submit tugas dengan alur yang jelas: pilih tugas, lalu kirim lewat file, teks langsung, atau link Drive."
+      description="Gunakan halaman ini sebagai tempat mengirim tugas dengan alur yang jelas: pilih tugas, lalu kirim lewat file, teks langsung, atau tautan Google Drive."
       summary={
         isLoading
           ? "Memuat tugas..."
@@ -99,7 +99,7 @@ export default function KirimTugasSiswaPageView() {
           <p className="mt-2 text-sm text-slate-500">
             {academicAccessMessage ??
               loadError ??
-              "Saat ini belum ada tugas aktif yang perlu kamu submit."}
+              "Saat ini belum ada tugas aktif yang perlu kamu kirim."}
           </p>
         </section>
       ) : (
@@ -141,10 +141,10 @@ export default function KirimTugasSiswaPageView() {
               </p>
               <p className="mt-2 text-sm text-slate-500">
                 {gradedTasks.length > 0
-                  ? "Semua tugas aktif sudah selesai dinilai. Kamu bisa review hasil penilaian guru di atas."
+                  ? "Semua tugas aktif sudah selesai dinilai. Kamu bisa melihat hasil penilaian guru di atas."
                   : academicAccessMessage ??
                     loadError ??
-                    "Saat ini belum ada tugas aktif yang perlu kamu submit."}
+                    "Saat ini belum ada tugas aktif yang perlu kamu kirim."}
               </p>
             </section>
           ) : (
@@ -159,7 +159,7 @@ export default function KirimTugasSiswaPageView() {
                       Pilihan Tugas
                     </p>
                     <h2 className="mt-1 text-lg font-semibold text-slate-800">
-                      Tugas yang bisa disubmit
+                      Tugas yang bisa dikirim
                     </h2>
                   </div>
                 </div>
@@ -268,7 +268,7 @@ export default function KirimTugasSiswaPageView() {
                         className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-orange-200 bg-white px-4 text-xs font-semibold text-orange-700 transition hover:bg-orange-50"
                       >
                         <Download className="h-3.5 w-3.5" />
-                        Download Lampiran Tugas
+                        Unduh Lampiran Tugas
                       </a>
                     </div>
                   ) : null}
@@ -280,7 +280,7 @@ export default function KirimTugasSiswaPageView() {
                     taskId={activeTask.id}
                     taskTitle={activeTask.judul}
                     title="Mode Pengumpulan"
-                    description="Siswa bisa mengirim jawaban lewat upload file, jawaban teks langsung, atau menempel link Drive sesuai kebutuhan tugas."
+                    description="Siswa bisa mengirim jawaban lewat unggahan file, jawaban teks langsung, atau tautan Google Drive sesuai kebutuhan tugas."
                     availableModes={activeTask.submissionModes}
                     checklist={activeTask.instruksiPengumpulan}
                     submitLabel="Kirim Jawaban Sekarang"

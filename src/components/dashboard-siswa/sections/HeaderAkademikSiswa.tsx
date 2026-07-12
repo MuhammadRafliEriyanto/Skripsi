@@ -77,7 +77,7 @@ export default function HeaderAkademikSiswa({
         ? `${academicSummary.todayScheduleCount} sesi belajar terjadwal hari ini untuk kelas ${student.className}.`
         : academicSummary.scheduleCount > 0
           ? `Tidak ada jadwal hari ini. Total ${academicSummary.scheduleCount} jadwal mingguan siap dipantau dari dashboard siswa.`
-          : "Jadwal pelajaran untuk kelas kamu belum tersedia di backend.");
+          : "Jadwal pelajaran untuk kelas kamu belum tersedia.");
 
     return {
       name: `${student.program || academicSummary.jenjang} - ${academicSummary.kelasLabel}`,

@@ -63,13 +63,13 @@ function formatPaymentStatusLabel(status: MembershipPaymentHistoryItem["status"]
     case "paid":
       return "Lunas";
     case "pending":
-      return "Pending";
+      return "Menunggu Pembayaran";
     case "failed":
       return "Gagal";
     case "expired":
       return "Kedaluwarsa";
     case "draft_renewal":
-      return "Draft";
+      return "Belum Dibayar";
     default:
       return status;
   }
@@ -168,7 +168,7 @@ function PaymentHistoryEmptyState() {
           Belum ada histori tagihan
         </p>
         <p className="max-w-xl text-sm leading-6 text-slate-500">
-          Tagihan membership dan pembayaran yang pernah dibuat untuk akun siswa
+          Tagihan paket belajar dan pembayaran yang pernah dibuat untuk akun siswa
           kamu akan muncul di sini.
         </p>
       </div>
@@ -214,7 +214,7 @@ function PendingPaymentHighlight({
                 {payment.packageName}
               </h3>
               <p className="mt-1 text-sm leading-6 text-slate-500">
-                Tagihan ini masih aktif. Selesaikan pembayaran agar membership
+                Tagihan ini masih aktif. Selesaikan pembayaran agar paket belajar
                 bisa segera diproses.
               </p>
               <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium text-slate-500">
@@ -300,7 +300,7 @@ export default function HistoriTagihanSiswa({
         requestError instanceof MembershipRequestError &&
         (requestError.status === 401 || requestError.status === 403)
       ) {
-        setError("Sesi login siswa tidak valid untuk membaca histori tagihan.");
+        setError("Sesi kamu berakhir. Silakan login ulang untuk melihat histori tagihan.");
       } else {
         setError(
           requestError instanceof Error
@@ -346,8 +346,8 @@ export default function HistoriTagihanSiswa({
               Histori Tagihan
             </h2>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
-              Lihat seluruh payment membership milik akun kamu, termasuk tagihan
-              yang masih pending dan bisa dilanjutkan pembayarannya.
+              Lihat seluruh pembayaran paket belajar milik akun kamu, termasuk
+              tagihan yang masih menunggu pembayaran.
             </p>
           </div>
         </div>
@@ -527,13 +527,13 @@ export default function HistoriTagihanSiswa({
                 Detail Tagihan Lunas
               </DialogTitle>
               <DialogDescription>
-                Rincian pembayaran membership yang sudah terverifikasi.
+                Rincian pembayaran paket belajar yang sudah terverifikasi.
               </DialogDescription>
             </DialogHeader>
 
             <div className="grid gap-3 px-5 py-5 sm:grid-cols-2 sm:px-6">
               <PaymentDetailItem
-                label="Paket membership"
+                label="Paket belajar"
                 value={selectedPayment.packageName}
               />
               <PaymentDetailItem

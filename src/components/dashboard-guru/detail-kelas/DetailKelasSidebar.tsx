@@ -95,7 +95,7 @@ export default function DetailKelasSidebar({
               Navigasi Detail Kelas
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Pilih satu section aktif agar fokus review kelas tetap rapi dan ringan.
+              Pilih satu bagian aktif agar fokus meninjau kelas tetap rapi dan ringan.
             </p>
           </div>
 
@@ -118,4 +118,3 @@ export default function DetailKelasSidebar({
     </>
   );
 }
-

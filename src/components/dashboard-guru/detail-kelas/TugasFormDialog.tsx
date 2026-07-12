@@ -34,7 +34,7 @@ export default function TugasFormDialog({
             {mode === "add" ? "Tambah Latihan Pertemuan" : "Edit Latihan Pertemuan"}
           </DialogTitle>
           <DialogDescription className="text-sm text-slate-500">
-            Atur latihan per pertemuan beserta lampiran file opsional. Jumlah pengumpulan dan status penilaian akan dihitung otomatis dari submission siswa dan nilai guru.
+            Atur latihan per pertemuan beserta lampiran file opsional. Jumlah pengumpulan dan status penilaian akan dihitung otomatis dari jawaban siswa dan nilai guru.
           </DialogDescription>
         </DialogHeader>
 
@@ -93,7 +93,7 @@ export default function TugasFormDialog({
               </p>
               <p className="text-sm leading-6 text-slate-500">
                 Setelah latihan disimpan, sistem akan menghitung jumlah siswa yang
-                mengumpulkan dari data submission real. Status penilaian juga
+                sudah mengumpulkan jawaban. Status penilaian juga
                 akan berubah otomatis menjadi:
               </p>
               <div className="grid gap-2 text-sm text-slate-600">
@@ -101,19 +101,19 @@ export default function TugasFormDialog({
                   <span className="font-semibold text-slate-800">
                     Belum Ada Pengumpulan
                   </span>{" "}
-                  saat belum ada siswa yang submit.
+                  saat belum ada siswa yang mengumpulkan jawaban.
                 </p>
                 <p>
                   <span className="font-semibold text-slate-800">
                     Belum Dinilai
                   </span>{" "}
-                  saat sudah ada submission tetapi nilainya belum lengkap.
+                  saat sudah ada jawaban tetapi nilainya belum lengkap.
                 </p>
                 <p>
                   <span className="font-semibold text-slate-800">
                     Sudah Dinilai
                   </span>{" "}
-                  saat semua submission pada latihan ini sudah dinilai.
+                  saat semua jawaban pada latihan ini sudah dinilai.
                 </p>
               </div>
             </div>

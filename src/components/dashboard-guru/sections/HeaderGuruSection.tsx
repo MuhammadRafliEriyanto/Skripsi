@@ -10,7 +10,6 @@ import type { LucideIcon } from "lucide-react";
 import {
   BookOpen,
   CalendarDays,
-  ChevronDown,
   FileText,
   Flame,
   Lock,

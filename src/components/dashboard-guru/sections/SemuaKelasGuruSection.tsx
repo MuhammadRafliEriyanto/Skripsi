@@ -491,7 +491,7 @@ export default function SemuaKelasGuruSection() {
                 icon={ClipboardCheck}
                 label="Belum Dinilai"
                 value={stats.tugasBelumDinilai}
-                helper="Latihan yang masih membutuhkan review."
+                helper="Latihan yang masih perlu ditinjau."
               />
               <SummaryCard
                 icon={CalendarDays}

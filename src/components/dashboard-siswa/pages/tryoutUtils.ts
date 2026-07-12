@@ -325,17 +325,17 @@ export function buildSessionFromTryout(
     availability: normalizeText(tryout.availability) || "Belum tersedia",
     availabilityMessage:
       normalizeText(tryout.availabilityMessage) ||
-      "Status pengerjaan mengikuti jadwal publish guru.",
+      "Status pengerjaan mengikuti jadwal yang diterbitkan guru.",
     isOpen: tryout.isOpen === true,
     mode:
       tryout.questionSource === "bank"
-        ? "CBT Bank Soal Backend"
+        ? "Ujian Bank Soal"
         : `CBT ${assessmentLabel} Terjadwal`,
     instructions: [
       `Klik mulai ${assessmentLabel} saat jadwal sudah terbuka dan kamu siap mengerjakan.`,
-      `Jawaban dikirim ke backend dan hasilnya tersimpan untuk guru serta nilai ${assessmentLabel}.`,
-      "Gunakan penanda soal untuk menandai nomor yang ingin dicek ulang sebelum submit.",
-      "Setelah dikirim, pembahasan dan kunci jawaban akan tampil dari data backend.",
+      `Jawaban tersimpan otomatis untuk guru dan nilai ${assessmentLabel}.`,
+      "Gunakan penanda soal untuk menandai nomor yang ingin dicek ulang sebelum dikirim.",
+      "Setelah dikirim, pembahasan dan kunci jawaban akan tampil saat tersedia.",
     ],
     focusAreas: Array.from(
       new Set(

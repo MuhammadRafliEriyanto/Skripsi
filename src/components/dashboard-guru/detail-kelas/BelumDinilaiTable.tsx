@@ -20,7 +20,7 @@ export default function BelumDinilaiTable({
             Peringatan Belum Dinilai
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            Tugas dan soal latihan yang memerlukan review nilai secara manual. Anda dapat melihat jumlah tugas yang
+            Tugas dan soal latihan yang memerlukan penilaian manual. Anda dapat melihat jumlah tugas yang
             tertunda berdasarkan data terbaru di sistem.
           </p>
         </div>

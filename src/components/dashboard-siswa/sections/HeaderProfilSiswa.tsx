@@ -127,7 +127,7 @@ function buildPaymentSummary(
   }
 
   if (payment?.status === "pending") {
-    return "Pending";
+    return "Menunggu";
   }
 
   if (payment?.status === "failed") {

@@ -78,7 +78,7 @@ export default function TaskSubmissionReviewDialog({
       <DialogContent className="max-h-[92vh] max-w-6xl grid-rows-[auto_minmax(0,1fr)_auto] gap-0 rounded-[24px] border border-slate-200 bg-white p-0 shadow-lg">
         <DialogHeader className="border-b border-slate-200 bg-gradient-to-r from-orange-50/60 via-white to-amber-50/30 px-4 py-4 pr-14 text-left md:px-5">
           <DialogTitle className="text-lg font-semibold text-slate-800">
-            Review Submission Latihan
+            Tinjau Jawaban Latihan
           </DialogTitle>
           <DialogDescription className="text-sm text-slate-500">
             {task
@@ -97,7 +97,7 @@ export default function TaskSubmissionReviewDialog({
                 {task?.judulTugas ?? "-"}
               </h3>
               <p className="mt-1 text-sm text-slate-500">
-                Pertemuan {task?.pertemuanKe ?? "-"} | {submissions.length} submission
+                Pertemuan {task?.pertemuanKe ?? "-"} | {submissions.length} jawaban
               </p>
             </div>
 
@@ -105,7 +105,7 @@ export default function TaskSubmissionReviewDialog({
               {isListLoading ? (
                 <div className="flex min-h-48 items-center justify-center gap-2 text-sm text-slate-500">
                   <LoaderCircle className="h-4 w-4 animate-spin" />
-                  Memuat daftar submission...
+                  Memuat daftar jawaban...
                 </div>
               ) : submissions.length > 0 ? (
                 <div className="grid gap-3">
@@ -157,7 +157,7 @@ export default function TaskSubmissionReviewDialog({
                           </p>
                         ) : (
                           <p className="text-sm leading-6 text-slate-400">
-                            Tidak ada preview jawaban teks.
+                            Belum ada cuplikan jawaban teks.
                           </p>
                         )}
 
@@ -176,7 +176,7 @@ export default function TaskSubmissionReviewDialog({
                     <Inbox className="h-5 w-5" />
                   </div>
                   <p className="mt-4 text-base font-semibold text-slate-700">
-                    Belum ada submission untuk latihan ini.
+                    Belum ada jawaban terkumpul untuk latihan ini.
                   </p>
                   <p className="mt-2 text-sm leading-6 text-slate-500">
                     Guru dapat membuka kembali dialog ini setelah siswa mulai
@@ -190,8 +190,8 @@ export default function TaskSubmissionReviewDialog({
           <div className="min-h-0 overflow-y-auto px-4 py-4 md:px-5">
             {isDetailLoading ? (
               <div className="flex min-h-64 items-center justify-center gap-2 text-sm text-slate-500">
-                <LoaderCircle className="h-4 w-4 animate-spin" />
-                Memuat detail submission...
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
+                Memuat detail jawaban...
               </div>
             ) : submissionDetail ? (
               <div className="grid gap-4">
@@ -217,7 +217,7 @@ export default function TaskSubmissionReviewDialog({
                     </p>
                     <div className="mt-1 grid gap-2 text-sm text-slate-600">
                       <p>
-                        Mode:{" "}
+                        Bentuk Jawaban:{" "}
                         <span className="font-semibold text-slate-800">
                           {formatSubmissionModeLabel(submissionDetail.submissionMode)}
                         </span>
@@ -273,7 +273,7 @@ export default function TaskSubmissionReviewDialog({
                     <div className="flex items-center gap-2">
                       <Link2 className="h-4 w-4 text-slate-500" />
                       <h4 className="text-sm font-semibold text-slate-800">
-                        Link Drive
+                        Link Google Drive
                       </h4>
                     </div>
                     <a
@@ -283,7 +283,7 @@ export default function TaskSubmissionReviewDialog({
                       className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-slate-700 underline-offset-2 hover:text-slate-600 hover:underline"
                     >
                       <ExternalLink className="h-4 w-4" />
-                      Buka Link Drive
+                      Buka Google Drive
                     </a>
                   </section>
                 ) : null}
@@ -303,7 +303,7 @@ export default function TaskSubmissionReviewDialog({
                             submissionDetail.attachmentFileName}
                         </p>
                         <p className="mt-1 text-xs text-slate-500">
-                          {submissionDetail.attachmentMimeType || "application/octet-stream"}
+                          {submissionDetail.attachmentMimeType || "Jenis file tidak dikenali"}
                         </p>
                       </div>
                       <a
@@ -313,7 +313,7 @@ export default function TaskSubmissionReviewDialog({
                         className="inline-flex shrink-0 items-center gap-2 border border-orange-400 bg-slate-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
                       >
                         <Download className="h-4 w-4" />
-                        Download
+                        Unduh
                       </a>
                     </div>
                   </section>
@@ -336,7 +336,7 @@ export default function TaskSubmissionReviewDialog({
                 !submissionDetail.note ? (
                   <div className="border border-dashed border-slate-200 bg-slate-50/30 px-5 py-10 text-center">
                     <p className="text-sm font-medium text-slate-600">
-                      Detail submission ini belum memiliki isi tambahan yang bisa ditampilkan.
+                      Detail jawaban ini belum memiliki isi tambahan yang bisa ditampilkan.
                     </p>
                   </div>
                 ) : null}
@@ -347,7 +347,7 @@ export default function TaskSubmissionReviewDialog({
                   <FileText className="h-5 w-5" />
                 </div>
                 <p className="mt-4 text-base font-semibold text-slate-700">
-                  Pilih salah satu submission untuk melihat detail.
+                  Pilih salah satu jawaban untuk melihat detail.
                 </p>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
                   Guru dapat membaca jawaban teks, membuka link Drive, dan

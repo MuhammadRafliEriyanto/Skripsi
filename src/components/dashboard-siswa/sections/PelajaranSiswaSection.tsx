@@ -6,7 +6,6 @@ import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight,
   BookOpen,
-  CalendarDays,
   Eye,
   FileText,
   Send,
@@ -88,7 +87,7 @@ function SectionAction({
 
 export default function PelajaranSection() {
   const [activeTab, setActiveTab] = useState<TabKey>("materi");
-  const { dashboardData, isLoading: isDashboardLoading, loadError: dashboardError } = useStudentDashboardData();
+  const { isLoading: isDashboardLoading } = useStudentDashboardData();
   const { materials, tasks, academicAccess, isLoading, loadError } =
     useStudentLearningData();
   const {
@@ -116,7 +115,7 @@ export default function PelajaranSection() {
       return `${materials.length} materi tersedia`;
     if (activeTab === "tugas") return `${tasks.length} tugas aktif`;
     return `${tryouts.length} ujian tersedia`;
-  }, [activeTab, isLoading, isDashboardLoading, isTryoutsLoading, materials.length, tasks.length, tryouts.length, dashboardData?.schedules?.length]);
+  }, [activeTab, isLoading, isDashboardLoading, isTryoutsLoading, materials.length, tasks.length, tryouts.length]);
 
   const renderMateri = () => {
     if (isLoading) {
@@ -325,7 +324,7 @@ export default function PelajaranSection() {
 
               <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
                 <span className="rounded-full bg-slate-100 px-2.5 py-1">
-                  {tryout.questionSource === "bank" ? "CBT Bank Soal" : "CBT Terjadwal"}
+                  {tryout.questionSource === "bank" ? "Ujian Bank Soal" : "Ujian Terjadwal"}
                 </span>
                 <span className="rounded-full bg-slate-100 px-2.5 py-1">
                   {tryout.branch || "Pusat"}

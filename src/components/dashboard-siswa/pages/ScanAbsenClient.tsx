@@ -161,7 +161,7 @@ export default function ScanAbsenClient() {
       if (!payload) {
         if (isMounted) {
           setIsSubmitting(false);
-          setScanError("QR absensi tidak valid. Silakan scan QR dari sesi absensi guru.");
+          setScanError("QR absensi tidak dikenali. Silakan pindai QR dari sesi absensi guru.");
         }
         return;
       }
@@ -201,7 +201,7 @@ export default function ScanAbsenClient() {
       } catch {
         if (isMounted) {
           setIsSubmitting(false);
-          setScanError("Gagal menghubungi server absensi QR.");
+          setScanError("Absensi QR belum bisa diproses. Periksa koneksi lalu coba lagi.");
         }
       }
     };

@@ -129,8 +129,8 @@ export default function TugasPertemuanTable({
                       <div className="mx-auto flex w-fit items-center justify-center gap-2">
                         <button
                           type="button"
-                          title="Lihat Submission"
-                          aria-label="Lihat Submission"
+                          title="Lihat Jawaban Siswa"
+                          aria-label="Lihat Jawaban Siswa"
                           onClick={() => onViewSubmissions(task)}
                           className={`${ACTION_BUTTON_CLASS} border-sky-200 bg-sky-50 text-sky-700 hover:border-sky-300 hover:bg-sky-100`}
                         >

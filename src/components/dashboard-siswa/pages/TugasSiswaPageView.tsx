@@ -117,7 +117,7 @@ export default function TugasSiswaPageView() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-800">Sudah Dinilai</p>
-                  <p className="text-xs text-slate-500">Feedback yang bisa kamu review</p>
+                  <p className="text-xs text-slate-500">Masukan yang bisa kamu lihat</p>
                 </div>
               </div>
               <p className="mt-4 text-2xl font-semibold text-slate-800">
@@ -150,7 +150,7 @@ export default function TugasSiswaPageView() {
                 </h2>
               </div>
               <p className="text-sm text-slate-500">
-                Gunakan halaman ini untuk cek instruksi sebelum masuk ke proses submit.
+                Gunakan halaman ini untuk cek instruksi sebelum mengirim jawaban.
               </p>
             </div>
 

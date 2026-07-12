@@ -163,7 +163,7 @@ export default function TryoutSiswaPageView() {
     getStudentAcademicAccessMessage(academicAccess);
   const summaryText = isLoading
     ? "Memuat ujian"
-    : `${tryouts.length} ujian published`;
+    : `${tryouts.length} ujian tersedia`;
 
   const loadTryoutList = useCallback(async () => {
     try {
@@ -290,14 +290,14 @@ export default function TryoutSiswaPageView() {
   return (
     <StudentLearningShell
       title="Ujian Siswa"
-      description="Kerjakan UTS, UAS, atau Tryout dari data backend sesuai cabang dan kelas kamu. Soal, submit, dan hasilnya tersimpan real."
+      description="Kerjakan UTS, UAS, atau Tryout sesuai cabang dan kelas kamu. Jawaban dan hasil tersimpan otomatis."
       summary={summaryText}
     >
       {isLoading ? (
         <section className="rounded-[24px] border border-slate-100 bg-white px-5 py-10 text-center shadow-sm">
           <Loader2 className="mx-auto h-6 w-6 animate-spin text-orange-500" />
           <p className="mt-3 text-sm font-semibold text-slate-700">
-            Memuat ujian dari backend...
+            Memuat daftar ujian...
           </p>
           <p className="mt-1 text-xs leading-5 text-slate-500">
             Sistem sedang mencocokkan data siswa dengan cabang dan kelas.
@@ -311,10 +311,10 @@ export default function TryoutSiswaPageView() {
         />
       ) : !activeSession ? (
         <EmptyTryoutState
-          title="Belum ada ujian published untuk akun ini"
+          title="Belum ada ujian yang tersedia untuk akun ini"
           description={
             academicAccessMessage ??
-            "Siswa hanya melihat UTS, UAS, atau Tryout yang sudah dipublish guru dan cocok dengan cabang serta kelasnya."
+            "Siswa hanya melihat UTS, UAS, atau Tryout yang sudah diterbitkan guru dan cocok dengan cabang serta kelasnya."
           }
           onRetry={loadTryoutList}
         />
@@ -339,7 +339,7 @@ export default function TryoutSiswaPageView() {
 
                   return (
                     <option key={session.id} value={session.id}>
-                      {session.assessmentLabel} · {session.title} · {session.subject}
+                      {session.assessmentLabel} - {session.title} - {session.subject}
                     </option>
                   );
                 })}
@@ -358,7 +358,7 @@ export default function TryoutSiswaPageView() {
             <TryoutStatCard
               label="Jumlah Soal"
               value={`${totalQuestions} soal`}
-              helper="Jumlah soal dibaca dari bank soal backend."
+              helper="Jumlah soal mengikuti bank soal yang disiapkan guru."
               icon={ListChecks}
             />
             <TryoutStatCard

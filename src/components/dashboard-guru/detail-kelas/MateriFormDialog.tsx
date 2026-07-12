@@ -106,7 +106,7 @@ export default function MateriFormDialog({
                   onChange={(event) => onChange("statusMateri", event.target.value)}
                   className="border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
                 >
-                  <option value="Draft">Draft</option>
+                  <option value="Draft">Belum Diterbitkan</option>
                   <option value="Dipublikasikan">Dipublikasikan</option>
                 </select>
               </label>

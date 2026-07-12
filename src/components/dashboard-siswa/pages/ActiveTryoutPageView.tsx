@@ -76,7 +76,7 @@ function ReviewBadge({
           : "bg-rose-50 text-rose-700",
       )}
     >
-      {isCorrect ? "Jawaban benar" : "Perlu review"}
+      {isCorrect ? "Jawaban benar" : "Perlu dicek ulang"}
     </span>
   );
 }
@@ -550,7 +550,7 @@ export default function ActiveTryoutPageView({ attemptId }: ActiveTryoutPageView
       ) : !activeSession || (!hasStarted && !isSubmitted) ? (
         <EmptyTryoutState
           title="Soal ujian belum tersedia"
-          description="Sesi ujian belum siap atau gagal dimuat dari backend."
+          description="Sesi ujian belum siap atau belum bisa dimuat."
           onRetry={loadExamAttempt}
         />
       ) : isSubmitted && displayResult ? (
@@ -558,7 +558,7 @@ export default function ActiveTryoutPageView({ attemptId }: ActiveTryoutPageView
           <SectionHeader
             icon={CheckCircle2}
             title={`Hasil ${activeSession.assessmentLabel}`}
-            description="Ringkasan performa dari jawaban yang tersimpan di backend."
+            description="Ringkasan hasil dari jawaban yang sudah dikirim."
           />
 
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -625,7 +625,7 @@ export default function ActiveTryoutPageView({ attemptId }: ActiveTryoutPageView
             <SectionHeader
               icon={ListChecks}
               title="Area Pengerjaan"
-              description="Baca soal dengan teliti, pilih jawaban terbaik, lalu tandai bila ingin direview lagi."
+              description="Baca soal dengan teliti, pilih jawaban terbaik, lalu tandai bila ingin dicek ulang lagi."
             />
 
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -669,7 +669,7 @@ export default function ActiveTryoutPageView({ attemptId }: ActiveTryoutPageView
                     <Flag className="h-4 w-4" />
                     {bookmarkedIds.includes(getQuestionKey(currentQuestion))
                       ? "Ditandai"
-                      : "Tandai Review"}
+                      : "Tandai Cek Ulang"}
                   </button>
                 )}
               </div>
@@ -830,7 +830,7 @@ export default function ActiveTryoutPageView({ attemptId }: ActiveTryoutPageView
               <SectionHeader
                 icon={Target}
                 title="Progres Jawaban"
-                description="Lihat jumlah soal yang sudah terjawab, tertunda, dan masih perlu direview."
+                description="Lihat jumlah soal yang sudah terjawab, tertunda, dan masih perlu dicek ulang."
               />
 
               <div className="grid grid-cols-2 gap-3">

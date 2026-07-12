@@ -459,7 +459,7 @@ export function GuruUserProfileDialog({
                     {profileAvatarSrc ? (
                       <AvatarImage
                         src={profileAvatarSrc}
-                        alt={`Preview foto profil ${profileDisplayName}`}
+                        alt={`Pratinjau foto profil ${profileDisplayName}`}
                       />
                     ) : null}
                     <AvatarFallback className="text-xl">
@@ -473,7 +473,7 @@ export function GuruUserProfileDialog({
                         Foto profil guru
                       </p>
                       <p className="text-[11px] text-slate-500">
-                        Upload JPG, PNG, WebP, ukuran maksimal 2MB.
+                        Unggah JPG, PNG, WebP, ukuran maksimal 2MB.
                       </p>
                     </div>
 
@@ -495,7 +495,7 @@ export function GuruUserProfileDialog({
                         disabled={isUserLoading || isSubmittingProfile}
                       >
                         <ImageUp className="size-4" />
-                        {profileAvatarSrc ? "Ganti Foto" : "Upload Foto"}
+                        {profileAvatarSrc ? "Ganti Foto" : "Unggah Foto"}
                       </Button>
                     </div>
 

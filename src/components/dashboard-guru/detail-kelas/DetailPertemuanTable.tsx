@@ -11,6 +11,10 @@ function getMateriStatusClass(status: DetailPertemuanTableProps["materials"][num
   return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
+function getMateriStatusLabel(status: DetailPertemuanTableProps["materials"][number]["statusMateri"]) {
+  return status === "Draft" ? "Belum Diterbitkan" : status;
+}
+
 export default function DetailPertemuanTable({
   kelasName,
   materials,
@@ -120,7 +124,7 @@ export default function DetailPertemuanTable({
                       <span
                         className={`inline-flex items-center border px-2.5 py-1 text-xs font-semibold ${getMateriStatusClass(material.statusMateri)}`}
                       >
-                        {material.statusMateri}
+                        {getMateriStatusLabel(material.statusMateri)}
                       </span>
                     </td>
                     <td className="px-4 py-4 align-top">

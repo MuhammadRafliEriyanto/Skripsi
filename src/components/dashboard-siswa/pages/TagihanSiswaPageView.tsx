@@ -465,7 +465,7 @@ function PaymentPolicyCopy({
         <p>
           Perpanjangan manual dari admin tidak lagi ditampilkan sebagai aksi
           utama siswa. Tombol perpanjangan akan muncul otomatis saat masa aktif
-          membership sudah mendekati selesai.
+          paket belajar sudah mendekati selesai.
         </p>
       </>
     );
@@ -475,12 +475,12 @@ function PaymentPolicyCopy({
     return (
       <>
         <p>
-          Akun siswa ini belum memiliki membership awal di sistem baru. Untuk
-          siswa lama, aktivasi membership pertama perlu dikonfirmasi admin
+          Akun siswa ini belum memiliki paket belajar awal. Untuk
+          siswa lama, aktivasi paket pertama perlu dikonfirmasi admin
           terlebih dahulu.
         </p>
         <p>
-          Setelah admin membuat membership awal, barulah tagihan dan tombol
+          Setelah admin membuat paket belajar awal, barulah tagihan dan tombol
           pembayaran akan tampil di halaman ini untuk dilanjutkan oleh siswa.
         </p>
       </>
@@ -491,11 +491,11 @@ function PaymentPolicyCopy({
     return (
       <>
         <p>
-          Membership siswa sudah tercatat, tetapi pembayaran atau aktivasinya
+          Paket belajar siswa sudah tercatat, tetapi pembayaran atau aktivasinya
           masih menunggu penyelesaian.
         </p>
         <p>
-          Jika ada tagihan pending, siswa bisa melanjutkan pembayaran dari card
+          Jika ada tagihan yang menunggu pembayaran, siswa bisa melanjutkan pembayaran dari kartu
           tagihan aktif atau dari tabel histori tagihan.
         </p>
       </>
@@ -506,11 +506,11 @@ function PaymentPolicyCopy({
     return (
       <>
         <p>
-          Masa aktif membership sudah berakhir. Siswa dapat memperpanjang
-          membership dari halaman ini dan melanjutkan ke checkout pembayaran.
+          Masa aktif paket belajar sudah berakhir. Siswa dapat memperpanjang
+          paket dari halaman ini dan melanjutkan ke halaman pembayaran.
         </p>
         <p>
-          Selama belum ada tagihan pending, belum ada pembayaran yang perlu
+          Selama belum ada tagihan yang menunggu pembayaran, belum ada pembayaran yang perlu
           dilanjutkan saat ini.
         </p>
       </>
@@ -521,7 +521,7 @@ function PaymentPolicyCopy({
     return (
       <>
         <p>
-          Membership siswa masih aktif, tetapi sisa masa aktifnya sudah 14 hari
+          Paket belajar siswa masih aktif, tetapi sisa masa aktifnya sudah 14 hari
           atau kurang. Siswa dapat menyiapkan perpanjangan sebelum akses belajar
           berakhir.
         </p>
@@ -536,8 +536,8 @@ function PaymentPolicyCopy({
   return (
     <>
       <p>
-        Membership siswa sedang aktif. Tombol perpanjangan akan muncul otomatis
-        saat masa aktif tersisa 14 hari atau ketika membership sudah berakhir.
+        Paket belajar siswa sedang aktif. Tombol perpanjangan akan muncul otomatis
+        saat masa aktif tersisa 14 hari atau ketika paket sudah berakhir.
       </p>
       <p>
         Status tagihan dan masa aktif akan tersinkron otomatis setelah
@@ -597,12 +597,12 @@ export default function TagihanSiswaPageView() {
         requestError instanceof MembershipRequestError &&
         (requestError.status === 401 || requestError.status === 403)
       ) {
-        setError("Sesi login siswa tidak valid untuk membaca membership.");
+        setError("Sesi kamu berakhir. Silakan login ulang untuk melihat tagihan.");
       } else {
         setError(
           requestError instanceof Error
             ? requestError.message
-            : "Gagal memuat ringkasan membership siswa.",
+            : "Gagal memuat ringkasan paket belajar siswa.",
         );
       }
 
@@ -685,20 +685,20 @@ export default function TagihanSiswaPageView() {
   const renewalUnavailableMessage = !renewalClassSuggestion
     ? "Kelas siswa belum bisa dikenali otomatis. Minta admin merapikan data kelas siswa terlebih dahulu."
     : overview.paymentStatus === "pending"
-      ? "Masih ada tagihan pending. Selesaikan atau batalkan tagihan lama terlebih dahulu."
+      ? "Masih ada tagihan yang menunggu pembayaran. Selesaikan atau batalkan tagihan lama terlebih dahulu."
       : overview.isScheduledAccess
-        ? "Membership sudah lunas dan akses belajar terjadwal. Perpanjangan baru tersedia setelah membership berjalan."
+        ? "Paket belajar sudah lunas dan akses belajar terjadwal. Perpanjangan baru tersedia setelah paket berjalan."
           : overview.accessStatus === "pending"
-            ? "Membership belum aktif. Selesaikan aktivasi terlebih dahulu sebelum membuat perpanjangan."
+            ? "Paket belajar belum aktif. Selesaikan aktivasi terlebih dahulu sebelum membuat perpanjangan."
             : !canShowRenewalAction
-              ? "Tombol perpanjangan muncul otomatis saat membership tersisa 14 hari atau sudah berakhir."
-              : "Perpanjangan tersedia setelah membership awal tercatat.";
+              ? "Tombol perpanjangan muncul otomatis saat paket tersisa 14 hari atau sudah berakhir."
+              : "Perpanjangan tersedia setelah paket awal tercatat.";
 
   async function handleCreateRenewalPayment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!canCreateRenewal) {
-      setRenewalError("Perpanjangan belum tersedia untuk status membership saat ini.");
+      setRenewalError("Perpanjangan belum tersedia untuk status paket saat ini.");
       return;
     }
 
@@ -714,7 +714,7 @@ export default function TagihanSiswaPageView() {
 
       setRenewalFeedback({
         tone: "success",
-        message: "Perpanjangan membership berhasil disiapkan.",
+        message: "Perpanjangan paket belajar berhasil disiapkan.",
         checkoutUrl,
       });
       setIsRenewalDialogOpen(false);
@@ -747,15 +747,15 @@ export default function TagihanSiswaPageView() {
               Tagihan Siswa
             </div>
             <h1 className="mt-3 text-xl font-semibold tracking-tight text-slate-950 md:text-2xl">
-              Membership, Masa Aktif, dan Histori Pembayaran
+              Paket Belajar, Masa Aktif, dan Histori Pembayaran
             </h1>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">
-              Pantau masa aktif membership dan lanjutkan pembayaran tagihan yang
-              masih pending dari satu halaman yang lebih ringkas.
+              Pantau masa aktif paket belajar dan lanjutkan tagihan yang masih
+              menunggu pembayaran dari satu halaman yang lebih ringkas.
             </p>
           </div>
           <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-500">
-            Status pembayaran tersinkron otomatis setelah gateway mengonfirmasi transaksi.
+            Status pembayaran tersinkron otomatis setelah sistem mengonfirmasi transaksi.
           </div>
         </div>
       </div>
@@ -767,7 +767,7 @@ export default function TagihanSiswaPageView() {
           <div className="flex items-start gap-3 text-red-700">
             <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
             <div>
-              <p className="text-sm font-semibold">Ringkasan membership belum bisa dimuat</p>
+              <p className="text-sm font-semibold">Ringkasan paket belajar belum bisa dimuat</p>
               <p className="mt-1 text-sm leading-6">{error}</p>
             </div>
           </div>
@@ -842,7 +842,7 @@ export default function TagihanSiswaPageView() {
                   <SummaryCard
                     label="Status Pembayaran"
                     value={overview.paymentStatusLabel}
-                    note="Pembayaran terakhir yang tercatat pada membership siswa."
+                    note="Pembayaran terakhir yang tercatat pada paket belajar siswa."
                   />
                   <SummaryCard
                     label="Mulai Aktif"
@@ -852,7 +852,7 @@ export default function TagihanSiswaPageView() {
                   <SummaryCard
                     label="Berakhir"
                     value={overview.endDate}
-                    note="Setelah tanggal ini, siswa perlu perpanjang membership."
+                    note="Setelah tanggal ini, siswa perlu memperpanjang paket."
                   />
                 </div>
               </div>
@@ -866,7 +866,7 @@ export default function TagihanSiswaPageView() {
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-slate-900">
-                      Perpanjang Membership
+                      Perpanjang Paket
                     </p>
                     <p className="mt-1 text-sm leading-6 text-slate-500">
                       Kelas tujuan dihitung otomatis dari data siswa saat ini.
@@ -877,9 +877,9 @@ export default function TagihanSiswaPageView() {
                 <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
                   <PaymentPolicyCopy overview={overview} />
                   <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-3 py-3 text-slate-500">
-                    Sistem saat ini masih memakai model sekali bayar per paket.
-                    Opsi cicilan belum saya aktifkan supaya alurnya tetap sesuai
-                    dengan backend yang sudah ada.
+                    Sistem saat ini memakai model sekali bayar per paket.
+                    Opsi cicilan belum diaktifkan agar alur pembayaran tetap
+                    sederhana.
                   </p>
 
                   <div className="border-t border-slate-200 pt-4">

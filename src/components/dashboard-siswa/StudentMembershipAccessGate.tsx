@@ -123,14 +123,14 @@ function getGateCopy(
 
   if (pendingPayment) {
     return {
-      badge: "Tagihan Pending",
-      title: "Pembayaran membership belum selesai",
+      badge: "Menunggu Pembayaran",
+      title: "Pembayaran paket belajar belum selesai",
       description:
         "Masih ada tagihan perpanjangan yang menunggu pembayaran. Selesaikan tagihan ini agar akses materi, tugas, jadwal, absensi, nilai, dan ujian bisa aktif kembali.",
       primaryLabel: pendingPayment?.checkoutUrl
         ? "Lanjut Pembayaran"
         : "Buka Tagihan",
-      secondaryLabel: "Lihat Histori Tagihan",
+      secondaryLabel: "Riwayat Pembayaran",
     };
   }
 
@@ -138,7 +138,7 @@ function getGateCopy(
     return {
       badge: "Akses Terjadwal",
       title: "Akses belajar dibuka mulai periode baru",
-      description: `Membership sudah tercatat dan pembayaran sudah selesai. Materi, tugas, jadwal, absensi, nilai, dan ujian akan dibuka mulai ${formatDateLabel(scheduledAccessDate)}.`,
+      description: `Paket belajar sudah tercatat dan pembayaran sudah selesai. Materi, tugas, jadwal, absensi, nilai, dan ujian akan dibuka mulai ${formatDateLabel(scheduledAccessDate)}.`,
       primaryLabel: "Lihat Tagihan",
       secondaryLabel: "Histori Pembayaran",
     };
@@ -146,33 +146,33 @@ function getGateCopy(
 
   if (accessStatus === "pending") {
     return {
-      badge: "Membership Belum Aktif",
-      title: "Akses belajar menunggu membership aktif",
+      badge: "Paket Belum Aktif",
+      title: "Akses belajar menunggu paket aktif",
       description:
-        "Membership akun ini belum berada di masa aktif. Kamu tetap bisa login dan melihat histori tagihan, tetapi area pembelajaran dikunci sampai membership aktif.",
+        "Paket belajar akun ini belum berada di masa aktif. Kamu tetap bisa login dan melihat histori tagihan, tetapi area pembelajaran dikunci sampai paket aktif.",
       primaryLabel: "Buka Tagihan",
-      secondaryLabel: "Lihat Histori Tagihan",
+      secondaryLabel: "Riwayat Pembayaran",
     };
   }
 
   if (accessStatus === "expired") {
     return {
-      badge: "Membership Berakhir",
-      title: "Perpanjang membership untuk akses belajar",
+      badge: "Paket Berakhir",
+      title: "Perpanjang paket belajar untuk akses belajar",
       description:
-        "Membership akun ini sudah berakhir. Kamu tetap bisa login untuk melihat profil dan histori tagihan, tetapi area pembelajaran dikunci sampai membership diperpanjang.",
-      primaryLabel: "Perpanjang Membership",
-      secondaryLabel: "Lihat Histori Tagihan",
+        "Paket belajar akun ini sudah berakhir. Kamu tetap bisa login untuk melihat profil dan histori tagihan, tetapi area pembelajaran dikunci sampai paket diperpanjang.",
+      primaryLabel: "Perpanjang Paket",
+      secondaryLabel: "Riwayat Pembayaran",
     };
   }
 
   return {
     badge: "Akses Belum Aktif",
-    title: "Membership belum aktif",
+    title: "Paket belajar belum aktif",
     description:
-      "Akun siswa sudah bisa login, tetapi akses pembelajaran belum tersedia sampai membership aktif.",
+      "Akun siswa sudah bisa login, tetapi akses pembelajaran belum tersedia sampai paket belajar aktif.",
     primaryLabel: "Buka Tagihan",
-    secondaryLabel: "Lihat Histori Tagihan",
+    secondaryLabel: "Riwayat Pembayaran",
   };
 }
 
@@ -358,14 +358,14 @@ function LockedAcademicAccessView({
               </div>
               <div className="rounded-2xl bg-white px-4 py-3">
                 Materi, tugas, jadwal, absensi, nilai, dan ujian dibuka lagi
-                setelah membership aktif.
+                setelah paket belajar aktif.
               </div>
             </div>
 
             {pendingPayment ? (
               <div className="mt-5 rounded-[22px] border border-orange-100 bg-white px-4 py-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-orange-600">
-                  Tagihan pending
+                  Menunggu pembayaran
                 </p>
                 <p className="mt-2 text-sm font-semibold text-slate-900">
                   {pendingPayment.packageName}
@@ -379,7 +379,7 @@ function LockedAcademicAccessView({
                     onClick={() => openCheckoutUrl(pendingPayment.checkoutUrl)}
                     className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-orange-600 transition hover:text-orange-700"
                   >
-                    Buka checkout
+                    Lanjutkan pembayaran
                     <ArrowUpRight className="h-4 w-4" />
                   </button>
                 ) : null}
@@ -412,8 +412,8 @@ function MembershipGateBanner({
             <p className="text-sm font-semibold text-orange-800">{copy.title}</p>
             <p className="mt-1 max-w-3xl text-xs leading-5 text-orange-700/85">
               {pendingPayment
-                ? "Selesaikan tagihan pending agar akses pembelajaran aktif kembali."
-                : "Buka halaman tagihan untuk cek status membership dan mengaktifkan akses pembelajaran."}
+                ? "Selesaikan pembayaran agar akses pembelajaran aktif kembali."
+                : "Buka halaman tagihan untuk cek status paket belajar dan mengaktifkan akses pembelajaran."}
             </p>
           </div>
         </div>
@@ -441,7 +441,7 @@ function MembershipGateBanner({
             type="button"
             onClick={onClose}
             className="flex h-9 w-9 items-center justify-center rounded-xl border border-orange-200 bg-white text-orange-600 transition hover:bg-orange-100"
-            aria-label="Tutup pemberitahuan membership"
+            aria-label="Tutup pemberitahuan paket belajar"
           >
             <X className="h-4 w-4" />
           </button>

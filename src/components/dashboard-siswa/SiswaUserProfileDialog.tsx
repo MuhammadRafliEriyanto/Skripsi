@@ -454,7 +454,7 @@ export function SiswaUserProfileDialog({
                     {profileAvatarSrc ? (
                       <AvatarImage
                         src={profileAvatarSrc}
-                        alt={`Preview foto profil ${profileDisplayName}`}
+                        alt={`Pratinjau foto profil ${profileDisplayName}`}
                       />
                     ) : null}
                     <AvatarFallback className="text-xl">
@@ -468,7 +468,7 @@ export function SiswaUserProfileDialog({
                         Foto profil siswa
                       </p>
                       <p className="text-xs text-slate-500">
-                        Upload gambar JPG, PNG, WebP, atau format image lain
+                        Unggah gambar JPG, PNG, WebP, atau format gambar lain
                         dengan ukuran maksimal 2MB.
                       </p>
                     </div>
@@ -490,7 +490,7 @@ export function SiswaUserProfileDialog({
                         disabled={isUserLoading || isSubmittingProfile}
                       >
                         <ImageUp className="size-4" />
-                        {profileAvatarSrc ? "Ganti Foto" : "Upload Foto"}
+                        {profileAvatarSrc ? "Ganti Foto" : "Unggah Foto"}
                       </Button>
                     </div>
 

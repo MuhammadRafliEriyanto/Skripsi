@@ -40,7 +40,7 @@ export default function MateriSiswaPageView() {
   return (
     <StudentLearningShell
       title="Materi Belajar"
-      description="Kumpulkan semua materi pembelajaran dalam satu tempat agar sesi belajar harian, penguatan konsep, dan review menjelang ujian terasa lebih terarah."
+      description="Kumpulkan semua materi pembelajaran dalam satu tempat agar sesi belajar harian, penguatan konsep, dan persiapan ujian terasa lebih terarah."
       summary={
         isLoading ? "Memuat materi..." : `${materials.length} materi siap dipelajari`
       }
@@ -129,7 +129,7 @@ export default function MateriSiswaPageView() {
                   className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-orange-200 bg-white px-5 text-sm font-semibold text-orange-700 transition hover:bg-orange-50"
                 >
                   <Download className="h-4 w-4" />
-                  Download Materi
+                  Unduh Materi
                 </a>
                 <button
                   type="button"
@@ -145,7 +145,7 @@ export default function MateriSiswaPageView() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-orange-600">
-                    Preview Materi
+                    Pratinjau Materi
                   </p>
                   <h2 className="mt-2 text-lg font-semibold text-slate-800">
                     {selectedMaterial.previewHeading}
@@ -186,7 +186,7 @@ export default function MateriSiswaPageView() {
                 </h2>
               </div>
               <p className="text-sm text-slate-500">
-                Pilih untuk lihat preview cepat atau download materi langsung.
+                Pilih untuk melihat pratinjau cepat atau mengunduh materi langsung.
               </p>
             </div>
 
@@ -246,7 +246,7 @@ export default function MateriSiswaPageView() {
                         className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-red-800 via-orange-600 to-amber-500 px-4 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-px"
                       >
                         <Download className="h-3.5 w-3.5" />
-                        Download
+                        Unduh
                       </a>
                     </div>
                   </article>

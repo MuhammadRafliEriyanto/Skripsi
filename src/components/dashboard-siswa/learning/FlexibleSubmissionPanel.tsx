@@ -60,7 +60,7 @@ const modeMeta: Record<
   }
 > = {
   file: {
-    label: "Upload File",
+    label: "Unggah File",
     icon: FileUp,
     helper:
       "Unggah file tugas atau jawaban dalam format PDF, DOCX, atau gambar pendukung.",
@@ -72,7 +72,7 @@ const modeMeta: Record<
       "Tulis jawaban langsung di halaman ini untuk jawaban singkat atau essay.",
   },
   drive: {
-    label: "Link Drive",
+    label: "Google Drive",
     icon: Link2,
     helper:
       "Tempel link Google Drive atau dokumen online yang dapat diakses guru.",
@@ -83,17 +83,21 @@ function normalizeText(value: string | null | undefined) {
   return value?.trim().replace(/\s+/g, " ") ?? "";
 }
 
+function getSubmissionModeLabel(mode: SubmissionMode | null | undefined) {
+  return mode ? modeMeta[mode]?.label ?? "Jawaban" : "Jawaban";
+}
+
 function formatSubmissionTime(value: string | null | undefined) {
   const normalizedValue = normalizeText(value);
 
   if (!normalizedValue) {
-    return "Waktu submit belum tersedia";
+    return "Waktu pengumpulan belum tersedia";
   }
 
   const submittedDate = new Date(normalizedValue);
 
   if (Number.isNaN(submittedDate.getTime())) {
-    return "Waktu submit belum tersedia";
+    return "Waktu pengumpulan belum tersedia";
   }
 
   return new Intl.DateTimeFormat("id-ID", {
@@ -259,7 +263,7 @@ export default function FlexibleSubmissionPanel({
 
         if (!response.ok || !payload?.success || !payload.data?.submission) {
           setDetailError(
-            payload?.message || "Submission tugas belum bisa dimuat saat ini.",
+            payload?.message || "Jawaban tugas belum bisa dimuat saat ini.",
           );
           return;
         }
@@ -284,7 +288,7 @@ export default function FlexibleSubmissionPanel({
           taskId,
           error,
         });
-        setDetailError("Submission tugas belum bisa dimuat saat ini.");
+        setDetailError("Jawaban tugas belum bisa dimuat saat ini.");
       } finally {
         if (isActive) {
           setIsLoadingSubmission(false);
@@ -364,12 +368,12 @@ export default function FlexibleSubmissionPanel({
 
     if (resolvedActiveMode === "drive") {
       if (!normalizedDriveUrl) {
-        setSubmitError("Link Drive wajib diisi sebelum dikirim.");
+        setSubmitError("Tautan Google Drive wajib diisi sebelum dikirim.");
         return;
       }
 
       if (!isValidHttpUrl(normalizedDriveUrl)) {
-        setSubmitError("Link Drive tidak valid. Gunakan URL http atau https.");
+        setSubmitError("Tautan Google Drive belum valid. Gunakan tautan yang diawali http atau https.");
         return;
       }
 
@@ -439,7 +443,7 @@ export default function FlexibleSubmissionPanel({
 
       if (!response.ok || !payload?.success || !payload.data?.submission) {
         setSubmitError(
-          payload?.message || "Submission tugas belum bisa disimpan saat ini.",
+          payload?.message || "Jawaban tugas belum bisa disimpan saat ini.",
         );
         return;
       }
@@ -461,7 +465,7 @@ export default function FlexibleSubmissionPanel({
       setDetailError(null);
       setSubmitSuccess(
         shouldUsePatch
-          ? "Submission tugas berhasil diperbarui."
+          ? "Jawaban tugas berhasil diperbarui."
           : "Tugas berhasil.",
       );
       onSubmissionSaved(savedSubmissionSummary);
@@ -476,7 +480,7 @@ export default function FlexibleSubmissionPanel({
         taskId,
         error,
       });
-      setSubmitError("Submission tugas belum bisa disimpan saat ini.");
+      setSubmitError("Jawaban tugas belum bisa disimpan saat ini.");
     } finally {
       setIsSubmitting(false);
     }
@@ -489,7 +493,7 @@ export default function FlexibleSubmissionPanel({
           {title}
         </p>
         <h3 className="mt-1 text-lg font-semibold text-slate-800">
-          Form jawaban fleksibel
+          Kirim Jawaban
         </h3>
         <p className="mt-2 text-sm leading-6 text-slate-500">{description}</p>
       </div>
@@ -516,16 +520,18 @@ export default function FlexibleSubmissionPanel({
               </div>
             </div>
             <span className="inline-flex h-fit items-center rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-semibold text-emerald-700">
-              {currentSubmission?.submissionMode ??
-                initialSubmission?.submissionMode ??
-                "text"}
+              {getSubmissionModeLabel(
+                currentSubmission?.submissionMode ??
+                  initialSubmission?.submissionMode ??
+                  "text",
+              )}
             </span>
           </div>
 
           {isLoadingSubmission ? (
             <div className="mt-4 inline-flex items-center gap-2 text-sm text-emerald-700/90">
               <LoaderCircle className="h-4 w-4 animate-spin" />
-              Memuat detail submission terbaru...
+              Memuat jawaban terbaru...
             </div>
           ) : null}
 
@@ -538,7 +544,7 @@ export default function FlexibleSubmissionPanel({
           {submissionDriveUrl ? (
             <div className="mt-4 rounded-2xl border border-emerald-100 bg-white/80 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-600">
-                Link Drive Tersimpan
+                Tautan Google Drive Tersimpan
               </p>
               <Link
                 href={submissionDriveUrl}
@@ -555,7 +561,7 @@ export default function FlexibleSubmissionPanel({
           {answerPreview ? (
             <div className="mt-4 rounded-2xl border border-emerald-100 bg-white/80 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-600">
-                Preview Jawaban
+                Pratinjau Jawaban
               </p>
               <p className="mt-2 text-sm leading-6 text-slate-600">
                 {answerPreview}
@@ -572,7 +578,7 @@ export default function FlexibleSubmissionPanel({
                 className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50"
               >
                 <Download className="h-4 w-4" />
-                {currentAttachment?.originalName || "Download lampiran jawaban"}
+                {currentAttachment?.originalName || "Unduh lampiran jawaban"}
               </a>
               {currentAttachment ? (
                 <span className="text-xs text-emerald-700/80">
@@ -635,7 +641,7 @@ export default function FlexibleSubmissionPanel({
               <FileUp className="h-7 w-7" />
             </div>
             <p className="mt-4 text-sm font-semibold text-slate-700">
-              Upload file jawaban dari perangkat kamu
+              Unggah file jawaban dari perangkat kamu
             </p>
             <p className="mt-2 text-sm leading-6 text-slate-500">
               Format file bebas sesuai kebutuhan tugas, maksimal{" "}
@@ -699,7 +705,7 @@ export default function FlexibleSubmissionPanel({
                     className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 underline-offset-2 hover:underline"
                   >
                     <Download className="h-4 w-4" />
-                    Download lampiran jawaban
+                    Unduh lampiran jawaban
                   </a>
                 </div>
               </div>
@@ -747,7 +753,7 @@ export default function FlexibleSubmissionPanel({
                 Pastikan akses file terbuka
               </p>
               <p className="mt-1 text-sm leading-6 text-amber-700/90">
-                Atur dokumen Drive menjadi dapat dilihat guru agar proses review
+                Atur dokumen Drive menjadi dapat dilihat guru agar proses penilaian
                 tidak terhambat.
               </p>
             </div>
@@ -814,7 +820,7 @@ export default function FlexibleSubmissionPanel({
           ) : (
             <Send className="h-4 w-4" />
           )}
-          {hasExistingSubmission ? "Update Submission" : submitLabel}
+          {hasExistingSubmission ? "Perbarui Jawaban" : submitLabel}
         </button>
       </div>
     </div>

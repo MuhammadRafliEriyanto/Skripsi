@@ -59,7 +59,7 @@ function getScheduleBadge(status: string): {
   }
 
   if (normalizedStatus === "review") {
-    return { label: "Review", variant: "warning" };
+    return { label: "Perlu Ditinjau", variant: "warning" };
   }
 
   if (normalizedStatus === "bentrok") {

@@ -607,6 +607,10 @@ function getStatusDotClass(status: GuruStatus) {
   }
 }
 
+function getStatusLabel(status: GuruStatus) {
+  return status === "Review" ? "Perlu Ditinjau" : status;
+}
+
 function getBranchBadgeClass(branch: string) {
   const normalizedBranch = normalizeText(branch).toLowerCase();
 
@@ -671,7 +675,7 @@ function JadwalCard({ item }: { item: JadwalGuruItem }) {
           <span
             className={`h-1.5 w-1.5 rounded-full ${getStatusDotClass(item.status)}`}
           />
-          {item.status}
+          {getStatusLabel(item.status)}
         </span>
       </div>
 
@@ -780,7 +784,7 @@ function GuruClassCard({
           <span
             className={`h-1.5 w-1.5 rounded-full ${getStatusDotClass(kelas.status)}`}
           />
-          {kelas.status}
+          {getStatusLabel(kelas.status)}
         </span>
       </div>
 
