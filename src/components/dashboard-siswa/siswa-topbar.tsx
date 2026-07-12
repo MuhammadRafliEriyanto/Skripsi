@@ -65,11 +65,6 @@ const menus = [
     exact: false,
   },
   {
-    name: "Riwayat Akademik",
-    path: "/dashboard-siswa/riwayat-akademik",
-    exact: false,
-  },
-  {
     name: "Transaksi",
     path: "/dashboard-siswa/tagihan",
     exact: true,
