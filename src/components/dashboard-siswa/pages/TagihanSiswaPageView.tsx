@@ -408,7 +408,7 @@ function buildMembershipOverview(
 function MembershipSkeleton() {
   return (
     <div className="space-y-5">
-      <div className="h-52 animate-pulse rounded-[32px] border border-orange-100 bg-gradient-to-br from-orange-50 via-white to-amber-50" />
+      <div className="h-52 animate-pulse rounded-[32px] border border-slate-200 bg-slate-50" />
       <div className="grid grid-cols-2 gap-4 sm:gap-5">
         {Array.from({ length: 4 }).map((_, index) => (
           <div
@@ -421,170 +421,39 @@ function MembershipSkeleton() {
   );
 }
 
-const summaryToneClasses = {
-  orange: {
-    card: "border-orange-100 bg-orange-50/40",
-    icon: "border-orange-100 bg-white text-orange-600",
-  },
-  emerald: {
-    card: "border-emerald-100 bg-emerald-50/40",
-    icon: "border-emerald-100 bg-white text-emerald-600",
-  },
-  sky: {
-    card: "border-sky-100 bg-sky-50/40",
-    icon: "border-sky-100 bg-white text-sky-600",
-  },
-  slate: {
-    card: "border-slate-100 bg-slate-50/60",
-    icon: "border-slate-100 bg-white text-slate-600",
-  },
-} as const;
-
 function SummaryCard({
   label,
   value,
-  note,
   icon: Icon,
-  tone = "slate",
 }: {
   label: string;
   value: string;
-  note: string;
+  note?: string;
   icon: LucideIcon;
-  tone?: keyof typeof summaryToneClasses;
+  tone?: string;
 }) {
-  const toneClass = summaryToneClasses[tone];
-
   return (
     <article
-      className={`h-full flex flex-col rounded-[24px] border px-5 py-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_18px_34px_-28px_rgba(15,23,42,0.25)] ${toneClass.card}`}
+      className="h-full flex flex-col justify-center rounded-[24px] border border-slate-200 bg-white px-5 py-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
     >
-      <div className="flex items-start gap-4">
+      <div className="flex items-center gap-4">
         <div
-          className={`flex size-10 shrink-0 items-center justify-center rounded-2xl border ${toneClass.icon}`}
+          className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-slate-100 bg-slate-50 text-slate-600"
         >
           <Icon className="size-4" />
         </div>
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-slate-400">
             {label}
           </p>
-          <p className="mt-2 text-base font-semibold text-slate-900">{value}</p>
-          <p className="mt-1.5 text-sm leading-6 text-slate-500">{note}</p>
+          <p className="mt-1 text-sm font-semibold text-slate-900">{value}</p>
         </div>
       </div>
     </article>
   );
 }
 
-function PaymentPolicyCopy({
-  overview,
-}: {
-  overview: MembershipOverview;
-}) {
-  if (overview.isScheduledAccess) {
-    return (
-      <>
-        <p>
-          Paket belajar sudah tercatat dan pembayaran sudah lunas. Akses materi,
-          tugas, jadwal, absensi, nilai, dan ujian akan dibuka mulai{" "}
-          {formatDateLabel(overview.scheduledStartDate)}.
-        </p>
-        <p>
-          Selama masih menunggu tanggal mulai, siswa cukup memantau status
-          tagihan dan tidak perlu membuat perpanjangan baru.
-        </p>
-      </>
-    );
-  }
 
-  if (overview.paymentStatus === "draft_renewal") {
-    return (
-      <>
-        <p>
-          Perpanjangan dari admin tidak lagi ditampilkan sebagai aksi
-          utama siswa. Tombol perpanjangan akan muncul otomatis saat masa aktif
-          paket belajar sudah mendekati selesai.
-        </p>
-      </>
-    );
-  }
-
-  if (overview.accessStatus === "not_registered") {
-    return (
-      <>
-        <p>
-          Akun siswa ini belum memiliki paket belajar awal. Untuk
-          siswa lama, aktivasi paket pertama perlu dikonfirmasi admin
-          terlebih dahulu.
-        </p>
-        <p>
-          Setelah admin membuat paket belajar awal, barulah tagihan dan tombol
-          pembayaran akan tampil di halaman ini untuk dilanjutkan oleh siswa.
-        </p>
-      </>
-    );
-  }
-
-  if (overview.accessStatus === "pending") {
-    return (
-      <>
-        <p>
-          Paket belajar siswa sudah tercatat, tetapi pembayaran atau aktivasinya
-          masih menunggu penyelesaian.
-        </p>
-        <p>
-          Jika ada tagihan yang menunggu pembayaran, siswa bisa melanjutkan pembayaran dari kartu
-          tagihan aktif atau dari tabel riwayat pembayaran.
-        </p>
-      </>
-    );
-  }
-
-  if (overview.accessStatus === "expired") {
-    return (
-      <>
-        <p>
-          Masa aktif paket belajar sudah berakhir. Siswa dapat memperpanjang
-          paket dari halaman ini dan melanjutkan ke halaman pembayaran.
-        </p>
-        <p>
-          Selama belum ada tagihan yang menunggu pembayaran, belum ada pembayaran yang perlu
-          dilanjutkan saat ini.
-        </p>
-      </>
-    );
-  }
-
-  if (overview.accessStatus === "expiring") {
-    return (
-      <>
-        <p>
-          Paket belajar siswa masih aktif, tetapi sisa masa aktifnya sudah 14 hari
-          atau kurang. Siswa dapat menyiapkan perpanjangan sebelum akses belajar
-          berakhir.
-        </p>
-        <p>
-          Masa aktif tetap dihitung dari tanggal aktivasi masing-masing siswa,
-          bukan dari pergantian semester akademik.
-        </p>
-      </>
-    );
-  }
-
-  return (
-    <>
-      <p>
-        Paket belajar siswa sedang aktif. Tombol perpanjangan akan muncul otomatis
-        saat masa aktif tersisa 14 hari atau ketika paket sudah berakhir.
-      </p>
-      <p>
-        Status tagihan dan masa aktif akan tersinkron otomatis setelah
-        pembayaran terverifikasi.
-      </p>
-    </>
-  );
-}
 
 export default function TagihanSiswaPageView() {
   const {
@@ -778,20 +647,16 @@ export default function TagihanSiswaPageView() {
 
   return (
     <section className="mx-auto flex w-full max-w-7xl flex-col gap-7 px-4 py-6 md:px-6 md:py-8">
-      <div className="relative overflow-hidden rounded-[32px] border border-orange-100 bg-[linear-gradient(135deg,#fff7ed_0%,#ffffff_48%,#fff1e6_100%)] p-5 shadow-[0_24px_52px_-36px_rgba(249,115,22,0.28)] md:p-6">
+      <div className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm md:p-6">
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-orange-200/80 bg-white/80 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-orange-700 shadow-sm">
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600 shadow-sm">
               <CreditCard className="h-3.5 w-3.5" />
               Pembayaran Siswa
             </div>
             <h1 className="mt-4 text-2xl font-semibold tracking-tight text-slate-950 md:text-3xl">
               Paket Belajar dan Riwayat Pembayaran
             </h1>
-            <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">
-              Pantau masa aktif, status pembayaran, dan perpanjangan paket
-              belajar dari satu tempat yang ringkas.
-            </p>
           </div>
 
 
@@ -825,17 +690,11 @@ export default function TagihanSiswaPageView() {
       ) : null}
 
       {!isLoading && !error ? (
-        <section className="overflow-hidden rounded-[32px] border border-orange-100 bg-white shadow-[0_24px_52px_-42px_rgba(15,23,42,0.35)]">
-          <div className="h-1.5 bg-[linear-gradient(90deg,#be123c_0%,#ea580c_52%,#f59e0b_100%)]" />
-
+        <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm">
           <div className="grid gap-6 px-5 py-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.9fr)] lg:px-6">
             <div className={`space-y-4 ${canShowRenewalAction ? "" : "lg:col-span-2"}`}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <div className="inline-flex items-center gap-2 text-orange-600">
-                    <ShieldCheck className="h-4 w-4" />
-                    <p className="text-sm font-semibold">Ringkasan Paket Belajar</p>
-                  </div>
                   <h2 className="mt-2 text-lg font-semibold text-slate-900">
                     {overview.studentName}
                   </h2>
@@ -843,7 +702,7 @@ export default function TagihanSiswaPageView() {
                     <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
                       ID {overview.studentId}
                     </span>
-                    <span className="rounded-full border border-orange-100 bg-orange-50 px-3 py-1 text-orange-700">
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700">
                       {overview.className}
                     </span>
                     <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
@@ -860,10 +719,10 @@ export default function TagihanSiswaPageView() {
                 </Badge>
               </div>
 
-              <div className="rounded-[28px] border border-orange-100 bg-[linear-gradient(180deg,#fff7ed_0%,#ffffff_58%)] p-4 shadow-sm">
+              <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div className="space-y-2">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-orange-600">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                       Paket Saat Ini
                     </p>
                     <h3 className="text-lg font-semibold text-slate-900">
@@ -871,11 +730,11 @@ export default function TagihanSiswaPageView() {
                     </h3>
                     <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-600">
                       <span className="inline-flex items-center gap-2">
-                        <CalendarClock className="h-4 w-4 text-orange-500" />
+                        <CalendarClock className="h-4 w-4 text-slate-400" />
                         Durasi {overview.durationLabel}
                       </span>
                       <span className="inline-flex items-center gap-2">
-                        <UserRound className="h-4 w-4 text-orange-500" />
+                        <UserRound className="h-4 w-4 text-slate-400" />
                         Program {overview.program}
                       </span>
                     </div>
@@ -916,33 +775,23 @@ export default function TagihanSiswaPageView() {
             </div>
 
             {canShowRenewalAction ? (
-              <aside className="rounded-[28px] border border-orange-100 bg-[linear-gradient(180deg,#ffffff_0%,#fff7ed_100%)] p-4 shadow-sm">
+              <aside className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-orange-100 bg-orange-50 text-orange-600">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-100 bg-slate-50 text-slate-600">
                     <CreditCard className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-slate-900">
                       Perpanjang Paket
                     </p>
-                    <p className="mt-1 text-sm leading-6 text-slate-500">
-                      Kelas tujuan disiapkan otomatis dari data siswa saat ini.
-                    </p>
                   </div>
                 </div>
 
                 <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
-                  <PaymentPolicyCopy overview={overview} />
-                  <p className="rounded-2xl border border-dashed border-orange-200 bg-white/80 px-3 py-3 text-slate-500">
-                    Pembayaran dilakukan sekali untuk satu paket belajar.
-                    Setelah pembayaran terkonfirmasi, masa aktif akan mengikuti
-                    paket yang dipilih.
-                  </p>
-
-                  <div className="border-t border-slate-200 pt-4">
-                    <div className="rounded-[24px] border border-orange-100 bg-white/90 p-4">
+                  <div className="pt-2">
+                    <div className="rounded-[24px] border border-slate-200 bg-slate-50/50 p-4">
                       <div className="flex items-center gap-2 text-slate-500">
-                        <GraduationCap className="h-4 w-4 text-orange-500" />
+                        <GraduationCap className="h-4 w-4 text-slate-400" />
                         <p className="text-xs font-semibold uppercase text-slate-500 tracking-[0.12em]">
                           Arah Perpanjangan
                         </p>
@@ -952,7 +801,7 @@ export default function TagihanSiswaPageView() {
                       </div>
 
                       <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                        <div className="min-w-0 rounded-2xl border border-slate-200 bg-white px-3 py-3">
+                        <div className="min-w-0 rounded-2xl border border-slate-200 bg-white px-3 py-3 shadow-sm">
                           <p className="text-[11px] font-medium text-slate-400">
                             Saat ini
                           </p>
@@ -960,10 +809,10 @@ export default function TagihanSiswaPageView() {
                             {renewalClassSuggestion?.currentClassLabel ?? overview.className}
                           </p>
                         </div>
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full border border-orange-100 bg-orange-50 text-orange-500">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm">
                           <ArrowRight className="h-4 w-4" />
                         </div>
-                        <div className="min-w-0 rounded-2xl border border-slate-200 bg-white px-3 py-3">
+                        <div className="min-w-0 rounded-2xl border border-slate-200 bg-white px-3 py-3 shadow-sm">
                           <p className="text-[11px] font-medium text-slate-400">
                             Tujuan
                           </p>
@@ -974,7 +823,7 @@ export default function TagihanSiswaPageView() {
                       </div>
                     </div>
 
-                    <div className="mt-4 rounded-2xl border border-orange-100 bg-white px-4 py-3 shadow-sm">
+                    <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
                       <p className="text-xs font-medium text-slate-500">
                         {selectedRenewalPackage?.packageName ?? "Paket belum tersedia"}
                       </p>
