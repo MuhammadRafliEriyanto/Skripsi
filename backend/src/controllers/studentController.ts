@@ -40,7 +40,6 @@ import {
 } from "../utils/studentImport";
 import {
   buildGeneratedPasswordForStudent,
-  buildGeneratedPasswordFromBirthDate,
 } from "../utils/studentPassword";
 import {
   applyPaidSubscriptionStudentData,
@@ -947,12 +946,6 @@ export const createStudent = asyncHandler(
     }
 
     const password = req.body.password?.trim() ?? "";
-    const generatedPassword = password || buildGeneratedPasswordFromBirthDate(req.body.birthDate);
-
-    if (!generatedPassword) {
-      next(new AppError(400, "Password siswa gagal digenerate dari tanggal lahir."));
-      return;
-    }
 
     if (password && password.length < 8) {
       next(new AppError(400, "Password siswa minimal 8 karakter."));
@@ -979,6 +972,13 @@ export const createStudent = asyncHandler(
     }
 
     const studentId = await getNextPublicId(Student, "studentId", "STD");
+    const generatedPassword = password || buildGeneratedPasswordForStudent({ studentId });
+
+    if (!generatedPassword) {
+      next(new AppError(400, "Password siswa gagal digenerate dari kode akun."));
+      return;
+    }
+
     const resolvedEmail = email || buildImportedStudentEmail(studentId);
     const loginCode = buildStudentLoginCode(studentId);
     const student = await createStudentAccount({

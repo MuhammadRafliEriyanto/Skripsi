@@ -67,9 +67,6 @@ import {
 
 import type { AdminStudent } from "./admin-data";
 import {
-  buildGeneratedPasswordFromBirthDate,
-} from "./admin-data";
-import {
   AdminDataTable,
   type AdminColumnDefinition,
 } from "./components/AdminDataTable";
@@ -752,8 +749,6 @@ export function AdminStudents({
   const filteredStudentsWithoutMembershipCount =
     filteredStudents.length - filteredStudentsWithMembershipCount;
   const isEditing = editingStudentId !== null;
-  const generatedPasswordPreview =
-    buildGeneratedPasswordFromBirthDate(formValues.birthDate) || "-";
   const selectedMembershipPackage =
     packageLookupOptions.find(
       (item) => item.packageKey === formValues.membershipPackageKey,
@@ -1642,12 +1637,14 @@ export function AdminStudents({
                     placeholder={
                       isEditing
                         ? "Kosongkan jika tidak diubah"
-                        : "Kosongkan untuk generate dari Tgl Lahir"
+                        : "Kosongkan untuk password otomatis"
                     }
                   />
-                  {!isEditing || !formValues.password ? (
+                  {!formValues.password ? (
                     <p className="text-xs leading-5 text-slate-500">
-                      Password bawaan (jika kosong): <span className="font-semibold text-slate-700">{generatedPasswordPreview}</span>
+                      {isEditing
+                        ? "Kosongkan jika password tidak diubah."
+                        : "Password bawaan mengikuti kode akun, contoh STD-300 -> siswa300."}
                     </p>
                   ) : null}
                 </div>
