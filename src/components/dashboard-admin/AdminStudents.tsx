@@ -16,7 +16,6 @@ import {
   useCallback,
   useDeferredValue,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -218,6 +217,28 @@ function normalizePhone(value: string) {
   return value.trim().replace(/\s+/g, "");
 }
 
+function normalizeBranchKey(value: string) {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function buildBranchOptions(values: string[]) {
+  return Array.from(
+    new Set(values.map((value) => value.trim().replace(/\s+/g, " ")).filter(Boolean)),
+  ).sort((left, right) => left.localeCompare(right, "id"));
+}
+
+function getRegisteredBranchName(value: string, branchOptions: string[]) {
+  const branchKey = normalizeBranchKey(value);
+
+  if (!branchKey) {
+    return "";
+  }
+
+  return (
+    branchOptions.find((branch) => normalizeBranchKey(branch) === branchKey) ?? ""
+  );
+}
+
 function normalizeClassNameInput(value: string) {
   const cleanedValue = value.trim().toUpperCase().replace(/\s+/g, " ");
   const gradeMatch = cleanedValue.match(/\b(2|3|4|5|6|7|8|9|10|11|12)\b/);
@@ -369,11 +390,13 @@ function DetailItem({ label, value }: { label: string; value: string }) {
 
 function StudentActions({
   student,
+  branchOptions,
   onEdit,
   onDelete,
   onToggleStatus,
 }: {
   student: AdminStudent;
+  branchOptions: string[];
   onEdit: (student: AdminStudent) => void;
   onDelete: (student: AdminStudent) => void;
   onToggleStatus: (student: AdminStudent) => void;
@@ -437,10 +460,12 @@ function StudentActions({
             <div className="grid gap-4 sm:grid-cols-2">
               <DetailItem label="Kode Login" value={student.loginCode || student.id} />
               <DetailItem label="Email Internal" value={student.email} />
-              <DetailItem label="No. HP" value={student.phone} />
               <DetailItem
                 label="Cabang"
-                value={student.branch || "Belum diatur"}
+                value={
+                  getRegisteredBranchName(student.branch, branchOptions) ||
+                  "Belum diatur"
+                }
               />
               <DetailItem label="Program" value={student.program} />
               <DetailItem label="Jenjang" value={student.level} />
@@ -617,15 +642,11 @@ export function AdminStudents({
           return;
         }
 
-        const nextBranchOptions = Array.from(
-          new Set(
-            (payload.data?.branches ?? [])
-              .map((branch) => branch.name?.trim() ?? "")
-              .filter(Boolean),
+        setBranchOptions(
+          buildBranchOptions(
+            (payload.data?.branches ?? []).map((branch) => branch.name ?? ""),
           ),
-        ).sort((left, right) => left.localeCompare(right, "id"));
-
-        setBranchOptions(nextBranchOptions);
+        );
       } catch {
         if (!isCancelled) {
           setBranchOptions([]);
@@ -722,17 +743,10 @@ export function AdminStudents({
 
 
 
-  const resolvedBranchOptions = useMemo(() => {
-    const currentBranch = formValues.branch.trim();
-
-    if (!currentBranch || branchOptions.includes(currentBranch)) {
-      return branchOptions;
-    }
-
-    return [...branchOptions, currentBranch];
-  }, [branchOptions, formValues.branch]);
-
-  const selectedBranchValue = formValues.branch.trim() || unassignedBranchValue;
+  const resolvedBranchOptions = branchOptions;
+  const selectedBranchValue =
+    getRegisteredBranchName(formValues.branch, branchOptions) ||
+    unassignedBranchValue;
 
   const availableClassOptions =
     levelFilter === "Semua"
@@ -844,7 +858,10 @@ export function AdminStudents({
     const normalizedName = formValues.name.trim();
     const normalizedEmail = normalizeEmail(formValues.email);
     const normalizedPhone = normalizePhone(formValues.phone);
-    const normalizedBranch = formValues.branch.trim();
+    const normalizedBranch = getRegisteredBranchName(
+      formValues.branch,
+      branchOptions,
+    );
     const normalizedProgram = formValues.program.trim();
     const normalizedClassName = normalizeClassNameInput(formValues.className);
     const normalizedBirthDate = normalizeBirthDateInput(formValues.birthDate);
@@ -1141,14 +1158,10 @@ export function AdminStudents({
       ),
     },
     {
-      key: "phone",
-      header: "No HP",
-      cell: (student) => student.phone,
-    },
-    {
       key: "branch",
       header: "Cabang",
-      cell: (student) => student.branch || "Belum diatur",
+      cell: (student) =>
+        getRegisteredBranchName(student.branch, branchOptions) || "Belum diatur",
     },
     {
       key: "program",
@@ -1227,6 +1240,7 @@ export function AdminStudents({
       cell: (student) => (
         <StudentActions
           student={student}
+          branchOptions={branchOptions}
           onEdit={openEditDialog}
           onDelete={setStudentToDelete}
           onToggleStatus={handleToggleStatus}
@@ -1353,7 +1367,7 @@ export function AdminStudents({
               className={warmFieldClassName}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Cari nama, kode login, email, no HP, cabang, program, atau kelas..."
+              placeholder="Cari nama, kode login, email, cabang, program, atau kelas..."
             />
           </div>
 
@@ -1475,7 +1489,7 @@ export function AdminStudents({
               ? "bg-slate-50/70 hover:bg-slate-100/70"
               : undefined
           }
-          minWidthClassName="min-w-[1480px]"
+          minWidthClassName="min-w-[1360px]"
         />
         <div className="mt-4">
           <AdminPaginationFooter

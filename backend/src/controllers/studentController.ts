@@ -473,11 +473,14 @@ async function getResolvedStudentEntries() {
   logSkippedStudents("list", students);
 
   const studentObjectIds = resolvedStudents.map((s) => s._id);
-  const subscriptions = await Subscription.find({
-    studentId: { $in: studentObjectIds },
-  })
-    .sort({ createdAt: -1, _id: -1 })
-    .exec();
+  const [subscriptions, branchNameMap] = await Promise.all([
+    Subscription.find({
+      studentId: { $in: studentObjectIds },
+    })
+      .sort({ createdAt: -1, _id: -1 })
+      .exec(),
+    getBranchNameMap(),
+  ]);
 
   const subscriptionsByStudentId = new Map<string, typeof subscriptions>();
   for (const sub of subscriptions) {
@@ -508,8 +511,15 @@ async function getResolvedStudentEntries() {
       };
     }
 
+    const publicStudent = toPublicStudent(student, student.userId, membership);
+    const registeredBranch =
+      branchNameMap.get(normalizeText(publicStudent.branch).toLowerCase()) ?? "";
+
     return {
-      student: toPublicStudent(student, student.userId, membership),
+      student: {
+        ...publicStudent,
+        branch: registeredBranch,
+      },
       createdAt: student.createdAt,
     };
   });
@@ -798,7 +808,6 @@ export const exportStudents = asyncHandler(
         "Kode Login",
         "Nama",
         "Email",
-        "No HP",
         "Cabang",
         "Program",
         "Jenjang",
@@ -812,7 +821,6 @@ export const exportStudents = asyncHandler(
         student.loginCode,
         student.name,
         student.email,
-        student.phone,
         student.branch,
         student.program,
         student.level,

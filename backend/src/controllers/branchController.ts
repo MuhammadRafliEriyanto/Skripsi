@@ -951,11 +951,12 @@ export const deleteBranch = asyncHandler(
       return;
     }
 
+    const branchNameRegex = new RegExp(`^${escapeRegex(branch.name)}$`, "i");
     const linkedTeacherCount = await Teacher.countDocuments({
-      branch: branch.name,
+      branch: branchNameRegex,
     }).exec();
     const linkedStudentCount = await Student.countDocuments({
-      branch: branch.name,
+      branch: branchNameRegex,
     }).exec();
 
     if (linkedTeacherCount > 0) {
@@ -978,6 +979,10 @@ export const deleteBranch = asyncHandler(
       return;
     }
 
+    await Teacher.updateMany(
+      { branches: branchNameRegex },
+      { $pull: { branches: branchNameRegex } },
+    ).exec();
     await Branch.deleteOne({ _id: branch._id });
 
     sendSuccess(res, {

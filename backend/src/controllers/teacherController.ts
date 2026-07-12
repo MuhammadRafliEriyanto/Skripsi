@@ -441,15 +441,37 @@ async function getExistingTeacherImportKeys(): Promise<Set<string>> {
 }
 
 async function getResolvedTeacherEntries() {
-  const teachers = (await Teacher.find()
-    .populate<{ userId: TeacherWithUser["userId"] }>("userId")
-    .sort({ createdAt: -1 })
-    .exec()) as TeacherWithUser[];
+  const [teachers, branchNameMap] = await Promise.all([
+    Teacher.find()
+      .populate<{ userId: TeacherWithUser["userId"] }>("userId")
+      .sort({ createdAt: -1 })
+      .exec() as Promise<TeacherWithUser[]>,
+    getTeacherBranchNameMap(),
+  ]);
 
-  return teachers.map((teacher) => ({
-    teacher: toPublicTeacher(teacher, teacher.userId),
-    createdAt: teacher.createdAt,
-  }));
+  return teachers.map((teacher) => {
+    const publicTeacher = toPublicTeacher(teacher, teacher.userId);
+    const registeredBranches = Array.from(
+      new Set(
+        publicTeacher.branches
+          .map((branch) => branchNameMap.get(normalizeText(branch).toLowerCase()) ?? "")
+          .filter(Boolean),
+      ),
+    );
+    const registeredPrimaryBranch =
+      branchNameMap.get(normalizeText(publicTeacher.branch).toLowerCase()) ??
+      registeredBranches[0] ??
+      "";
+
+    return {
+      teacher: {
+        ...publicTeacher,
+        branch: registeredPrimaryBranch,
+        branches: registeredBranches,
+      },
+      createdAt: teacher.createdAt,
+    };
+  });
 }
 
 function sortTeacherEntries(entries: TeacherListEntry[], sort: string | undefined) {
@@ -622,7 +644,6 @@ export const exportTeachers = asyncHandler(
         "Email",
         "Mapel",
         "Cabang",
-        "No HP",
         "Jadwal",
         "Kelas Aktif",
         "Kelas Diampu",
@@ -636,7 +657,6 @@ export const exportTeachers = asyncHandler(
         teacher.email,
         teacher.subject,
         teacher.branches.join(" / "),
-        teacher.phone,
         teacher.schedule,
         teacher.activeClasses,
         teacher.classList,

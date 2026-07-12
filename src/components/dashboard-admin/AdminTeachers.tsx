@@ -216,19 +216,38 @@ function buildBranchOptions(values: string[]) {
   ).sort((left, right) => left.localeCompare(right, "id"));
 }
 
-function getTeacherBranches(teacher: Pick<AdminTeacher, "branch" | "branches">) {
-  return Array.from(
+function getTeacherBranches(
+  teacher: Pick<AdminTeacher, "branch" | "branches">,
+  availableBranches?: string[],
+) {
+  const branches = Array.from(
     new Set(
       [...(teacher.branches ?? []), teacher.branch]
         .map((branch) => normalizeText(branch))
         .filter(Boolean),
     ),
   );
+
+  if (!availableBranches) {
+    return branches;
+  }
+
+  return branches
+    .map((branch) => normalizeTeacherBranch(branch, availableBranches))
+    .filter((branch): branch is string => Boolean(branch));
 }
 
 function getTeacherBranchesLabel(
   teacher: Pick<AdminTeacher, "branch" | "branches">,
+  availableBranches?: string[],
 ) {
+  if (availableBranches) {
+    return (
+      getTeacherBranches(teacher, availableBranches).join(" - ") ||
+      "Cabang belum diatur"
+    );
+  }
+
   return getTeacherBranches(teacher).join(" • ") || "Cabang belum diatur";
 }
 
@@ -280,7 +299,7 @@ function toTeacherFormValues(
     subject: teacher.subject,
     branch:
       normalizeTeacherBranch(teacher.branch, availableBranches) ??
-      normalizeText(teacher.branch),
+      getDefaultBranch(availableBranches),
     phone: teacher.phone,
     schedule: teacher.schedule,
     activeClasses: String(teacher.activeClasses),
@@ -337,11 +356,13 @@ function DetailItem({ label, value }: { label: string; value: string }) {
 
 function TeacherActions({
   teacher,
+  branchOptions,
   onEdit,
   onDelete,
   onToggleStatus,
 }: {
   teacher: AdminTeacher;
+  branchOptions: string[];
   onEdit: (teacher: AdminTeacher) => void;
   onDelete: (teacher: AdminTeacher) => void;
   onToggleStatus: (teacher: AdminTeacher) => void;
@@ -392,9 +413,11 @@ function TeacherActions({
             <div className="grid gap-4 sm:grid-cols-2">
               <DetailItem label="Kode Login" value={teacher.loginCode || teacher.id} />
               <DetailItem label="Email Internal" value={teacher.email} />
-              <DetailItem label="No. HP" value={teacher.phone} />
               <DetailItem label="Mapel" value={teacher.subject} />
-              <DetailItem label="Cabang" value={getTeacherBranchesLabel(teacher)} />
+              <DetailItem
+                label="Cabang"
+                value={getTeacherBranchesLabel(teacher, branchOptions)}
+              />
               <DetailItem label="Jadwal" value={teacher.schedule} />
               <DetailItem
                 label="Kelas aktif"
@@ -573,9 +596,15 @@ export function AdminTeachers({
   ]
     .filter(Boolean)
     .join(" ");
+  const resolvedBranchFilter =
+    !isBranchOptionsLoading &&
+    branchFilter !== allBranchesLabel &&
+    !normalizeTeacherBranch(branchFilter, branchOptions)
+      ? allBranchesLabel
+      : branchFilter;
   const requestKey = [
     combinedSearchQuery.toLowerCase(),
-    branchFilter,
+    resolvedBranchFilter,
     statusFilter,
     pageLimit,
   ].join("|");
@@ -590,7 +619,10 @@ export function AdminTeachers({
           page: nextPage,
           limit: pageLimit,
           q: combinedSearchQuery || undefined,
-          branch: branchFilter === allBranchesLabel ? undefined : branchFilter,
+          branch:
+            resolvedBranchFilter === allBranchesLabel
+              ? undefined
+              : resolvedBranchFilter,
           status: statusFilter === "Semua" ? undefined : statusFilter,
           sort: "createdAt_asc",
         });
@@ -622,7 +654,7 @@ export function AdminTeachers({
         setIsLoading(false);
       }
     },
-    [branchFilter, combinedSearchQuery, page, pageLimit, statusFilter],
+    [combinedSearchQuery, page, pageLimit, resolvedBranchFilter, statusFilter],
   );
 
   const refreshTeacherViews = useCallback(
@@ -656,30 +688,12 @@ export function AdminTeachers({
     };
   }, [page, refreshTeachers, requestKey]);
 
-  const teacherBranchOptions = useMemo(
-    () =>
-      buildBranchOptions(
-        teachers.flatMap((teacher) => getTeacherBranches(teacher)),
-      ),
-    [teachers],
-  );
-  const availableBranchOptions = useMemo(
-    () => buildBranchOptions([...branchOptions, ...teacherBranchOptions]),
-    [branchOptions, teacherBranchOptions],
-  );
   const branchFilterOptions = useMemo(
-    () => [allBranchesLabel, ...availableBranchOptions],
-    [availableBranchOptions],
+    () => [allBranchesLabel, ...branchOptions],
+    [branchOptions],
   );
-  const resolvedBranchOptions = useMemo(() => {
-    const currentBranch = normalizeText(formValues.branch);
+  const resolvedBranchOptions = branchOptions;
 
-    if (!currentBranch || availableBranchOptions.includes(currentBranch)) {
-      return availableBranchOptions;
-    }
-
-    return [...availableBranchOptions, currentBranch];
-  }, [availableBranchOptions, formValues.branch]);
   const filteredTeachers = teachers;
   const activeTeachers = summary.activeCount;
   const inactiveTeachers = summary.inactiveCount;
@@ -700,7 +714,7 @@ export function AdminTeachers({
 
   const openEditDialog = (teacher: AdminTeacher) => {
     setEditingTeacherId(teacher.id);
-    setFormValues(toTeacherFormValues(teacher, availableBranchOptions));
+    setFormValues(toTeacherFormValues(teacher, branchOptions));
     setFormError(null);
     setIsFormOpen(true);
   };
@@ -1075,22 +1089,32 @@ export function AdminTeachers({
     {
       key: "subject",
       header: "Mapel / Cabang",
-      cell: (teacher) => (
-        <div>
-          <p className="font-medium text-slate-800">{teacher.subject}</p>
-          <div className="mt-1 flex flex-wrap gap-1.5">
-            {getTeacherBranches(teacher).map((branch) => (
-              <Badge
-                key={branch}
-                variant="outline"
-                className="border-orange-100 bg-orange-50/70 px-2 py-0.5 text-[11px] font-medium text-orange-700"
-              >
-                {branch}
-              </Badge>
-            ))}
+      cell: (teacher) => {
+        const branches = getTeacherBranches(teacher, branchOptions);
+
+        return (
+          <div>
+            <p className="font-medium text-slate-800">{teacher.subject}</p>
+            {branches.length ? (
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {branches.map((branch) => (
+                  <Badge
+                    key={branch}
+                    variant="outline"
+                    className="border-orange-100 bg-orange-50/70 px-2 py-0.5 text-[11px] font-medium text-orange-700"
+                  >
+                    {branch}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-1 text-xs text-slate-500">
+                Cabang belum diatur
+              </p>
+            )}
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       key: "loginCode",
@@ -1103,11 +1127,6 @@ export function AdminTeachers({
           <p className="truncate text-xs text-slate-500">{teacher.email}</p>
         </div>
       ),
-    },
-    {
-      key: "phone",
-      header: "No HP",
-      cell: (teacher) => teacher.phone,
     },
     {
       key: "schedule",
@@ -1148,6 +1167,7 @@ export function AdminTeachers({
       cell: (teacher) => (
         <TeacherActions
           teacher={teacher}
+          branchOptions={branchOptions}
           onEdit={openEditDialog}
           onDelete={setTeacherToDelete}
           onToggleStatus={handleToggleStatus}
@@ -1220,8 +1240,8 @@ export function AdminTeachers({
 
         {!isBranchOptionsLoading && branchOptions.length === 0 ? (
           <div className="mb-4 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-            Belum ada cabang yang tersedia. Filter tetap menampilkan
-            cabang yang sudah melekat pada data guru.
+            Belum ada cabang yang tersedia. Tambahkan cabang dari dashboard
+            owner agar filter dan form guru bisa dipakai.
           </div>
         ) : null}
 
@@ -1310,7 +1330,10 @@ export function AdminTeachers({
 
           <div className="grid w-full grid-cols-2 gap-3 sm:flex sm:w-auto sm:flex-wrap">
             <div className="w-full sm:w-[220px]">
-              <Select value={branchFilter} onValueChange={setBranchFilter}>
+              <Select
+                value={resolvedBranchFilter}
+                onValueChange={setBranchFilter}
+              >
                 <SelectTrigger className={warmSelectTriggerClassName}>
                   <SelectValue placeholder="Cabang" />
                 </SelectTrigger>
@@ -1377,7 +1400,7 @@ export function AdminTeachers({
               ? "bg-slate-50/70 hover:bg-slate-100/70"
               : undefined
           }
-          minWidthClassName="min-w-[1440px]"
+          minWidthClassName="min-w-[1320px]"
         />
         <div className="mt-4">
           <AdminPaginationFooter
