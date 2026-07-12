@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import AuthSessionGuard from "@/components/auth/AuthSessionGuard";
 import { AdminLayoutClient } from "@/components/dashboard-admin/AdminLayoutClient";
 
 export const metadata: Metadata = {
@@ -10,5 +11,9 @@ export default function AdminDashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <AdminLayoutClient>{children}</AdminLayoutClient>;
+  return (
+    <AuthSessionGuard allowedRoles={["admin", "owner"]}>
+      <AdminLayoutClient>{children}</AdminLayoutClient>
+    </AuthSessionGuard>
+  );
 }

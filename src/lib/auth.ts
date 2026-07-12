@@ -113,6 +113,7 @@ export const AUTH_ROLE_COOKIE_NAME = "bimbel_auth_role";
 export const AUTH_USER_STORAGE_KEY = "bimbel.auth.user";
 export const AUTH_ROLE_STORAGE_KEY = "bimbel.auth.role";
 export const AUTH_TOKEN_STORAGE_KEY = "bimbel.auth.token";
+export const AUTH_LAST_ACTIVITY_STORAGE_KEY = "bimbel.auth.lastActivityAt";
 export const AUTH_USER_UPDATED_EVENT = "bimbel:auth-user-updated";
 
 const ROLE_REDIRECT_MAP: Record<UserRole, string> = {
@@ -295,6 +296,30 @@ export function persistAuthToken(token: string) {
   window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
 }
 
+export function persistAuthActivity(timestamp = Date.now()) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(
+    AUTH_LAST_ACTIVITY_STORAGE_KEY,
+    timestamp.toString(),
+  );
+}
+
+export function readPersistedAuthActivity() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const rawValue = window.localStorage
+    .getItem(AUTH_LAST_ACTIVITY_STORAGE_KEY)
+    ?.trim();
+  const timestamp = rawValue ? Number(rawValue) : Number.NaN;
+
+  return Number.isFinite(timestamp) && timestamp > 0 ? timestamp : null;
+}
+
 export function readPersistedAuthToken() {
   if (typeof window === "undefined") {
     return null;
@@ -313,6 +338,7 @@ export function clearAuthClientState() {
   window.localStorage.removeItem(AUTH_USER_STORAGE_KEY);
   window.localStorage.removeItem(AUTH_ROLE_STORAGE_KEY);
   window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+  window.localStorage.removeItem(AUTH_LAST_ACTIVITY_STORAGE_KEY);
   window.dispatchEvent(
     new CustomEvent(AUTH_USER_UPDATED_EVENT, {
       detail: {

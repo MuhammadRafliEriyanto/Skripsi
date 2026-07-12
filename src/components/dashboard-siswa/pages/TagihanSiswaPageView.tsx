@@ -409,7 +409,7 @@ function MembershipSkeleton() {
   return (
     <div className="space-y-5">
       <div className="h-52 animate-pulse rounded-[32px] border border-orange-100 bg-gradient-to-br from-orange-50 via-white to-amber-50" />
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {Array.from({ length: 4 }).map((_, index) => (
           <div
             key={index}
@@ -457,9 +457,9 @@ function SummaryCard({
 
   return (
     <article
-      className={`rounded-[24px] border px-4 py-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_18px_34px_-28px_rgba(15,23,42,0.25)] ${toneClass.card}`}
+      className={`h-full flex flex-col rounded-[24px] border px-5 py-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_18px_34px_-28px_rgba(15,23,42,0.25)] ${toneClass.card}`}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-4">
         <div
           className={`flex size-10 shrink-0 items-center justify-center rounded-2xl border ${toneClass.icon}`}
         >
@@ -897,7 +897,7 @@ export default function TagihanSiswaPageView() {
                   </div>
                 </div>
 
-                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <SummaryCard
                     label="Status Akses"
                     value={overview.accessLabel}

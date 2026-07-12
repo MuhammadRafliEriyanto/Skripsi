@@ -12,9 +12,40 @@ import {
   AuthRequestError,
   authService,
   clearAuthClientState,
+  persistAuthActivity,
   persistAuthToken,
   persistAuthUser,
 } from "@/lib/auth";
+
+const INTERNAL_REDIRECT_SEARCH_PARAMS = ["_rsc"];
+
+function normalizeRedirectPath(value: string) {
+  const path = value.trim();
+
+  if (!path || !path.startsWith("/") || path.startsWith("//")) {
+    return null;
+  }
+
+  try {
+    const redirectUrl = new URL(path, "https://bimbel.local");
+
+    INTERNAL_REDIRECT_SEARCH_PARAMS.forEach((paramName) => {
+      redirectUrl.searchParams.delete(paramName);
+    });
+
+    return `${redirectUrl.pathname}${redirectUrl.search}${redirectUrl.hash}`;
+  } catch {
+    return null;
+  }
+}
+
+function isRoleRedirectPath(path: string, defaultRedirectPath: string) {
+  return (
+    path === defaultRedirectPath ||
+    path.startsWith(`${defaultRedirectPath}/`) ||
+    path.startsWith(`${defaultRedirectPath}?`)
+  );
+}
 
 function InputError({ message }: { message?: string }) {
   if (!message) {
@@ -54,13 +85,20 @@ export function LoginForm() {
   }
 
   function resolveRedirectPath(defaultRedirectPath: string) {
-    const nextPath = searchParams.get("next")?.trim() ?? "";
+    const redirectCandidates = [
+      searchParams.get("redirect") ?? "",
+      searchParams.get("next") ?? "",
+    ];
 
-    if (!nextPath || !nextPath.startsWith("/") || nextPath.startsWith("//")) {
-      return defaultRedirectPath;
+    for (const candidate of redirectCandidates) {
+      const redirectPath = normalizeRedirectPath(candidate);
+
+      if (redirectPath && isRoleRedirectPath(redirectPath, defaultRedirectPath)) {
+        return redirectPath;
+      }
     }
 
-    return nextPath;
+    return defaultRedirectPath;
   }
 
   function completeAuth(response: {
@@ -77,6 +115,7 @@ export function LoginForm() {
 
     persistAuthUser(response.data.user);
     persistAuthToken(response.data.token);
+    persistAuthActivity();
 
     let targetPath = response.data.redirectPath;
     if (response.data.user.role === "siswa") {

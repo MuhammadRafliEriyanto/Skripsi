@@ -8,10 +8,23 @@ import {
   isUserRole,
 } from "@/lib/auth";
 
+const INTERNAL_REDIRECT_SEARCH_PARAMS = ["_rsc"];
+
+function getLoginRedirectDestination(request: NextRequest) {
+  const searchParams = new URLSearchParams(request.nextUrl.searchParams);
+
+  INTERNAL_REDIRECT_SEARCH_PARAMS.forEach((paramName) => {
+    searchParams.delete(paramName);
+  });
+
+  const search = searchParams.toString();
+
+  return `${request.nextUrl.pathname}${search ? `?${search}` : ""}`;
+}
 
 function redirectToLogin(request: NextRequest, clearCookies = false) {
   const loginUrl = new URL("/login", request.url);
-  const destination = `${request.nextUrl.pathname}${request.nextUrl.search}`;
+  const destination = getLoginRedirectDestination(request);
 
   if (request.nextUrl.pathname.startsWith("/dashboard-")) {
     loginUrl.searchParams.set("redirect", destination);
