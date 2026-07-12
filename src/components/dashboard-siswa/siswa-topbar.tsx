@@ -443,7 +443,7 @@ export default function SiswaTopbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-gradient-to-r from-red-600 to-orange-500 shadow-sm backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-6">
           <div className="flex items-center gap-6 md:gap-10">
             <Link
@@ -460,8 +460,8 @@ export default function SiswaTopbar() {
               />
 
               <div className="hidden leading-tight sm:block">
-                <p className="text-sm font-bold text-slate-950">Bina</p>
-                <p className="-mt-1 text-xs text-slate-500">Cendekia</p>
+                <p className="text-sm font-bold text-white">Bina</p>
+                <p className="-mt-1 text-xs text-white/80">Cendekia</p>
               </div>
             </Link>
 
@@ -475,10 +475,8 @@ export default function SiswaTopbar() {
                   <Link
                     key={menu.path}
                     href={menu.path}
-                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                      isActive
-                        ? "bg-orange-50 text-orange-700"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-all hover:scale-[1.05] hover:bg-white/10 hover:text-white ${
+                      isActive ? "bg-white/15 text-white" : "text-white/80"
                     }`}
                   >
                     {menu.name}
@@ -499,12 +497,12 @@ export default function SiswaTopbar() {
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="relative text-slate-500 transition hover:text-slate-950 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-orange-500/10"
+                  className="relative text-white/80 transition hover:text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/20"
                   aria-label="Notifikasi siswa"
                 >
                   <Bell className="h-5 w-5" />
                   {unreadCount > 0 ? (
-                    <span className="absolute -right-2 -top-2 min-w-5 rounded-full bg-orange-600 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white ring-2 ring-white">
+                    <span className="absolute -right-2 -top-2 min-w-5 rounded-full bg-yellow-300 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-orange-900 ring-2 ring-red-500/30">
                       {notificationBadgeLabel}
                     </span>
                   ) : null}
@@ -612,30 +610,30 @@ export default function SiswaTopbar() {
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="flex items-center gap-2 rounded-md px-2 py-1 text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-orange-500/10"
+                  className="flex items-center gap-2 text-white transition-all duration-200 hover:text-white/90 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/20"
                 >
-                  <Avatar className="size-9 border border-slate-200 bg-slate-100">
+                  <Avatar className="size-9 border border-white/20 bg-white/10">
                     {avatarSrc ? (
                       <AvatarImage
                         src={avatarSrc}
                         alt={`Foto profil ${displayName}`}
                       />
                     ) : null}
-                    <AvatarFallback className="bg-orange-50 text-sm font-bold text-orange-700">
+                    <AvatarFallback className="bg-white/10 text-sm font-bold text-white">
                       {avatarFallback}
                     </AvatarFallback>
                   </Avatar>
 
                   <div className="hidden min-w-0 text-left md:block">
-                    <p className="truncate text-sm font-medium text-slate-950">
+                    <p className="truncate text-sm font-medium text-white">
                       {displayName}
                     </p>
-                    <p className="truncate text-[11px] text-slate-500">
+                    <p className="truncate text-[11px] text-white/80">
                       {displayRole}
                     </p>
                   </div>
 
-                  <ChevronDown className="hidden size-4 text-slate-400 transition-transform duration-200 md:block" />
+                  <ChevronDown className="hidden size-4 text-white/80 transition-transform duration-200 md:block" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64">
@@ -663,7 +661,7 @@ export default function SiswaTopbar() {
 
             <button
               type="button"
-              className="text-slate-700 md:hidden"
+              className="text-white md:hidden"
               onClick={() => setMobileOpen((prev) => !prev)}
               aria-label="Toggle menu siswa"
             >
@@ -686,8 +684,8 @@ export default function SiswaTopbar() {
                   onClick={() => setMobileOpen(false)}
                   className={`block rounded-md px-3 py-2 text-sm transition ${
                     isActive
-                      ? "bg-orange-50 text-orange-700"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+                      ? "bg-white/15 text-white"
+                      : "text-white/80 hover:bg-white/10 hover:text-white"
                   }`}
                 >
                   {menu.name}

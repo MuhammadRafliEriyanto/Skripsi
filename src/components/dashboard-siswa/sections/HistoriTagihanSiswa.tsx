@@ -150,7 +150,7 @@ function PaymentHistorySkeleton() {
       {Array.from({ length: 3 }).map((_, index) => (
         <div
           key={index}
-          className="h-16 animate-pulse rounded-lg border border-slate-200 bg-slate-50"
+          className="h-16 animate-pulse rounded-2xl border border-slate-100 bg-slate-50/80"
         />
       ))}
     </div>
@@ -160,7 +160,7 @@ function PaymentHistorySkeleton() {
 function PaymentHistoryEmptyState() {
   return (
     <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-orange-100 bg-orange-50 text-orange-600">
         <ReceiptText className="h-6 w-6" />
       </div>
       <div className="space-y-1">
@@ -195,10 +195,10 @@ function PendingPaymentHighlight({
 }) {
   return (
     <div className="px-4 pt-4 md:px-5 md:pt-5">
-      <article className="overflow-hidden rounded-lg border border-slate-200 bg-white p-4 md:p-5">
+      <article className="overflow-hidden rounded-[24px] border border-orange-100 bg-[linear-gradient(135deg,#fff7ed_0%,#ffffff_58%,#f8fafc_100%)] p-4 shadow-[0_18px_38px_-30px_rgba(249,115,22,0.28)] md:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-orange-600">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-orange-100 bg-white text-orange-600 shadow-sm shadow-orange-100/70">
               <CreditCard className="h-5 w-5" />
             </div>
             <div className="min-w-0">
@@ -210,7 +210,7 @@ function PendingPaymentHighlight({
                   {formatDateTimeLabel(payment.createdAt)}
                 </span>
               </div>
-              <h3 className="mt-3 text-lg font-semibold text-slate-950">
+              <h3 className="mt-3 text-lg font-semibold tracking-tight text-slate-950">
                 {payment.packageName}
               </h3>
               <p className="mt-1 text-sm leading-6 text-slate-500">
@@ -218,14 +218,14 @@ function PendingPaymentHighlight({
                 bisa segera diproses.
               </p>
               <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium text-slate-500">
-                <span className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1.5">
+                <span className="rounded-full border border-white/80 bg-white px-3 py-1.5 shadow-sm">
                   Durasi {resolveDurationLabel(payment, packages)}
                 </span>
-                <span className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1.5">
+                <span className="rounded-full border border-white/80 bg-white px-3 py-1.5 shadow-sm">
                   Pembayaran online
                 </span>
                 {payment.expiresAt ? (
-                  <span className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1.5">
+                  <span className="rounded-full border border-white/80 bg-white px-3 py-1.5 shadow-sm">
                     Berlaku hingga {formatDateTimeLabel(payment.expiresAt)}
                   </span>
                 ) : null}
@@ -233,16 +233,16 @@ function PendingPaymentHighlight({
             </div>
           </div>
 
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-4 lg:min-w-[260px]">
-            <p className="text-xs font-medium text-slate-500">
+          <div className="rounded-[22px] border border-white/80 bg-white/90 px-4 py-4 shadow-[0_16px_30px_-28px_rgba(15,23,42,0.28)] lg:min-w-[260px]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
               Total pembayaran
             </p>
-            <p className="mt-2 text-2xl font-semibold text-slate-950">
+            <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
               {formatRupiah(payment.amount)}
             </p>
             <Button
               type="button"
-              className="mt-4 h-10 w-full rounded-lg bg-orange-600 text-sm font-semibold text-white hover:bg-orange-700"
+              className="mt-4 h-11 w-full rounded-2xl bg-orange-500 text-sm font-semibold text-white shadow-[0_14px_24px_-18px_rgba(249,115,22,0.7)] transition hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-[0_18px_28px_-18px_rgba(249,115,22,0.82)]"
               onClick={() => openCheckoutUrl(payment.checkoutUrl)}
             >
               Lanjut Pembayaran
@@ -263,8 +263,8 @@ function PaymentDetailItem({
   value: string;
 }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-      <p className="text-xs font-medium text-slate-500">
+    <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
         {label}
       </p>
       <p className="mt-2 text-sm font-medium leading-6 text-slate-800">{value}</p>
@@ -335,10 +335,10 @@ export default function HistoriTagihanSiswa({
 
   return (
     <>
-    <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-      <div className="flex flex-col gap-3 border-b border-slate-200 bg-white px-4 py-4 md:flex-row md:items-start md:justify-between md:px-5">
+    <section className="overflow-hidden rounded-[24px] border border-orange-100/90 bg-white shadow-[0_18px_40px_-34px_rgba(15,23,42,0.22),0_12px_24px_-22px_rgba(249,115,22,0.14)]">
+      <div className="flex flex-col gap-3 border-b border-orange-100/80 bg-[linear-gradient(135deg,rgba(255,247,237,0.95),rgba(255,255,255,0.98))] px-4 py-4 md:flex-row md:items-start md:justify-between md:px-5">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-orange-600">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-orange-100 bg-white text-orange-600 shadow-sm shadow-orange-100/60">
             <CreditCard className="h-5 w-5" />
           </div>
           <div>
@@ -352,7 +352,7 @@ export default function HistoriTagihanSiswa({
           </div>
         </div>
 
-        <Badge variant="outline" className="self-start rounded-md">
+        <Badge variant="info" className="self-start">
           {payments.length} Tagihan
         </Badge>
       </div>
@@ -361,7 +361,7 @@ export default function HistoriTagihanSiswa({
 
       {!isLoading && error ? (
         <div className="flex flex-col gap-4 px-4 py-6 md:flex-row md:items-center md:justify-between md:px-5">
-          <div className="flex items-start gap-3 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-red-700">
+          <div className="flex items-start gap-3 rounded-2xl border border-red-100 bg-red-50/80 px-4 py-3 text-red-700">
             <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
             <div>
               <p className="text-sm font-semibold">Histori tagihan belum bisa dimuat</p>
@@ -397,7 +397,7 @@ export default function HistoriTagihanSiswa({
           ) : null}
 
           <div className="p-4 md:p-5">
-            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <div className="overflow-hidden rounded-[22px] border border-slate-100 bg-white">
               <div className="overflow-x-auto">
           <Table className="min-w-[920px]">
             <TableHeader>
@@ -472,7 +472,7 @@ export default function HistoriTagihanSiswa({
                       <Button
                         type="button"
                         size="sm"
-                        className="rounded-lg bg-orange-600 text-white hover:bg-orange-700"
+                        className="rounded-full bg-orange-500 text-white shadow-sm shadow-orange-500/20 transition hover:bg-orange-600"
                         onClick={() => openCheckoutUrl(payment.checkoutUrl)}
                       >
                         Lanjut Pembayaran
@@ -483,7 +483,7 @@ export default function HistoriTagihanSiswa({
                         type="button"
                         size="icon"
                         variant="outline"
-                        className="size-9 rounded-lg border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
+                        className="size-9 rounded-full border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"
                         title="Lihat detail tagihan"
                         onClick={() => setSelectedPayment(payment)}
                       >
@@ -514,16 +514,16 @@ export default function HistoriTagihanSiswa({
         }
       }}
     >
-      <DialogContent className="w-[calc(100%-1rem)] max-w-2xl rounded-lg border-slate-200 bg-white p-0 shadow-lg sm:w-[calc(100%-2rem)]">
+      <DialogContent className="w-[calc(100%-1rem)] max-w-2xl border-slate-200/80 bg-white p-0 shadow-[0_24px_48px_-30px_rgba(15,23,42,0.24)] sm:w-[calc(100%-2rem)]">
         {selectedPayment ? (
           <div className="overflow-hidden rounded-[inherit]">
-            <DialogHeader className="border-b border-slate-200 bg-white px-5 py-5 text-left sm:px-6">
+            <DialogHeader className="border-b border-slate-200/80 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_100%)] px-5 py-5 text-left sm:px-6">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="success" className="rounded-md px-2.5 py-1">
+                <Badge variant="success" className="rounded-full px-3 py-1">
                   {formatPaymentStatusLabel(selectedPayment.status)}
                 </Badge>
               </div>
-              <DialogTitle className="text-xl font-semibold text-slate-950">
+              <DialogTitle className="text-xl font-semibold tracking-tight text-slate-950">
                 Detail Tagihan Lunas
               </DialogTitle>
               <DialogDescription>
@@ -566,11 +566,11 @@ export default function HistoriTagihanSiswa({
               />
             </div>
 
-            <DialogFooter className="border-t border-slate-200 px-5 py-4 sm:px-6">
+            <DialogFooter className="border-t border-slate-200/80 px-5 py-4 sm:px-6">
               <Button
                 type="button"
                 variant="outline"
-                className="rounded-lg"
+                className="rounded-full"
                 onClick={() => setSelectedPayment(null)}
               >
                 Tutup
