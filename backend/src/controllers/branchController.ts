@@ -118,6 +118,73 @@ async function getAvailableTeacherCount() {
   }).exec();
 }
 
+async function attachBranchToTeacherDirectory(branchName: string) {
+  const normalizedBranchName = normalizeText(branchName);
+
+  if (!normalizedBranchName) {
+    return;
+  }
+
+  await Teacher.updateMany(
+    {
+      branches: {
+        $ne: normalizedBranchName,
+      },
+    },
+    {
+      $addToSet: {
+        branches: normalizedBranchName,
+      },
+    },
+  ).exec();
+}
+
+async function renameBranchInTeacherDirectory(
+  previousBranchName: string,
+  nextBranchName: string,
+) {
+  const normalizedPreviousBranchName = normalizeText(previousBranchName);
+  const normalizedNextBranchName = normalizeText(nextBranchName);
+
+  if (!normalizedPreviousBranchName || !normalizedNextBranchName) {
+    return;
+  }
+
+  await Promise.all([
+    Teacher.updateMany(
+      {
+        branch: normalizedPreviousBranchName,
+      },
+      {
+        $set: {
+          branch: normalizedNextBranchName,
+        },
+      },
+    ).exec(),
+    Teacher.updateMany(
+      {
+        branches: normalizedPreviousBranchName,
+      },
+      {
+        $addToSet: {
+          branches: normalizedNextBranchName,
+        },
+      },
+    ).exec(),
+  ]);
+
+  await Teacher.updateMany(
+    {
+      branches: normalizedPreviousBranchName,
+    },
+    {
+      $pull: {
+        branches: normalizedPreviousBranchName,
+      },
+    },
+  ).exec();
+}
+
 async function getStudentCountMap(branchNames: string[]) {
   const normalizedBranchNames = [...new Set(branchNames.filter(Boolean))];
 
@@ -744,6 +811,7 @@ export const createBranch = asyncHandler(
       adminName: adminLink.adminName,
       adminUserId: adminLink.adminUserId,
     });
+    await attachBranchToTeacherDirectory(name);
 
     sendSuccess(res, {
       statusCode: 201,
@@ -815,16 +883,7 @@ export const updateBranch = asyncHandler(
 
     if (previousBranchName !== name) {
       await Promise.all([
-        Teacher.updateMany(
-          {
-            branch: previousBranchName,
-          },
-          {
-            $set: {
-              branch: name,
-            },
-          },
-        ).exec(),
+        renameBranchInTeacherDirectory(previousBranchName, name),
         Student.updateMany(
           {
             branch: previousBranchName,
