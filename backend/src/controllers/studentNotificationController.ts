@@ -724,9 +724,9 @@ export const getMyStudentNotifications = asyncHandler(
         href: "/dashboard-siswa/tagihan",
       });
     } else if (
-      membershipSnapshot.accessStatus === "active" &&
+      membershipSnapshot.accessStatus === "expiring" &&
       typeof membershipSnapshot.daysRemaining === "number" &&
-      membershipSnapshot.daysRemaining <= 7
+      membershipSnapshot.daysRemaining <= 14
     ) {
       const renewalMessage =
         membershipSnapshot.daysRemaining <= 0

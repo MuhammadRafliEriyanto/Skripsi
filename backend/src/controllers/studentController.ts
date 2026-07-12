@@ -134,14 +134,13 @@ type StudentListEntry = {
   createdAt: Date;
 };
 
-const MEMBERSHIP_PAYMENT_MODES = ["none", "paid", "pending"] as const;
 const MEMBERSHIP_PAYMENT_METHODS = [
   "cash",
   "manual_transfer",
   "qris_offline",
 ] as const;
 
-type MembershipPaymentMode = (typeof MEMBERSHIP_PAYMENT_MODES)[number];
+type MembershipPaymentMode = "none" | "paid" | "pending";
 type MembershipPaymentMethod = (typeof MEMBERSHIP_PAYMENT_METHODS)[number];
 
 function normalizeText(value: string | undefined): string {
@@ -180,14 +179,6 @@ function isValidEmail(value: string): boolean {
 
 function isValidClassName(value: string): boolean {
   return value.startsWith("SD ") || value.startsWith("SMP ") || value.startsWith("SMA ");
-}
-
-function normalizeMembershipPaymentMode(value: string | undefined): MembershipPaymentMode {
-  const normalizedValue = normalizeText(value).toLowerCase();
-
-  return MEMBERSHIP_PAYMENT_MODES.includes(normalizedValue as MembershipPaymentMode)
-    ? (normalizedValue as MembershipPaymentMode)
-    : "none";
 }
 
 function normalizeMembershipPaymentMethod(value: string | undefined): MembershipPaymentMethod {
@@ -905,17 +896,15 @@ export const createStudent = asyncHandler(
     const birthDate = parseBirthDate(req.body.birthDate);
     const academicYear = normalizeText(req.body.academicYear) || getCurrentAcademicPeriod().academicYear;
     const status = normalizeText(req.body.status) as StudentRequestBody["status"];
-    const membershipPaymentMode = normalizeMembershipPaymentMode(
-      req.body.membershipPaymentMode,
-    );
+    const membershipPaymentMode: Exclude<
+      MembershipPaymentMode,
+      "none" | "pending"
+    > = "paid";
     const membershipPackageKey = normalizeText(req.body.membershipPackageKey);
     const membershipPaymentMethod = normalizeMembershipPaymentMethod(
       req.body.membershipPaymentMethod,
     );
-    const membershipPaidAt =
-      membershipPaymentMode === "none"
-        ? new Date()
-        : parseMembershipPaidAt(req.body.membershipPaidAt);
+    const membershipPaidAt = parseMembershipPaidAt(req.body.membershipPaidAt);
 
     if (!name) {
       next(new AppError(400, "Nama siswa wajib diisi."));
@@ -970,25 +959,23 @@ export const createStudent = asyncHandler(
       return;
     }
 
-    if (membershipPaymentMode !== "none") {
-      const membershipPackage = getClassPricedOnlinePackageByKey(
-        membershipPackageKey,
-        className,
-      );
+    const membershipPackage = getClassPricedOnlinePackageByKey(
+      membershipPackageKey,
+      className,
+    );
 
-      if (!membershipPackageKey) {
-        next(new AppError(400, "Paket membership offline wajib dipilih.", {
-          membershipPackageKey: "Paket membership offline wajib dipilih.",
-        }));
-        return;
-      }
+    if (!membershipPackageKey) {
+      next(new AppError(400, "Paket membership offline wajib dipilih.", {
+        membershipPackageKey: "Paket membership offline wajib dipilih.",
+      }));
+      return;
+    }
 
-      if (!membershipPackage) {
-        next(new AppError(400, "Paket membership offline belum valid.", {
-          membershipPackageKey: "Paket membership offline belum valid.",
-        }));
-        return;
-      }
+    if (!membershipPackage) {
+      next(new AppError(400, "Paket membership offline belum valid.", {
+        membershipPackageKey: "Paket membership offline belum valid.",
+      }));
+      return;
     }
 
     const studentId = await getNextPublicId(Student, "studentId", "STD");
@@ -1013,33 +1000,31 @@ export const createStudent = asyncHandler(
       | null = null;
     const createdStudentId = student._id;
 
-    if (membershipPaymentMode !== "none") {
-      if (!hasResolvedStudentUser(student)) {
-        await Student.deleteOne({ _id: createdStudentId });
-        next(new AppError(500, "Akun siswa gagal dimuat untuk membuat pembayaran offline."));
-        return;
-      }
+    if (!hasResolvedStudentUser(student)) {
+      await Student.deleteOne({ _id: createdStudentId });
+      next(new AppError(500, "Akun siswa gagal dimuat untuk membuat pembayaran offline."));
+      return;
+    }
 
-      const createdStudentUser = student.userId;
+    const createdStudentUser = student.userId;
 
-      try {
-        membership = await createOfflineMembershipPaymentForStudent({
-          student,
-          user: createdStudentUser,
-          adminId: authenticatedUser._id,
-          packageKey: membershipPackageKey,
-          className,
-          paymentMode: membershipPaymentMode,
-          paymentMethod: membershipPaymentMethod,
-          paidAt: membershipPaidAt,
-        });
-      } catch (error) {
-        await Promise.all([
-          Student.deleteOne({ _id: createdStudentId }),
-          User.deleteOne({ _id: createdStudentUser._id }),
-        ]);
-        throw error;
-      }
+    try {
+      membership = await createOfflineMembershipPaymentForStudent({
+        student,
+        user: createdStudentUser,
+        adminId: authenticatedUser._id,
+        packageKey: membershipPackageKey,
+        className,
+        paymentMode: membershipPaymentMode,
+        paymentMethod: membershipPaymentMethod,
+        paidAt: membershipPaidAt,
+      });
+    } catch (error) {
+      await Promise.all([
+        Student.deleteOne({ _id: createdStudentId }),
+        User.deleteOne({ _id: createdStudentUser._id }),
+      ]);
+      throw error;
     }
     const membershipSnapshot: PublicStudent["membership"] | undefined = membership
       ? (() => {
@@ -1061,12 +1046,7 @@ export const createStudent = asyncHandler(
 
     sendSuccess(res, {
       statusCode: 201,
-      message:
-        membershipPaymentMode === "paid"
-          ? "Data siswa dan pembayaran offline berhasil dibuat."
-          : membershipPaymentMode === "pending"
-            ? "Data siswa dan tagihan offline berhasil dibuat."
-            : "Data siswa berhasil dibuat.",
+      message: "Data siswa dan pembayaran offline berhasil dibuat.",
       data: {
         student: toPublicStudent(
           student,
