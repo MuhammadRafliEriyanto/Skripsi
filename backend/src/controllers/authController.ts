@@ -270,7 +270,8 @@ export const register = asyncHandler(
     const errors: Record<string, string> = {};
     const trimmedNama = nama?.trim();
     const normalizedEmail = email?.trim().toLowerCase();
-    const safeRole = role as UserRole | undefined;
+    const requestedRole = role as UserRole | undefined;
+    const safeRole: UserRole = "siswa";
 
     if (!trimmedNama) {
       errors.nama = "Nama wajib diisi.";
@@ -292,8 +293,10 @@ export const register = asyncHandler(
       errors.confirmPassword = "Konfirmasi password tidak cocok.";
     }
 
-    if (!safeRole || !USER_ROLES.includes(safeRole)) {
+    if (requestedRole && !USER_ROLES.includes(requestedRole)) {
       errors.role = "Role tidak valid.";
+    } else if (requestedRole && requestedRole !== "siswa") {
+      errors.role = "Registrasi publik hanya tersedia untuk siswa.";
     }
 
     if (Object.keys(errors).length > 0) {
@@ -316,7 +319,7 @@ export const register = asyncHandler(
       user.nama = trimmedNama as string;
       user.avatar = user.avatar ?? null;
       user.password = hashedPassword;
-      user.role = safeRole as UserRole;
+      user.role = safeRole;
       user.isEmailVerified = false;
       user.emailVerificationToken = hashedToken;
       user.emailVerificationExpires = expiresAt;
@@ -327,7 +330,7 @@ export const register = asyncHandler(
         email: normalizedEmail,
         avatar: null,
         password: hashedPassword,
-        role: safeRole as UserRole,
+        role: safeRole,
         isEmailVerified: false,
         emailVerificationToken: hashedToken,
         emailVerificationExpires: expiresAt,
@@ -394,7 +397,7 @@ export const login = asyncHandler(
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-      console.log(`[AUTH FAILED] Password mismatch for ${identifier}. Checked hash: ${user.password}`);
+      console.log(`[AUTH FAILED] Password mismatch for ${identifier}.`);
       next(new AppError(401, "Kode akun/email atau password salah."));
       return;
     }

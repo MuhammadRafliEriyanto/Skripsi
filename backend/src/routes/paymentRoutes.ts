@@ -22,6 +22,10 @@ import {
 import apiKeyMiddleware from "../middleware/apiKeyMiddleware";
 import authorizeRole from "../middleware/authorizeRole";
 import protect from "../middleware/protect";
+import {
+  paymentStatusRateLimit,
+  sensitiveActionRateLimit,
+} from "../middleware/rateLimit";
 
 const router = Router();
 
@@ -74,8 +78,14 @@ router.post(
   authorizeRole("admin"),
   cancelAdminPayment,
 );
-router.get("/status", getPaymentStatus);
-router.post("/confirm", confirmDummyPayment);
-router.post("/xendit/test-session", createXenditTestSession);
+router.get("/status", paymentStatusRateLimit, getPaymentStatus);
+router.post("/confirm", sensitiveActionRateLimit, confirmDummyPayment);
+router.post(
+  "/xendit/test-session",
+  sensitiveActionRateLimit,
+  protect,
+  authorizeRole("admin"),
+  createXenditTestSession,
+);
 
 export default router;

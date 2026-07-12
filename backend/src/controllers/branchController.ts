@@ -17,6 +17,7 @@ import { Teacher } from "../models/Teacher";
 import { type UserDocument, User } from "../models/User";
 import asyncHandler from "../utils/asyncHandler";
 import {
+  assertBranchAccess,
   matchesBranchScope,
   resolveAdminBranchScope,
 } from "../utils/adminBranchScope";
@@ -744,6 +745,11 @@ export const getBranchById = asyncHandler(
       next(new AppError(404, "Data cabang tidak ditemukan."));
       return;
     }
+
+    const scope = await resolveAdminBranchScope(req.user, {
+      requireManagedBranchesForAdmin: true,
+    });
+    assertBranchAccess(branch.name, scope);
 
     const [teacherCount, studentCount] = await Promise.all([
       getAvailableTeacherCount(),

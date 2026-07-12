@@ -3140,6 +3140,18 @@ export const confirmDummyPayment = asyncHandler(
       return;
     }
 
+    if (payment.source !== "register_online") {
+      next(
+        new AppError(
+          403,
+          "Pembayaran ini hanya dapat dikonfirmasi dari dashboard admin.",
+          null,
+          "PUBLIC_PAYMENT_CONFIRM_FORBIDDEN",
+        ),
+      );
+      return;
+    }
+
     const subscription = await Subscription.findById(payment.subscriptionId).exec();
 
     if (!subscription) {
