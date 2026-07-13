@@ -393,11 +393,19 @@ export default function HistoriTagihanSiswa({
             />
           ) : null}
 
-          <div className="flex flex-col space-y-4 mt-6 pl-4 md:pl-8 border-l-2 border-slate-100 ml-4 md:ml-6 pb-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-6">
             {payments.map((payment) => (
-              <div key={payment.paymentId} className="relative w-full cursor-pointer" onClick={() => setSelectedPayment(payment)}>
+              <div key={payment.paymentId} className="relative w-full cursor-pointer pl-6" onClick={() => setSelectedPayment(payment)}>
+                {/* Timeline Background Line */}
+                <div className="absolute left-0 top-8 bottom-4 w-0.5 -translate-x-1/2 bg-slate-100 z-0" />
+                
+                {/* Timeline Line Overlay for Paid */}
+                {payment.status === "paid" && (
+                  <div className="absolute left-0 top-8 bottom-4 w-0.5 -translate-x-1/2 bg-green-500 z-10" />
+                )}
+                
                 {/* Timeline Icon */}
-                <div className="absolute -left-[27px] md:-left-[43px] top-4 flex h-7 w-7 items-center justify-center rounded-full bg-white">
+                <div className="absolute left-0 top-4 flex h-7 w-7 -translate-x-1/2 items-center justify-center rounded-full bg-white z-20">
                   {payment.status === "paid" ? (
                     <div className="flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-white shadow-sm ring-4 ring-white">
                       <CheckCircle2 className="h-3.5 w-3.5" />
@@ -413,23 +421,20 @@ export default function HistoriTagihanSiswa({
                   )}
                 </div>
                 
-                {/* Timeline Line Overlay for Paid */}
-                {payment.status === "paid" && (
-                  <div className="absolute -left-[17px] md:-left-[33px] top-[44px] bottom-[-24px] w-0.5 bg-green-500 z-10" />
-                )}
-                
-                <div className="rounded-[16px] border border-slate-200/80 bg-white p-4 shadow-sm transition-all hover:shadow-md ml-4 md:ml-0">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-semibold text-slate-500">
-                      {formatDateTimeLabel(payment.createdAt).split(' ').slice(0, 3).join(' ')}
-                    </p>
-                    <Badge variant={formatPaymentStatusVariant(payment.status)} className="rounded-full px-3 py-0.5 text-[10px] font-bold shadow-none">
-                      {formatPaymentStatusLabel(payment.status)}
-                    </Badge>
-                  </div>
-                  
-                  <div className="mb-2">
-                    <h4 className="text-[15px] font-bold text-slate-900 leading-tight">{payment.packageName}</h4>
+                <div className="rounded-[16px] border border-slate-200/80 bg-white p-4 shadow-sm transition-all hover:shadow-md ml-1 h-full flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-semibold text-slate-500">
+                        {formatDateTimeLabel(payment.createdAt).split(' ').slice(0, 3).join(' ')}
+                      </p>
+                      <Badge variant={formatPaymentStatusVariant(payment.status)} className="rounded-full px-3 py-0.5 text-[10px] font-bold shadow-none">
+                        {formatPaymentStatusLabel(payment.status)}
+                      </Badge>
+                    </div>
+                    
+                    <div className="mb-4">
+                      <h4 className="text-[15px] font-bold text-slate-900 leading-tight">{payment.packageName}</h4>
+                    </div>
                   </div>
                   
                   <div className="flex items-end justify-between">
