@@ -393,36 +393,49 @@ export default function HistoriTagihanSiswa({
             />
           ) : null}
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-4">
+          <div className="flex flex-col space-y-4 mt-6 pl-4 md:pl-8 border-l-2 border-slate-100 ml-4 md:ml-6 pb-4">
             {payments.map((payment) => (
-              <div key={payment.paymentId} className="relative rounded-[20px] border border-slate-200/80 bg-white p-5 shadow-sm transition-all hover:shadow-md cursor-pointer flex flex-col" onClick={() => setSelectedPayment(payment)}>
-                <div className="absolute -left-3 -top-3 flex h-7 w-7 items-center justify-center rounded-full bg-white shadow-sm border border-slate-100">
+              <div key={payment.paymentId} className="relative w-full cursor-pointer" onClick={() => setSelectedPayment(payment)}>
+                {/* Timeline Icon */}
+                <div className="absolute -left-[27px] md:-left-[43px] top-4 flex h-7 w-7 items-center justify-center rounded-full bg-white">
                   {payment.status === "paid" ? (
-                    <CheckCircle2 className="h-5 w-5 text-green-500 fill-green-100" />
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-white shadow-sm ring-4 ring-white">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                    </div>
                   ) : payment.status === "pending" ? (
-                    <RotateCcw className="h-4 w-4 text-orange-500" />
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-white shadow-sm ring-4 ring-white">
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </div>
                   ) : (
-                    <MessageSquare className="h-4 w-4 text-blue-500 fill-blue-100" />
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-300 text-white shadow-sm ring-4 ring-white">
+                      <MessageSquare className="h-3 w-3" />
+                    </div>
                   )}
                 </div>
                 
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-xs font-semibold text-slate-500 pl-2">
-                    {formatDateTimeLabel(payment.createdAt).split(' ').slice(0, 3).join(' ')}
-                  </p>
-                  <Badge variant={formatPaymentStatusVariant(payment.status)} className="rounded-full px-2.5 py-0.5 text-[10px] font-bold shadow-sm">
-                    {formatPaymentStatusLabel(payment.status)}
-                  </Badge>
-                </div>
+                {/* Timeline Line Overlay for Paid */}
+                {payment.status === "paid" && (
+                  <div className="absolute -left-[17px] md:-left-[33px] top-[44px] bottom-[-24px] w-0.5 bg-green-500 z-10" />
+                )}
                 
-                <div className="flex-1">
-                  <h4 className="text-sm font-bold text-slate-900 leading-tight mb-1.5 pr-2">{payment.packageName}</h4>
-                  <p className="text-xs font-medium text-slate-500">{resolveDurationLabel(payment, packageOptions)}</p>
-                </div>
-                
-                <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-400">Total</span>
-                  <p className="text-base font-bold text-slate-900">{formatRupiah(payment.amount)}</p>
+                <div className="rounded-[16px] border border-slate-200/80 bg-white p-4 shadow-sm transition-all hover:shadow-md ml-4 md:ml-0">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-semibold text-slate-500">
+                      {formatDateTimeLabel(payment.createdAt).split(' ').slice(0, 3).join(' ')}
+                    </p>
+                    <Badge variant={formatPaymentStatusVariant(payment.status)} className="rounded-full px-3 py-0.5 text-[10px] font-bold shadow-none">
+                      {formatPaymentStatusLabel(payment.status)}
+                    </Badge>
+                  </div>
+                  
+                  <div className="mb-2">
+                    <h4 className="text-[15px] font-bold text-slate-900 leading-tight">{payment.packageName}</h4>
+                  </div>
+                  
+                  <div className="flex items-end justify-between">
+                    <p className="text-xs font-medium text-slate-500">{resolveDurationLabel(payment, packageOptions)}</p>
+                    <p className="text-sm font-bold text-slate-900">{formatRupiah(payment.amount)}</p>
+                  </div>
                 </div>
               </div>
             ))}
