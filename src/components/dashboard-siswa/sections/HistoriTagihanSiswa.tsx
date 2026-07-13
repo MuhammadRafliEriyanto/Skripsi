@@ -290,6 +290,7 @@ export default function HistoriTagihanSiswa({
   const [reloadKey, setReloadKey] = useState(0);
   const [selectedPayment, setSelectedPayment] =
     useState<MembershipPaymentHistoryItem | null>(null);
+  const [displayCount, setDisplayCount] = useState(3);
 
   const loadPaymentHistory = useEffectEvent(async (isBackground = false) => {
     if (!isBackground) {
@@ -394,7 +395,7 @@ export default function HistoriTagihanSiswa({
           ) : null}
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-6">
-            {payments.map((payment) => (
+            {payments.slice(0, displayCount).map((payment) => (
               <div key={payment.paymentId} className="relative w-full cursor-pointer pl-6" onClick={() => setSelectedPayment(payment)}>
                 {/* Timeline Background Line */}
                 <div className="absolute left-0 top-8 bottom-4 w-0.5 -translate-x-1/2 bg-slate-100 z-0" />
@@ -446,11 +447,17 @@ export default function HistoriTagihanSiswa({
             ))}
           </div>
           
-          <div className="mt-8 flex justify-center">
-            <Button variant="ghost" className="rounded-full text-xs font-semibold text-slate-500 hover:text-slate-800">
-              Tampilkan lebih banyak <ChevronDown className="ml-1.5 h-3.5 w-3.5" />
-            </Button>
-          </div>
+          {payments.length > displayCount && (
+            <div className="mt-8 flex justify-center">
+              <Button 
+                variant="ghost" 
+                className="rounded-full text-xs font-semibold text-slate-500 hover:text-slate-800"
+                onClick={() => setDisplayCount(prev => prev + 3)}
+              >
+                Tampilkan lebih banyak <ChevronDown className="ml-1.5 h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )}
         </>
       ) : null}
     </section>
