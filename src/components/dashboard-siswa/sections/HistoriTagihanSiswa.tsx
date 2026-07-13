@@ -353,9 +353,6 @@ export default function HistoriTagihanSiswa({
             </p>
           </div>
         </div>
-        <Button variant="outline" className="rounded-full h-9 px-4 text-xs font-semibold text-slate-600">
-          Lihat Semua <ChevronRight className="ml-1 h-3.5 w-3.5" />
-        </Button>
       </div>
 
       {isLoading ? <PaymentHistorySkeleton /> : null}
@@ -425,7 +422,7 @@ export default function HistoriTagihanSiswa({
                 
                 <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-400">Total</span>
-                  <p className="text-base font-black text-slate-900">{formatRupiah(payment.amount)}</p>
+                  <p className="text-base font-bold text-slate-900">{formatRupiah(payment.amount)}</p>
                 </div>
               </div>
             ))}

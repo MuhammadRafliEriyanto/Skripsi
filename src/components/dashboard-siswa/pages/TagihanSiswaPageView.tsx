@@ -687,7 +687,7 @@ export default function TagihanSiswaPageView() {
               <p className="flex items-center text-sm font-semibold text-slate-500">
                 👋 <span className="ml-2">Halo kembali,</span>
               </p>
-              <h1 className="mt-2 text-4xl font-extrabold tracking-tight text-slate-900 md:text-5xl">
+              <h1 className="mt-2 text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">
                 {overview.studentName}
               </h1>
               <p className="mt-2 text-sm font-medium text-slate-500">
@@ -716,7 +716,7 @@ export default function TagihanSiswaPageView() {
               <div className="flex items-center gap-8 pl-4">
                 <div className="min-w-[140px]">
                   <p className="text-xs font-bold text-slate-600">Sisa Masa Aktif</p>
-                  <p className="mt-1 text-3xl font-black text-orange-500">{100 - overview.progressPercentage}%</p>
+                  <p className="mt-1 text-3xl font-bold text-orange-500">{100 - overview.progressPercentage}%</p>
                   <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
                     <div className="h-full bg-orange-500 rounded-full transition-all duration-1000" style={{ width: `${100 - overview.progressPercentage}%` }} />
                   </div>
@@ -794,7 +794,7 @@ export default function TagihanSiswaPageView() {
                     <div className="h-2.5 w-2.5 rounded-full bg-orange-500 shadow-sm" />
                     <h2 className="text-sm font-bold text-slate-800">Paket Saat Ini</h2>
                   </div>
-                  <h3 className="mt-4 text-3xl font-black tracking-tight text-slate-900 md:text-4xl">{overview.packageName}</h3>
+                  <h3 className="mt-4 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">{overview.packageName}</h3>
                   <div className="mt-5 flex flex-wrap gap-3">
                     <span className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-600">
                       <CalendarClock className="h-4 w-4 text-slate-400" /> Durasi {overview.durationLabel}
@@ -856,7 +856,7 @@ export default function TagihanSiswaPageView() {
                     <RefreshCcw className="h-6 w-6" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-black text-slate-900 md:text-2xl">Perpanjang Paket</h2>
+                    <h2 className="text-xl font-bold text-slate-900 md:text-2xl">Perpanjang Paket</h2>
                     <p className="text-sm font-medium text-slate-500 mt-1">Lanjutkan pembelajaran tanpa jeda</p>
                   </div>
                 </div>
@@ -873,7 +873,7 @@ export default function TagihanSiswaPageView() {
                       <GraduationCap className="h-5 w-5" />
                     </div>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Saat ini</p>
-                    <p className="mt-1.5 text-sm font-black text-slate-800 text-center">{renewalClassSuggestion?.currentClassLabel ?? overview.className}</p>
+                    <p className="mt-1.5 text-sm font-bold text-slate-800 text-center">{renewalClassSuggestion?.currentClassLabel ?? overview.className}</p>
                   </div>
                   
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm">
@@ -885,14 +885,14 @@ export default function TagihanSiswaPageView() {
                       <GraduationCap className="h-5 w-5" />
                     </div>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tujuan</p>
-                    <p className="mt-1.5 text-sm font-black text-slate-800 text-center">{renewalTargetClassLabel}</p>
+                    <p className="mt-1.5 text-sm font-bold text-slate-800 text-center">{renewalTargetClassLabel}</p>
                   </div>
                 </div>
               </div>
               
               <div className="rounded-[24px] bg-[#FFF8EE] border border-orange-100 p-6 flex flex-col justify-center flex-1 shadow-sm">
                 <p className="text-sm font-bold text-slate-600 mb-2">{selectedRenewalPackage?.packageName ?? "Paket belum tersedia"}</p>
-                <p className="text-3xl font-black text-slate-900 md:text-4xl tracking-tight">{formatRupiah(selectedRenewalAmount)}</p>
+                <p className="text-3xl font-bold text-slate-900 md:text-4xl tracking-tight">{formatRupiah(selectedRenewalAmount)}</p>
                 <p className="mt-3 text-sm font-medium text-slate-500">Akses penuh ke semua fitur pembelajaran</p>
                 
                 <Button
