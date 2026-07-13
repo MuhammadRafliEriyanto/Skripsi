@@ -779,8 +779,8 @@ export default function TagihanSiswaPageView() {
         {!isLoading && !error ? (
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <div className="rounded-[24px] border border-slate-200/60 bg-white shadow-sm flex flex-col overflow-hidden transition-all hover:shadow-md">
-              <div className="border-l-[6px] border-orange-500 p-6 md:p-8 h-full flex flex-col">
-                <div className="flex items-center justify-between mb-8">
+              <div className="border-l-[6px] border-orange-500 p-5 md:p-6 h-full flex flex-col">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                   <div className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-[11px] font-bold tracking-[0.1em] text-slate-600 shadow-sm">
                     <WalletCards className="h-4 w-4" /> PEMBAYARAN SISWA
                   </div>
@@ -789,13 +789,13 @@ export default function TagihanSiswaPageView() {
                   </div>
                 </div>
                 
-                <div className="mb-8">
+                <div className="mb-6">
                   <div className="flex items-center gap-3">
-                    <div className="h-2.5 w-2.5 rounded-full bg-orange-500 shadow-sm" />
+                    <div className="h-2 w-2 rounded-full bg-orange-500 shadow-sm" />
                     <h2 className="text-sm font-bold text-slate-800">Paket Saat Ini</h2>
                   </div>
-                  <h3 className="mt-4 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">{overview.packageName}</h3>
-                  <div className="mt-5 flex flex-wrap gap-3">
+                  <h3 className="mt-3 text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">{overview.packageName}</h3>
+                  <div className="mt-4 flex flex-wrap gap-2.5">
                     <span className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-600">
                       <CalendarClock className="h-4 w-4 text-slate-400" /> Durasi {overview.durationLabel}
                     </span>
@@ -805,99 +805,99 @@ export default function TagihanSiswaPageView() {
                   </div>
                 </div>
                 
-                <div className="mt-auto grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="rounded-[20px] border border-slate-100 p-5 transition-colors hover:bg-slate-50 group">
-                    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-50 text-orange-500 transition-transform group-hover:scale-110">
-                      <ShieldCheck className="h-5 w-5" />
+                <div className="mt-auto grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="rounded-[16px] border border-slate-100 p-4 transition-colors hover:bg-slate-50 group">
+                    <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-xl bg-orange-50 text-orange-500 transition-transform group-hover:scale-110">
+                      <ShieldCheck className="h-4 w-4" />
                     </div>
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Status Akses</p>
-                    <div className="mt-2 mb-2">
-                      <span className="text-sm font-bold bg-orange-100 text-orange-800 px-2.5 py-1 rounded-md">{overview.accessLabel}</span>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Status Akses</p>
+                    <div className="mt-1.5 mb-1.5">
+                      <span className="text-xs font-bold bg-orange-100 text-orange-800 px-2 py-1 rounded-md">{overview.accessLabel}</span>
                     </div>
-                    <p className="text-xs font-medium text-slate-500 leading-relaxed">Akses akan berakhir segera</p>
+                    <p className="text-[11px] font-medium text-slate-500 leading-relaxed">Akses akan berakhir segera</p>
                   </div>
                   
-                  <div className="rounded-[20px] border border-slate-100 p-5 transition-colors hover:bg-slate-50 group">
-                    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-500 transition-transform group-hover:scale-110">
-                      <CreditCard className="h-5 w-5" />
+                  <div className="rounded-[16px] border border-slate-100 p-4 transition-colors hover:bg-slate-50 group">
+                    <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-blue-500 transition-transform group-hover:scale-110">
+                      <CreditCard className="h-4 w-4" />
                     </div>
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Status Pembayaran</p>
-                    <div className="mt-2 mb-2">
-                      <span className="text-sm font-bold bg-green-100 text-green-800 px-2.5 py-1 rounded-md">{overview.paymentStatusLabel}</span>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Status Pembayaran</p>
+                    <div className="mt-1.5 mb-1.5">
+                      <span className="text-xs font-bold bg-green-100 text-green-800 px-2 py-1 rounded-md">{overview.paymentStatusLabel}</span>
                     </div>
-                    <p className="text-xs font-medium text-slate-500 leading-relaxed">Terima kasih, pembayaran Anda lunas</p>
+                    <p className="text-[11px] font-medium text-slate-500 leading-relaxed">Terima kasih, pembayaran lunas</p>
                   </div>
                   
-                  <div className="rounded-[20px] border border-slate-100 p-5 transition-colors hover:bg-slate-50 group">
-                    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-green-50 text-green-600 transition-transform group-hover:scale-110">
-                      <CalendarDays className="h-5 w-5" />
+                  <div className="rounded-[16px] border border-slate-100 p-4 transition-colors hover:bg-slate-50 group">
+                    <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-xl bg-green-50 text-green-600 transition-transform group-hover:scale-110">
+                      <CalendarDays className="h-4 w-4" />
                     </div>
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Mulai Aktif</p>
-                    <p className="mt-2 text-sm font-bold text-slate-800">{overview.startDate}</p>
-                    <p className="mt-1 text-xs font-medium text-slate-500 leading-relaxed">Tanggal paket mulai aktif</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mulai Aktif</p>
+                    <p className="mt-1.5 text-xs font-bold text-slate-800">{overview.startDate}</p>
+                    <p className="mt-1 text-[11px] font-medium text-slate-500 leading-relaxed">Tanggal paket mulai aktif</p>
                   </div>
                   
-                  <div className="rounded-[20px] border border-slate-100 p-5 transition-colors hover:bg-slate-50 group">
-                    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-purple-50 text-purple-600 transition-transform group-hover:scale-110">
-                      <History className="h-5 w-5" />
+                  <div className="rounded-[16px] border border-slate-100 p-4 transition-colors hover:bg-slate-50 group">
+                    <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-xl bg-purple-50 text-purple-600 transition-transform group-hover:scale-110">
+                      <History className="h-4 w-4" />
                     </div>
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Berakhir</p>
-                    <p className="mt-2 text-sm font-bold text-slate-800">{overview.endDate}</p>
-                    <p className="mt-1 text-xs font-medium text-slate-500 leading-relaxed">Tanggal paket berakhir</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Berakhir</p>
+                    <p className="mt-1.5 text-xs font-bold text-slate-800">{overview.endDate}</p>
+                    <p className="mt-1 text-[11px] font-medium text-slate-500 leading-relaxed">Tanggal paket berakhir</p>
                   </div>
                 </div>
               </div>
             </div>
             
-            <div className="rounded-[24px] border border-slate-200/60 bg-white p-6 md:p-8 shadow-sm flex flex-col h-full transition-all hover:shadow-md">
-              <div className="flex items-start justify-between mb-8">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-[20px] bg-orange-50 text-orange-600 shadow-sm border border-orange-100/50">
-                    <RefreshCcw className="h-6 w-6" />
+            <div className="rounded-[24px] border border-slate-200/60 bg-white p-5 md:p-6 shadow-sm flex flex-col h-full transition-all hover:shadow-md">
+              <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-[16px] bg-orange-50 text-orange-600 shadow-sm border border-orange-100/50">
+                    <RefreshCcw className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-slate-900 md:text-2xl">Perpanjang Paket</h2>
-                    <p className="text-sm font-medium text-slate-500 mt-1">Lanjutkan pembelajaran tanpa jeda</p>
+                    <h2 className="text-lg font-bold text-slate-900 md:text-xl">Perpanjang Paket</h2>
+                    <p className="text-xs font-medium text-slate-500 mt-0.5">Lanjutkan pembelajaran tanpa jeda</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5 rounded-full bg-slate-50 border border-slate-200 px-3 py-1.5 text-[11px] font-bold text-slate-600 shadow-sm">
-                  <Sparkles className="h-3.5 w-3.5 text-pink-500" /> Otomatis
-                </div>
-              </div>
-              
-              <div className="rounded-[24px] bg-slate-50/80 border border-slate-100 p-6 mb-8">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-5">Arah Perpanjangan</p>
-                <div className="flex items-center gap-4">
-                  <div className="flex-1 rounded-[20px] bg-white border border-slate-200 p-5 flex flex-col items-center justify-center shadow-sm">
-                    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-orange-50 text-orange-500">
-                      <GraduationCap className="h-5 w-5" />
-                    </div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Saat ini</p>
-                    <p className="mt-1.5 text-sm font-bold text-slate-800 text-center">{renewalClassSuggestion?.currentClassLabel ?? overview.className}</p>
-                  </div>
-                  
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm">
-                    <ArrowRight className="h-5 w-5" />
-                  </div>
-                  
-                  <div className="flex-1 rounded-[20px] bg-green-50/60 border border-green-100 p-5 flex flex-col items-center justify-center shadow-sm">
-                    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-green-100 text-green-600">
-                      <GraduationCap className="h-5 w-5" />
-                    </div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tujuan</p>
-                    <p className="mt-1.5 text-sm font-bold text-slate-800 text-center">{renewalTargetClassLabel}</p>
-                  </div>
+                <div className="flex items-center gap-1.5 rounded-full bg-slate-50 border border-slate-200 px-3 py-1.5 text-[10px] font-bold text-slate-600 shadow-sm">
+                  <Sparkles className="h-3 w-3 text-pink-500" /> Otomatis
                 </div>
               </div>
               
-              <div className="rounded-[24px] bg-[#FFF8EE] border border-orange-100 p-6 flex flex-col justify-center flex-1 shadow-sm">
-                <p className="text-sm font-bold text-slate-600 mb-2">{selectedRenewalPackage?.packageName ?? "Paket belum tersedia"}</p>
-                <p className="text-3xl font-bold text-slate-900 md:text-4xl tracking-tight">{formatRupiah(selectedRenewalAmount)}</p>
-                <p className="mt-3 text-sm font-medium text-slate-500">Akses penuh ke semua fitur pembelajaran</p>
+              <div className="rounded-[20px] bg-slate-50/80 border border-slate-100 p-5 mb-6">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-4">Arah Perpanjangan</p>
+                <div className="flex flex-col sm:flex-row items-center gap-3">
+                  <div className="w-full sm:flex-1 rounded-[16px] bg-white border border-slate-200 p-4 flex flex-col items-center justify-center shadow-sm">
+                    <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-orange-50 text-orange-500">
+                      <GraduationCap className="h-4 w-4" />
+                    </div>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Saat ini</p>
+                    <p className="mt-1 text-xs font-bold text-slate-800 text-center">{renewalClassSuggestion?.currentClassLabel ?? overview.className}</p>
+                  </div>
+                  
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm rotate-90 sm:rotate-0">
+                    <ArrowRight className="h-4 w-4" />
+                  </div>
+                  
+                  <div className="w-full sm:flex-1 rounded-[16px] bg-green-50/60 border border-green-100 p-4 flex flex-col items-center justify-center shadow-sm">
+                    <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-green-100 text-green-600">
+                      <GraduationCap className="h-4 w-4" />
+                    </div>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Tujuan</p>
+                    <p className="mt-1 text-xs font-bold text-slate-800 text-center">{renewalTargetClassLabel}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="rounded-[20px] bg-[#FFF8EE] border border-orange-100 p-5 flex flex-col justify-center flex-1 shadow-sm">
+                <p className="text-xs font-bold text-slate-600 mb-1.5">{selectedRenewalPackage?.packageName ?? "Paket belum tersedia"}</p>
+                <p className="text-2xl font-bold text-slate-900 md:text-3xl tracking-tight">{formatRupiah(selectedRenewalAmount)}</p>
+                <p className="mt-2 text-xs font-medium text-slate-500">Akses penuh ke semua fitur pembelajaran</p>
                 
                 <Button
                   type="button"
-                  className="mt-8 w-full rounded-[16px] bg-[#FF6600] py-6 text-base font-bold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-lg"
+                  className="mt-6 w-full rounded-[14px] bg-[#FF6600] py-5 text-sm font-bold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-lg"
                   disabled={!canCreateRenewal || isCreatingRenewal}
                   onClick={() => {
                     setRenewalError(null);
