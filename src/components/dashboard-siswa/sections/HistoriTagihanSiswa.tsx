@@ -341,7 +341,7 @@ export default function HistoriTagihanSiswa({
 
   return (
     <>
-    <section className="rounded-[24px] border border-slate-200/60 bg-white p-6 md:p-8 shadow-sm mt-8">
+    <section className="rounded-[24px] border border-slate-200/60 bg-white p-5 md:p-6 shadow-sm">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
           <div className="flex h-12 w-12 items-center justify-center rounded-[16px] bg-slate-50 text-slate-500 border border-slate-200">

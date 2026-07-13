@@ -948,7 +948,7 @@ export default function TagihanSiswaPageView() {
         ) : null}
 
         {!isLoading && !error ? (
-          <div className="mt-4" id="riwayat-tagihan">
+          <div className="mt-6" id="riwayat-tagihan">
             <HistoriTagihanSiswa reloadSignal={historyReloadKey} />
           </div>
         ) : null}
