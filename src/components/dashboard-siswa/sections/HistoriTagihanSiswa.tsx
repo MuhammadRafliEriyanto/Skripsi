@@ -4,10 +4,15 @@ import { useEffect, useEffectEvent, useState } from "react";
 import {
   AlertCircle,
   ArrowUpRight,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
   CreditCard,
   Eye,
+  MessageSquare,
   ReceiptText,
   RotateCcw,
+  Wallet,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -335,32 +340,28 @@ export default function HistoriTagihanSiswa({
 
   return (
     <>
-    <section className="overflow-hidden rounded-[24px] border border-orange-100/90 bg-white shadow-[0_18px_40px_-34px_rgba(15,23,42,0.22),0_12px_24px_-22px_rgba(249,115,22,0.14)]">
-      <div className="flex flex-col gap-3 border-b border-orange-100/80 bg-[linear-gradient(135deg,rgba(255,247,237,0.95),rgba(255,255,255,0.98))] px-4 py-4 md:flex-row md:items-start md:justify-between md:px-5">
-        <div className="flex items-start gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-orange-100 bg-white text-orange-600 shadow-sm shadow-orange-100/60">
-            <CreditCard className="h-5 w-5" />
+    <section className="rounded-[24px] border border-slate-200/60 bg-white p-6 md:p-8 shadow-sm mt-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-[16px] bg-slate-50 text-slate-500 border border-slate-200">
+            <Wallet className="h-6 w-6" />
           </div>
           <div>
-            <h2 className="text-base font-semibold text-slate-900 md:text-lg">
-              Histori Tagihan
-            </h2>
-            <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
-              Lihat seluruh pembayaran paket belajar milik akun kamu, termasuk
-              tagihan yang masih menunggu pembayaran.
+            <h2 className="text-xl font-bold text-slate-900">Riwayat Pembayaran</h2>
+            <p className="text-sm font-medium text-slate-500 mt-0.5">
+              Riwayat transaksi pembayaran Anda
             </p>
           </div>
         </div>
-
-        <Badge variant="info" className="self-start">
-          {payments.length} Tagihan
-        </Badge>
+        <Button variant="outline" className="rounded-full h-9 px-4 text-xs font-semibold text-slate-600">
+          Lihat Semua <ChevronRight className="ml-1 h-3.5 w-3.5" />
+        </Button>
       </div>
 
       {isLoading ? <PaymentHistorySkeleton /> : null}
 
       {!isLoading && error ? (
-        <div className="flex flex-col gap-4 px-4 py-6 md:flex-row md:items-center md:justify-between md:px-5">
+        <div className="flex flex-col gap-4 py-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-start gap-3 rounded-2xl border border-red-100 bg-red-50/80 px-4 py-3 text-red-700">
             <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
             <div>
@@ -368,7 +369,6 @@ export default function HistoriTagihanSiswa({
               <p className="mt-1 text-sm leading-6">{error}</p>
             </div>
           </div>
-
           <Button
             type="button"
             variant="outline"
@@ -396,62 +396,45 @@ export default function HistoriTagihanSiswa({
             />
           ) : null}
 
-          <div className="p-4 md:p-8">
-            <div className="relative border-l-2 border-slate-100 ml-4 md:ml-8 space-y-8 pb-4">
-              {payments.map((payment) => (
-                <div key={payment.paymentId} className="relative pl-6 md:pl-10">
-                  <div className="absolute left-[-11px] top-6 h-5 w-5 rounded-full border-4 border-white bg-orange-200 shadow-sm" />
-                  
-                  <div className="rounded-[24px] bg-white p-5 md:p-6 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.1)] border border-slate-200/60 flex flex-col md:flex-row md:items-start justify-between gap-6">
-                     <div className="flex-1">
-                       <div className="flex items-center gap-3 mb-3">
-                         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-500 shadow-sm">
-                           <ReceiptText className="h-5 w-5" />
-                         </div>
-                         <div>
-                           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{formatDateTimeLabel(payment.createdAt)}</p>
-                           <h4 className="text-lg font-bold text-slate-900 mt-1">{payment.packageName}</h4>
-                         </div>
-                       </div>
-                       
-                       <div className="mt-4 grid grid-cols-2 gap-4">
-                         <div className="rounded-2xl bg-slate-50/80 p-3">
-                           <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Durasi</p>
-                           <p className="mt-1 text-sm font-semibold text-slate-700">{resolveDurationLabel(payment, packageOptions)}</p>
-                         </div>
-                         <div className="rounded-2xl bg-slate-50/80 p-3">
-                           <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Metode Pembayaran</p>
-                           <p className="mt-1 text-sm font-semibold text-slate-700">Online</p>
-                         </div>
-                       </div>
-                     </div>
-                     
-                     <div className="flex flex-col justify-between text-left md:text-right shrink-0 md:min-w-[200px] border-t border-slate-100 pt-5 md:border-t-0 md:pt-0">
-                        <div>
-                          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Pembayaran</p>
-                          <p className="mt-1 text-2xl font-black text-slate-900">{formatRupiah(payment.amount)}</p>
-                        </div>
-                        <div className="flex items-center justify-start md:justify-end gap-3 mt-3 md:mt-2">
-                          <Badge variant={formatPaymentStatusVariant(payment.status)} className="rounded-full shadow-sm px-3 py-1 text-xs">
-                            {formatPaymentStatusLabel(payment.status)}
-                          </Badge>
-                        </div>
-                        <div className="mt-4 flex justify-start md:justify-end">
-                          {canContinuePayment(payment) ? (
-                            <Button className="rounded-full bg-orange-500 text-white hover:scale-[1.02] hover:bg-orange-600 transition-all shadow-sm h-10" onClick={() => openCheckoutUrl(payment.checkoutUrl)}>
-                              Lanjut Pembayaran <ArrowUpRight className="ml-2 w-4 h-4"/>
-                            </Button>
-                          ) : payment.status === "paid" ? (
-                            <Button variant="outline" className="rounded-full hover:bg-slate-50 transition-all shadow-sm h-10 border-slate-200" onClick={() => setSelectedPayment(payment)}>
-                              Detail Tagihan <Eye className="ml-2 w-4 h-4"/>
-                            </Button>
-                          ) : null}
-                        </div>
-                     </div>
-                  </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-4">
+            {payments.map((payment) => (
+              <div key={payment.paymentId} className="relative rounded-[20px] border border-slate-200/80 bg-white p-5 shadow-sm transition-all hover:shadow-md cursor-pointer flex flex-col" onClick={() => setSelectedPayment(payment)}>
+                <div className="absolute -left-3 -top-3 flex h-7 w-7 items-center justify-center rounded-full bg-white shadow-sm border border-slate-100">
+                  {payment.status === "paid" ? (
+                    <CheckCircle2 className="h-5 w-5 text-green-500 fill-green-100" />
+                  ) : payment.status === "pending" ? (
+                    <RotateCcw className="h-4 w-4 text-orange-500" />
+                  ) : (
+                    <MessageSquare className="h-4 w-4 text-blue-500 fill-blue-100" />
+                  )}
                 </div>
-              ))}
-            </div>
+                
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-xs font-semibold text-slate-500 pl-2">
+                    {formatDateTimeLabel(payment.createdAt).split(' ').slice(0, 3).join(' ')}
+                  </p>
+                  <Badge variant={formatPaymentStatusVariant(payment.status)} className="rounded-full px-2.5 py-0.5 text-[10px] font-bold shadow-sm">
+                    {formatPaymentStatusLabel(payment.status)}
+                  </Badge>
+                </div>
+                
+                <div className="flex-1">
+                  <h4 className="text-sm font-bold text-slate-900 leading-tight mb-1.5 pr-2">{payment.packageName}</h4>
+                  <p className="text-xs font-medium text-slate-500">{resolveDurationLabel(payment, packageOptions)}</p>
+                </div>
+                
+                <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-400">Total</span>
+                  <p className="text-base font-black text-slate-900">{formatRupiah(payment.amount)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <div className="mt-8 flex justify-center">
+            <Button variant="ghost" className="rounded-full text-xs font-semibold text-slate-500 hover:text-slate-800">
+              Tampilkan lebih banyak <ChevronDown className="ml-1.5 h-3.5 w-3.5" />
+            </Button>
           </div>
         </>
       ) : null}
@@ -532,5 +515,6 @@ export default function HistoriTagihanSiswa({
       </DialogContent>
     </Dialog>
     </>
+
   );
 }

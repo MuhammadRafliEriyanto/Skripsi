@@ -7,6 +7,8 @@ import {
   ArrowRight,
   ArrowUpRight,
   CalendarClock,
+  CalendarDays,
+  Check,
   Clock,
   CreditCard,
   GraduationCap,
@@ -16,6 +18,7 @@ import {
   ShieldCheck,
   Sparkles,
   UserRound,
+  WalletCards,
   type LucideIcon,
 } from "lucide-react";
 
@@ -674,48 +677,81 @@ export default function TagihanSiswaPageView() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-orange-50 via-white to-slate-50 pb-20">
-      <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-8 md:px-8 md:py-12">
-        <div className="relative overflow-hidden rounded-[30px] bg-gradient-to-br from-orange-400 to-orange-600 p-8 text-white shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-          <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-orange-50 font-medium text-lg">👋 Halo kembali,</p>
-              <h1 className="mt-1 text-3xl font-bold tracking-tight md:text-5xl">
+    <>
+    <div className="min-h-screen bg-[#F8FAFC] pb-20">
+      <section className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 md:px-8 md:py-12">
+        
+        <div className="relative overflow-hidden rounded-[24px] bg-[#FFF8EE] px-8 py-8 md:px-10 shadow-sm border border-orange-100/50">
+          <div className="relative z-10 flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex-1">
+              <p className="flex items-center text-sm font-semibold text-slate-500">
+                👋 <span className="ml-2">Halo kembali,</span>
+              </p>
+              <h1 className="mt-2 text-4xl font-extrabold tracking-tight text-slate-900 md:text-5xl">
                 {overview.studentName}
               </h1>
-              <p className="mt-2 text-sm text-orange-100 md:text-base">
+              <p className="mt-2 text-sm font-medium text-slate-500">
                 Kelola paket belajar dan riwayat pembayaran Anda
               </p>
             </div>
+
             {overview.accessStatus !== "not_registered" && (
-              <div className="flex flex-col gap-4 rounded-[24px] bg-white/10 p-6 backdrop-blur-md border border-white/20 md:min-w-[320px] shadow-sm transition-all duration-300 hover:bg-white/20">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-semibold text-orange-50">Membership Aktif</span>
-                  <Badge className="bg-white/20 hover:bg-white/30 text-white border-0 shadow-sm">
-                    Berlaku hingga {overview.endDate}
-                  </Badge>
+              <div className="flex items-center gap-4 lg:px-8 lg:border-r border-slate-200/60">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-orange-500 shadow-sm border border-orange-100">
+                  <CalendarDays className="h-6 w-6" />
                 </div>
                 <div>
-                  <div className="flex justify-between text-xs mb-2 font-medium">
-                    <span className="text-orange-100">Progress</span>
-                    <span className="font-bold text-white text-sm">{overview.progressPercentage}%</span>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs font-bold text-slate-600">Status Membership</p>
+                    <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-[10px] font-bold text-green-700">Aktif</span>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-black/20">
-                    <div className="h-full bg-white rounded-full transition-all duration-1000" style={{ width: `${overview.progressPercentage}%` }} />
+                  <p className="mt-1 text-sm font-semibold text-slate-600">
+                    Berlaku sampai {overview.endDate}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {overview.accessStatus !== "not_registered" && (
+              <div className="flex items-center gap-8 pl-4">
+                <div className="min-w-[140px]">
+                  <p className="text-xs font-bold text-slate-600">Sisa Masa Aktif</p>
+                  <p className="mt-1 text-3xl font-black text-orange-500">{100 - overview.progressPercentage}%</p>
+                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                    <div className="h-full bg-orange-500 rounded-full transition-all duration-1000" style={{ width: `${100 - overview.progressPercentage}%` }} />
+                  </div>
+                  <p className="mt-2 text-[11px] font-medium text-slate-500">{overview.daysRemainingLabel}</p>
+                </div>
+                
+                <div className="hidden shrink-0 lg:block">
+                  <div className="relative rotate-3">
+                    <div className="flex h-24 w-24 flex-col overflow-hidden rounded-[20px] bg-white shadow-lg border border-orange-100">
+                      <div className="h-6 w-full bg-orange-500 flex justify-around px-3 pt-1.5">
+                        <div className="h-3 w-1.5 rounded-full bg-white opacity-80" />
+                        <div className="h-3 w-1.5 rounded-full bg-white opacity-80" />
+                      </div>
+                      <div className="flex-1 grid grid-cols-3 grid-rows-3 gap-1 p-3">
+                        {Array.from({ length: 9 }).map((_, i) => (
+                          <div key={i} className="rounded-sm bg-slate-100" />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="absolute -bottom-3 -right-3 flex h-10 w-10 items-center justify-center rounded-full bg-orange-500 text-white shadow-md border-[3px] border-white">
+                      <Check className="h-5 w-5" />
+                    </div>
+                    <div className="absolute -z-10 -left-4 top-4 h-8 w-8 rounded-full bg-green-400 opacity-80" />
+                    <div className="absolute -z-10 -bottom-2 -left-2 h-6 w-6 rounded-full bg-orange-300 opacity-80" />
                   </div>
                 </div>
-                <p className="text-xs font-medium text-orange-100 text-right">{overview.daysRemainingLabel}</p>
               </div>
             )}
           </div>
-          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-orange-300/20 blur-3xl pointer-events-none" />
         </div>
 
         {isLoading ? <MembershipSkeleton /> : null}
 
         {!isLoading && error ? (
-          <div className="flex flex-col gap-4 rounded-3xl border border-red-100 bg-red-50/80 p-6 md:flex-row md:items-center md:justify-between shadow-sm">
+          <div className="flex flex-col gap-4 rounded-[24px] border border-red-100 bg-red-50/80 p-6 md:flex-row md:items-center md:justify-between shadow-sm">
             <div className="flex items-start gap-4 text-red-700">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
                 <AlertCircle className="h-6 w-6" />
@@ -725,12 +761,11 @@ export default function TagihanSiswaPageView() {
                 <p className="mt-1 text-sm font-medium leading-6">{error}</p>
               </div>
             </div>
-
             <Button
               type="button"
               variant="outline"
               size="lg"
-              className="rounded-full bg-white hover:bg-red-50 hover:text-red-700 transition-all shadow-sm"
+              className="rounded-[16px] bg-white hover:bg-red-50 hover:text-red-700 transition-all shadow-sm"
               onClick={() => {
                 setReloadKey((currentValue) => currentValue + 1);
               }}
@@ -742,100 +777,127 @@ export default function TagihanSiswaPageView() {
         ) : null}
 
         {!isLoading && !error ? (
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.9fr)]">
-            <div className={`space-y-8 ${canShowRenewalAction ? "" : "lg:col-span-2"}`}>
-              <div className="rounded-[30px] border-l-8 border-l-orange-500 bg-white p-6 md:p-8 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-                <div className="flex flex-col md:flex-row md:items-start justify-between gap-5">
-                  <div className="flex items-start gap-5">
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-500 shadow-sm">
-                      <GraduationCap className="h-7 w-7" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-bold uppercase tracking-wider text-slate-400">
-                        Paket Saat Ini
-                      </p>
-                      <h3 className="mt-1 text-2xl font-bold text-slate-900">{overview.packageName}</h3>
-                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-sm font-medium text-slate-500">
-                        <span className="flex items-center gap-1.5"><CalendarClock className="h-4 w-4" /> Durasi {overview.durationLabel}</span>
-                        <span className="flex items-center gap-1.5"><UserRound className="h-4 w-4" /> Program {overview.program}</span>
-                      </div>
-                    </div>
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <div className="rounded-[24px] border border-slate-200/60 bg-white shadow-sm flex flex-col overflow-hidden transition-all hover:shadow-md">
+              <div className="border-l-[6px] border-orange-500 p-6 md:p-8 h-full flex flex-col">
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-[11px] font-bold tracking-[0.1em] text-slate-600 shadow-sm">
+                    <WalletCards className="h-4 w-4" /> PEMBAYARAN SISWA
                   </div>
-                  <div className="flex flex-col gap-2 shrink-0 text-left md:text-right">
-                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Status Akses</span>
-                     <Badge className={`rounded-full border-0 px-3 py-1 shadow-sm w-fit md:ml-auto ${getStatusBadgeClasses(overview.accessStatus)}`}>
-                        {overview.accessLabel}
-                      </Badge>
+                  <div className="rounded-full bg-orange-50 border border-orange-100 px-4 py-2 text-[11px] font-bold text-orange-600 shadow-sm">
+                    {overview.accessStatus === "expiring" ? "Hampir Berakhir" : "Paket Aktif"}
                   </div>
                 </div>
-
-                <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
-                  <div className="rounded-2xl bg-slate-50 p-4 transition-all duration-300 hover:bg-slate-100 hover:shadow-sm">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Status</p>
-                    <div className="mt-2 flex items-center gap-2">
-                      <div className={`h-2.5 w-2.5 rounded-full shadow-sm ${getStatusDotColor(overview.accessStatus)}`} />
-                      <span className="text-sm font-bold text-slate-700">{overview.accessLabel}</span>
+                
+                <div className="mb-8">
+                  <div className="flex items-center gap-3">
+                    <div className="h-2.5 w-2.5 rounded-full bg-orange-500 shadow-sm" />
+                    <h2 className="text-sm font-bold text-slate-800">Paket Saat Ini</h2>
+                  </div>
+                  <h3 className="mt-4 text-3xl font-black tracking-tight text-slate-900 md:text-4xl">{overview.packageName}</h3>
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    <span className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-600">
+                      <CalendarClock className="h-4 w-4 text-slate-400" /> Durasi {overview.durationLabel}
+                    </span>
+                    <span className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-600">
+                      <GraduationCap className="h-4 w-4 text-slate-400" /> Program {overview.program}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="mt-auto grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="rounded-[20px] border border-slate-100 p-5 transition-colors hover:bg-slate-50 group">
+                    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-50 text-orange-500 transition-transform group-hover:scale-110">
+                      <ShieldCheck className="h-5 w-5" />
                     </div>
-                  </div>
-                  
-                  <div className="rounded-2xl bg-slate-50 p-4 transition-all duration-300 hover:bg-slate-100 hover:shadow-sm">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Payment</p>
-                    <div className="mt-2 flex items-center gap-2">
-                      <div className={`h-2.5 w-2.5 rounded-full shadow-sm ${getPaymentDotColor(overview.paymentStatus)}`} />
-                      <span className="text-sm font-bold text-slate-700">{overview.paymentStatusLabel}</span>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Status Akses</p>
+                    <div className="mt-2 mb-2">
+                      <span className="text-sm font-bold bg-orange-100 text-orange-800 px-2.5 py-1 rounded-md">{overview.accessLabel}</span>
                     </div>
+                    <p className="text-xs font-medium text-slate-500 leading-relaxed">Akses akan berakhir segera</p>
                   </div>
                   
-                  <div className="rounded-2xl bg-slate-50 p-4 transition-all duration-300 hover:bg-slate-100 hover:shadow-sm">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Start</p>
-                    <p className="mt-2 text-sm font-bold text-slate-700">{overview.startDate}</p>
+                  <div className="rounded-[20px] border border-slate-100 p-5 transition-colors hover:bg-slate-50 group">
+                    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-500 transition-transform group-hover:scale-110">
+                      <CreditCard className="h-5 w-5" />
+                    </div>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Status Pembayaran</p>
+                    <div className="mt-2 mb-2">
+                      <span className="text-sm font-bold bg-green-100 text-green-800 px-2.5 py-1 rounded-md">{overview.paymentStatusLabel}</span>
+                    </div>
+                    <p className="text-xs font-medium text-slate-500 leading-relaxed">Terima kasih, pembayaran Anda lunas</p>
                   </div>
                   
-                  <div className="rounded-2xl bg-slate-50 p-4 transition-all duration-300 hover:bg-slate-100 hover:shadow-sm">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">End</p>
-                    <p className="mt-2 text-sm font-bold text-slate-700">{overview.endDate}</p>
+                  <div className="rounded-[20px] border border-slate-100 p-5 transition-colors hover:bg-slate-50 group">
+                    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-green-50 text-green-600 transition-transform group-hover:scale-110">
+                      <CalendarDays className="h-5 w-5" />
+                    </div>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Mulai Aktif</p>
+                    <p className="mt-2 text-sm font-bold text-slate-800">{overview.startDate}</p>
+                    <p className="mt-1 text-xs font-medium text-slate-500 leading-relaxed">Tanggal paket mulai aktif</p>
+                  </div>
+                  
+                  <div className="rounded-[20px] border border-slate-100 p-5 transition-colors hover:bg-slate-50 group">
+                    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-purple-50 text-purple-600 transition-transform group-hover:scale-110">
+                      <History className="h-5 w-5" />
+                    </div>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Berakhir</p>
+                    <p className="mt-2 text-sm font-bold text-slate-800">{overview.endDate}</p>
+                    <p className="mt-1 text-xs font-medium text-slate-500 leading-relaxed">Tanggal paket berakhir</p>
                   </div>
                 </div>
               </div>
             </div>
-
-            {canShowRenewalAction ? (
-              <aside className="rounded-[30px] border border-slate-100 bg-white p-6 md:p-8 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg flex flex-col h-full">
+            
+            <div className="rounded-[24px] border border-slate-200/60 bg-white p-6 md:p-8 shadow-sm flex flex-col h-full transition-all hover:shadow-md">
+              <div className="flex items-start justify-between mb-8">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-500 shadow-sm">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-[20px] bg-orange-50 text-orange-600 shadow-sm border border-orange-100/50">
                     <RefreshCcw className="h-6 w-6" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900">Perpanjang Paket</h3>
-                    <p className="text-sm text-slate-500 font-medium">Pilih paket untuk periode selanjutnya</p>
+                    <h2 className="text-xl font-black text-slate-900 md:text-2xl">Perpanjang Paket</h2>
+                    <p className="text-sm font-medium text-slate-500 mt-1">Lanjutkan pembelajaran tanpa jeda</p>
                   </div>
                 </div>
-
-                <div className="mt-8 flex flex-col items-center relative">
-                  <div className="w-full rounded-2xl bg-slate-50 p-5 text-center border border-slate-100 transition-all duration-300 hover:bg-slate-100 hover:shadow-sm">
-                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Current</p>
-                    <p className="mt-1 text-lg font-bold text-slate-900">{renewalClassSuggestion?.currentClassLabel ?? overview.className}</p>
+                <div className="flex items-center gap-1.5 rounded-full bg-slate-50 border border-slate-200 px-3 py-1.5 text-[11px] font-bold text-slate-600 shadow-sm">
+                  <Sparkles className="h-3.5 w-3.5 text-pink-500" /> Otomatis
+                </div>
+              </div>
+              
+              <div className="rounded-[24px] bg-slate-50/80 border border-slate-100 p-6 mb-8">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-5">Arah Perpanjangan</p>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 rounded-[20px] bg-white border border-slate-200 p-5 flex flex-col items-center justify-center shadow-sm">
+                    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-orange-50 text-orange-500">
+                      <GraduationCap className="h-5 w-5" />
+                    </div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Saat ini</p>
+                    <p className="mt-1.5 text-sm font-black text-slate-800 text-center">{renewalClassSuggestion?.currentClassLabel ?? overview.className}</p>
                   </div>
                   
-                  <div className="my-3 flex h-10 w-10 items-center justify-center rounded-full bg-orange-100 text-orange-600 shadow-sm z-10 -my-3 border-[4px] border-white">
-                    <ArrowDown className="h-5 w-5" />
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm">
+                    <ArrowRight className="h-5 w-5" />
                   </div>
-
-                  <div className="w-full rounded-2xl bg-orange-50 p-5 text-center border border-orange-100 transition-all duration-300 hover:bg-orange-100 hover:shadow-sm">
-                    <p className="text-xs font-bold uppercase tracking-wider text-orange-500">Next Class</p>
-                    <p className="mt-1 text-lg font-bold text-orange-900">{renewalTargetClassLabel}</p>
+                  
+                  <div className="flex-1 rounded-[20px] bg-green-50/60 border border-green-100 p-5 flex flex-col items-center justify-center shadow-sm">
+                    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-green-100 text-green-600">
+                      <GraduationCap className="h-5 w-5" />
+                    </div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tujuan</p>
+                    <p className="mt-1.5 text-sm font-black text-slate-800 text-center">{renewalTargetClassLabel}</p>
                   </div>
                 </div>
-
-                <div className="mt-8 text-center flex-1 flex flex-col justify-center">
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Price</p>
-                  <p className="mt-2 text-4xl font-black text-slate-900">{formatRupiah(selectedRenewalAmount)}</p>
-                  <p className="mt-2 text-sm font-semibold text-orange-500">{selectedRenewalPackage?.packageName ?? "Paket belum tersedia"}</p>
-                </div>
-
+              </div>
+              
+              <div className="rounded-[24px] bg-[#FFF8EE] border border-orange-100 p-6 flex flex-col justify-center flex-1 shadow-sm">
+                <p className="text-sm font-bold text-slate-600 mb-2">{selectedRenewalPackage?.packageName ?? "Paket belum tersedia"}</p>
+                <p className="text-3xl font-black text-slate-900 md:text-4xl tracking-tight">{formatRupiah(selectedRenewalAmount)}</p>
+                <p className="mt-3 text-sm font-medium text-slate-500">Akses penuh ke semua fitur pembelajaran</p>
+                
                 <Button
                   type="button"
-                  className="mt-8 w-full rounded-full bg-orange-500 py-6 text-base font-bold text-white shadow-lg transition-all duration-300 hover:scale-[1.02] hover:bg-orange-600 hover:shadow-xl"
+                  className="mt-8 w-full rounded-[16px] bg-[#FF6600] py-6 text-base font-bold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-lg"
                   disabled={!canCreateRenewal || isCreatingRenewal}
                   onClick={() => {
                     setRenewalError(null);
@@ -843,7 +905,7 @@ export default function TagihanSiswaPageView() {
                     setIsRenewalDialogOpen(true);
                   }}
                 >
-                  Buat Tagihan Perpanjangan
+                  Buat Tagihan Perpanjangan <ArrowUpRight className="ml-2 h-5 w-5" />
                 </Button>
                 
                 {!canCreateRenewal ? (
@@ -854,7 +916,7 @@ export default function TagihanSiswaPageView() {
 
                 {renewalFeedback ? (
                   <div
-                    className={`mt-6 rounded-2xl border px-4 py-4 text-sm leading-6 ${
+                    className={`mt-6 rounded-[20px] border px-5 py-4 text-sm leading-6 shadow-sm ${
                       renewalFeedback.tone === "success"
                         ? "border-emerald-100 bg-emerald-50 text-emerald-700"
                         : "border-amber-100 bg-amber-50 text-amber-700"
@@ -865,7 +927,7 @@ export default function TagihanSiswaPageView() {
                       <Button
                         type="button"
                         size="sm"
-                        className="mt-3 w-full rounded-full bg-emerald-600 py-5 text-white hover:bg-emerald-700 font-bold transition-all shadow-sm"
+                        className="mt-4 w-full rounded-[14px] bg-emerald-600 py-5 text-white hover:bg-emerald-700 font-bold transition-all shadow-sm"
                         onClick={() => {
                           window.open(
                             renewalFeedback.checkoutUrl ?? "",
@@ -880,10 +942,19 @@ export default function TagihanSiswaPageView() {
                     ) : null}
                   </div>
                 ) : null}
-              </aside>
-            ) : null}
+              </div>
+            </div>
           </div>
         ) : null}
+
+        {!isLoading && !error ? (
+          <div className="mt-4" id="riwayat-tagihan">
+            <HistoriTagihanSiswa reloadSignal={historyReloadKey} />
+          </div>
+        ) : null}
+
+      </section>
+    </div>
 
 
       <Dialog
@@ -1030,8 +1101,6 @@ export default function TagihanSiswaPageView() {
           </form>
         </DialogContent>
       </Dialog>
-
-      </section>
-    </div>
+    </>
   );
 }
