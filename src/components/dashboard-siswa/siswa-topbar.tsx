@@ -237,6 +237,24 @@ function getNotificationBadgeVariant(type: StudentNotificationItem["type"]) {
   }
 }
 
+function getNotificationHref(notification: StudentNotificationItem) {
+  if (notification.href) return notification.href;
+  
+  switch (notification.type) {
+    case "schedule":
+      return "/dashboard-siswa/absensi";
+    case "task":
+    case "material":
+      return "/dashboard-siswa";
+    case "billing":
+      return "/dashboard-siswa/tagihan";
+    case "grade":
+      return "/dashboard-siswa/nilai";
+    default:
+      return null;
+  }
+}
+
 export default function SiswaTopbar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -573,13 +591,15 @@ export default function SiswaTopbar() {
                           </div>
                         );
 
-                        if (notification.href) {
+                        const resolvedHref = getNotificationHref(notification);
+
+                        if (resolvedHref) {
                           return (
                             <DropdownMenuItem
                               key={notification.id}
                               className="cursor-pointer rounded-none px-4 py-3 focus:bg-slate-50 data-[highlighted]:bg-slate-50"
                               onSelect={() => {
-                                navigateTo(notification.href!);
+                                navigateTo(resolvedHref);
                               }}
                             >
                               {content}
