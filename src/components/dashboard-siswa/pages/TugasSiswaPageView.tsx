@@ -1,18 +1,28 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import {
+  BookOpen,
   CheckCircle2,
   Clock3,
   Download,
   Eye,
   Send,
   TimerReset,
+  FlaskConical,
+  Calculator,
+  Globe,
+  FileText,
+  Clock,
+  X,
+  AlertCircle
 } from "lucide-react";
 
 import { useStudentLearningData } from "../data/useStudentLearningData";
 import { getStudentAcademicAccessMessage } from "../data/studentAcademicAccess";
 import StudentLearningShell from "../learning/StudentLearningShell";
+import { Dialog, DialogContent, DialogTitle, DialogClose } from "@/components/ui/dialog";
 
 function formatSubmissionTime(value: string | null | undefined) {
   if (!value) {
@@ -43,18 +53,32 @@ function getTaskStatusClass(
     | "Sudah Dinilai",
 ) {
   if (status === "Sudah Dinilai") {
-    return "bg-emerald-50 text-emerald-700";
+    return "bg-emerald-50 text-emerald-600";
   }
-
   if (status === "Sudah Dikirim") {
-    return "bg-sky-50 text-sky-700";
+    return "bg-sky-50 text-sky-600";
   }
-
   if (status === "Menunggu Dikirim") {
-    return "bg-amber-50 text-amber-700";
+    return "bg-amber-50 text-amber-600";
   }
+  return "bg-rose-50 text-rose-600";
+}
 
-  return "bg-rose-50 text-rose-700";
+function getSubjectStyle(subject: string) {
+  const lower = subject.toLowerCase();
+  if (lower.includes('ipa') || lower.includes('sains') || lower.includes('biologi') || lower.includes('fisika')) {
+    return { bg: 'bg-orange-50', text: 'text-orange-500', icon: FlaskConical };
+  }
+  if (lower.includes('bahasa') || lower.includes('english')) {
+    return { bg: 'bg-purple-50', text: 'text-purple-500', icon: BookOpen };
+  }
+  if (lower.includes('matematika') || lower.includes('math')) {
+    return { bg: 'bg-blue-50', text: 'text-blue-500', icon: Calculator };
+  }
+  if (lower.includes('ips') || lower.includes('sejarah') || lower.includes('geografi')) {
+    return { bg: 'bg-emerald-50', text: 'text-emerald-500', icon: Globe };
+  }
+  return { bg: 'bg-slate-50', text: 'text-slate-500', icon: FileText };
 }
 
 export default function TugasSiswaPageView() {
@@ -64,29 +88,45 @@ export default function TugasSiswaPageView() {
   const academicAccessMessage =
     getStudentAcademicAccessMessage(academicAccess);
 
+  const [selectedTaskId, setSelectedTaskId] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const selectedTask = tasks.find((task) => task.id === selectedTaskId);
+
+  const handleOpenTask = (id: string) => {
+    setSelectedTaskId(id);
+    setIsDialogOpen(true);
+  };
+
   return (
     <StudentLearningShell
       title="Tugas Siswa"
       description="Pantau deadline, instruksi tugas, dan status pengerjaan dalam satu halaman supaya kamu lebih mudah menentukan prioritas belajar."
       summary={
-        isLoading ? "Memuat tugas..." : `${pendingTasks.length} tugas perlu perhatian`
+        isLoading ? "Memuat tugas..." : `${pendingTasks.length} tugas aktif`
       }
     >
       {isLoading ? (
-        <section className="rounded-[26px] border border-orange-100/90 bg-white p-8 text-center shadow-[0_18px_40px_-34px_rgba(15,23,42,0.18)]">
-          <p className="text-base font-semibold text-slate-800">
-            Tugas sedang dimuat
+        <section className="rounded-[24px] border border-slate-200/60 bg-white p-12 text-center shadow-sm">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-50 text-slate-400 mb-4">
+            <FileText className="h-8 w-8 animate-pulse" />
+          </div>
+          <p className="text-lg font-bold text-slate-800">
+            Sedang Memuat Tugas
           </p>
-          <p className="mt-2 text-sm text-slate-500">
-            Sistem sedang mengambil tugas terbaru dari kelas kamu.
+          <p className="mt-2 text-sm font-medium text-slate-500">
+            Sistem sedang mengambil tugas terbaru dari kelas kamu...
           </p>
         </section>
       ) : tasks.length === 0 ? (
-        <section className="rounded-[26px] border border-orange-100/90 bg-white p-8 text-center shadow-[0_18px_40px_-34px_rgba(15,23,42,0.18)]">
-          <p className="text-base font-semibold text-slate-800">
-            Belum ada tugas tersedia
+        <section className="rounded-[24px] border border-slate-200/60 bg-white p-12 text-center shadow-sm">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-orange-50 text-orange-500 mb-4">
+            <FileText className="h-8 w-8" />
+          </div>
+          <p className="text-lg font-bold text-slate-800">
+            Belum Ada Tugas Tersedia
           </p>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm font-medium text-slate-500 max-w-md mx-auto">
             {academicAccessMessage ??
               loadError ??
               "Guru belum menambahkan tugas untuk kelas kamu."}
@@ -94,161 +134,295 @@ export default function TugasSiswaPageView() {
         </section>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-            <section className="rounded-[24px] border border-orange-100/90 bg-white p-5 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.18)]">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <section className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md">
               <div className="flex items-center gap-3">
-                <div className="rounded-2xl bg-amber-50 p-3 text-amber-600">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-500">
                   <Clock3 className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-800">Deadline Dekat</p>
-                  <p className="text-xs text-slate-500">Tugas yang perlu didahulukan</p>
+                  <p className="text-sm font-bold text-slate-800">Deadline Dekat</p>
+                  <p className="text-xs font-medium text-slate-500">Tugas yang perlu didahulukan</p>
                 </div>
               </div>
-              <p className="mt-4 text-2xl font-semibold text-slate-800">
+              <p className="mt-4 text-2xl font-bold text-slate-800">
                 {pendingTasks.length}
               </p>
             </section>
 
-            <section className="rounded-[24px] border border-orange-100/90 bg-white p-5 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.18)]">
+            <section className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md">
               <div className="flex items-center gap-3">
-                <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-600">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-500">
                   <CheckCircle2 className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-800">Sudah Dinilai</p>
-                  <p className="text-xs text-slate-500">Masukan yang bisa kamu lihat</p>
+                  <p className="text-sm font-bold text-slate-800">Sudah Dinilai</p>
+                  <p className="text-xs font-medium text-slate-500">Masukan yang bisa kamu lihat</p>
                 </div>
               </div>
-              <p className="mt-4 text-2xl font-semibold text-slate-800">
+              <p className="mt-4 text-2xl font-bold text-slate-800">
                 {tasks.filter((task) => task.status === "Sudah Dinilai").length}
               </p>
             </section>
 
-            <section className="rounded-[24px] border border-orange-100/90 bg-white p-5 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.18)]">
+            <section className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md">
               <div className="flex items-center gap-3">
-                <div className="rounded-2xl bg-orange-50 p-3 text-orange-600">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-500">
                   <TimerReset className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-800">Estimasi Waktu</p>
-                  <p className="text-xs text-slate-500">Pengerjaan tugas aktif minggu ini</p>
+                  <p className="text-sm font-bold text-slate-800">Estimasi Waktu</p>
+                  <p className="text-xs font-medium text-slate-500">Pengerjaan tugas aktif minggu ini</p>
                 </div>
               </div>
-              <p className="mt-4 text-2xl font-semibold text-slate-800">1,5 Jam</p>
+              <p className="mt-4 text-2xl font-bold text-slate-800">1,5 Jam</p>
             </section>
           </div>
 
-          <section className="rounded-[26px] border border-orange-100/90 bg-white p-5 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.18)] md:p-6">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-orange-600">
-                  Daftar Latihan
-                </p>
-                <h2 className="mt-2 text-lg font-semibold text-slate-800">
+          <section className="mt-2">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center">
+                <div className="w-1.5 h-6 bg-orange-500 rounded-full mr-3"></div>
+                <h3 className="text-xl font-bold text-slate-800">
                   Tugas aktif dan riwayat penilaian
-                </h2>
+                </h3>
               </div>
-              <p className="text-sm text-slate-500">
+              <p className="hidden md:block text-sm font-medium text-slate-500">
                 Gunakan halaman ini untuk cek instruksi sebelum mengirim jawaban.
               </p>
             </div>
 
-            <div className="mt-5 space-y-3">
-              {tasks.map((task) => (
-                <article
-                  key={task.id}
-                  className="flex flex-col gap-4 rounded-[22px] border border-orange-100/80 p-4 transition hover:border-orange-200 hover:bg-orange-50/30 lg:flex-row lg:items-center lg:justify-between"
-                >
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-orange-50 px-2.5 py-1 text-[11px] font-semibold text-orange-700">
-                        {task.mapel}
-                      </span>
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] text-slate-500">
-                        Pertemuan {task.pertemuan}
-                      </span>
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${getTaskStatusClass(
-                          task.status,
-                        )}`}
-                      >
-                        {task.status}
-                      </span>
-                    </div>
+            <div className="grid gap-4">
+              {tasks.map((task) => {
+                const SubjectIcon = getSubjectStyle(task.mapel).icon;
+                const subjectBg = getSubjectStyle(task.mapel).bg;
+                const subjectText = getSubjectStyle(task.mapel).text;
 
-                    <h3 className="mt-2 text-sm font-semibold text-slate-800">
-                      {task.judul}
-                    </h3>
-                    <p className="mt-1 text-sm leading-6 text-slate-500">
-                      {task.deskripsi}
-                    </p>
-                    <p className="mt-2 text-xs text-slate-400">
-                      Deadline {task.deadline} | Estimasi {task.estimasi} | {task.poin}
-                    </p>
-                    {task.mySubmission?.submittedAt ? (
-                      <p className="mt-1 text-xs text-sky-600">
-                        Sudah dikumpulkan pada{" "}
-                        {formatSubmissionTime(task.mySubmission.submittedAt)}
-                      </p>
-                    ) : null}
-                    {task.myGrade?.graded ? (
-                      <div className="mt-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3">
-                        <div className="flex flex-wrap items-center gap-2 text-xs">
-                          <span className="rounded-full bg-white px-2.5 py-1 font-semibold text-emerald-700">
-                            Nilai {task.myGrade.score ?? "-"}
+                return (
+                  <article
+                    key={task.id}
+                    onClick={() => handleOpenTask(task.id)}
+                    className="group cursor-pointer flex flex-col gap-4 rounded-[20px] border border-slate-200 bg-white p-5 transition-all md:flex-row md:items-center md:justify-between hover:border-orange-300 hover:shadow-sm"
+                  >
+                    <div className="flex flex-1 items-start gap-5">
+                      <div className={`flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-full ${subjectBg} ${subjectText}`}>
+                        <SubjectIcon className="h-8 w-8" />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <span className="rounded-full bg-orange-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-orange-600">
+                            {task.mapel}
                           </span>
-                          <span className="text-emerald-700">
-                            Dinilai{" "}
-                            {formatSubmissionTime(task.myGrade.gradedAt)}
+                          <span className="rounded-full bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-500">
+                            Pertemuan {task.pertemuan}
+                          </span>
+                          <span
+                            className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${getTaskStatusClass(
+                              task.status,
+                            )}`}
+                          >
+                            {task.status}
                           </span>
                         </div>
-                        <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-700">
-                          Catatan Guru
-                        </p>
-                        <p className="mt-1 text-sm leading-6 text-slate-600">
-                          {task.myGrade.note ||
-                            "Guru belum menambahkan catatan untuk tugas ini."}
-                        </p>
-                      </div>
-                    ) : task.mySubmission?.submitted ? (
-                      <p className="mt-2 text-xs text-amber-700">
-                        Jawaban kamu sudah terkirim dan sedang menunggu penilaian guru.
-                      </p>
-                    ) : null}
-                  </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    {task.attachmentName && task.attachmentUrl ? (
-                      <a
-                        href={task.attachmentUrl}
-                        className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-orange-200 bg-white px-4 text-xs font-semibold text-orange-700 transition hover:bg-orange-50"
+                        <h4 className="text-[17px] font-bold text-slate-800 group-hover:text-orange-600 transition-colors">
+                          {task.judul}
+                        </h4>
+                        <p className="mt-1 text-sm font-medium leading-relaxed text-slate-500 line-clamp-2 pr-4">
+                          {task.deskripsi}
+                        </p>
+                        
+                        <p className="mt-2 text-xs font-medium text-slate-400">
+                          Deadline {task.deadline} | Estimasi {task.estimasi} | {task.poin}
+                        </p>
+
+                        {task.mySubmission?.submittedAt ? (
+                          <p className="mt-1.5 text-[11px] font-semibold text-sky-600">
+                            ✓ Dikumpulkan pada {formatSubmissionTime(task.mySubmission.submittedAt)}
+                          </p>
+                        ) : null}
+
+                        {task.myGrade?.graded ? (
+                          <div className="mt-3 rounded-[16px] border border-emerald-100 bg-emerald-50/50 p-3 max-w-xl">
+                            <div className="flex flex-wrap items-center gap-2 text-xs mb-2">
+                              <span className="rounded-full bg-emerald-100 px-2.5 py-1 font-bold text-emerald-800">
+                                Nilai {task.myGrade.score ?? "-"}
+                              </span>
+                              <span className="font-semibold text-emerald-600">
+                                Dinilai pada {formatSubmissionTime(task.myGrade.gradedAt)}
+                              </span>
+                            </div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">
+                              Catatan Guru
+                            </p>
+                            <p className="mt-1 text-sm font-medium text-slate-600 leading-relaxed">
+                              {task.myGrade.note || "Tidak ada catatan."}
+                            </p>
+                          </div>
+                        ) : task.mySubmission?.submitted ? (
+                          <div className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-amber-600">
+                            <AlertCircle className="h-3.5 w-3.5" />
+                            Menunggu penilaian guru.
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 mt-4 md:mt-0 ml-[88px] md:ml-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenTask(task.id);
+                        }}
+                        className="inline-flex h-11 flex-1 md:w-[120px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-[13px] font-bold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
                       >
-                        <Download className="h-3.5 w-3.5" />
-                        Lampiran
-                      </a>
-                    ) : null}
-                    <Link
-                      href={task.detailHref}
-                      className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
-                    >
-                      <Eye className="h-3.5 w-3.5" />
-                      Lihat Tugas
-                    </Link>
-                    <Link
-                      href={task.submitHref}
-                      className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-orange-600 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-orange-700"
-                    >
-                      <Send className="h-3.5 w-3.5" />
-                      Kirim Jawaban
-                    </Link>
-                  </div>
-                </article>
-              ))}
+                        <Eye className="h-[18px] w-[18px] text-slate-500" />
+                        Lihat Tugas
+                      </button>
+                      <Link
+                        href={task.submitHref}
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex h-11 flex-1 md:w-[130px] items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 text-[13px] font-bold text-white shadow-sm transition-all hover:-translate-y-px hover:bg-orange-600 hover:shadow-md"
+                      >
+                        <Send className="h-[18px] w-[18px]" />
+                        Kirim Jawaban
+                      </Link>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           </section>
         </>
       )}
+
+      {/* Detail Tugas Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl gap-0 p-0 overflow-hidden rounded-[24px] border-slate-200 bg-white shadow-lg">
+          {selectedTask && (
+            <div className="flex flex-col max-h-[85vh]">
+              {/* Header */}
+              <div className="bg-slate-50 px-6 py-6 border-b border-slate-100 flex items-start justify-between">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    <span className="rounded-full bg-orange-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-orange-600">
+                      {selectedTask.mapel}
+                    </span>
+                    <span className="rounded-full bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-500">
+                      Pertemuan {selectedTask.pertemuan}
+                    </span>
+                    <span
+                      className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${getTaskStatusClass(
+                        selectedTask.status,
+                      )}`}
+                    >
+                      {selectedTask.status}
+                    </span>
+                  </div>
+                  <DialogTitle className="text-xl font-bold text-slate-800 leading-tight">
+                    {selectedTask.judul}
+                  </DialogTitle>
+                </div>
+                <DialogClose className="rounded-full p-2 bg-white border border-slate-200 text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">Close</span>
+                </DialogClose>
+              </div>
+
+              {/* Content */}
+              <div className="overflow-y-auto px-6 py-6">
+                <div className="flex flex-wrap items-center gap-3 mb-6">
+                  <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
+                    <Clock className="h-4 w-4 text-rose-500" /> Deadline: {selectedTask.deadline}
+                  </div>
+                  <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
+                    <Clock3 className="h-4 w-4 text-blue-500" /> Estimasi: {selectedTask.estimasi}
+                  </div>
+                  <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" /> Poin Maks: {selectedTask.poin}
+                  </div>
+                </div>
+
+                <div className="rounded-[20px] bg-slate-50 border border-slate-100 p-6">
+                  <h4 className="font-semibold text-slate-800 mb-3 text-base">
+                    Instruksi Pengerjaan
+                  </h4>
+                  <p className="text-sm leading-6 text-slate-600 mb-6">
+                    {selectedTask.deskripsi}
+                  </p>
+
+                  <div className="space-y-4">
+                    {selectedTask.instruksiPengumpulan?.map((point, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-start gap-3"
+                      >
+                        <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                        </div>
+                        <p className="text-sm leading-6 text-slate-700">{point}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Grade or Submission Status in Dialog */}
+                {selectedTask.myGrade?.graded ? (
+                  <div className="mt-6 rounded-[20px] border border-emerald-100 bg-emerald-50 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-bold text-emerald-800">Hasil Penilaian</h4>
+                      <span className="rounded-full bg-emerald-200 px-3 py-1 font-bold text-emerald-900 text-sm">
+                        Nilai {selectedTask.myGrade.score ?? "-"}
+                      </span>
+                    </div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700 mb-2">
+                      Catatan Guru
+                    </p>
+                    <p className="text-sm leading-6 text-slate-700">
+                      {selectedTask.myGrade.note || "Tidak ada catatan tambahan."}
+                    </p>
+                  </div>
+                ) : selectedTask.mySubmission?.submitted ? (
+                  <div className="mt-6 rounded-[20px] border border-amber-100 bg-amber-50 p-6 flex items-start gap-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                      <AlertCircle className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-amber-800">Menunggu Penilaian</h4>
+                      <p className="text-sm leading-6 text-amber-700 mt-1">
+                        Tugas sudah dikumpulkan pada {formatSubmissionTime(selectedTask.mySubmission.submittedAt)} dan sedang menunggu untuk dinilai oleh guru.
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Footer */}
+              <div className="bg-white px-6 py-5 border-t border-slate-100 flex flex-wrap gap-3">
+                {selectedTask.attachmentUrl ? (
+                  <a
+                    href={selectedTask.attachmentUrl}
+                    download={selectedTask.attachmentName}
+                    className="flex-1 inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 text-[15px] font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                  >
+                    <Download className="h-5 w-5 text-slate-400" />
+                    Lampiran Soal
+                  </a>
+                ) : null}
+                <Link
+                  href={selectedTask.submitHref}
+                  className="flex-1 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-[15px] font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-md"
+                >
+                  <Send className="h-5 w-5" />
+                  Kirim Jawaban
+                </Link>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </StudentLearningShell>
   );
 }
