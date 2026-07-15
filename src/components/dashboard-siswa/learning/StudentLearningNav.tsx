@@ -41,10 +41,10 @@ export default function StudentLearningNav() {
           <Link
             key={menu.href}
             href={menu.href}
-            className={`inline-flex items-center gap-2 rounded-2xl px-3.5 py-2.5 text-sm font-medium transition ${
+            className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-bold transition-all ${
               isActive
-                ? "bg-gradient-to-r from-red-800 via-orange-600 to-amber-500 text-white shadow-sm"
-                : "text-slate-600 hover:bg-orange-50 hover:text-orange-700"
+                ? "bg-orange-500 text-white shadow-sm"
+                : "text-slate-500 hover:bg-orange-50 hover:text-orange-600"
             }`}
           >
             <Icon className="h-4 w-4" />
