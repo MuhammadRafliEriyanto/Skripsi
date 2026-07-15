@@ -302,11 +302,10 @@ export default function TugasSiswaPageView() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl gap-0 p-0 overflow-hidden rounded-[24px] border-slate-200 bg-white shadow-lg">
           {selectedTask && (
-            <div className="flex flex-col max-h-[85vh]">
+            <div className="flex flex-col">
               {/* Header */}
-              <div className="bg-slate-50 px-6 py-6 border-b border-slate-100 flex items-start justify-between">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2 mb-3">
+              <div className="bg-slate-50 px-6 py-6 border-b border-slate-100 pr-12">
+                <div className="flex flex-wrap items-center gap-2 mb-3">
                     <span className="rounded-full bg-orange-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-orange-600">
                       {selectedTask.mapel}
                     </span>
@@ -324,15 +323,10 @@ export default function TugasSiswaPageView() {
                   <DialogTitle className="text-xl font-bold text-slate-800 leading-tight">
                     {selectedTask.judul}
                   </DialogTitle>
-                </div>
-                <DialogClose className="rounded-full p-2 bg-white border border-slate-200 text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
-                  <X className="h-4 w-4" />
-                  <span className="sr-only">Close</span>
-                </DialogClose>
               </div>
 
               {/* Content */}
-              <div className="overflow-y-auto px-6 py-6">
+              <div className="px-6 py-6">
                 <div className="flex flex-wrap items-center gap-3 mb-6">
                   <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
                     <Clock className="h-4 w-4 text-rose-500" /> Deadline: {selectedTask.deadline}
