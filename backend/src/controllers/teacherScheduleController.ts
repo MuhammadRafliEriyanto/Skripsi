@@ -24,7 +24,7 @@ import type {
 } from "../utils/classroomLearning";
 import asyncHandler from "../utils/asyncHandler";
 import { AppError, sendSuccess } from "../utils/apiResponse";
-import { getCurrentAcademicPeriod } from "../utils/academicGrade";
+import { resolveAcademicPeriodFromQuery } from "../utils/academicGrade";
 import {
   getTeacherClassMaterials,
   getTeacherClassTasks,
@@ -218,13 +218,11 @@ function resolveTeacherAcademicPeriodFilters(query?: {
   academicYear?: unknown;
   semester?: unknown;
 }): TeacherAcademicPeriodFilters {
-  const currentPeriod = getCurrentAcademicPeriod();
-  const academicYear = normalizeText(String(query?.academicYear ?? ""));
-  const semester = normalizeText(String(query?.semester ?? ""));
+  const period = resolveAcademicPeriodFromQuery(query);
 
   return {
-    academicYear: academicYear || currentPeriod.academicYear,
-    semester: semester || currentPeriod.semester,
+    academicYear: period.academicYear,
+    semester: period.semester,
   };
 }
 

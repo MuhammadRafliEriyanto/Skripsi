@@ -25,6 +25,21 @@ export function getSelectedAcademicPeriod(
   };
 }
 
+export function getGuruAcademicYearStatus(
+  searchParams: ReadonlyURLSearchParams | URLSearchParams,
+) {
+  const currentPeriod = getCurrentAcademicPeriod();
+  const selectedPeriod = getSelectedAcademicPeriod(searchParams);
+  const isActive = selectedPeriod.academicYear === currentPeriod.academicYear;
+
+  return {
+    academicYear: selectedPeriod.academicYear,
+    currentAcademicYear: currentPeriod.academicYear,
+    isActive,
+    isArchive: !isActive,
+  };
+}
+
 /**
  * Appends the academicYear and semester to a given path, preserving the current selection.
  */

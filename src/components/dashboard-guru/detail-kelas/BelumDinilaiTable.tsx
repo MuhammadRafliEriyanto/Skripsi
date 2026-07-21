@@ -5,6 +5,8 @@ import type { BelumDinilaiTableProps } from "./types";
 
 export default function BelumDinilaiTable({
   kelasName,
+  readOnly = false,
+  readOnlyMessage,
   tasks,
   onGradeNow,
 }: BelumDinilaiTableProps) {
@@ -20,8 +22,9 @@ export default function BelumDinilaiTable({
             Peringatan Belum Dinilai
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            Tugas dan soal latihan yang memerlukan penilaian manual. Anda dapat melihat jumlah tugas yang
-            tertunda berdasarkan data terbaru di sistem.
+            {readOnly
+              ? readOnlyMessage ?? "Tahun ajaran ini sudah menjadi arsip. Latihan belum dinilai hanya bisa ditinjau."
+              : "Tugas dan soal latihan yang memerlukan penilaian manual. Anda dapat melihat jumlah tugas yang tertunda berdasarkan data terbaru di sistem."}
           </p>
         </div>
         <span
@@ -80,10 +83,16 @@ export default function BelumDinilaiTable({
                 <button
                   type="button"
                   onClick={() => onGradeNow(task)}
-                  className="mt-5 inline-flex items-center gap-1.5 border border-orange-500 bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-700 hover:shadow-[0_18px_30px_-22px_rgba(249,115,22,0.55)]"
+                  disabled={readOnly}
+                  title={readOnly ? readOnlyMessage : "Nilai Sekarang"}
+                  className={`mt-5 inline-flex items-center gap-1.5 border px-4 py-2.5 text-sm font-semibold transition ${
+                    readOnly
+                      ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                      : "border-orange-500 bg-orange-600 text-white hover:bg-orange-700 hover:shadow-[0_18px_30px_-22px_rgba(249,115,22,0.55)]"
+                  }`}
                 >
                   <ClipboardCheck className="h-4 w-4" />
-                  Nilai Sekarang
+                  {readOnly ? "Arsip" : "Nilai Sekarang"}
                 </button>
               </article>
             ))}

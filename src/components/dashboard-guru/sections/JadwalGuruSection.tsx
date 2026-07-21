@@ -1217,7 +1217,7 @@ export default function JadwalGuruSection() {
                   {filteredKelas.length} kelas
                 </span>
                 <Link
-                  href="/dashboard-guru/kelas"
+                  href={buildGuruUrl("/dashboard-guru/kelas", searchParams)}
                   className="text-[11px] font-semibold text-orange-600 transition hover:text-orange-700"
                 >
                   Lihat Semua Kelas

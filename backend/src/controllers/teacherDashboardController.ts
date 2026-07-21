@@ -16,7 +16,7 @@ import {
   buildSchedulePresentation,
   type ScheduleWithTeacher,
 } from "../utils/scheduleConflicts";
-import { getCurrentAcademicPeriod } from "../utils/academicGrade";
+import { resolveAcademicPeriodFromQuery } from "../utils/academicGrade";
 
 type StudentWithUser = StudentDocument & {
   userId: UserDocument | null;
@@ -270,15 +270,7 @@ export const getMyTeacherDashboard = asyncHandler(
       return;
     }
 
-    const currentPeriod = getCurrentAcademicPeriod();
-    const academicYear =
-      typeof req.query.academicYear === "string" && req.query.academicYear
-        ? req.query.academicYear
-        : currentPeriod.academicYear;
-    const semester =
-      typeof req.query.semester === "string" && req.query.semester
-        ? req.query.semester
-        : currentPeriod.semester;
+    const { academicYear, semester } = resolveAcademicPeriodFromQuery(req.query);
     console.log("[DEBUG getMyTeacherDashboard] req.query:", req.query);
 
     const [scheduleDocuments, studentsByClassKey] = await Promise.all([

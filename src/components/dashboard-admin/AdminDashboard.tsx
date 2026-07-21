@@ -48,6 +48,7 @@ import {
   type AdminStudentsSummary,
   type AdminTeachersSummary,
 } from "@/lib/admin-directory";
+import { getCurrentAdminAcademicYear } from "@/lib/admin-academic-year";
 import { cn, formatCurrency } from "@/lib/utils";
 
 import { adminPoppins } from "./components/admin-font";
@@ -1086,6 +1087,7 @@ export function AdminDashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const globalSearchQuery = searchParams.get("q") || "";
+  const currentAcademicYear = getCurrentAdminAcademicYear();
   
   const [, setDashboardConfig] = useState<AdminDashboardConfigData>(
     defaultAdminDashboardConfig,
@@ -1138,6 +1140,7 @@ export function AdminDashboard() {
       const result = await fetchAdminStudents({
         page: 1,
         limit: 1,
+        academicYear: currentAcademicYear,
       });
 
       setStudentSummary(result.summary);
@@ -1152,7 +1155,7 @@ export function AdminDashboard() {
     } finally {
       setStudentSummaryLoading(false);
     }
-  }, []);
+  }, [currentAcademicYear]);
 
   const refreshTeacherSummary = useCallback(async () => {
     try {
@@ -1180,6 +1183,7 @@ export function AdminDashboard() {
       const result = await fetchAdminSchedules({
         page: 1,
         limit: 1,
+        academicYear: currentAcademicYear,
       });
 
       setScheduleSummary(result.summary);
@@ -1195,7 +1199,7 @@ export function AdminDashboard() {
     } finally {
       setScheduleSummaryLoading(false);
     }
-  }, []);
+  }, [currentAcademicYear]);
 
   const refreshPayments = useCallback(
     async (period: PaymentOverviewPeriod = paymentOverviewPeriod) => {
@@ -1370,6 +1374,7 @@ export function AdminDashboard() {
           limit: 5,
           q: trimmedQuery,
           sort: "createdAt_desc",
+          academicYear: currentAcademicYear,
         }),
         fetchAdminTeachers({
           page: 1,
@@ -1382,6 +1387,7 @@ export function AdminDashboard() {
           limit: 5,
           q: trimmedQuery,
           sort: "createdAt_desc",
+          academicYear: currentAcademicYear,
         }),
         fetchAdminPayments({
           page: 1,
@@ -1449,7 +1455,7 @@ export function AdminDashboard() {
       isCancelled = true;
       window.clearTimeout(timerId);
     };
-  }, [globalSearchQuery]);
+  }, [currentAcademicYear, globalSearchQuery]);
 
   const activeStudents = studentSummary.activeCount;
   const activeTeachers = teacherSummary.activeCount;

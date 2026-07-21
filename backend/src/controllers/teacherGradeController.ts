@@ -15,8 +15,9 @@ import {
 } from "../utils/classroomLearning";
 import { getNextPublicId } from "../utils/publicId";
 import {
+  type AcademicPeriod,
   getAcademicGradeScheme,
-  getCurrentAcademicPeriod,
+  resolveAcademicPeriodFromQuery,
   toPublicAcademicGrade,
 } from "../utils/academicGrade";
 import { resolveTeacherClassDetailContext } from "./teacherScheduleController";
@@ -29,6 +30,7 @@ import {
   findActiveSubscriptionIdForAcademicRecord,
   findActiveSubscriptionIdsForAcademicRecords,
 } from "../utils/subscription";
+import { ensureTeacherAcademicPeriodEditable } from "../utils/teacherAcademicArchive";
 
 type UpsertTaskGradeBody = {
   taskId?: string;
@@ -131,14 +133,28 @@ async function findTeacherTaskByParam(
   taskId: string,
   classId: string,
   teacherId: string,
+  period?: AcademicPeriod,
 ) {
-  return ClassTask.findOne({
-    classId,
-    teacherId,
+  const identityFilter = {
     $or: [
       { taskId },
       ...(Types.ObjectId.isValid(taskId) ? [{ _id: taskId }] : []),
     ],
+  };
+  const periodFilter = period
+    ? {
+        $or: [
+          { academicYear: period.academicYear, semester: period.semester },
+          { academicYear: null },
+          { academicYear: { $exists: false } },
+        ],
+      }
+    : null;
+
+  return ClassTask.findOne({
+    classId,
+    teacherId,
+    $and: periodFilter ? [identityFilter, periodFilter] : [identityFilter],
   }).exec();
 }
 
@@ -173,15 +189,7 @@ export const getTeacherClassGrades = asyncHandler(
       req.user._id.toString(),
       req.params.classId,
     );
-    const currentPeriod = getCurrentAcademicPeriod();
-    const academicYear =
-      typeof req.query.academicYear === "string" && req.query.academicYear
-        ? req.query.academicYear
-        : currentPeriod.academicYear;
-    const semester =
-      typeof req.query.semester === "string" && req.query.semester
-        ? req.query.semester
-        : currentPeriod.semester;
+    const { academicYear, semester } = resolveAcademicPeriodFromQuery(req.query);
     const participantSubscriptionIds =
       await findActiveSubscriptionIdsForAcademicRecords({
         publicStudentIds: participants.map((participant) => participant.studentId),
@@ -234,7 +242,7 @@ export const getTeacherClassGrades = asyncHandler(
       isAcademicGradeVisibleForStudent(grade, participants),
     );
 
-    const period = getCurrentAcademicPeriod();
+    const period = { academicYear, semester };
     sendSuccess(res, {
       message: "Data nilai kelas berhasil diambil.",
       data: {
@@ -258,11 +266,16 @@ export const createTeacherClassGrade = asyncHandler(
       return;
     }
 
+    if (!ensureTeacherAcademicPeriodEditable(req, next)) {
+      return;
+    }
+
     const { teacher, classGroup, participants } =
       await resolveTeacherClassDetailContext(
         req.user._id.toString(),
         req.params.classId,
       );
+    const period = resolveAcademicPeriodFromQuery(req.query);
     const taskParam = normalizeText(req.body.taskId);
     const studentId = normalizeText(req.body.studentId);
     const score = normalizeScore(req.body.score);
@@ -289,6 +302,7 @@ export const createTeacherClassGrade = asyncHandler(
       taskParam,
       classGroup.item.id,
       teacher._id.toString(),
+      period,
     );
 
     if (!task) {
@@ -384,11 +398,16 @@ export const updateTeacherClassGrade = asyncHandler(
       return;
     }
 
+    if (!ensureTeacherAcademicPeriodEditable(req, next)) {
+      return;
+    }
+
     const { teacher, classGroup, participants } =
       await resolveTeacherClassDetailContext(
         req.user._id.toString(),
         req.params.classId,
       );
+    const period = resolveAcademicPeriodFromQuery(req.query);
     const gradeParam = normalizeText(req.params.gradeId);
 
     if (!gradeParam) {
@@ -403,6 +422,18 @@ export const updateTeacherClassGrade = asyncHandler(
     );
 
     if (!grade) {
+      next(new AppError(404, "Nilai tugas siswa tidak ditemukan."));
+      return;
+    }
+
+    const existingTask = await findTeacherTaskByParam(
+      normalizeText(grade.taskId),
+      classGroup.item.id,
+      teacher._id.toString(),
+      period,
+    );
+
+    if (!existingTask) {
       next(new AppError(404, "Nilai tugas siswa tidak ditemukan."));
       return;
     }
@@ -442,6 +473,7 @@ export const updateTeacherClassGrade = asyncHandler(
       nextTaskParam,
       classGroup.item.id,
       teacher._id.toString(),
+      period,
     );
 
     if (!nextTask) {

@@ -452,7 +452,7 @@ export default function SemuaKelasGuruSection() {
     <div className="mx-auto mt-4 w-full max-w-7xl px-4 py-4 md:mt-6 md:px-6">
       <div className="flex flex-col gap-5">
         <Link
-          href="/dashboard-guru/jadwal"
+          href={buildGuruUrl("/dashboard-guru/jadwal", searchParams)}
           className="inline-flex w-fit items-center gap-2 border border-orange-100 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-[0_16px_30px_-28px_rgba(15,23,42,0.4)] transition hover:-translate-y-px hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"
         >
           <ArrowLeft className="h-4 w-4" />

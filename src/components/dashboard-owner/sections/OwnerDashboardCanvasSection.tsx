@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import type { ApiResponse } from "@/lib/auth";
 import { requestAdminApi } from "@/lib/admin-api";
+import { getCurrentAdminAcademicYear } from "@/lib/admin-academic-year";
 import {
   fetchOwnerActivities,
   type OwnerActivityIncomingPayment,
@@ -715,6 +716,7 @@ function readResponseItems<T>(
 }
 
 export function OwnerDashboardCanvasSection() {
+  const currentAcademicYear = getCurrentAdminAcademicYear();
   const [performancePeriod, setPerformancePeriod] =
     useState<OwnerDashboardPerformancePeriod>("year");
   const [branchStatusFilter, setBranchStatusFilter] =
@@ -739,9 +741,12 @@ export function OwnerDashboardCanvasSection() {
 
     try {
     const [studentsResult, branchesResult, activitiesResult] = await Promise.allSettled([
-      requestAdminApi<{ students: OwnerStudentSummary[] }>("/api/students", {
-        method: "GET",
-      }),
+      requestAdminApi<{ students: OwnerStudentSummary[] }>(
+        `/api/students?academicYear=${encodeURIComponent(currentAcademicYear)}`,
+        {
+          method: "GET",
+        },
+      ),
       requestAdminApi<{ branches: Record<string, unknown>[] }>("/api/branches", {
         method: "GET",
       }),

@@ -15,7 +15,7 @@ import {
   type AuthUser,
 } from "@/lib/auth";
 import { useSearchParams } from "next/navigation";
-import { buildGuruApiUrl } from "@/lib/guru-helpers";
+import { buildGuruApiUrl, buildGuruUrl } from "@/lib/guru-helpers";
 
 const headerBackgrounds = [
   "https://images.unsplash.com/photo-1501785888041-af3ef285b470",
@@ -451,7 +451,7 @@ export default function HeaderProfilGuru() {
 
           {profile.totalClasses > 0 && (
             <Link
-              href="/dashboard-guru/jadwal"
+              href={buildGuruUrl("/dashboard-guru/jadwal", searchParams)}
               className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-dashed border-orange-200 bg-orange-50/60 px-4 py-3 text-xs font-semibold text-orange-700 transition hover:bg-orange-100/70"
             >
               <CalendarDays className="h-4 w-4" />

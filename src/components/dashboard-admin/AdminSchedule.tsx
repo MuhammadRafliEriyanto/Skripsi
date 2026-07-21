@@ -21,6 +21,12 @@ import {
 
 import { AdminApiRequestError, requestAdminApi } from "@/lib/admin-api";
 import {
+  getAdminAcademicYearLockMessage,
+  getAdminAcademicYearOptions,
+  getAdminAcademicYearStatus,
+  getCurrentAdminAcademicYear,
+} from "@/lib/admin-academic-year";
+import {
   exportAdminSchedulesCsv,
   fetchAdminSchedules,
   importAdminSchedules,
@@ -383,11 +389,15 @@ function DetailItem({ label, value }: { label: string; value: string }) {
 
 function ScheduleActions({
   schedule,
+  readOnly = false,
+  readOnlyMessage = "",
   onEdit,
   onDelete,
   onToggleStatus,
 }: {
   schedule: AdminScheduleItem;
+  readOnly?: boolean;
+  readOnlyMessage?: string;
   onEdit: (schedule: AdminScheduleItem) => void;
   onDelete: (schedule: AdminScheduleItem) => void;
   onToggleStatus: (schedule: AdminScheduleItem) => void;
@@ -470,7 +480,8 @@ function ScheduleActions({
         size="icon"
         className={`size-9 rounded-xl p-0 text-orange-600 shadow-sm transition ${warmOutlineButtonClassName}`}
         aria-label={`Edit ${schedule.className}`}
-        title="Edit"
+        title={readOnly ? readOnlyMessage : "Edit"}
+        disabled={readOnly}
         onClick={() => onEdit(schedule)}
       >
         <Pencil className="size-4" />
@@ -490,7 +501,10 @@ function ScheduleActions({
             ? `Tandai siap ${schedule.className}`
             : `Tandai review ${schedule.className}`
         }
-        title={isReview ? "Tandai siap" : "Tandai review"}
+        title={
+          readOnly ? readOnlyMessage : isReview ? "Tandai siap" : "Tandai review"
+        }
+        disabled={readOnly}
         onClick={() => onToggleStatus(schedule)}
       >
         {isReview ? <Power className="size-4" /> : <PowerOff className="size-4" />}
@@ -502,7 +516,8 @@ function ScheduleActions({
         size="icon"
         className="size-9 rounded-xl border-rose-200 bg-white p-0 text-rose-600 shadow-sm transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 active:border-rose-300 active:bg-rose-100/80 focus-visible:ring-orange-500/10"
         aria-label={`Hapus ${schedule.className}`}
-        title="Hapus"
+        title={readOnly ? readOnlyMessage : "Hapus"}
+        disabled={readOnly}
         onClick={() => onDelete(schedule)}
       >
         <Trash2 className="size-4" />
@@ -548,7 +563,9 @@ export function AdminSchedule({
   const [statusFilter, setStatusFilter] = useState<ScheduleStatusFilterOption>(
     allScheduleStatusFilterLabel,
   );
-  const [academicYearFilter, setAcademicYearFilter] = useState<string>("2025/2026");
+  const [academicYearFilter, setAcademicYearFilter] = useState<string>(
+    getCurrentAdminAcademicYear,
+  );
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(
@@ -813,8 +830,18 @@ export function AdminSchedule({
   const runningCount = summary.runningCount;
   const reviewCount = summary.reviewCount;
   const conflictCount = summary.conflictCount;
+  const academicYearOptions = getAdminAcademicYearOptions(academicYearFilter);
+  const academicYearStatus = getAdminAcademicYearStatus(academicYearFilter);
+  const academicYearLockMessage =
+    getAdminAcademicYearLockMessage(academicYearFilter);
+  const isAcademicYearLocked = academicYearStatus.isLocked;
 
   const openCreateDialog = () => {
+    if (isAcademicYearLocked) {
+      setActionNotice(academicYearLockMessage);
+      return;
+    }
+
     setEditingScheduleId(null);
     setFormValues(
       createEmptyScheduleForm(
@@ -831,6 +858,11 @@ export function AdminSchedule({
   };
 
   const openEditDialog = (schedule: AdminScheduleItem) => {
+    if (isAcademicYearLocked) {
+      setActionNotice(academicYearLockMessage);
+      return;
+    }
+
     setEditingScheduleId(schedule.id);
     setFormValues(
       toScheduleFormValues(
@@ -895,6 +927,11 @@ export function AdminSchedule({
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    if (isAcademicYearLocked) {
+      setFormError(academicYearLockMessage);
+      return;
+    }
 
     const normalizedDay = normalizeText(formValues.day);
     const normalizedTime = normalizeText(formValues.time);
@@ -1019,6 +1056,11 @@ export function AdminSchedule({
   };
 
   const handleToggleStatus = async (schedule: AdminScheduleItem) => {
+    if (isAcademicYearLocked) {
+      setFormError(academicYearLockMessage);
+      return;
+    }
+
     const nextStatus: AdminScheduleItem["status"] =
       schedule.status === "Review" ? "Siap" : "Review";
     const parsedClassName = parseAcademicClassName(
@@ -1063,6 +1105,7 @@ export function AdminSchedule({
             teacherId: schedule.teacherId,
             room: schedule.room,
             status: nextStatus,
+            academicYear: academicYearFilter,
           }),
         },
       );
@@ -1079,6 +1122,12 @@ export function AdminSchedule({
 
   const handleDelete = async () => {
     if (!scheduleToDelete) {
+      return;
+    }
+
+    if (isAcademicYearLocked) {
+      setFormError(academicYearLockMessage);
+      setScheduleToDelete(null);
       return;
     }
 
@@ -1113,6 +1162,7 @@ export function AdminSchedule({
         q: combinedSearchQuery || undefined,
         day: dayFilter === scheduleDayAllLabel ? undefined : dayFilter,
         status: statusFilter === "Semua" ? undefined : statusFilter,
+        academicYear: academicYearFilter,
       });
     } catch (requestError) {
       setFormError(
@@ -1132,6 +1182,11 @@ export function AdminSchedule({
   const handleImportSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    if (isAcademicYearLocked) {
+      setImportError(academicYearLockMessage);
+      return;
+    }
+
     if (!importFile) {
       setImportError("Pilih file CSV atau Excel terlebih dahulu.");
       return;
@@ -1148,6 +1203,7 @@ export function AdminSchedule({
       const result = await importAdminSchedules({
         fileName: importFile.name,
         fileDataBase64,
+        academicYear: academicYearFilter,
       });
 
       if (!result.summary.successCount) {
@@ -1247,6 +1303,8 @@ export function AdminSchedule({
       cell: (schedule) => (
         <ScheduleActions
           schedule={schedule}
+          readOnly={isAcademicYearLocked}
+          readOnlyMessage={academicYearLockMessage}
           onEdit={openEditDialog}
           onDelete={setScheduleToDelete}
           onToggleStatus={handleToggleStatus}
@@ -1268,6 +1326,8 @@ export function AdminSchedule({
               variant="secondary"
               className={warmPrimaryButtonClassName}
               onClick={openCreateDialog}
+              disabled={isAcademicYearLocked}
+              title={isAcademicYearLocked ? academicYearLockMessage : "Tambah Data"}
             >
               <Plus className="size-4" />
               <span className="hidden sm:inline">Tambah Data</span>
@@ -1286,6 +1346,8 @@ export function AdminSchedule({
               variant="outline"
               className={warmOutlineButtonClassName}
               onClick={() => setIsImportOpen(true)}
+              disabled={isAcademicYearLocked}
+              title={isAcademicYearLocked ? academicYearLockMessage : "Import"}
             >
               <Upload className="size-4" />
               <span className="hidden sm:inline">Import</span>
@@ -1309,8 +1371,24 @@ export function AdminSchedule({
           <Badge variant="secondary" className="bg-slate-100 text-slate-700">
             Bentrok {conflictCount}
           </Badge>
+          <Badge
+            variant="secondary"
+            className={
+              academicYearStatus.isActive
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-slate-100 text-slate-700"
+            }
+          >
+            {academicYearStatus.label} {academicYearStatus.academicYear}
+          </Badge>
         </div>
         )}
+
+        {isAcademicYearLocked ? (
+          <div className="mb-4 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-700">
+            {academicYearLockMessage}
+          </div>
+        ) : null}
 
         {actionNotice ? (
           <div className="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
@@ -1344,12 +1422,15 @@ export function AdminSchedule({
                   <SelectValue placeholder="Tahun Ajaran" />
                 </SelectTrigger>
                 <SelectContent className={warmSelectContentClassName}>
-                  <SelectItem value="2025/2026" className={warmSelectItemClassName}>
-                    2025/2026
-                  </SelectItem>
-                  <SelectItem value="2026/2027" className={warmSelectItemClassName}>
-                    2026/2027
-                  </SelectItem>
+                  {academicYearOptions.map((option) => (
+                    <SelectItem
+                      key={option}
+                      value={option}
+                      className={warmSelectItemClassName}
+                    >
+                      {option}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -1789,7 +1870,12 @@ export function AdminSchedule({
                 type="submit"
                 variant="secondary"
                 className={warmPrimaryButtonClassName}
-                disabled={isSubmitting || isRoomDirectoryLoading || !hasRoomOptions}
+                disabled={
+                  isSubmitting ||
+                  isRoomDirectoryLoading ||
+                  !hasRoomOptions ||
+                  isAcademicYearLocked
+                }
               >
                 {isSubmitting
                   ? "Menyimpan..."
@@ -1852,7 +1938,7 @@ export function AdminSchedule({
                 type="submit"
                 variant="secondary"
                 className={warmPrimaryButtonClassName}
-                disabled={isImporting}
+                disabled={isImporting || isAcademicYearLocked}
               >
                 {isImporting ? "Mengimpor..." : "Import File"}
               </Button>

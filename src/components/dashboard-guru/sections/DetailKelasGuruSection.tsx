@@ -275,7 +275,11 @@ type TeacherClassAcademicGradeMutationResponse = {
   };
 };
 
-import { buildGuruApiUrl } from "@/lib/guru-helpers";
+import {
+  buildGuruApiUrl,
+  buildGuruUrl,
+  getGuruAcademicYearStatus,
+} from "@/lib/guru-helpers";
 import toast from "react-hot-toast";
 
 type TeacherClassSettingMutationResponse = {
@@ -1315,6 +1319,9 @@ export default function DetailKelasGuruSection({
   kelasId,
 }: DetailKelasGuruSectionProps) {
   const searchParams = useSearchParams();
+  const academicYearStatus = getGuruAcademicYearStatus(searchParams);
+  const archiveMessage = `Tahun ajaran ${academicYearStatus.academicYear} sudah menjadi arsip. Data hanya bisa dilihat.`;
+  const isAcademicArchive = academicYearStatus.isArchive;
   const [teacherName, setTeacherName] = useState(
     () => readPersistedAuthUser()?.nama ?? "Guru login",
   );
@@ -1972,6 +1979,25 @@ export default function DetailKelasGuruSection({
     }
   }, [activeClass.totalPertemuan, isMeetingTargetEditing]);
 
+  useEffect(() => {
+    if (!isAcademicArchive) {
+      return;
+    }
+
+    setIsMeetingTargetEditing(false);
+    setIsMateriDialogOpen(false);
+    setMateriDraft(null);
+    setMateriAttachmentFile(null);
+    setMateriAttachmentMarkedForRemoval(false);
+    setIsTugasDialogOpen(false);
+    setTugasDraft(null);
+    setTugasAttachmentFile(null);
+    setTugasAttachmentMarkedForRemoval(false);
+    setIsNilaiDialogOpen(false);
+    setSelectedTaskForScore(null);
+    setNilaiDraft(null);
+  }, [isAcademicArchive]);
+
   const tasksWithGradeStatus = useMemo(
     () => applyGradeStatusToTasks(tasks, activeClass.participants, gradeEntries),
     [activeClass.participants, gradeEntries, tasks],
@@ -2008,7 +2034,20 @@ export default function DetailKelasGuruSection({
     [gradeEntries, selectedSubmissionDetail],
   );
 
+  function ensureAcademicYearEditable() {
+    if (!isAcademicArchive) {
+      return true;
+    }
+
+    toast.error(archiveMessage);
+    return false;
+  }
+
   function openMeetingTargetEditor() {
+    if (!ensureAcademicYearEditable()) {
+      return;
+    }
+
     setMeetingTargetDraft(
       activeClass.totalPertemuan > 0 ? String(activeClass.totalPertemuan) : "",
     );
@@ -2023,6 +2062,10 @@ export default function DetailKelasGuruSection({
   }
 
   async function handleSaveMeetingTarget() {
+    if (!ensureAcademicYearEditable()) {
+      return;
+    }
+
     const normalizedTarget = Number.parseInt(
       normalizeText(meetingTargetDraft),
       10,
@@ -2174,6 +2217,10 @@ export default function DetailKelasGuruSection({
   }
 
   function openAddMateriDialog() {
+    if (!ensureAcademicYearEditable()) {
+      return;
+    }
+
     setMateriMode("add");
     setMateriDraft(
       createEmptyMateri(activeClass.kelasId, Math.max(materials.length + 1, 1)),
@@ -2184,6 +2231,10 @@ export default function DetailKelasGuruSection({
   }
 
   function openEditMateriDialog(material: MateriPertemuan) {
+    if (!ensureAcademicYearEditable()) {
+      return;
+    }
+
     setMateriMode("edit");
     setMateriDraft({ ...material });
     setMateriAttachmentFile(null);
@@ -2239,6 +2290,10 @@ export default function DetailKelasGuruSection({
   }
 
   async function handleSaveMateri() {
+    if (!ensureAcademicYearEditable()) {
+      return;
+    }
+
     if (
       !materiDraft ||
       !materiDraft.tanggal ||
@@ -2275,6 +2330,10 @@ export default function DetailKelasGuruSection({
   }
 
   async function handleDeleteMateri(materialId: string) {
+    if (!ensureAcademicYearEditable()) {
+      return;
+    }
+
     try {
       await deleteMaterialRequest(materialId);
       setMaterials((current) =>
@@ -2290,6 +2349,10 @@ export default function DetailKelasGuruSection({
   }
 
   function openAddTugasDialog() {
+    if (!ensureAcademicYearEditable()) {
+      return;
+    }
+
     setTugasMode("add");
     setTugasDraft(
       createEmptyTugas(activeClass.kelasId, Math.max(tasks.length + 1, 1)),
@@ -2300,6 +2363,10 @@ export default function DetailKelasGuruSection({
   }
 
   function openEditTugasDialog(task: TugasPertemuan) {
+    if (!ensureAcademicYearEditable()) {
+      return;
+    }
+
     setTugasMode("edit");
     setTugasDraft({ ...task });
     setTugasAttachmentFile(null);
@@ -2357,6 +2424,10 @@ export default function DetailKelasGuruSection({
   }
 
   async function handleSaveTugas() {
+    if (!ensureAcademicYearEditable()) {
+      return;
+    }
+
     if (
       !tugasDraft ||
       !tugasDraft.deadline ||
@@ -2391,6 +2462,10 @@ export default function DetailKelasGuruSection({
   }
 
   async function handleDeleteTugas(taskId: string) {
+    if (!ensureAcademicYearEditable()) {
+      return;
+    }
+
     try {
       await deleteTaskRequest(taskId);
       setTasks((current) => current.filter((task) => task.id !== taskId));
@@ -2434,6 +2509,10 @@ export default function DetailKelasGuruSection({
   }
 
   function openNilaiDialogForStudent(studentId: string) {
+    if (!ensureAcademicYearEditable()) {
+      return;
+    }
+
     setNilaiMode("edit");
     setSelectedTaskForScore(defaultTaskForScore);
     setSelectedStudentId(studentId);
@@ -2450,6 +2529,10 @@ export default function DetailKelasGuruSection({
   }
 
   function openNilaiDialogForTask(task: TugasPertemuan) {
+    if (!ensureAcademicYearEditable()) {
+      return;
+    }
+
     const nextStudentId = findDefaultStudentIdForTask(task.id);
 
     if (!nextStudentId) {
@@ -2554,6 +2637,10 @@ export default function DetailKelasGuruSection({
   }
 
   async function handleSaveNilai() {
+    if (!ensureAcademicYearEditable()) {
+      return;
+    }
+
     if (!nilaiDraft) {
       return;
     }
@@ -2614,6 +2701,8 @@ export default function DetailKelasGuruSection({
           <DetailPertemuanTable
             kelasName={activeClass.namaKelas}
             materials={materials}
+            readOnly={isAcademicArchive}
+            readOnlyMessage={archiveMessage}
             totalMeetings={activeClass.totalPertemuan}
             onAdd={openAddMateriDialog}
             onDelete={handleDeleteMateri}
@@ -2625,6 +2714,8 @@ export default function DetailKelasGuruSection({
           <TugasPertemuanTable
             kelasName={activeClass.namaKelas}
             tasks={tasksWithGradeStatus}
+            readOnly={isAcademicArchive}
+            readOnlyMessage={archiveMessage}
             onAdd={openAddTugasDialog}
             onDelete={handleDeleteTugas}
             onEdit={openEditTugasDialog}
@@ -2637,6 +2728,8 @@ export default function DetailKelasGuruSection({
           <BelumDinilaiTable
             kelasName={activeClass.namaKelas}
             tasks={tasksWithGradeStatus}
+            readOnly={isAcademicArchive}
+            readOnlyMessage={archiveMessage}
             onGradeNow={openNilaiDialogForTask}
           />
         );
@@ -2645,6 +2738,8 @@ export default function DetailKelasGuruSection({
           <TabelNilaiTable
             participants={activeClass.participants}
             nilaiRows={nilaiRows}
+            readOnly={isAcademicArchive}
+            readOnlyMessage={archiveMessage}
             onEditNilai={openNilaiDialogForStudent}
             scheme={academicScheme}
           />
@@ -2660,7 +2755,7 @@ export default function DetailKelasGuruSection({
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Link
-              href="/dashboard-guru/kelas"
+              href={buildGuruUrl("/dashboard-guru/kelas", searchParams)}
               className="inline-flex items-center gap-2 border border-orange-200 bg-white px-4 py-2 text-sm font-medium text-orange-700 shadow-sm shadow-orange-100/70 transition hover:border-orange-300 hover:bg-orange-50"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -2683,7 +2778,7 @@ export default function DetailKelasGuruSection({
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Link
-              href="/dashboard-guru/kelas"
+              href={buildGuruUrl("/dashboard-guru/kelas", searchParams)}
               className="inline-flex items-center gap-2 border border-orange-200 bg-white px-4 py-2 text-sm font-medium text-orange-700 shadow-sm shadow-orange-100/70 transition hover:border-orange-300 hover:bg-orange-50"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -2705,13 +2800,19 @@ export default function DetailKelasGuruSection({
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link
-            href="/dashboard-guru/kelas"
+            href={buildGuruUrl("/dashboard-guru/kelas", searchParams)}
             className="inline-flex items-center gap-2 border border-orange-200 bg-white px-4 py-2 text-sm font-medium text-orange-700 shadow-sm shadow-orange-100/70 transition hover:border-orange-300 hover:bg-orange-50"
           >
             <ArrowLeft className="h-4 w-4" />
             Kembali ke Semua Kelas
           </Link>
         </div>
+
+        {isAcademicArchive ? (
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600">
+            {archiveMessage} Tambah, edit, hapus, dan input nilai dinonaktifkan untuk menjaga riwayat tahun ajaran.
+          </div>
+        ) : null}
 
         <section className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-shadow hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
           <div className="relative overflow-hidden bg-gradient-to-br from-orange-50/80 via-white to-amber-50/40 px-5 py-6 text-slate-900 md:px-7 md:py-7">
@@ -2785,13 +2886,19 @@ export default function DetailKelasGuruSection({
                       ) : (
                         <>
                           Target {activeClass.totalPertemuan} sesi
-                          <button
-                            type="button"
-                            onClick={openMeetingTargetEditor}
-                            className="ml-1 rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 transition hover:bg-slate-200"
-                          >
-                            Ubah
-                          </button>
+                          {isAcademicArchive ? (
+                            <span className="ml-1 rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
+                              Arsip
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={openMeetingTargetEditor}
+                              className="ml-1 rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 transition hover:bg-slate-200"
+                            >
+                              Ubah
+                            </button>
+                          )}
                         </>
                       )}
                     </div>

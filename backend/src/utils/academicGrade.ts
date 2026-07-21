@@ -22,6 +22,109 @@ export function getCurrentAcademicPeriod(date = new Date()): AcademicPeriod {
   };
 }
 
+function getJakartaMonthAndYear(date: Date) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    month: "numeric",
+    year: "numeric",
+    timeZone: "Asia/Jakarta",
+  }).formatToParts(date);
+
+  return {
+    month: Number(parts.find((part) => part.type === "month")?.value ?? 1),
+    year: Number(parts.find((part) => part.type === "year")?.value ?? 2026),
+  };
+}
+
+function normalizeAcademicYear(value: string | null | undefined) {
+  const normalizedValue = value?.trim().replace(/\s+/g, "") ?? "";
+  const match = normalizedValue.match(/^(\d{4})\/(\d{4})$/);
+
+  if (!match?.[1] || !match[2]) {
+    return normalizedValue;
+  }
+
+  const startYear = Number(match[1]);
+  const endYear = Number(match[2]);
+
+  return endYear === startYear + 1 ? `${startYear}/${endYear}` : normalizedValue;
+}
+
+function getSemesterForAcademicYear(academicYear: string, date: Date) {
+  const match = normalizeAcademicYear(academicYear).match(/^(\d{4})\/(\d{4})$/);
+
+  if (!match?.[1] || !match[2]) {
+    return getCurrentAcademicPeriod(date).semester;
+  }
+
+  const startYear = Number(match[1]);
+  const endYear = Number(match[2]);
+  const { month, year } = getJakartaMonthAndYear(date);
+
+  if (year < startYear || (year === startYear && month < 8)) {
+    return "Ganjil";
+  }
+
+  if (year === startYear && month >= 8) {
+    return "Ganjil";
+  }
+
+  if (year === endYear && month < 8) {
+    return "Genap";
+  }
+
+  return "Genap";
+}
+
+export function getAcademicPeriodForYear(
+  academicYear: string | null | undefined,
+  date = new Date(),
+): AcademicPeriod {
+  const currentPeriod = getCurrentAcademicPeriod(date);
+  const normalizedAcademicYear = normalizeAcademicYear(academicYear);
+
+  if (!normalizedAcademicYear) {
+    return currentPeriod;
+  }
+
+  return {
+    academicYear: normalizedAcademicYear,
+    semester: getSemesterForAcademicYear(normalizedAcademicYear, date),
+  };
+}
+
+export function resolveAcademicPeriodFromQuery(
+  query: { academicYear?: unknown; semester?: unknown } | undefined,
+  date = new Date(),
+): AcademicPeriod {
+  const currentPeriod = getCurrentAcademicPeriod(date);
+  const academicYear =
+    typeof query?.academicYear === "string" && query.academicYear.trim()
+      ? query.academicYear
+      : currentPeriod.academicYear;
+  const period = getAcademicPeriodForYear(academicYear, date);
+  const querySemester =
+    typeof query?.semester === "string" ? query.semester.trim() : "";
+
+  if (querySemester === "Ganjil" || querySemester === "Genap") {
+    return {
+      ...period,
+      semester: querySemester,
+    };
+  }
+
+  return period;
+}
+
+export function isAcademicPeriodEditable(
+  query: { academicYear?: unknown; semester?: unknown } | undefined,
+  date = new Date(),
+) {
+  const currentPeriod = getCurrentAcademicPeriod(date);
+  const selectedPeriod = resolveAcademicPeriodFromQuery(query, date);
+
+  return selectedPeriod.academicYear === currentPeriod.academicYear;
+}
+
 export function getAcademicGradeScheme(className: string): AcademicGradeScheme {
   const canonicalClassName = normalizeCanonicalClassName(className) ?? "";
   const grade = Number(canonicalClassName.match(/\b(\d{1,2})\b/)?.[1] ?? 0);

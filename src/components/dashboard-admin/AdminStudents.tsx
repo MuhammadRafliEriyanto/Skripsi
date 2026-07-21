@@ -22,6 +22,12 @@ import {
 
 import { requestAdminApi } from "@/lib/admin-api";
 import {
+  getAdminAcademicYearLockMessage,
+  getAdminAcademicYearOptions,
+  getAdminAcademicYearStatus,
+  getCurrentAdminAcademicYear,
+} from "@/lib/admin-academic-year";
+import {
   defaultAdminDashboardConfig,
   type AdminDashboardConfigData,
 } from "@/lib/admin-dashboard-config";
@@ -181,6 +187,7 @@ function toDateInputValue(date = new Date()) {
 function createEmptyStudentForm(
   defaultClassName: string,
   defaultPackageKey = "",
+  defaultAcademicYear = getCurrentAdminAcademicYear(),
 ): StudentFormValues {
   return {
     name: "",
@@ -190,7 +197,7 @@ function createEmptyStudentForm(
     program: "-",
     className: defaultClassName,
     birthDate: "",
-    academicYear: "2025/2026",
+    academicYear: defaultAcademicYear,
     password: "",
     status: "Aktif",
     membershipPaymentMode: paidOfflineMembershipValue,
@@ -333,7 +340,7 @@ function toStudentFormValues(student: AdminStudent): StudentFormValues {
     program: student.program,
     className: student.className,
     birthDate: student.birthDate,
-    academicYear: student.academicYear || "2025/2026",
+    academicYear: student.academicYear || getCurrentAdminAcademicYear(),
     password: "",
     status: student.status,
     membershipPaymentMode: paidOfflineMembershipValue,
@@ -391,12 +398,16 @@ function DetailItem({ label, value }: { label: string; value: string }) {
 function StudentActions({
   student,
   branchOptions,
+  readOnly = false,
+  readOnlyMessage = "",
   onEdit,
   onDelete,
   onToggleStatus,
 }: {
   student: AdminStudent;
   branchOptions: string[];
+  readOnly?: boolean;
+  readOnlyMessage?: string;
   onEdit: (student: AdminStudent) => void;
   onDelete: (student: AdminStudent) => void;
   onToggleStatus: (student: AdminStudent) => void;
@@ -492,7 +503,8 @@ function StudentActions({
         size="icon"
         className={`size-9 rounded-xl p-0 text-orange-600 shadow-sm transition ${warmOutlineButtonClassName}`}
         aria-label={`Edit ${student.name}`}
-        title="Edit"
+        title={readOnly ? readOnlyMessage : "Edit"}
+        disabled={readOnly}
         onClick={() => onEdit(student)}
       >
         <Pencil className="size-4" />
@@ -512,7 +524,14 @@ function StudentActions({
             ? `Nonaktifkan ${student.name}`
             : `Aktifkan ${student.name}`
         }
-        title={student.status === "Aktif" ? "Nonaktifkan" : "Aktifkan"}
+        title={
+          readOnly
+            ? readOnlyMessage
+            : student.status === "Aktif"
+              ? "Nonaktifkan"
+              : "Aktifkan"
+        }
+        disabled={readOnly}
         onClick={() => onToggleStatus(student)}
       >
         {student.status === "Aktif" ? (
@@ -528,7 +547,8 @@ function StudentActions({
         size="icon"
         className="size-9 rounded-xl border-rose-200 bg-white p-0 text-rose-600 shadow-sm transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 active:border-rose-300 active:bg-rose-100/80 focus-visible:ring-orange-500/10"
         aria-label={`Hapus ${student.name}`}
-        title="Hapus"
+        title={readOnly ? readOnlyMessage : "Hapus"}
+        disabled={readOnly}
         onClick={() => onDelete(student)}
       >
         <Trash2 className="size-4" />
@@ -573,7 +593,9 @@ export function AdminStudents({
   const [classFilter, setClassFilter] = useState<string | undefined>(undefined);
   const [statusFilter, setStatusFilter] =
     useState<StudentStatusFilterOption>("Semua");
-  const [academicYearFilter, setAcademicYearFilter] = useState<string>("2025/2026");
+  const [academicYearFilter, setAcademicYearFilter] = useState<string>(
+    getCurrentAdminAcademicYear,
+  );
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
@@ -757,6 +779,11 @@ export function AdminStudents({
 
   const activeStudents = summary.activeCount;
   const inactiveStudents = summary.inactiveCount;
+  const academicYearOptions = getAdminAcademicYearOptions(academicYearFilter);
+  const academicYearStatus = getAdminAcademicYearStatus(academicYearFilter);
+  const academicYearLockMessage =
+    getAdminAcademicYearLockMessage(academicYearFilter);
+  const isAcademicYearLocked = academicYearStatus.isLocked;
   const filteredStudentsWithMembershipCount = filteredStudents.filter(
     (student) => student.membership?.status === "active",
   ).length;
@@ -785,15 +812,35 @@ export function AdminStudents({
   );
 
   const openCreateDialog = () => {
+    if (isAcademicYearLocked) {
+      setActionFeedback({
+        tone: "warning",
+        message: academicYearLockMessage,
+      });
+      return;
+    }
+
     setEditingStudentId(null);
     setFormValues(
-      createEmptyStudentForm(defaultStudentClassName, defaultMembershipPackageKey),
+      createEmptyStudentForm(
+        defaultStudentClassName,
+        defaultMembershipPackageKey,
+        academicYearFilter,
+      ),
     );
     setFormError(null);
     setIsFormOpen(true);
   };
 
   const openEditDialog = (student: AdminStudent) => {
+    if (isAcademicYearLocked) {
+      setActionFeedback({
+        tone: "warning",
+        message: academicYearLockMessage,
+      });
+      return;
+    }
+
     setEditingStudentId(student.id);
     setFormValues(toStudentFormValues(student));
     setFormError(null);
@@ -804,7 +851,11 @@ export function AdminStudents({
     setIsFormOpen(false);
     setEditingStudentId(null);
     setFormValues(
-      createEmptyStudentForm(defaultStudentClassName, defaultMembershipPackageKey),
+      createEmptyStudentForm(
+        defaultStudentClassName,
+        defaultMembershipPackageKey,
+        academicYearFilter,
+      ),
     );
     setFormError(null);
   };
@@ -849,11 +900,16 @@ export function AdminStudents({
     setLevelFilter("Semua");
     setClassFilter(undefined);
     setStatusFilter("Semua");
-    setAcademicYearFilter("2025/2026");
+    setAcademicYearFilter(getCurrentAdminAcademicYear());
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    if (isAcademicYearLocked) {
+      setFormError(academicYearLockMessage);
+      return;
+    }
 
     const normalizedName = formValues.name.trim();
     const normalizedEmail = normalizeEmail(formValues.email);
@@ -889,6 +945,11 @@ export function AdminStudents({
 
     if (!normalizedBirthDate) {
       setFormError("Tanggal lahir belum valid.");
+      return;
+    }
+
+    if (formValues.academicYear !== academicYearStatus.currentAcademicYear) {
+      setFormError("Data siswa hanya bisa disimpan untuk tahun ajaran aktif.");
       return;
     }
 
@@ -974,6 +1035,15 @@ export function AdminStudents({
       return;
     }
 
+    if (isAcademicYearLocked) {
+      setActionFeedback({
+        tone: "warning",
+        message: academicYearLockMessage,
+      });
+      setStudentToDelete(null);
+      return;
+    }
+
     setIsDeleting(true);
     setActionFeedback(null);
 
@@ -1013,6 +1083,14 @@ export function AdminStudents({
   };
 
   const handleToggleStatus = async (student: AdminStudent) => {
+    if (isAcademicYearLocked) {
+      setActionFeedback({
+        tone: "warning",
+        message: academicYearLockMessage,
+      });
+      return;
+    }
+
     try {
       await requestAdminApi<{ student: AdminStudent }>(
         `/api/students/${encodeURIComponent(student.id)}`,
@@ -1026,6 +1104,7 @@ export function AdminStudents({
             program: student.program,
             className: student.className,
             birthDate: student.birthDate,
+            academicYear: student.academicYear,
             status: student.status === "Aktif" ? "Nonaktif" : "Aktif",
           }),
         },
@@ -1051,6 +1130,7 @@ export function AdminStudents({
         status: statusFilter === "Semua" ? undefined : statusFilter,
         className: classFilter,
         level: levelFilter === "Semua" ? undefined : levelFilter,
+        academicYear: academicYearFilter,
         sort: "createdAt_desc",
       });
     } catch (requestError) {
@@ -1069,6 +1149,11 @@ export function AdminStudents({
 
   const handleImportSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    if (isAcademicYearLocked) {
+      setImportError(academicYearLockMessage);
+      return;
+    }
 
     if (!importFile) {
       setImportError("Pilih file Excel siswa terlebih dahulu.");
@@ -1090,6 +1175,7 @@ export function AdminStudents({
           body: JSON.stringify({
             fileName: importFile.name,
             fileDataBase64,
+            academicYear: academicYearFilter,
           }),
         },
       );
@@ -1241,6 +1327,8 @@ export function AdminStudents({
         <StudentActions
           student={student}
           branchOptions={branchOptions}
+          readOnly={isAcademicYearLocked}
+          readOnlyMessage={academicYearLockMessage}
           onEdit={openEditDialog}
           onDelete={setStudentToDelete}
           onToggleStatus={handleToggleStatus}
@@ -1271,6 +1359,8 @@ export function AdminStudents({
               variant="outline"
               className={warmOutlineButtonClassName}
               onClick={() => setIsImportOpen(true)}
+              disabled={isAcademicYearLocked}
+              title={isAcademicYearLocked ? academicYearLockMessage : "Import"}
             >
               <Upload className="size-4" />
               <span className="hidden sm:inline">Import</span>
@@ -1279,6 +1369,8 @@ export function AdminStudents({
               variant="secondary"
               className={warmPrimaryButtonClassName}
               onClick={openCreateDialog}
+              disabled={isAcademicYearLocked}
+              title={isAcademicYearLocked ? academicYearLockMessage : "Tambah"}
             >
               <Plus className="size-4" />
               <span className="hidden sm:inline">Tambah</span>
@@ -1305,7 +1397,23 @@ export function AdminStudents({
           <Badge variant="secondary" className="bg-amber-50 text-amber-700">
             Belum membership {filteredStudentsWithoutMembershipCount}
           </Badge>
+          <Badge
+            variant="secondary"
+            className={
+              academicYearStatus.isActive
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-slate-100 text-slate-700"
+            }
+          >
+            {academicYearStatus.label} {academicYearStatus.academicYear}
+          </Badge>
         </div>
+
+        {isAcademicYearLocked ? (
+          <div className="mb-4 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-700">
+            {academicYearLockMessage}
+          </div>
+        ) : null}
 
         {importResult ? (
           <div
@@ -1430,12 +1538,15 @@ export function AdminStudents({
                   <SelectValue placeholder="Tahun Ajaran" />
                 </SelectTrigger>
                 <SelectContent className={warmSelectContentClassName}>
-                  <SelectItem value="2025/2026" className={warmSelectItemClassName}>
-                    2025/2026
-                  </SelectItem>
-                  <SelectItem value="2026/2027" className={warmSelectItemClassName}>
-                    2026/2027
-                  </SelectItem>
+                  {academicYearOptions.map((option) => (
+                    <SelectItem
+                      key={option}
+                      value={option}
+                      className={warmSelectItemClassName}
+                    >
+                      {option}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -1667,20 +1778,22 @@ export function AdminStudents({
               <StudentField label="Tahun Ajaran">
                 <Select
                   value={formValues.academicYear}
-                  onValueChange={(value) =>
-                    updateFormValue("academicYear", value)
-                  }
+                  onValueChange={(value) => updateFormValue("academicYear", value)}
+                  disabled
                 >
                   <SelectTrigger className={warmSelectTriggerClassName}>
                     <SelectValue placeholder="Tahun Ajaran" />
                   </SelectTrigger>
                   <SelectContent className={warmSelectContentClassName}>
-                    <SelectItem value="2025/2026" className={warmSelectItemClassName}>
-                      2025/2026
-                    </SelectItem>
-                    <SelectItem value="2026/2027" className={warmSelectItemClassName}>
-                      2026/2027
-                    </SelectItem>
+                    {academicYearOptions.map((option) => (
+                      <SelectItem
+                        key={option}
+                        value={option}
+                        className={warmSelectItemClassName}
+                      >
+                        {option}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </StudentField>
@@ -1820,7 +1933,7 @@ export function AdminStudents({
                 type="submit"
                 variant="secondary"
                 className={warmPrimaryButtonClassName}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isAcademicYearLocked}
               >
                 {isSubmitting
                   ? "Menyimpan..."
@@ -1885,7 +1998,7 @@ export function AdminStudents({
                 type="submit"
                 variant="secondary"
                 className={warmPrimaryButtonClassName}
-                disabled={isImporting}
+                disabled={isImporting || isAcademicYearLocked}
               >
                 {isImporting ? "Mengimpor..." : "Import Excel"}
               </Button>

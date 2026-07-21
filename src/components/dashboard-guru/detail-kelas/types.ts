@@ -125,6 +125,8 @@ export type DetailPertemuanTableProps = {
   kelasName: string;
   materials: MateriPertemuan[];
   totalMeetings: number;
+  readOnly?: boolean;
+  readOnlyMessage?: string;
   onAdd: () => void;
   onEdit: (material: MateriPertemuan) => void;
   onDelete: (materialId: string) => void;
@@ -133,6 +135,8 @@ export type DetailPertemuanTableProps = {
 export type TugasPertemuanTableProps = {
   kelasName: string;
   tasks: TugasPertemuan[];
+  readOnly?: boolean;
+  readOnlyMessage?: string;
   onAdd: () => void;
   onEdit: (task: TugasPertemuan) => void;
   onDelete: (taskId: string) => void;
@@ -142,12 +146,16 @@ export type TugasPertemuanTableProps = {
 export type BelumDinilaiTableProps = {
   kelasName: string;
   tasks: TugasPertemuan[];
+  readOnly?: boolean;
+  readOnlyMessage?: string;
   onGradeNow: (task: TugasPertemuan) => void;
 };
 
 export type TabelNilaiTableProps = {
   participants: ClassStudent[];
   nilaiRows: NilaiSiswa[];
+  readOnly?: boolean;
+  readOnlyMessage?: string;
   onEditNilai: (studentId: string) => void;
   scheme: AcademicGradeScheme;
 };

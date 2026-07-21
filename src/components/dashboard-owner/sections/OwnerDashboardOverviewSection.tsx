@@ -24,6 +24,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { requestAdminApi } from "@/lib/admin-api";
+import { getCurrentAdminAcademicYear } from "@/lib/admin-academic-year";
 import { fetchOwnerActivities } from "@/lib/owner-activities";
 
 type DirectoryItem = {
@@ -80,6 +81,7 @@ function formatSyncedAt(value: Date | null) {
 }
 
 export function OwnerDashboardOverviewSection() {
+  const currentAcademicYear = getCurrentAdminAcademicYear();
   const [metrics, setMetrics] = useState<OwnerOverviewMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -88,9 +90,12 @@ export function OwnerDashboardOverviewSection() {
   const loadMetrics = useCallback(async () => {
     const [studentsResult, teachersResult, branchesResult, activitiesResult] =
       await Promise.allSettled([
-        requestAdminApi<{ students: DirectoryItem[] }>("/api/students", {
-          method: "GET",
-        }),
+        requestAdminApi<{ students: DirectoryItem[] }>(
+          `/api/students?academicYear=${encodeURIComponent(currentAcademicYear)}`,
+          {
+            method: "GET",
+          },
+        ),
         requestAdminApi<{ teachers: DirectoryItem[] }>("/api/teachers", {
           method: "GET",
         }),
@@ -157,7 +162,7 @@ export function OwnerDashboardOverviewSection() {
     );
     setSyncedAt(new Date());
     setIsLoading(false);
-  }, []);
+  }, [currentAcademicYear]);
 
   useEffect(() => {
     void loadMetrics();

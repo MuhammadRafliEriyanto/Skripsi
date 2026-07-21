@@ -18,6 +18,8 @@ function getMateriStatusLabel(status: DetailPertemuanTableProps["materials"][num
 export default function DetailPertemuanTable({
   kelasName,
   materials,
+  readOnly = false,
+  readOnlyMessage,
   totalMeetings,
   onAdd,
   onDelete,
@@ -44,14 +46,22 @@ export default function DetailPertemuanTable({
             </div>
 
             <p className="mt-1 text-sm text-slate-500">
-              Kelola materi pembelajaran berdasarkan pertemuan kelas {kelasName}.
+              {readOnly
+                ? readOnlyMessage ?? "Tahun ajaran ini sudah menjadi arsip. Materi hanya bisa dilihat."
+                : `Kelola materi pembelajaran berdasarkan pertemuan kelas ${kelasName}.`}
             </p>
           </div>
 
           <button
             type="button"
             onClick={onAdd}
-            className="inline-flex w-full items-center justify-center gap-2 border border-orange-500 bg-slate-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600 sm:w-auto"
+            disabled={readOnly}
+            title={readOnly ? readOnlyMessage : "Tambah Materi"}
+            className={`inline-flex w-full items-center justify-center gap-2 border px-4 py-2 text-sm font-semibold transition sm:w-auto ${
+              readOnly
+                ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                : "border-orange-500 bg-slate-500 text-white hover:bg-orange-600"
+            }`}
           >
             <Plus className="h-4 w-4" />
             Tambah Materi
@@ -129,32 +139,40 @@ export default function DetailPertemuanTable({
                     </td>
                     <td className="px-4 py-4 align-top">
                       <div className="flex flex-wrap items-center justify-center gap-2 sm:flex-nowrap">
-                        <button
-                          type="button"
-                          title="Edit"
-                          aria-label="Edit"
-                          onClick={() => onEdit(material)}
-                          className="inline-flex h-9 w-9 items-center justify-center border border-slate-200 bg-slate-50 text-slate-700 transition hover:border-orange-300 hover:bg-orange-100"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          title="Hapus"
-                          aria-label="Hapus"
-                          onClick={() => {
-                            if (
-                              window.confirm(
-                                "Apakah Anda yakin ingin menghapus materi ini?",
-                              )
-                            ) {
-                              onDelete(material.id);
-                            }
-                          }}
-                          className="inline-flex h-9 w-9 items-center justify-center border border-rose-200 bg-rose-50 text-rose-700 transition hover:border-rose-300 hover:bg-rose-100"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        {readOnly ? (
+                          <span className="inline-flex items-center border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                            Arsip
+                          </span>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              title="Edit"
+                              aria-label="Edit"
+                              onClick={() => onEdit(material)}
+                              className="inline-flex h-9 w-9 items-center justify-center border border-slate-200 bg-slate-50 text-slate-700 transition hover:border-orange-300 hover:bg-orange-100"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              title="Hapus"
+                              aria-label="Hapus"
+                              onClick={() => {
+                                if (
+                                  window.confirm(
+                                    "Apakah Anda yakin ingin menghapus materi ini?",
+                                  )
+                                ) {
+                                  onDelete(material.id);
+                                }
+                              }}
+                              className="inline-flex h-9 w-9 items-center justify-center border border-rose-200 bg-rose-50 text-rose-700 transition hover:border-rose-300 hover:bg-rose-100"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>

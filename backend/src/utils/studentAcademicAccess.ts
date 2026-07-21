@@ -1,7 +1,7 @@
 import { type StudentDocument } from "../models/Student";
 import { Subscription } from "../models/Subscription";
 import {
-  getCurrentAcademicPeriod,
+  getAcademicPeriodForYear,
   type AcademicPeriod,
 } from "./academicGrade";
 import { normalizeCanonicalClassName } from "./studentClass";
@@ -100,13 +100,16 @@ export async function resolveStudentAcademicContentAccess(
   student: StudentDocument,
   date = new Date(),
 ): Promise<StudentAcademicContentAccess> {
-  const currentPeriod = getCurrentAcademicPeriod(date);
+  const studentAcademicPeriod = getAcademicPeriodForYear(
+    student.academicYear,
+    date,
+  );
   const className = normalizeText(student.className);
 
   if (!isBeforeAcademicYearStart(date)) {
     return {
       isUpcomingClassLocked: false,
-      period: currentPeriod,
+      period: studentAcademicPeriod,
       startsAt: null,
       className,
       message: null,
@@ -121,7 +124,7 @@ export async function resolveStudentAcademicContentAccess(
   if (!isUpcomingClassLocked) {
     return {
       isUpcomingClassLocked: false,
-      period: currentPeriod,
+      period: studentAcademicPeriod,
       startsAt: null,
       className,
       message: null,

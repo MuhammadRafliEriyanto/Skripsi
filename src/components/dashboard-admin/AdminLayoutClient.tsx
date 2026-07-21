@@ -5,6 +5,7 @@ import { useEffect, useState, Suspense } from "react";
 import { AdminSidebar, type AdminSidebarBadgeCounts } from "./AdminSidebar";
 import { AdminTopbar } from "./AdminTopbar";
 import { cn } from "@/lib/utils";
+import { getCurrentAdminAcademicYear } from "@/lib/admin-academic-year";
 import { adminPoppins } from "./components/admin-font";
 import {
   fetchAdminSchedules,
@@ -20,6 +21,7 @@ function AdminLayoutClientInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const globalSearchQuery = searchParams.get("q") || "";
+  const currentAcademicYear = getCurrentAdminAcademicYear();
   
   const [studentActiveCount, setStudentActiveCount] = useState(0);
   const [teacherActiveCount, setTeacherActiveCount] = useState(0);
@@ -27,15 +29,15 @@ function AdminLayoutClientInner({ children }: { children: React.ReactNode }) {
   const [paymentPendingCount, setPaymentPendingCount] = useState(0);
 
   useEffect(() => {
-    fetchAdminStudents({ page: 1, limit: 1 }).then(res => setStudentActiveCount(res.summary.activeCount)).catch(() => {});
+    fetchAdminStudents({ page: 1, limit: 1, academicYear: currentAcademicYear }).then(res => setStudentActiveCount(res.summary.activeCount)).catch(() => {});
     fetchAdminTeachers({ page: 1, limit: 1 }).then(res => setTeacherActiveCount(res.summary.activeCount)).catch(() => {});
-    fetchAdminSchedules({ page: 1, limit: 1 }).then(res => setScheduleReviewCount(res.summary.reviewCount)).catch(() => {});
+    fetchAdminSchedules({ page: 1, limit: 1, academicYear: currentAcademicYear }).then(res => setScheduleReviewCount(res.summary.reviewCount)).catch(() => {});
     
     const today = new Date();
     const start = new Date(today.getFullYear(), 0, 1).toISOString();
     const end = new Date(today.setHours(23, 59, 59, 999)).toISOString();
     fetchAdminPaymentSummary({ period: "year", dateFrom: start, dateTo: end }).then(res => setPaymentPendingCount(res.summary.pendingCount)).catch(() => {});
-  }, []);
+  }, [currentAcademicYear]);
 
   const sidebarBadgeCounts: AdminSidebarBadgeCounts = {
     students: studentActiveCount,

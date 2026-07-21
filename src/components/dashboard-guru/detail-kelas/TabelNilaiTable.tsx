@@ -48,6 +48,8 @@ export default function TabelNilaiTable({
   nilaiRows,
   onEditNilai,
   participants,
+  readOnly = false,
+  readOnlyMessage,
   scheme,
 }: TabelNilaiTableProps) {
   const scoreKeys = getAcademicScoreKeys(scheme);
@@ -112,9 +114,11 @@ export default function TabelNilaiTable({
             Tabel Nilai
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            {scheme === "tryout"
-              ? "Rekap tugas dan tiga tahap tryout untuk kelas akhir jenjang."
-              : "Rekap tugas dan tiga tahap UTS untuk kelas reguler."}
+            {readOnly
+              ? readOnlyMessage ?? "Tahun ajaran ini sudah menjadi arsip. Nilai hanya bisa dilihat."
+              : scheme === "tryout"
+                ? "Rekap tugas dan tiga tahap tryout untuk kelas akhir jenjang."
+                : "Rekap tugas dan tiga tahap UTS untuk kelas reguler."}
           </p>
         </div>
         <span className="inline-flex items-center border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700">
@@ -176,15 +180,21 @@ export default function TabelNilaiTable({
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex items-center justify-center gap-2">
-                      <button
-                        type="button"
-                        title="Edit Nilai"
-                        aria-label="Edit Nilai"
-                        onClick={() => onEditNilai(row.studentId)}
-                        className="inline-flex h-8 w-8 items-center justify-center border border-slate-200 bg-slate-50 text-slate-700 transition hover:border-orange-300 hover:bg-orange-100"
-                      >
-                        <FilePenLine className="h-4 w-4" />
-                      </button>
+                      {readOnly ? (
+                        <span className="inline-flex items-center border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                          Arsip
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          title="Edit Nilai"
+                          aria-label="Edit Nilai"
+                          onClick={() => onEditNilai(row.studentId)}
+                          className="inline-flex h-8 w-8 items-center justify-center border border-slate-200 bg-slate-50 text-slate-700 transition hover:border-orange-300 hover:bg-orange-100"
+                        >
+                          <FilePenLine className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

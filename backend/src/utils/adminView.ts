@@ -4,6 +4,7 @@ import type { StudentDocument } from "../models/Student";
 import type { TeacherDocument } from "../models/Teacher";
 import type { UserDocument } from "../models/User";
 import { buildStudentLoginCode, buildTeacherLoginCode } from "./accountCode";
+import { getCurrentAcademicPeriod } from "./academicGrade";
 import { formatDateOnly } from "./date";
 import { buildGeneratedPasswordForStudent } from "./studentPassword";
 
@@ -121,7 +122,7 @@ export function toPublicStudent(
     program: student.program,
     className: student.className,
     birthDate,
-    academicYear: student.academicYear || "2025/2026",
+    academicYear: student.academicYear || getCurrentAcademicPeriod().academicYear,
     academicJoinedAt: student.academicJoinedAt?.toISOString() ?? null,
     generatedPassword: buildGeneratedPasswordForStudent({
       birthDate,

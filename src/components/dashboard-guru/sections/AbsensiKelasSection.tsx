@@ -19,7 +19,11 @@ import {
 } from "lucide-react";
 
 import { clearAuthClientState } from "@/lib/auth";
-import { buildGuruApiUrl } from "@/lib/guru-helpers";
+import {
+  buildGuruApiUrl,
+  buildGuruUrl,
+  getGuruAcademicYearStatus,
+} from "@/lib/guru-helpers";
 import { DEFAULT_SEMESTER_MEETING_TARGET } from "@/components/dashboard-guru/data/guruClassTypes";
 import {
   Dialog,
@@ -674,6 +678,9 @@ export default function AbsensiKelasSection({
   kelasId,
 }: AbsensiKelasSectionProps) {
   const searchParams = useSearchParams();
+  const academicYearStatus = getGuruAcademicYearStatus(searchParams);
+  const isAcademicArchive = academicYearStatus.isArchive;
+  const archiveMessage = `Tahun ajaran ${academicYearStatus.academicYear} sudah menjadi arsip. Data absensi hanya bisa dilihat.`;
   const [activeClass, setActiveClass] = useState<AttendanceClassData | null>(null);
   const [attendanceSession, setAttendanceSession] =
     useState<TeacherAttendanceSession | null>(null);
@@ -824,6 +831,11 @@ export default function AbsensiKelasSection({
 
       setActiveClass(nextClass);
 
+      if (isAcademicArchive) {
+        applyAttendanceSessionState(null, [], archiveMessage);
+        return;
+      }
+
       setSessionLoading(true);
 
       try {
@@ -872,6 +884,11 @@ export default function AbsensiKelasSection({
   });
 
   async function startAttendanceSession() {
+    if (isAcademicArchive) {
+      setActionError(archiveMessage);
+      return;
+    }
+
     if (!activeClass?.kelasId || sessionLoading || closingSession) {
       return;
     }
@@ -932,6 +949,11 @@ export default function AbsensiKelasSection({
     student: StudentAttendanceRow,
     status: AttendanceSelection,
   ) {
+    if (isAcademicArchive) {
+      setActionError(archiveMessage);
+      return;
+    }
+
     if (
       !student.recordId ||
       !attendanceSession ||
@@ -954,7 +976,7 @@ export default function AbsensiKelasSection({
 
     try {
       const response = await fetch(
-        `/api/teacher/me/attendance/records/${encodeURIComponent(student.recordId)}`,
+        buildGuruApiUrl(`/api/teacher/me/attendance/records/${encodeURIComponent(student.recordId)}`, searchParams),
         {
           method: "PATCH",
           headers: {
@@ -1041,6 +1063,11 @@ export default function AbsensiKelasSection({
   }
 
   async function closeAttendanceSession() {
+    if (isAcademicArchive) {
+      setActionError(archiveMessage);
+      return;
+    }
+
     if (
       !attendanceSession?.sessionId ||
       attendanceSession.status !== "open" ||
@@ -1122,10 +1149,10 @@ export default function AbsensiKelasSection({
     queueMicrotask(() => {
       void loadAttendanceClass();
     });
-  }, [kelasId]);
+  }, [academicYearStatus.academicYear, kelasId]);
 
   const refreshAttendanceSessionWhileOpen = useEffectEvent(async (rotateQr: boolean = false) => {
-    if (!attendanceSession || attendanceSession.status !== "open") {
+    if (isAcademicArchive || !attendanceSession || attendanceSession.status !== "open") {
       return;
     }
 
@@ -1143,7 +1170,7 @@ export default function AbsensiKelasSection({
   });
 
   useEffect(() => {
-    if (!attendanceSession || attendanceSession.status !== "open") {
+    if (isAcademicArchive || !attendanceSession || attendanceSession.status !== "open") {
       return;
     }
 
@@ -1164,7 +1191,19 @@ export default function AbsensiKelasSection({
     closingSession,
     sessionLoading,
     updatingRecordId,
+    isAcademicArchive,
   ]);
+
+  useEffect(() => {
+    if (!isAcademicArchive) {
+      return;
+    }
+
+    queueMicrotask(() => {
+      setIsQrOpen(false);
+      setIsQrZoomed(false);
+    });
+  }, [isAcademicArchive]);
 
   const attendanceRows = useMemo(() => {
     if (!activeClass) {
@@ -1218,9 +1257,14 @@ export default function AbsensiKelasSection({
 
   const isSessionOpen = attendanceSession?.status === "open";
   const isSessionClosed = attendanceSession?.status === "closed";
-  const primaryActionDisabled = sessionLoading || closingSession || isSessionClosed;
+  const primaryActionDisabled =
+    isAcademicArchive || sessionLoading || closingSession || isSessionClosed;
   const attendanceControlsDisabled =
-    sessionLoading || closingSession || updatingRecordId !== null || !isSessionOpen;
+    isAcademicArchive ||
+    sessionLoading ||
+    closingSession ||
+    updatingRecordId !== null ||
+    !isSessionOpen;
   const qrSize = isQrZoomed ? 400 : 280;
   const qrValue = useMemo(
     () => buildAttendanceQrValue(attendanceSession),
@@ -1228,6 +1272,11 @@ export default function AbsensiKelasSection({
   );
 
   function handlePrimaryAction() {
+    if (isAcademicArchive) {
+      setActionError(archiveMessage);
+      return;
+    }
+
     if (!attendanceSession) {
       void startAttendanceSession();
       return;
@@ -1251,7 +1300,7 @@ export default function AbsensiKelasSection({
       <div className="mx-auto mt-4 w-full max-w-7xl px-4 pb-8 md:mt-6 md:px-6 md:pb-10">
         <div className="flex flex-col gap-4">
           <Link
-            href="/dashboard-guru/jadwal"
+            href={buildGuruUrl("/dashboard-guru/jadwal", searchParams)}
             className="inline-flex w-fit items-center gap-2 text-sm font-medium text-orange-700 transition-colors duration-300 hover:text-orange-800"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -1269,7 +1318,7 @@ export default function AbsensiKelasSection({
       <div className="mx-auto mt-4 w-full max-w-7xl px-4 pb-8 md:mt-6 md:px-6 md:pb-10">
         <div className="flex flex-col gap-4">
           <Link
-            href="/dashboard-guru/jadwal"
+            href={buildGuruUrl("/dashboard-guru/jadwal", searchParams)}
             className="inline-flex w-fit items-center gap-2 text-sm font-medium text-orange-700 transition-colors duration-300 hover:text-orange-800"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -1285,46 +1334,59 @@ export default function AbsensiKelasSection({
     );
   }
 
-  const sessionStatusMeta = sessionLoading
+  const sessionStatusMeta = isAcademicArchive
     ? {
-        label: "Memuat sesi absensi...",
-        className: "border-orange-200 bg-orange-50 text-orange-700",
+        label: "Tahun ajaran arsip",
+        className: "border-slate-200 bg-slate-100 text-slate-700",
       }
-    : !attendanceSession
+    : sessionLoading
       ? {
-          label: "Sesi absensi belum dimulai",
-          className: "border-amber-200 bg-amber-50 text-amber-700",
+          label: "Memuat sesi absensi...",
+          className: "border-orange-200 bg-orange-50 text-orange-700",
         }
-      : isSessionClosed
+      : !attendanceSession
         ? {
-            label: "Sesi ditutup",
-            className: "border-slate-200 bg-slate-100 text-slate-700",
+            label: "Sesi absensi belum dimulai",
+            className: "border-amber-200 bg-amber-50 text-amber-700",
           }
-        : {
-            label: "Status tersimpan ke sistem",
-            className: "border-emerald-200 bg-emerald-50 text-emerald-700",
-          };
+        : isSessionClosed
+          ? {
+              label: "Sesi ditutup",
+              className: "border-slate-200 bg-slate-100 text-slate-700",
+            }
+          : {
+              label: "Status tersimpan ke sistem",
+              className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+            };
 
-  const primaryButtonLabel = sessionLoading
-    ? "Menyiapkan Sesi..."
-    : !attendanceSession
-      ? "Mulai Absensi QR"
-      : isSessionClosed
-        ? "Sesi Ditutup"
-        : "Buka QR Absensi";
+  const primaryButtonLabel = isAcademicArchive
+    ? "Arsip Absensi"
+    : sessionLoading
+      ? "Menyiapkan Sesi..."
+      : !attendanceSession
+        ? "Mulai Absensi QR"
+        : isSessionClosed
+          ? "Sesi Ditutup"
+          : "Buka QR Absensi";
 
   return (
     <div className="mx-auto mt-4 w-full max-w-7xl px-4 pb-8 md:mt-6 md:px-6 md:pb-10">
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link
-            href="/dashboard-guru/jadwal"
+            href={buildGuruUrl("/dashboard-guru/jadwal", searchParams)}
             className="inline-flex items-center gap-2 text-sm font-medium text-orange-700 transition-colors duration-300 hover:text-orange-800"
           >
             <ArrowLeft className="h-4 w-4" />
             Kembali ke Jadwal
           </Link>
         </div>
+
+        {isAcademicArchive ? (
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600">
+            {archiveMessage} Mulai sesi, tutup sesi, dan ubah status kehadiran dinonaktifkan.
+          </div>
+        ) : null}
 
         <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_28px_70px_-42px_rgba(15,23,42,0.35),0_18px_40px_-34px_rgba(249,115,22,0.28)]">
           <div className="h-1 w-full bg-gradient-to-r from-red-800 via-orange-600 to-amber-500" />
@@ -1401,9 +1463,15 @@ export default function AbsensiKelasSection({
                     <button
                       type="button"
                       onClick={() => void closeAttendanceSession()}
-                      disabled={closingSession || updatingRecordId !== null}
+                      disabled={
+                        isAcademicArchive ||
+                        closingSession ||
+                        updatingRecordId !== null
+                      }
                       className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-5 py-3 text-sm font-semibold transition ${
-                        closingSession || updatingRecordId !== null
+                        isAcademicArchive ||
+                        closingSession ||
+                        updatingRecordId !== null
                           ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
                           : "border-orange-200 bg-white text-orange-700 shadow-[0_18px_30px_-24px_rgba(249,115,22,0.2)] hover:-translate-y-0.5 hover:border-orange-300 hover:bg-orange-50"
                       }`}

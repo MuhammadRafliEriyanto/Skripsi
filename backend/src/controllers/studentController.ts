@@ -27,9 +27,9 @@ import {
 } from "../utils/adminBranchScope";
 import { AppError, sendSuccess } from "../utils/apiResponse";
 import { buildStudentLoginCode } from "../utils/accountCode";
+import { assertAdminAcademicPeriodEditable } from "../utils/adminAcademicArchive";
 import { buildCsvContent } from "../utils/csv";
 import { getNextPublicId } from "../utils/publicId";
-import { getCurrentAcademicPeriod } from "../utils/academicGrade";
 import {
   buildImportedStudentDuplicateKey,
   buildImportedStudentEmail,
@@ -78,6 +78,7 @@ type StudentRequestBody = {
 type StudentImportRequestBody = {
   fileName?: string;
   fileDataBase64?: string;
+  academicYear?: string;
 };
 
 type StudentListQuery = {
@@ -427,8 +428,8 @@ async function createStudentAccount(
   }
 }
 
-async function getExistingStudentImportKeys(): Promise<Set<string>> {
-  const students = (await Student.find()
+async function getExistingStudentImportKeys(academicYear: string): Promise<Set<string>> {
+  const students = (await Student.find({ academicYear })
     .populate<{ userId: StudentWithUser["userId"] }>("userId")
     .exec()) as StudentWithUser[];
   const resolvedStudents = students.filter(hasResolvedStudentUser);
@@ -901,7 +902,8 @@ export const createStudent = asyncHandler(
     const program = normalizeText(req.body.program);
     const className = normalizeText(req.body.className);
     const birthDate = parseBirthDate(req.body.birthDate);
-    const academicYear = normalizeText(req.body.academicYear) || getCurrentAcademicPeriod().academicYear;
+    const academicPeriod = assertAdminAcademicPeriodEditable(req.body.academicYear);
+    const academicYear = academicPeriod.academicYear;
     const status = normalizeText(req.body.status) as StudentRequestBody["status"];
     const membershipPaymentMode: Exclude<
       MembershipPaymentMode,
@@ -1081,6 +1083,7 @@ export const importStudents = asyncHandler(
     const scope = await resolveAdminBranchScope(req.user, {
       requireManagedBranchesForAdmin: true,
     });
+    const academicPeriod = assertAdminAcademicPeriodEditable(req.body.academicYear);
     const fileName = normalizeText(req.body.fileName);
     const fileBuffer = decodeImportFileData(req.body.fileDataBase64);
 
@@ -1108,7 +1111,7 @@ export const importStudents = asyncHandler(
       return;
     }
 
-    const existingKeys = await getExistingStudentImportKeys();
+    const existingKeys = await getExistingStudentImportKeys(academicPeriod.academicYear);
     const branchNameMap = await getBranchNameMap();
     const importedKeys = new Set<string>();
     const issues: StudentImportIssue[] = [];
@@ -1209,7 +1212,7 @@ export const importStudents = asyncHandler(
           program,
           className,
           birthDate: null,
-          academicYear: "",
+          academicYear: academicPeriod.academicYear,
           status: "Aktif",
           generatedPassword,
         });
@@ -1268,6 +1271,7 @@ export const updateStudent = asyncHandler(
     }
 
     assertBranchAccess(student.branch, scope);
+    assertAdminAcademicPeriodEditable(student.academicYear);
 
     if (!hasResolvedStudentUser(student)) {
       next(
@@ -1294,6 +1298,7 @@ export const updateStudent = asyncHandler(
     const birthDate = parseBirthDate(req.body.birthDate);
     const academicYear = normalizeText(req.body.academicYear);
     const status = normalizeText(req.body.status) as StudentRequestBody["status"];
+    const targetAcademicPeriod = assertAdminAcademicPeriodEditable(academicYear || student.academicYear);
 
     if (!name || !email || !phone || !program || !className || !req.body.birthDate || !birthDate || !academicYear) {
       next(new AppError(400, "Data siswa belum lengkap."));
@@ -1333,7 +1338,7 @@ export const updateStudent = asyncHandler(
     student.program = program;
     student.className = className;
     student.birthDate = birthDate;
-    student.academicYear = academicYear;
+    student.academicYear = targetAcademicPeriod.academicYear;
     student.status = status as StudentStatus;
 
     const password = req.body.password?.trim() ?? "";
@@ -1373,6 +1378,7 @@ export const deleteStudent = asyncHandler(
     }
 
     assertBranchAccess(student.branch, scope);
+    assertAdminAcademicPeriodEditable(student.academicYear);
 
     const financialHistory = await getStudentFinancialHistory(student);
 

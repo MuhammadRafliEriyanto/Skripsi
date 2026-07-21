@@ -29,6 +29,11 @@ import {
   isAttendanceSessionOnOrAfterAcademicJoin,
   parseValidDate,
 } from "../utils/studentAcademicStatus";
+import { getCurrentAcademicPeriod } from "../utils/academicGrade";
+import {
+  ensureTeacherAcademicPeriodEditable,
+  TEACHER_ACADEMIC_ARCHIVE_MESSAGE,
+} from "../utils/teacherAcademicArchive";
 import { resolveTeacherClassDetailContext } from "./teacherScheduleController";
 
 type UpdateAttendanceRecordRequestBody = {
@@ -195,6 +200,33 @@ function generateAttendanceQrToken() {
   return `qr_${randomBytes(24).toString("hex")}`;
 }
 
+function isAttendanceSessionInEditableAcademicYear(
+  session: AttendanceSessionDocument,
+) {
+  const sessionDate = new Date(`${normalizeText(session.date)}T00:00:00+07:00`);
+
+  if (Number.isNaN(sessionDate.getTime())) {
+    return false;
+  }
+
+  return (
+    getCurrentAcademicPeriod(sessionDate).academicYear ===
+    getCurrentAcademicPeriod().academicYear
+  );
+}
+
+function ensureAttendanceSessionEditable(
+  session: AttendanceSessionDocument,
+  next: NextFunction,
+) {
+  if (isAttendanceSessionInEditableAcademicYear(session)) {
+    return true;
+  }
+
+  next(new AppError(403, TEACHER_ACADEMIC_ARCHIVE_MESSAGE));
+  return false;
+}
+
 async function ensureAttendanceSessionQrToken(session: AttendanceSessionDocument) {
   const existingQrToken = normalizeText(session.qrToken);
 
@@ -302,6 +334,10 @@ export const createOrGetTeacherAttendanceSession = asyncHandler(
       return;
     }
 
+    if (!ensureTeacherAcademicPeriodEditable(req, next)) {
+      return;
+    }
+
     const { teacher, classGroup, participants } =
       await resolveTeacherClassDetailContext(
         req.user._id.toString(),
@@ -386,6 +422,10 @@ export const getTeacherAttendanceSession = asyncHandler(
       return;
     }
 
+    if (!ensureTeacherAcademicPeriodEditable(req, next)) {
+      return;
+    }
+
     const { teacher, classGroup, participants } = await resolveTeacherClassDetailContext(
       req.user._id.toString(),
       req.params.classId,
@@ -403,6 +443,14 @@ export const getTeacherAttendanceSession = asyncHandler(
     }
 
     if (req.query.rotateQr === "true") {
+      if (!ensureTeacherAcademicPeriodEditable(req, next)) {
+        return;
+      }
+
+      if (!ensureAttendanceSessionEditable(session, next)) {
+        return;
+      }
+
       session.qrToken = generateAttendanceQrToken();
       await session.save();
     } else {
@@ -435,6 +483,10 @@ export const updateTeacherAttendanceRecord = asyncHandler(
       return;
     }
 
+    if (!ensureTeacherAcademicPeriodEditable(req, next)) {
+      return;
+    }
+
     const teacher = await getAuthenticatedTeacher(req.user._id.toString());
 
     if (!teacher) {
@@ -463,6 +515,10 @@ export const updateTeacherAttendanceRecord = asyncHandler(
 
     if (!session) {
       next(new AppError(404, "Data record absensi tidak ditemukan."));
+      return;
+    }
+
+    if (!ensureAttendanceSessionEditable(session, next)) {
       return;
     }
 
@@ -522,6 +578,10 @@ export const closeTeacherAttendanceSession = asyncHandler(
       return;
     }
 
+    if (!ensureTeacherAcademicPeriodEditable(req, next)) {
+      return;
+    }
+
     const teacher = await getAuthenticatedTeacher(req.user._id.toString());
 
     if (!teacher) {
@@ -543,6 +603,10 @@ export const closeTeacherAttendanceSession = asyncHandler(
 
     if (!session) {
       next(new AppError(404, "Sesi absensi tidak ditemukan."));
+      return;
+    }
+
+    if (!ensureAttendanceSessionEditable(session, next)) {
       return;
     }
 

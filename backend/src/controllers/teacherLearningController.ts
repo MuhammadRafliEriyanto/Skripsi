@@ -25,7 +25,8 @@ import {
 } from "../utils/learningAttachmentStorage";
 import { getNextPublicId } from "../utils/publicId";
 import { resolveTeacherClassDetailContext } from "./teacherScheduleController";
-import { getCurrentAcademicPeriod } from "../utils/academicGrade";
+import { resolveAcademicPeriodFromQuery } from "../utils/academicGrade";
+import { ensureTeacherAcademicPeriodEditable } from "../utils/teacherAcademicArchive";
 
 type UpsertClassMaterialBody = {
   meetingNumber?: number | string;
@@ -212,6 +213,10 @@ export const createTeacherClassMaterial = asyncHandler(
       return;
     }
 
+    if (!ensureTeacherAcademicPeriodEditable(req, next)) {
+      return;
+    }
+
     const { teacher, classGroup } = await resolveTeacherClassDetailContext(
       req.user._id.toString(),
       req.params.classId,
@@ -269,6 +274,7 @@ export const createTeacherClassMaterial = asyncHandler(
             fileBuffer: attachmentPayload.fileBuffer,
           })
         : null;
+    const period = resolveAcademicPeriodFromQuery(req.query);
     const material = await ClassMaterial.create({
       materialId,
       classId: classGroup.item.id,
@@ -285,6 +291,8 @@ export const createTeacherClassMaterial = asyncHandler(
       linkUrl,
       attachment,
       status,
+      academicYear: period.academicYear,
+      semester: period.semester,
     });
 
     sendSuccess(res, {
@@ -312,6 +320,10 @@ export const updateTeacherClassMaterial = asyncHandler(
       return;
     }
 
+    if (!ensureTeacherAcademicPeriodEditable(req, next)) {
+      return;
+    }
+
     const { teacher, classGroup } = await resolveTeacherClassDetailContext(
       req.user._id.toString(),
       req.params.classId,
@@ -327,7 +339,7 @@ export const updateTeacherClassMaterial = asyncHandler(
       materialId,
       classGroup.item.id,
       teacher._id.toString(),
-      getCurrentAcademicPeriod(),
+      resolveAcademicPeriodFromQuery(req.query),
     );
 
     if (!material) {
@@ -422,6 +434,10 @@ export const deleteTeacherClassMaterial = asyncHandler(
       return;
     }
 
+    if (!ensureTeacherAcademicPeriodEditable(req, next)) {
+      return;
+    }
+
     const { teacher, classGroup } = await resolveTeacherClassDetailContext(
       req.user._id.toString(),
       req.params.classId,
@@ -437,6 +453,7 @@ export const deleteTeacherClassMaterial = asyncHandler(
       materialId,
       classGroup.item.id,
       teacher._id.toString(),
+      resolveAcademicPeriodFromQuery(req.query),
     );
 
     if (!material) {
@@ -466,6 +483,10 @@ export const createTeacherClassTask = asyncHandler(
   ) => {
     if (!req.user) {
       next(new AppError(401, "User belum terautentikasi."));
+      return;
+    }
+
+    if (!ensureTeacherAcademicPeriodEditable(req, next)) {
       return;
     }
 
@@ -519,7 +540,7 @@ export const createTeacherClassTask = asyncHandler(
             fileBuffer: attachmentPayload.fileBuffer,
           })
         : null;
-    const period = getCurrentAcademicPeriod();
+    const period = resolveAcademicPeriodFromQuery(req.query);
     const task = await ClassTask.create({
       taskId,
       classId: classGroup.item.id,
@@ -574,6 +595,10 @@ export const updateTeacherClassTask = asyncHandler(
       return;
     }
 
+    if (!ensureTeacherAcademicPeriodEditable(req, next)) {
+      return;
+    }
+
     const { teacher, classGroup } = await resolveTeacherClassDetailContext(
       req.user._id.toString(),
       req.params.classId,
@@ -589,7 +614,7 @@ export const updateTeacherClassTask = asyncHandler(
       taskId,
       classGroup.item.id,
       teacher._id.toString(),
-      getCurrentAcademicPeriod(),
+      resolveAcademicPeriodFromQuery(req.query),
     );
 
     if (!task) {
@@ -684,6 +709,10 @@ export const deleteTeacherClassTask = asyncHandler(
       return;
     }
 
+    if (!ensureTeacherAcademicPeriodEditable(req, next)) {
+      return;
+    }
+
     const { teacher, classGroup } = await resolveTeacherClassDetailContext(
       req.user._id.toString(),
       req.params.classId,
@@ -699,6 +728,7 @@ export const deleteTeacherClassTask = asyncHandler(
       taskId,
       classGroup.item.id,
       teacher._id.toString(),
+      resolveAcademicPeriodFromQuery(req.query),
     );
 
     if (!task) {

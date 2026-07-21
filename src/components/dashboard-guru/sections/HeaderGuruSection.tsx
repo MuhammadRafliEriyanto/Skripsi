@@ -153,6 +153,7 @@ export default function HeaderGuruSection() {
   const { academicYear: defaultAcademicYear } =
     getSelectedAcademicPeriod(searchParams);
   const rawAcademicYear = searchParams.get("academicYear") || "";
+  const selectedAcademicYear = rawAcademicYear || defaultAcademicYear;
 
   const handlePeriodChange = (key: "academicYear", value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -164,10 +165,20 @@ export default function HeaderGuruSection() {
     router.push(buildGuruUrl(href, searchParams));
   };
 
-  const academicYearOptions = ["2025/2026", "2026/2027"];
+  const academicYearOptions = useMemo(() => {
+    const match = period.academicYear.match(/^(\d{4})\/(\d{4})$/);
+    const options = match?.[1]
+      ? [
+          period.academicYear,
+          `${Number(match[1]) + 1}/${Number(match[1]) + 2}`,
+        ]
+      : [period.academicYear];
+
+    return Array.from(new Set([...options, selectedAcademicYear].filter(Boolean)));
+  }, [period.academicYear, selectedAcademicYear]);
 
   const isCurrentPeriod =
-    (rawAcademicYear || defaultAcademicYear) === period.academicYear;
+    selectedAcademicYear === period.academicYear;
 
   const guruConfig = useMemo<GuruProgram[]>(
     () => [
@@ -407,17 +418,21 @@ export default function HeaderGuruSection() {
             <CalendarDays className="h-4 w-4 text-orange-500" />
             <h2 className="text-sm font-semibold text-slate-800">Tahun Ajaran</h2>
           </div>
-          {isCurrentPeriod && (
-            <span className="rounded bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700 tracking-wide uppercase">
-              Aktif
-            </span>
-          )}
+          <span
+            className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+              isCurrentPeriod
+                ? "bg-green-100 text-green-700"
+                : "bg-slate-100 text-slate-600"
+            }`}
+          >
+            {isCurrentPeriod ? "Aktif" : "Arsip"}
+          </span>
         </div>
         
         <div className="grid grid-cols-1 gap-3">
           <div className="relative">
             <Select
-              value={rawAcademicYear}
+              value={selectedAcademicYear}
               onValueChange={(value) => handlePeriodChange("academicYear", value)}
             >
               <SelectTrigger className="w-full rounded-xl border-gray-200 bg-gray-50 focus:ring-orange-400 h-9 text-xs">

@@ -4,7 +4,7 @@ import { AcademicGrade } from "../models/AcademicGrade";
 import {
   getAcademicGradeScheme,
   getAcademicGradeScoreKeys,
-  getCurrentAcademicPeriod,
+  resolveAcademicPeriodFromQuery,
   toPublicAcademicGrade,
 } from "../utils/academicGrade";
 import asyncHandler from "../utils/asyncHandler";
@@ -14,6 +14,7 @@ import { getNextPublicId } from "../utils/publicId";
 import { resolveTeacherClassDetailContext } from "./teacherScheduleController";
 import { parseValidDate } from "../utils/studentAcademicStatus";
 import { findActiveSubscriptionIdForAcademicRecord } from "../utils/subscription";
+import { ensureTeacherAcademicPeriodEditable } from "../utils/teacherAcademicArchive";
 
 type AcademicScoreInput = number | string | null;
 
@@ -58,6 +59,10 @@ export const upsertTeacherClassAcademicGrade = asyncHandler(
   ) => {
     if (!req.user) {
       next(new AppError(401, "User belum terautentikasi."));
+      return;
+    }
+
+    if (!ensureTeacherAcademicPeriodEditable(req, next)) {
       return;
     }
 
@@ -110,7 +115,7 @@ export const upsertTeacherClassAcademicGrade = asyncHandler(
     }
 
     const note = normalizeText(req.body.note);
-    const period = getCurrentAcademicPeriod();
+    const period = resolveAcademicPeriodFromQuery(req.query);
     const existingGrade = await AcademicGrade.findOne({
       teacherId: teacher._id,
       classId: classGroup.item.id,

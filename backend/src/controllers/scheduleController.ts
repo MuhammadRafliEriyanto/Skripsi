@@ -12,6 +12,7 @@ import { Room } from "../models/Room";
 import { Teacher, type TeacherDocument } from "../models/Teacher";
 import { User } from "../models/User";
 import type { PublicSchedule } from "../utils/adminView";
+import { assertAdminAcademicPeriodEditable } from "../utils/adminAcademicArchive";
 import asyncHandler from "../utils/asyncHandler";
 import {
   assertBranchAccess,
@@ -46,6 +47,7 @@ type ScheduleRequestBody = {
 type ScheduleImportRequestBody = {
   fileName?: string;
   fileDataBase64?: string;
+  academicYear?: string;
 };
 
 type ScheduleListQuery = {
@@ -358,12 +360,14 @@ async function findDuplicateScheduleInBranch(options: {
   time: string;
   className: string;
   branch: string;
+  academicYear: string;
   excludeScheduleId?: Types.ObjectId;
 }) {
   const schedules = await Schedule.find({
     day: options.day,
     time: options.time,
     className: options.className,
+    academicYear: options.academicYear,
     ...(options.excludeScheduleId ? { _id: { $ne: options.excludeScheduleId } } : {}),
   })
     .select("_id scheduleId branch teacherId")
@@ -683,6 +687,7 @@ export const importSchedules = asyncHandler(
     const scope = await resolveAdminBranchScope(req.user, {
       requireManagedBranchesForAdmin: true,
     });
+    const academicPeriod = assertAdminAcademicPeriodEditable(req.body.academicYear);
     const fileName = normalizeText(req.body.fileName);
     const fileBuffer = decodeImportFileData(req.body.fileDataBase64);
 
@@ -718,7 +723,7 @@ export const importSchedules = asyncHandler(
         .lean()
         .exec() as Promise<ScheduleImportTeacherLookup[]>,
       Room.find().select("name").exec(),
-      Schedule.find()
+      Schedule.find({ academicYear: academicPeriod.academicYear })
         .select("day time className branch teacherId")
         .populate<{ teacherId: { branch?: string | null } | null }>({
           path: "teacherId",
@@ -870,8 +875,6 @@ export const importSchedules = asyncHandler(
 
       try {
         const scheduleId = await getNextPublicId(Schedule, "scheduleId", "SCH");
-        const period = getCurrentAcademicPeriod();
-
         await Schedule.create({
           scheduleId,
           day,
@@ -882,8 +885,8 @@ export const importSchedules = asyncHandler(
           branch: scheduleBranch,
           room,
           status,
-          academicYear: period.academicYear,
-          semester: period.semester,
+          academicYear: academicPeriod.academicYear,
+          semester: academicPeriod.semester,
         });
 
         affectedTeacherIds.add(selectedTeacher._id.toString());
@@ -960,7 +963,7 @@ export const createSchedule = asyncHandler(
     const teacherPublicId = normalizeText(req.body.teacherId);
     const room = normalizeText(req.body.room);
     const status = normalizeText(req.body.status) as ScheduleRequestBody["status"];
-    const academicYear = normalizeText(req.body.academicYear);
+    const period = assertAdminAcademicPeriodEditable(req.body.academicYear);
 
     if (!day || !time || !teacherPublicId || !room) {
       next(new AppError(400, "Data jadwal belum lengkap."));
@@ -1013,6 +1016,7 @@ export const createSchedule = asyncHandler(
       time,
       className,
       branch: scheduleBranch,
+      academicYear: period.academicYear,
     });
 
     if (duplicateSchedule) {
@@ -1021,8 +1025,6 @@ export const createSchedule = asyncHandler(
     }
 
     const scheduleId = await getNextPublicId(Schedule, "scheduleId", "SCH");
-    const period = getCurrentAcademicPeriod();
-    const finalAcademicYear = academicYear || period.academicYear;
     const schedule = await Schedule.create({
       scheduleId,
       day,
@@ -1033,7 +1035,7 @@ export const createSchedule = asyncHandler(
       branch: scheduleBranch,
       room,
       status: status as (typeof SCHEDULE_STATUSES)[number],
-      academicYear: finalAcademicYear,
+      academicYear: period.academicYear,
       semester: period.semester,
     });
 
@@ -1073,6 +1075,7 @@ export const updateSchedule = asyncHandler(
     }
 
     assertBranchAccess(await getScheduleTeacherBranch(schedule), scope);
+    assertAdminAcademicPeriodEditable(schedule.academicYear);
 
     const day = normalizeText(req.body.day);
     const time = normalizeText(req.body.time);
@@ -1135,6 +1138,7 @@ export const updateSchedule = asyncHandler(
       time,
       className,
       branch: scheduleBranch,
+      academicYear: schedule.academicYear || getCurrentAcademicPeriod().academicYear,
       excludeScheduleId: schedule._id,
     });
 
@@ -1190,6 +1194,7 @@ export const deleteSchedule = asyncHandler(
     }
 
     assertBranchAccess(await getScheduleTeacherBranch(schedule), scope);
+    assertAdminAcademicPeriodEditable(schedule.academicYear);
 
     const teacherId = schedule.teacherId;
     await Schedule.deleteOne({ _id: schedule._id });

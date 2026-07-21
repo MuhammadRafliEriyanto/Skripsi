@@ -4,6 +4,7 @@ import { AttendanceSession } from "../models/AttendanceSession";
 import { TeacherClassSetting } from "../models/TeacherClassSetting";
 import asyncHandler from "../utils/asyncHandler";
 import { AppError, sendSuccess } from "../utils/apiResponse";
+import { ensureTeacherAcademicPeriodEditable } from "../utils/teacherAcademicArchive";
 import { resolveTeacherClassDetailContext } from "./teacherScheduleController";
 
 type UpdateTeacherClassSettingBody = {
@@ -37,6 +38,10 @@ export const updateTeacherClassSetting = asyncHandler(
   ) => {
     if (!req.user) {
       next(new AppError(401, "User belum terautentikasi."));
+      return;
+    }
+
+    if (!ensureTeacherAcademicPeriodEditable(req, next)) {
       return;
     }
 

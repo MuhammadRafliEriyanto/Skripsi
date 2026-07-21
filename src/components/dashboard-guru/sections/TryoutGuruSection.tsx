@@ -39,7 +39,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { clearAuthClientState } from "@/lib/auth";
-import { buildGuruApiUrl, getSelectedAcademicPeriod } from "@/lib/guru-helpers";
+import {
+  buildGuruApiUrl,
+  getGuruAcademicYearStatus,
+  getSelectedAcademicPeriod,
+} from "@/lib/guru-helpers";
 
 type TryoutJenjang = "SD" | "SMP" | "SMA";
 type AssessmentType = "UTS" | "UAS" | "Tryout";
@@ -1440,6 +1444,8 @@ function UploadSoalDialog({
   questionSuccessMessage,
   isQuestionSubmitting,
   isXlsxUploading,
+  readOnly = false,
+  readOnlyMessage,
   onClose,
   onChange,
   onUploadXlsx,
@@ -1458,6 +1464,8 @@ function UploadSoalDialog({
   questionSuccessMessage: string | null;
   isQuestionSubmitting: boolean;
   isXlsxUploading: boolean;
+  readOnly?: boolean;
+  readOnlyMessage?: string;
   onClose: () => void;
   onChange: (field: keyof QuestionDraft, value: string) => void;
   onUploadXlsx: (file: File) => void;
@@ -1474,7 +1482,7 @@ function UploadSoalDialog({
   const isReadonlyQuestionSource = isBankSource || isFileSource;
   const isEditingQuestion = Boolean(editingQuestionId);
   const isBusy = isQuestionSubmitting || isXlsxUploading;
-  const questionsLocked = tryout?.publishStatus !== "Draft";
+  const questionsLocked = readOnly || tryout?.publishStatus !== "Draft";
 
   return (
     <Dialog
@@ -1494,8 +1502,9 @@ function UploadSoalDialog({
           <div className="mx-4 mt-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 md:mx-5">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>
-              Soal terkunci karena ujian sudah diterbitkan. Tarik publikasi
-              ujian terlebih dahulu sebelum mengubah soal.
+              {readOnly
+                ? readOnlyMessage ?? "Tahun ajaran ini sudah menjadi arsip. Soal hanya bisa dilihat."
+                : "Soal terkunci karena ujian sudah diterbitkan. Tarik publikasi ujian terlebih dahulu sebelum mengubah soal."}
             </span>
           </div>
         ) : null}
@@ -2057,6 +2066,9 @@ function HasilTryoutDialog({
 export default function TryoutGuruSection() {
   const searchParams = useSearchParams();
   const { academicYear } = getSelectedAcademicPeriod(searchParams);
+  const academicYearStatus = getGuruAcademicYearStatus(searchParams);
+  const isAcademicArchive = academicYearStatus.isArchive;
+  const archiveMessage = `Tahun ajaran ${academicYearStatus.academicYear} sudah menjadi arsip. Data ujian hanya bisa dilihat.`;
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedJenjang, setSelectedJenjang] =
     useState<TryoutJenjang>("SMA");
@@ -2278,6 +2290,25 @@ export default function TryoutGuruSection() {
     });
   }, [academicYear, tryoutReloadSignal]);
 
+  useEffect(() => {
+    if (!isAcademicArchive) {
+      return;
+    }
+
+    queueMicrotask(() => {
+      setIsFormOpen(false);
+      setDraftTryout(null);
+      setIsTryoutSubmitting(false);
+      setEditingQuestionId(null);
+      setQuestionDraft(createEmptyQuestionDraft());
+      setIsQuestionSubmitting(false);
+      setIsXlsxUploading(false);
+      saveTryoutInFlightRef.current = false;
+      questionSubmitInFlightRef.current = false;
+      xlsxUploadInFlightRef.current = false;
+    });
+  }, [isAcademicArchive]);
+
   const loadManualQuestions = useCallback(async (tryoutId: string) => {
     try {
       setIsQuestionLoading(true);
@@ -2285,7 +2316,10 @@ export default function TryoutGuruSection() {
 
       const { response, payload } =
         await fetchTeacherTryoutJson<TeacherTryoutQuestionListResponse>(
-          `/api/teacher/me/tryouts/${encodeURIComponent(tryoutId)}/questions`,
+          buildGuruApiUrl(
+            `/api/teacher/me/tryouts/${encodeURIComponent(tryoutId)}/questions`,
+            searchParams,
+          ),
           {
             method: "GET",
           },
@@ -2318,7 +2352,7 @@ export default function TryoutGuruSection() {
     } finally {
       setIsQuestionLoading(false);
     }
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     if (
@@ -2338,7 +2372,20 @@ export default function TryoutGuruSection() {
     uploadTargetTryout?.questionSource,
   ]);
 
+  function ensureAcademicYearEditable() {
+    if (!isAcademicArchive) {
+      return true;
+    }
+
+    toast.error(archiveMessage);
+    return false;
+  }
+
   function openAddDialog() {
+    if (!ensureAcademicYearEditable()) {
+      return;
+    }
+
     const initialClassOption =
       classOptions.find((option) => option.assessmentMode === "tryout") ??
       classOptions[0] ??
@@ -2361,6 +2408,10 @@ export default function TryoutGuruSection() {
   }
 
   function openEditDialog(tryout: TryoutItem) {
+    if (!ensureAcademicYearEditable()) {
+      return;
+    }
+
     setFormMode("edit");
     setDraftTryout({
       id: tryout.id,
@@ -2477,6 +2528,10 @@ export default function TryoutGuruSection() {
   }
 
   function handleOpenManualManagerFromForm() {
+    if (!ensureAcademicYearEditable()) {
+      return;
+    }
+
     if (!draftTryout?.id) {
       toast.error(
     "Simpan ujian terlebih dahulu sebelum menambahkan soal manual.",
@@ -2496,6 +2551,10 @@ export default function TryoutGuruSection() {
   }
 
   function handleOpenFileUploaderFromForm() {
+    if (!ensureAcademicYearEditable()) {
+      return;
+    }
+
     if (!draftTryout?.id) {
       toast.error(
         "Lengkapi detail ujian, lalu klik Simpan & Lanjut Unggah untuk memilih file soal.",
@@ -2515,6 +2574,10 @@ export default function TryoutGuruSection() {
   }
 
   async function handleSaveTryout() {
+    if (!ensureAcademicYearEditable()) {
+      return;
+    }
+
     if (!draftTryout || saveTryoutInFlightRef.current) {
       return;
     }
@@ -2582,10 +2645,13 @@ export default function TryoutGuruSection() {
         : "/api/teacher/me/tryouts";
       const method = isEditMode ? "PATCH" : "POST";
       const { response, payload } =
-        await fetchTeacherTryoutJson<TeacherTryoutDetailResponse>(endpoint, {
-          method,
-          body: JSON.stringify(buildTryoutMutationPayload(draftForSave)),
-        });
+        await fetchTeacherTryoutJson<TeacherTryoutDetailResponse>(
+          buildGuruApiUrl(endpoint, searchParams),
+          {
+            method,
+            body: JSON.stringify(buildTryoutMutationPayload(draftForSave)),
+          },
+        );
 
       if (response.status === 401) {
         clearAuthClientState();
@@ -2628,6 +2694,10 @@ export default function TryoutGuruSection() {
   }
 
   async function handleDeleteTryout(tryoutId: string) {
+    if (!ensureAcademicYearEditable()) {
+      return;
+    }
+
     const targetTryout = tryouts.find((item) => item.id === tryoutId);
 
     if (!targetTryout || targetTryout.publishStatus !== "Draft") {
@@ -2642,7 +2712,10 @@ export default function TryoutGuruSection() {
     try {
       const { response, payload } =
         await fetchTeacherTryoutJson<TeacherTryoutDetailResponse>(
-          `/api/teacher/me/tryouts/${encodeURIComponent(tryoutId)}`,
+          buildGuruApiUrl(
+            `/api/teacher/me/tryouts/${encodeURIComponent(tryoutId)}`,
+            searchParams,
+          ),
           {
             method: "DELETE",
           },
@@ -2669,6 +2742,10 @@ export default function TryoutGuruSection() {
   }
 
   async function handleTogglePublish(tryoutId: string) {
+    if (!ensureAcademicYearEditable()) {
+      return;
+    }
+
     const targetTryout = tryouts.find((item) => item.id === tryoutId);
 
     if (
@@ -2737,7 +2814,10 @@ export default function TryoutGuruSection() {
     try {
       const { response, payload } =
         await fetchTeacherTryoutJson<TeacherTryoutDetailResponse>(
-          `/api/teacher/me/tryouts/${encodeURIComponent(tryoutId)}`,
+          buildGuruApiUrl(
+            `/api/teacher/me/tryouts/${encodeURIComponent(tryoutId)}`,
+            searchParams,
+          ),
           {
             method: "PATCH",
             body: JSON.stringify(buildTryoutMutationPayload(nextDraft)),
@@ -2806,6 +2886,10 @@ export default function TryoutGuruSection() {
   }
 
   function handleEditQuestion(question: TryoutQuestion) {
+    if (!ensureAcademicYearEditable()) {
+      return;
+    }
+
     setEditingQuestionId(question.id);
     setQuestionDraft(createQuestionDraftFromQuestion(question));
     setQuestionLoadError(null);
@@ -2818,6 +2902,10 @@ export default function TryoutGuruSection() {
   }
 
   async function handleUploadXlsxQuestionFile(file: File) {
+    if (!ensureAcademicYearEditable()) {
+      return;
+    }
+
     if (!selectedUploadTryoutId || xlsxUploadInFlightRef.current) {
       return;
     }
@@ -2842,7 +2930,10 @@ export default function TryoutGuruSection() {
       const fileDataBase64 = await readFileAsBase64(file);
       const { response, payload } =
         await fetchTeacherTryoutJson<TeacherTryoutQuestionListResponse>(
-          `/api/teacher/me/tryouts/${encodeURIComponent(selectedUploadTryoutId)}/questions/xlsx`,
+          buildGuruApiUrl(
+            `/api/teacher/me/tryouts/${encodeURIComponent(selectedUploadTryoutId)}/questions/xlsx`,
+            searchParams,
+          ),
           {
             method: "POST",
             body: JSON.stringify({
@@ -2887,6 +2978,10 @@ export default function TryoutGuruSection() {
   }
 
   async function handleSubmitQuestion() {
+    if (!ensureAcademicYearEditable()) {
+      return;
+    }
+
     if (
       !selectedUploadTryoutId ||
       uploadTargetTryout?.questionSource !== "manual" ||
@@ -2922,9 +3017,12 @@ export default function TryoutGuruSection() {
 
       const { response, payload } =
         await fetchTeacherTryoutJson<TeacherTryoutQuestionDetailResponse>(
-          isEditMode
+          buildGuruApiUrl(
+            isEditMode
             ? `/api/teacher/me/tryouts/${encodeURIComponent(selectedUploadTryoutId)}/questions/${encodeURIComponent(editingQuestionId ?? "")}`
             : `/api/teacher/me/tryouts/${encodeURIComponent(selectedUploadTryoutId)}/questions`,
+            searchParams,
+          ),
           {
             method: isEditMode ? "PATCH" : "POST",
             body: JSON.stringify({
@@ -2980,6 +3078,10 @@ export default function TryoutGuruSection() {
   }
 
   async function handleDeleteQuestion(questionId: string) {
+    if (!ensureAcademicYearEditable()) {
+      return;
+    }
+
     if (
       !selectedUploadTryoutId ||
       uploadTargetTryout?.questionSource !== "manual"
@@ -3001,7 +3103,10 @@ export default function TryoutGuruSection() {
 
       const { response, payload } =
         await fetchTeacherTryoutJson<TeacherTryoutQuestionDetailResponse>(
-          `/api/teacher/me/tryouts/${encodeURIComponent(selectedUploadTryoutId)}/questions/${encodeURIComponent(questionId)}`,
+          buildGuruApiUrl(
+            `/api/teacher/me/tryouts/${encodeURIComponent(selectedUploadTryoutId)}/questions/${encodeURIComponent(questionId)}`,
+            searchParams,
+          ),
           {
             method: "DELETE",
           },
@@ -3038,6 +3143,10 @@ export default function TryoutGuruSection() {
     questionId: string,
     direction: "up" | "down",
   ) {
+    if (!ensureAcademicYearEditable()) {
+      return;
+    }
+
     if (
       !selectedUploadTryoutId ||
       uploadTargetTryout?.questionSource !== "manual"
@@ -3073,7 +3182,10 @@ export default function TryoutGuruSection() {
 
       const { response, payload } =
         await fetchTeacherTryoutJson<TeacherTryoutQuestionDetailResponse>(
-          `/api/teacher/me/tryouts/${encodeURIComponent(selectedUploadTryoutId)}/questions/${encodeURIComponent(questionId)}`,
+          buildGuruApiUrl(
+            `/api/teacher/me/tryouts/${encodeURIComponent(selectedUploadTryoutId)}/questions/${encodeURIComponent(questionId)}`,
+            searchParams,
+          ),
           {
             method: "PATCH",
             body: JSON.stringify({
@@ -3114,7 +3226,10 @@ export default function TryoutGuruSection() {
 
       const { response, payload } =
         await fetchTeacherTryoutJson<TeacherTryoutResultListResponse>(
-          `/api/teacher/me/tryouts/${encodeURIComponent(tryoutId)}/results`,
+          buildGuruApiUrl(
+            `/api/teacher/me/tryouts/${encodeURIComponent(tryoutId)}/results`,
+            searchParams,
+          ),
           {
             method: "GET",
           },
@@ -3147,7 +3262,7 @@ export default function TryoutGuruSection() {
     } finally {
       setIsResultLoading(false);
     }
-  }, []);
+  }, [searchParams]);
 
   function openResultDialog(tryoutId: string) {
     setSelectedResultTryoutId(tryoutId);
@@ -3183,6 +3298,12 @@ export default function TryoutGuruSection() {
               </div>
             </div>
           </section>
+
+          {isAcademicArchive ? (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600">
+              {archiveMessage} Tambah ujian, edit, publikasi, hapus, dan kelola soal dinonaktifkan.
+            </div>
+          ) : null}
 
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <SummaryCard
@@ -3315,7 +3436,13 @@ export default function TryoutGuruSection() {
               <button
                 type="button"
                 onClick={openAddDialog}
-                className="inline-flex items-center justify-center gap-2 border border-orange-500 bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+                disabled={isAcademicArchive}
+                title={isAcademicArchive ? archiveMessage : "Tambah Ujian"}
+                className={`inline-flex items-center justify-center gap-2 border px-4 py-2 text-sm font-semibold transition ${
+                  isAcademicArchive
+                    ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                    : "border-orange-500 bg-orange-500 text-white hover:bg-orange-600"
+                }`}
               >
                 <Plus className="h-4 w-4" />
                 Tambah Ujian
@@ -3474,6 +3601,7 @@ export default function TryoutGuruSection() {
                               <div className="mx-auto flex w-fit items-center justify-center gap-2">
                                 <ActionIconButton
                                   title="Edit Ujian"
+                                  disabled={isAcademicArchive}
                                   onClick={() => openEditDialog(tryout)}
                                   className="border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100"
                                 >
@@ -3481,7 +3609,9 @@ export default function TryoutGuruSection() {
                                 </ActionIconButton>
                                 <ActionIconButton
                                   title={
-                                    tryout.publishStatus === "Draft"
+                                    isAcademicArchive
+                                      ? "Tahun ajaran arsip"
+                                      : tryout.publishStatus === "Draft"
                                       ? "Kelola Soal"
                                       : "Lihat Soal Terkunci"
                                   }
@@ -3499,15 +3629,18 @@ export default function TryoutGuruSection() {
                                 </ActionIconButton>
                                 <ActionIconButton
                                   title={
-                                    tryout.publishStatus === "Published"
+                                    isAcademicArchive
+                                      ? "Tahun ajaran arsip"
+                                      : tryout.publishStatus === "Published"
                                       ? "Tarik Publikasi Ujian"
                                       : isTryoutReadyToPublish(tryout)
                                         ? "Terbitkan Ujian"
                                         : "Lengkapi data dan soal sebelum diterbitkan"
                                   }
                                   disabled={
-                                    tryout.publishStatus === "Draft" &&
-                                    !isTryoutReadyToPublish(tryout)
+                                    isAcademicArchive ||
+                                    (tryout.publishStatus === "Draft" &&
+                                      !isTryoutReadyToPublish(tryout))
                                   }
                                   onClick={() => handleTogglePublish(tryout.id)}
                                   className={
@@ -3524,11 +3657,16 @@ export default function TryoutGuruSection() {
                                 </ActionIconButton>
                                 <ActionIconButton
                                   title={
-                                    tryout.publishStatus === "Draft"
+                                    isAcademicArchive
+                                      ? "Tahun ajaran arsip"
+                                      : tryout.publishStatus === "Draft"
                                       ? "Hapus Ujian"
                                       : "Tarik publikasi ujian sebelum menghapus"
                                   }
-                                  disabled={tryout.publishStatus !== "Draft"}
+                                  disabled={
+                                    isAcademicArchive ||
+                                    tryout.publishStatus !== "Draft"
+                                  }
                                   onClick={() => handleDeleteTryout(tryout.id)}
                                   className="border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
                                 >
@@ -3636,6 +3774,7 @@ export default function TryoutGuruSection() {
                           <div className="flex flex-wrap items-center justify-end gap-2 border-t border-orange-100 pt-4">
                             <ActionIconButton
                               title="Edit Ujian"
+                              disabled={isAcademicArchive}
                               onClick={() => openEditDialog(tryout)}
                               className="border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100"
                             >
@@ -3643,7 +3782,9 @@ export default function TryoutGuruSection() {
                             </ActionIconButton>
                             <ActionIconButton
                               title={
-                                tryout.publishStatus === "Draft"
+                                isAcademicArchive
+                                  ? "Tahun ajaran arsip"
+                                  : tryout.publishStatus === "Draft"
                                   ? "Kelola Soal"
                                   : "Lihat Soal Terkunci"
                               }
@@ -3661,15 +3802,18 @@ export default function TryoutGuruSection() {
                             </ActionIconButton>
                             <ActionIconButton
                               title={
-                                tryout.publishStatus === "Published"
+                                isAcademicArchive
+                                  ? "Tahun ajaran arsip"
+                                  : tryout.publishStatus === "Published"
                                   ? "Tarik Publikasi Ujian"
                                   : isTryoutReadyToPublish(tryout)
                                     ? "Terbitkan Ujian"
                                     : "Lengkapi data dan soal sebelum diterbitkan"
                               }
                               disabled={
-                                tryout.publishStatus === "Draft" &&
-                                !isTryoutReadyToPublish(tryout)
+                                isAcademicArchive ||
+                                (tryout.publishStatus === "Draft" &&
+                                  !isTryoutReadyToPublish(tryout))
                               }
                               onClick={() => handleTogglePublish(tryout.id)}
                               className={
@@ -3686,11 +3830,16 @@ export default function TryoutGuruSection() {
                             </ActionIconButton>
                             <ActionIconButton
                               title={
-                                tryout.publishStatus === "Draft"
+                                isAcademicArchive
+                                  ? "Tahun ajaran arsip"
+                                  : tryout.publishStatus === "Draft"
                                   ? "Hapus Ujian"
                                   : "Tarik publikasi ujian sebelum menghapus"
                               }
-                              disabled={tryout.publishStatus !== "Draft"}
+                              disabled={
+                                isAcademicArchive ||
+                                tryout.publishStatus !== "Draft"
+                              }
                               onClick={() => handleDeleteTryout(tryout.id)}
                               className="border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
                             >
@@ -3752,6 +3901,8 @@ export default function TryoutGuruSection() {
         questionSuccessMessage={questionSuccessMessage}
         isQuestionSubmitting={isQuestionSubmitting}
         isXlsxUploading={isXlsxUploading}
+        readOnly={isAcademicArchive}
+        readOnlyMessage={archiveMessage}
         onClose={closeUploadDialog}
         onChange={handleQuestionDraftChange}
         onUploadXlsx={handleUploadXlsxQuestionFile}

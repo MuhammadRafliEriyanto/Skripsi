@@ -40,7 +40,12 @@ import {
   buildStableTeacherClassId,
   getTeacherBranchNames,
 } from "../utils/teacherClassIdentity";
-import { getCurrentAcademicPeriod } from "../utils/academicGrade";
+import {
+  type AcademicPeriod,
+  isAcademicPeriodEditable,
+  resolveAcademicPeriodFromQuery,
+} from "../utils/academicGrade";
+import { ensureTeacherAcademicPeriodEditable } from "../utils/teacherAcademicArchive";
 import {
   getStudentEffectiveAcademicJoinedAt,
   isStudentAcademicTryoutAvailable,
@@ -287,13 +292,27 @@ async function getTeacherProfileByUserId(userId: string) {
 async function findTeacherTryoutByParam(
   tryoutParam: string,
   teacherId: string,
+  period?: AcademicPeriod,
 ) {
-  return TeacherTryout.findOne({
-    teacherId,
+  const identityFilter = {
     $or: [
       { tryoutId: tryoutParam },
       ...(Types.ObjectId.isValid(tryoutParam) ? [{ _id: tryoutParam }] : []),
     ],
+  };
+  const periodFilter = period
+    ? {
+        $or: [
+          { academicYear: period.academicYear, semester: period.semester },
+          { academicYear: null },
+          { academicYear: { $exists: false } },
+        ],
+      }
+    : null;
+
+  return TeacherTryout.findOne({
+    teacherId,
+    $and: periodFilter ? [identityFilter, periodFilter] : [identityFilter],
   }).exec();
 }
 
@@ -908,15 +927,7 @@ export const getMyTeacherTryouts = asyncHandler(
       return;
     }
 
-    const currentPeriod = getCurrentAcademicPeriod();
-    const academicYear =
-      typeof _req.query.academicYear === "string" && _req.query.academicYear
-        ? _req.query.academicYear
-        : currentPeriod.academicYear;
-    const semester =
-      typeof _req.query.semester === "string" && _req.query.semester
-        ? _req.query.semester
-        : currentPeriod.semester;
+    const { academicYear, semester } = resolveAcademicPeriodFromQuery(_req.query);
     const filter: FilterQuery<ITeacherTryout> = {
       $and: [
         { teacherId: teacher._id },
@@ -956,6 +967,10 @@ export const createMyTeacherTryout = asyncHandler(
       return;
     }
 
+    if (!ensureTeacherAcademicPeriodEditable(req, next)) {
+      return;
+    }
+
     const teacher = await getTeacherProfileByUserId(req.user._id.toString());
 
     if (!teacher) {
@@ -965,7 +980,7 @@ export const createMyTeacherTryout = asyncHandler(
 
     const payload = await resolveTeacherTryoutPayload(req.body, teacher);
     const tryoutId = await getNextPublicId(TeacherTryout, "tryoutId", "TO");
-    const period = getCurrentAcademicPeriod();
+    const period = resolveAcademicPeriodFromQuery(req.query);
     const tryout = await TeacherTryout.create({
       teacherId: teacher._id,
       tryoutId,
@@ -1009,9 +1024,11 @@ export const getMyTeacherTryoutDetail = asyncHandler(
       return;
     }
 
+    const period = resolveAcademicPeriodFromQuery(req.query);
     const tryout = await findTeacherTryoutByParam(
       tryoutParam,
       teacher._id.toString(),
+      period,
     );
 
     if (!tryout) {
@@ -1039,6 +1056,10 @@ export const updateMyTeacherTryout = asyncHandler(
       return;
     }
 
+    if (!ensureTeacherAcademicPeriodEditable(req, next)) {
+      return;
+    }
+
     const teacher = await getTeacherProfileByUserId(req.user._id.toString());
 
     if (!teacher) {
@@ -1053,9 +1074,11 @@ export const updateMyTeacherTryout = asyncHandler(
       return;
     }
 
+    const period = resolveAcademicPeriodFromQuery(req.query);
     const tryout = await findTeacherTryoutByParam(
       tryoutParam,
       teacher._id.toString(),
+      period,
     );
 
     if (!tryout) {
@@ -1104,6 +1127,10 @@ export const deleteMyTeacherTryout = asyncHandler(
       return;
     }
 
+    if (!ensureTeacherAcademicPeriodEditable(req, next)) {
+      return;
+    }
+
     const teacher = await getTeacherProfileByUserId(req.user._id.toString());
 
     if (!teacher) {
@@ -1118,9 +1145,11 @@ export const deleteMyTeacherTryout = asyncHandler(
       return;
     }
 
+    const period = resolveAcademicPeriodFromQuery(req.query);
     const tryout = await findTeacherTryoutByParam(
       tryoutParam,
       teacher._id.toString(),
+      period,
     );
 
     if (!tryout) {
@@ -1189,9 +1218,11 @@ export const getMyTeacherTryoutQuestions = asyncHandler(
       return;
     }
 
+    const period = resolveAcademicPeriodFromQuery(req.query);
     const tryout = await findTeacherTryoutByParam(
       tryoutParam,
       teacher._id.toString(),
+      period,
     );
 
     if (!tryout) {
@@ -1221,7 +1252,10 @@ export const getMyTeacherTryoutQuestions = asyncHandler(
 
       const nextQuestionCount = questionSet.questions.length;
 
-      if (tryout.questionCount !== nextQuestionCount) {
+      if (
+        isAcademicPeriodEditable(req.query) &&
+        tryout.questionCount !== nextQuestionCount
+      ) {
         tryout.questionCount = nextQuestionCount;
         await tryout.save();
       }
@@ -1243,7 +1277,9 @@ export const getMyTeacherTryoutQuestions = asyncHandler(
       return;
     }
 
-    await syncTeacherTryoutQuestionCount(tryout);
+    if (isAcademicPeriodEditable(req.query)) {
+      await syncTeacherTryoutQuestionCount(tryout);
+    }
 
     const questions = await TeacherTryoutQuestion.find({
       teacherId: teacher._id,
@@ -1287,9 +1323,11 @@ export const getMyTeacherTryoutResults = asyncHandler(
       return;
     }
 
+    const period = resolveAcademicPeriodFromQuery(req.query);
     const tryout = await findTeacherTryoutByParam(
       tryoutParam,
       teacher._id.toString(),
+      period,
     );
 
     if (!tryout) {
@@ -1501,6 +1539,10 @@ export const uploadMyTeacherTryoutQuestionsFromXlsx = asyncHandler(
       return;
     }
 
+    if (!ensureTeacherAcademicPeriodEditable(req, next)) {
+      return;
+    }
+
     const teacher = await getTeacherProfileByUserId(req.user._id.toString());
 
     if (!teacher) {
@@ -1515,9 +1557,11 @@ export const uploadMyTeacherTryoutQuestionsFromXlsx = asyncHandler(
       return;
     }
 
+    const period = resolveAcademicPeriodFromQuery(req.query);
     const tryout = await findTeacherTryoutByParam(
       tryoutParam,
       teacher._id.toString(),
+      period,
     );
 
     if (!tryout) {
@@ -1711,6 +1755,10 @@ export const createMyTeacherTryoutQuestion = asyncHandler(
       return;
     }
 
+    if (!ensureTeacherAcademicPeriodEditable(req, next)) {
+      return;
+    }
+
     const teacher = await getTeacherProfileByUserId(req.user._id.toString());
 
     if (!teacher) {
@@ -1725,9 +1773,11 @@ export const createMyTeacherTryoutQuestion = asyncHandler(
       return;
     }
 
+    const period = resolveAcademicPeriodFromQuery(req.query);
     const tryout = await findTeacherTryoutByParam(
       tryoutParam,
       teacher._id.toString(),
+      period,
     );
 
     if (!tryout) {
@@ -1793,6 +1843,10 @@ export const updateMyTeacherTryoutQuestion = asyncHandler(
       return;
     }
 
+    if (!ensureTeacherAcademicPeriodEditable(req, next)) {
+      return;
+    }
+
     const teacher = await getTeacherProfileByUserId(req.user._id.toString());
 
     if (!teacher) {
@@ -1807,9 +1861,11 @@ export const updateMyTeacherTryoutQuestion = asyncHandler(
       return;
     }
 
+    const period = resolveAcademicPeriodFromQuery(req.query);
     const tryout = await findTeacherTryoutByParam(
       tryoutParam,
       teacher._id.toString(),
+      period,
     );
 
     if (!tryout) {
@@ -1874,6 +1930,10 @@ export const deleteMyTeacherTryoutQuestion = asyncHandler(
       return;
     }
 
+    if (!ensureTeacherAcademicPeriodEditable(req, next)) {
+      return;
+    }
+
     const teacher = await getTeacherProfileByUserId(req.user._id.toString());
 
     if (!teacher) {
@@ -1888,9 +1948,11 @@ export const deleteMyTeacherTryoutQuestion = asyncHandler(
       return;
     }
 
+    const period = resolveAcademicPeriodFromQuery(req.query);
     const tryout = await findTeacherTryoutByParam(
       tryoutParam,
       teacher._id.toString(),
+      period,
     );
 
     if (!tryout) {

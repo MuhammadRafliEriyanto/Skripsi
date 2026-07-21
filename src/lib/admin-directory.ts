@@ -196,6 +196,7 @@ export function exportAdminStudentsCsv(params: FetchAdminStudentsParams = {}) {
       branch: params.branch,
       className: params.className,
       level: params.level,
+      academicYear: params.academicYear,
     })}`,
     {
       method: "GET",
@@ -226,6 +227,7 @@ export function exportAdminSchedulesCsv(params: FetchAdminSchedulesParams = {}) 
       branch: params.branch,
       className: params.className,
       day: params.day,
+      academicYear: params.academicYear,
     })}`,
     {
       method: "GET",
@@ -236,6 +238,7 @@ export function exportAdminSchedulesCsv(params: FetchAdminSchedulesParams = {}) 
 export async function importAdminSchedules(payload: {
   fileName: string;
   fileDataBase64: string;
+  academicYear?: string;
 }) {
   const response = await requestAdminApi<AdminScheduleImportData>(
     "/api/schedules/import",
