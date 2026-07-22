@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import { randomUUID } from "crypto";
 import { Types } from "mongoose";
 
 import { AcademicGrade } from "../models/AcademicGrade";
@@ -29,7 +30,6 @@ import {
 import asyncHandler from "../utils/asyncHandler";
 import { AppError, sendSuccess } from "../utils/apiResponse";
 import { normalizeText } from "../utils/classroomLearning";
-import { getNextPublicId } from "../utils/publicId";
 import { normalizeCanonicalClassName } from "../utils/studentClass";
 import {
   buildStableTeacherClassId,
@@ -580,6 +580,10 @@ function buildSubmittedAnswerMap(
   );
 }
 
+function buildCollisionResistantPublicId(prefix: string) {
+  return `${prefix}-${randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`;
+}
+
 async function ensureStudentTryoutAttempt(
   student: StudentDocument,
   tryout: TeacherTryoutDocument,
@@ -596,29 +600,43 @@ async function ensureStudentTryoutAttempt(
     return existingAttempt;
   }
 
-  const attemptId = await getNextPublicId(
-    StudentTryoutAttempt,
-    "attemptId",
-    "STA",
-  );
+  const attempt = await StudentTryoutAttempt.findOneAndUpdate(
+    {
+      tryoutId: tryout.tryoutId,
+      studentId: normalizeText(student.studentId),
+    },
+    {
+      $setOnInsert: {
+        attemptId: buildCollisionResistantPublicId("STA"),
+        tryoutId: tryout.tryoutId,
+        teacherId: tryout.teacherId,
+        classId: normalizeText(tryout.classId),
+        branch: normalizeText(tryout.branch),
+        studentId: normalizeText(student.studentId),
+        subscriptionId,
+        questionSetId,
+        packageId: normalizeText(tryout.packageId),
+        stage:
+          typeof tryout.stage === "number" && Number.isFinite(tryout.stage)
+            ? tryout.stage
+            : null,
+        startedAt: new Date(),
+        status: "in_progress",
+      },
+    },
+    {
+      new: true,
+      upsert: true,
+      runValidators: true,
+      setDefaultsOnInsert: true,
+    },
+  ).exec();
 
-  return StudentTryoutAttempt.create({
-    attemptId,
-    tryoutId: tryout.tryoutId,
-    teacherId: tryout.teacherId,
-    classId: normalizeText(tryout.classId),
-    branch: normalizeText(tryout.branch),
-    studentId: normalizeText(student.studentId),
-    subscriptionId,
-    questionSetId,
-    packageId: normalizeText(tryout.packageId),
-    stage:
-      typeof tryout.stage === "number" && Number.isFinite(tryout.stage)
-        ? tryout.stage
-        : null,
-    startedAt: new Date(),
-    status: "in_progress",
-  });
+  if (!attempt) {
+    throw new AppError(500, "Sesi ujian siswa belum bisa dibuat.");
+  }
+
+  return attempt;
 }
 
 function gradeTryoutSubmission(
@@ -719,7 +737,7 @@ async function upsertAcademicGradeFromAssessment(input: {
   }).exec();
   const academicGradeId =
     existingGrade?.academicGradeId ??
-    (await getNextPublicId(AcademicGrade, "academicGradeId", "ACG"));
+    buildCollisionResistantPublicId("ACG");
   const academicGrade = await AcademicGrade.findOneAndUpdate(
     {
       teacherId: input.tryout.teacherId,
@@ -1197,14 +1215,26 @@ export const submitMyStudentTryout = asyncHandler(
       studentId: student.studentId,
       ...buildAcademicRecordSubscriptionFilter(subscriptionId),
     }).exec();
+
+    if (existingAttempt?.status === "submitted") {
+      next(new AppError(409, "Ujian ini sudah dikirim dan tidak dapat dikirim ulang."));
+      return;
+    }
+
     const attemptId =
       existingAttempt?.attemptId ??
-      (await getNextPublicId(StudentTryoutAttempt, "attemptId", "STA"));
+      buildCollisionResistantPublicId("STA");
+    const attemptFilter: Record<string, unknown> = {
+      tryoutId: tryout.tryoutId,
+      studentId: student.studentId,
+    };
+
+    if (existingAttempt) {
+      attemptFilter.status = "in_progress";
+    }
+
     const attempt = await StudentTryoutAttempt.findOneAndUpdate(
-      {
-        tryoutId: tryout.tryoutId,
-        studentId: student.studentId,
-      },
+      attemptFilter,
       {
         $set: {
           attemptId,
@@ -1233,14 +1263,14 @@ export const submitMyStudentTryout = asyncHandler(
       },
       {
         new: true,
-        upsert: true,
+        upsert: !existingAttempt,
         runValidators: true,
         setDefaultsOnInsert: true,
       },
     ).exec();
 
     if (!attempt) {
-      next(new AppError(500, "Hasil ujian belum bisa disimpan."));
+      next(new AppError(409, "Ujian ini sudah dikirim dan tidak dapat dikirim ulang."));
       return;
     }
 
@@ -1355,15 +1385,33 @@ export const submitMyStudentExamAttempt = asyncHandler(
       score,
     } = gradeTryoutSubmission(loadedQuestions.questions, req.body);
 
-    attempt.answers = normalizedAnswers;
-    attempt.correctCount = correctCount;
-    attempt.wrongCount = wrongCount;
-    attempt.unansweredCount = unansweredCount;
-    attempt.score = score;
-    attempt.timeUsedSeconds = timing.timeUsedSeconds;
-    attempt.submittedAt = now;
-    attempt.status = "submitted";
-    await attempt.save();
+    const submittedAttempt = await StudentTryoutAttempt.findOneAndUpdate(
+      {
+        _id: attempt._id,
+        status: "in_progress",
+      },
+      {
+        $set: {
+          answers: normalizedAnswers,
+          correctCount,
+          wrongCount,
+          unansweredCount,
+          score,
+          timeUsedSeconds: timing.timeUsedSeconds,
+          submittedAt: now,
+          status: "submitted",
+        },
+      },
+      {
+        new: true,
+        runValidators: true,
+      },
+    ).exec();
+
+    if (!submittedAttempt) {
+      next(new AppError(409, "Ujian ini sudah dikirim dan tidak dapat dikirim ulang."));
+      return;
+    }
 
     const academicGrade = await upsertAcademicGradeFromAssessment({
       student,
@@ -1371,16 +1419,16 @@ export const submitMyStudentExamAttempt = asyncHandler(
       score,
       subscriptionId,
     });
-    const answerByQuestionId = buildSubmittedAnswerMap(attempt);
+    const answerByQuestionId = buildSubmittedAnswerMap(submittedAttempt);
 
     sendSuccess(res, {
       message: "Jawaban ujian berhasil dikirim.",
       data: {
         tryout: {
-          ...toPublicStudentTryout(tryout, attempt),
+          ...toPublicStudentTryout(tryout, submittedAttempt),
           totalQuestions: loadedQuestions.questions.length,
         },
-        attempt: toPublicStudentTryoutAttemptSummary(attempt, tryout),
+        attempt: toPublicStudentTryoutAttemptSummary(submittedAttempt, tryout),
         result: {
           score,
           correctCount,

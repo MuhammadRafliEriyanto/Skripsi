@@ -743,22 +743,31 @@ export const scanStudentAttendanceByQr = asyncHandler(
       return;
     }
 
-    const record = await AttendanceRecord.findOne({
-      sessionId: session.sessionId,
-      $or: [
-        { studentId: normalizeText(student.studentId) },
-        { studentObjectId: student._id },
-      ],
-    }).exec();
+    const record = await AttendanceRecord.findOneAndUpdate(
+      {
+        sessionId: session.sessionId,
+        $or: [
+          { studentId: normalizeText(student.studentId) },
+          { studentObjectId: student._id },
+        ],
+        status: { $nin: ["Hadir", "Sakit", "Izin"] },
+      },
+      {
+        $set: {
+          status: "Hadir",
+          markedBy: "qr",
+          markedAt: new Date(),
+        },
+      },
+      {
+        new: true,
+        runValidators: true,
+      },
+    ).exec();
 
-    if (!record) {
-      next(new AppError(403, "Siswa ini tidak terdaftar pada sesi absensi tersebut."));
-      return;
-    }
-
-    if (record.status === "Hadir") {
+    if (record) {
       sendSuccess(res, {
-        message: "Absensi QR siswa sudah tercatat sebelumnya.",
+        message: "Absensi QR siswa berhasil dicatat.",
         data: {
           session: toPublicAttendanceSession(session),
           record: toPublicAttendanceRecord(record),
@@ -767,27 +776,38 @@ export const scanStudentAttendanceByQr = asyncHandler(
       return;
     }
 
-    if (record.status === "Sakit" || record.status === "Izin") {
+    const existingRecord = await AttendanceRecord.findOne({
+      sessionId: session.sessionId,
+      $or: [
+        { studentId: normalizeText(student.studentId) },
+        { studentObjectId: student._id },
+      ],
+    }).exec();
+
+    if (!existingRecord) {
+      next(new AppError(403, "Siswa ini tidak terdaftar pada sesi absensi tersebut."));
+      return;
+    }
+
+    if (existingRecord.status === "Hadir") {
+      sendSuccess(res, {
+        message: "Absensi QR siswa sudah tercatat sebelumnya.",
+        data: {
+          session: toPublicAttendanceSession(session),
+          record: toPublicAttendanceRecord(existingRecord),
+        },
+      });
+      return;
+    }
+
+    if (existingRecord.status === "Sakit" || existingRecord.status === "Izin") {
       next(
         new AppError(
           409,
-          `Status kehadiran sudah ditandai sebagai ${record.status.toLowerCase()} oleh guru.`,
+          `Status kehadiran sudah ditandai sebagai ${existingRecord.status.toLowerCase()} oleh guru.`,
         ),
       );
       return;
     }
-
-    record.status = "Hadir";
-    record.markedBy = "qr";
-    record.markedAt = new Date();
-    await record.save();
-
-    sendSuccess(res, {
-      message: "Absensi QR siswa berhasil dicatat.",
-      data: {
-        session: toPublicAttendanceSession(session),
-        record: toPublicAttendanceRecord(record),
-      },
-    });
   },
 );
