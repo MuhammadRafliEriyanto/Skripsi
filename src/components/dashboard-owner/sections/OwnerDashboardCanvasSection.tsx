@@ -33,15 +33,11 @@ import {
 } from "@/components/ui/select";
 import type { ApiResponse } from "@/lib/auth";
 import { requestAdminApi } from "@/lib/admin-api";
-import { getCurrentAdminAcademicYear } from "@/lib/admin-academic-year";
 import {
   fetchOwnerActivities,
   type OwnerActivityIncomingPayment,
 } from "@/lib/owner-activities";
 
-type OwnerStudentSummary = {
-  status?: string | null;
-};
 type OwnerBranchSummary = {
   status?: string | null;
   updatedAt?: string | null;
@@ -716,7 +712,6 @@ function readResponseItems<T>(
 }
 
 export function OwnerDashboardCanvasSection() {
-  const currentAcademicYear = getCurrentAdminAcademicYear();
   const [performancePeriod, setPerformancePeriod] =
     useState<OwnerDashboardPerformancePeriod>("year");
   const [branchStatusFilter, setBranchStatusFilter] =
@@ -740,29 +735,13 @@ export function OwnerDashboardCanvasSection() {
     isRefreshingRef.current = true;
 
     try {
-    const [studentsResult, branchesResult, activitiesResult] = await Promise.allSettled([
-      requestAdminApi<{ students: OwnerStudentSummary[] }>(
-        `/api/students?academicYear=${encodeURIComponent(currentAcademicYear)}`,
-        {
+      const [branchesResult, activitiesResult] = await Promise.allSettled([
+        requestAdminApi<{ branches: Record<string, unknown>[] }>("/api/branches", {
           method: "GET",
-        },
-      ),
-      requestAdminApi<{ branches: Record<string, unknown>[] }>("/api/branches", {
-        method: "GET",
-      }),
-      fetchOwnerActivities(),
-    ]);
+        }),
+        fetchOwnerActivities(),
+      ]);
       const latestTimestamps: Array<string | null | undefined> = [];
-
-      if (studentsResult.status === "fulfilled") {
-        const payload = studentsResult.value;
-        const students = readResponseItems<OwnerStudentSummary>(payload, "students");
-        const totalStudents = students.length;
-        const activeStudents = students.filter((student) => student.status === "Aktif").length;
-
-        setStudentCount(totalStudents);
-        setActiveStudentCount(activeStudents);
-      }
 
       if (branchesResult.status === "fulfilled") {
         const branches = readResponseItems<OwnerBranchSummary>(
@@ -810,6 +789,9 @@ export function OwnerDashboardCanvasSection() {
         const attentionActivationCount = activationStudents.filter(
           (student) => student.activationStatus !== "Aktif",
         ).length;
+
+        setStudentCount(activationStudents.length);
+        setActiveStudentCount(activeActivationCount);
 
         setActivitySummary({
           paidRevenue,

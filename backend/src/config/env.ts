@@ -35,6 +35,7 @@ export interface EnvConfig {
   isEmailConfigured: boolean;
   xenditApiKey: string | null;
   xenditWebhookToken: string | null;
+  allowPublicDummyPaymentConfirm: boolean;
 }
 
 let cachedEnv: EnvConfig | null = null;
@@ -87,6 +88,8 @@ export function validateEnv(): EnvConfig {
     isEmailConfigured: Boolean(emailUser && emailPass),
     xenditApiKey: sanitizeOptionalEnv(process.env.XENDIT_API_KEY),
     xenditWebhookToken: sanitizeOptionalEnv(process.env.XENDIT_WEBHOOK_TOKEN),
+    allowPublicDummyPaymentConfirm:
+      sanitizeOptionalEnv(process.env.ALLOW_PUBLIC_DUMMY_PAYMENT_CONFIRM) === "true",
   };
 
   return cachedEnv;

@@ -731,7 +731,13 @@ export default function AbsensiKelasSection({
     classId: string,
     rotateQr: boolean = false,
   ): Promise<AttendanceSessionFetchResult> {
-    const url = new URL(buildGuruApiUrl(`/api/teacher/me/classes/${encodeURIComponent(classId)}/attendance/session`, searchParams));
+    const url = new URL(
+      buildGuruApiUrl(
+        `/api/teacher/me/classes/${encodeURIComponent(classId)}/attendance/session`,
+        searchParams,
+      ),
+      window.location.origin,
+    );
     if (rotateQr) {
       url.searchParams.set("rotateQr", "true");
     }

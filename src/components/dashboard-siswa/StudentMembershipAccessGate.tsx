@@ -74,14 +74,6 @@ function isMembershipLocked(accessStatus: MembershipAccessStatus | undefined) {
   );
 }
 
-function isMembershipExpiringSoon(membershipData: MembershipStatusData | null) {
-  return (
-    membershipData?.accessStatus === "expiring" &&
-    typeof membershipData.daysRemaining === "number" &&
-    membershipData.daysRemaining <= 14
-  );
-}
-
 function isAcademicPath(pathname: string) {
   return ACADEMIC_PATH_PREFIXES.some(
     (pathPrefix) => pathname === pathPrefix || pathname.startsWith(`${pathPrefix}/`),
@@ -171,25 +163,6 @@ function getGateCopy(
         "Paket belajar akun ini sudah berakhir. Kamu tetap bisa login untuk melihat profil dan histori tagihan, tetapi area pembelajaran dikunci sampai paket diperpanjang.",
       primaryLabel: "Perpanjang Paket",
       secondaryLabel: "Riwayat Pembayaran",
-    };
-  }
-
-  if (isMembershipExpiringSoon(membershipData)) {
-    const packageLabel =
-      membershipData?.subscription?.packageName?.trim() || "Paket belajar";
-    const daysRemaining = membershipData?.daysRemaining ?? 0;
-    const daysLabel =
-      daysRemaining <= 0 ? "hari ini" : `dalam ${daysRemaining} hari`;
-    const endDateLabel = formatDateLabel(
-      membershipData?.subscription?.endDate ?? null,
-    );
-
-    return {
-      badge: "Hampir Berakhir",
-      title: "Masa aktif membership hampir selesai",
-      description: `${packageLabel} akan berakhir ${daysLabel} (${endDateLabel}). Kamu masih bisa belajar sampai masa aktif selesai, tetapi perpanjangan sudah bisa disiapkan dari menu Tagihan.`,
-      primaryLabel: "Perpanjang Paket",
-      secondaryLabel: "Lihat Tagihan",
     };
   }
 
@@ -520,8 +493,7 @@ export default function StudentMembershipAccessGate({
       setBannerDismissed(false);
 
       if (
-        isMembershipLocked(nextMembershipData?.accessStatus) ||
-        isMembershipExpiringSoon(nextMembershipData)
+        isMembershipLocked(nextMembershipData?.accessStatus)
       ) {
         const dismissKey = getDismissKey(nextMembershipData, nextPendingPayment);
         const hasDismissed =
@@ -562,9 +534,8 @@ export default function StudentMembershipAccessGate({
   }, [loadMembershipGate]);
 
   const isLocked = isMembershipLocked(membershipData?.accessStatus);
-  const isExpiringSoon = isMembershipExpiringSoon(membershipData);
   const isTagihanPath = pathname === TAGIHAN_PATH;
-  const shouldShowMembershipNotice = isLocked || isExpiringSoon;
+  const shouldShowMembershipNotice = isLocked;
   const shouldBlockChildren =
     !isLoading && isLocked && isAcademicPath(pathname);
   const copy = useMemo(

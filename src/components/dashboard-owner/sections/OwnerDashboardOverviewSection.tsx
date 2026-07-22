@@ -4,7 +4,6 @@
 import {
   Building2,
   Clock3,
-  GraduationCap,
   ReceiptText,
   ShieldCheck,
   Users,
@@ -24,7 +23,6 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { requestAdminApi } from "@/lib/admin-api";
-import { getCurrentAdminAcademicYear } from "@/lib/admin-academic-year";
 import { fetchOwnerActivities } from "@/lib/owner-activities";
 
 type DirectoryItem = {
@@ -32,8 +30,7 @@ type DirectoryItem = {
 };
 
 type OwnerOverviewMetrics = {
-  totalStudents: number;
-  totalTeachers: number;
+  totalMemberships: number;
   totalBranches: number;
   activeMemberships: number;
   paymentsThisMonth: number;
@@ -81,24 +78,14 @@ function formatSyncedAt(value: Date | null) {
 }
 
 export function OwnerDashboardOverviewSection() {
-  const currentAcademicYear = getCurrentAdminAcademicYear();
   const [metrics, setMetrics] = useState<OwnerOverviewMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [syncedAt, setSyncedAt] = useState<Date | null>(null);
 
   const loadMetrics = useCallback(async () => {
-    const [studentsResult, teachersResult, branchesResult, activitiesResult] =
+    const [branchesResult, activitiesResult] =
       await Promise.allSettled([
-        requestAdminApi<{ students: DirectoryItem[] }>(
-          `/api/students?academicYear=${encodeURIComponent(currentAcademicYear)}`,
-          {
-            method: "GET",
-          },
-        ),
-        requestAdminApi<{ teachers: DirectoryItem[] }>("/api/teachers", {
-          method: "GET",
-        }),
         requestAdminApi<{ branches: DirectoryItem[] }>("/api/branches", {
           method: "GET",
         }),
@@ -106,21 +93,11 @@ export function OwnerDashboardOverviewSection() {
       ]);
 
     const failedSources: string[] = [];
-    const students =
-      studentsResult.status === "fulfilled"
-        ? (studentsResult.value.data?.students ?? [])
-        : [];
-    const teachers =
-      teachersResult.status === "fulfilled"
-        ? (teachersResult.value.data?.teachers ?? [])
-        : [];
     const branches =
       branchesResult.status === "fulfilled"
         ? (branchesResult.value.data?.branches ?? [])
         : [];
 
-    if (studentsResult.status === "rejected") failedSources.push("siswa");
-    if (teachersResult.status === "rejected") failedSources.push("guru");
     if (branchesResult.status === "rejected") failedSources.push("cabang");
     if (activitiesResult.status === "rejected") failedSources.push("pembayaran");
 
@@ -145,8 +122,7 @@ export function OwnerDashboardOverviewSection() {
       : null;
 
     setMetrics({
-      totalStudents: students.length,
-      totalTeachers: teachers.length,
+      totalMemberships: activities?.activationStudents.length ?? 0,
       totalBranches: branches.length,
       activeMemberships:
         activities?.activationStudents.filter(
@@ -162,7 +138,7 @@ export function OwnerDashboardOverviewSection() {
     );
     setSyncedAt(new Date());
     setIsLoading(false);
-  }, [currentAcademicYear]);
+  }, []);
 
   useEffect(() => {
     void loadMetrics();
@@ -182,17 +158,17 @@ export function OwnerDashboardOverviewSection() {
   const cards = useMemo(
     () => [
       {
-        title: "Total Siswa",
-        value: metrics ? formatNumber(metrics.totalStudents) : "-",
-        description: "Seluruh siswa Bimbel yang terdaftar di sistem.",
+        title: "Total Membership",
+        value: metrics ? formatNumber(metrics.totalMemberships) : "-",
+        description: "Seluruh aktivasi membership yang tercatat dari transaksi.",
         icon: Users,
         tone: "border-orange-100 bg-orange-50 text-orange-700",
       },
       {
-        title: "Total Guru",
-        value: metrics ? formatNumber(metrics.totalTeachers) : "-",
-        description: "Seluruh guru yang tergabung di Bina Cendekia.",
-        icon: GraduationCap,
+        title: "Membership Aktif",
+        value: metrics ? formatNumber(metrics.activeMemberships) : "-",
+        description: "Aktivasi membership siswa berstatus aktif.",
+        icon: ShieldCheck,
         tone: "border-red-100 bg-red-50 text-red-700",
       },
       {
@@ -201,13 +177,6 @@ export function OwnerDashboardOverviewSection() {
         description: "Cabang aktif, persiapan, dan nonaktif.",
         icon: Building2,
         tone: "border-amber-100 bg-amber-50 text-amber-700",
-      },
-      {
-        title: "Membership Aktif",
-        value: metrics ? formatNumber(metrics.activeMemberships) : "-",
-        description: "Aktivasi membership siswa berstatus aktif.",
-        icon: ShieldCheck,
-        tone: "border-orange-100 bg-orange-50 text-orange-700",
       },
       {
         title: "Pembayaran Bulan Ini",
@@ -237,8 +206,7 @@ export function OwnerDashboardOverviewSection() {
 
   const isEmpty =
     metrics !== null &&
-    metrics.totalStudents === 0 &&
-    metrics.totalTeachers === 0 &&
+    metrics.totalMemberships === 0 &&
     metrics.totalBranches === 0 &&
     metrics.activeMemberships === 0 &&
     metrics.paymentsThisMonth === 0 &&

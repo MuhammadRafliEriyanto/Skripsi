@@ -43,9 +43,12 @@ import {
 } from "@/lib/auth";
 
 const menus = [
-  { name: "Beranda", path: "/dashboard-guru" },
-  { name: "Ujian", path: "/dashboard-guru/ujian" },
-];
+  { name: "Beranda", path: "/dashboard-guru", exact: true },
+  { name: "Jadwal", path: "/dashboard-guru/jadwal", exact: false },
+  { name: "Kelas", path: "/dashboard-guru/kelas", exact: false },
+  { name: "Absensi", path: "/dashboard-guru/absensi-kelas", exact: false },
+  { name: "Ujian", path: "/dashboard-guru/ujian", exact: false },
+] as const;
 
 type GuruTopbarProfile = {
   nama: string;
@@ -476,15 +479,17 @@ export default function GuruTopbar() {
               </div>
             </Link>
 
-            <nav className="hidden items-center space-x-3 md:flex">
+            <nav className="hidden items-center gap-1 lg:gap-2 md:flex">
               {menus.map((menu) => {
-                const isActive = pathname === menu.path;
+                const isActive = menu.exact
+                  ? pathname === menu.path
+                  : pathname.startsWith(menu.path);
 
                 return (
                   <Link
                     key={menu.path}
                     href={buildGuruUrl(menu.path, searchParams)}
-                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-all hover:scale-[1.05] hover:bg-white/10 hover:text-white ${
+                    className={`rounded-md px-2 py-1.5 text-sm font-medium transition-all hover:scale-[1.03] hover:bg-white/10 hover:text-white lg:px-3 ${
                       isActive ? "bg-white/15 text-white" : "text-white/80"
                     }`}
                   >

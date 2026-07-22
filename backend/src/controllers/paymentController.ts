@@ -3127,9 +3127,22 @@ export const confirmDummyPayment = asyncHandler(
   ) => {
     const paymentId = normalizeText(req.body.paymentId);
     const paymentMethod = normalizeText(req.body.method) || "manual_confirmation";
+    const { allowPublicDummyPaymentConfirm } = validateEnv();
 
     if (!paymentId) {
       next(new AppError(400, "paymentId wajib dikirim."));
+      return;
+    }
+
+    if (process.env.NODE_ENV === "production" && !allowPublicDummyPaymentConfirm) {
+      next(
+        new AppError(
+          403,
+          "Konfirmasi pembayaran publik non-Xendit dinonaktifkan pada production.",
+          null,
+          "PUBLIC_DUMMY_PAYMENT_CONFIRM_DISABLED",
+        ),
+      );
       return;
     }
 

@@ -70,6 +70,26 @@ const menus = [
     exact: false,
   },
   {
+    name: "Jadwal",
+    path: "/dashboard-siswa/jadwal",
+    exact: false,
+  },
+  {
+    name: "Materi",
+    path: "/dashboard-siswa/materi",
+    exact: false,
+  },
+  {
+    name: "Tugas",
+    path: "/dashboard-siswa/tugas",
+    exact: false,
+  },
+  {
+    name: "Ujian",
+    path: "/dashboard-siswa/ujian",
+    exact: false,
+  },
+  {
     name: "Nilai",
     path: "/dashboard-siswa/nilai",
     exact: false,
@@ -634,7 +654,7 @@ export default function SiswaTopbar() {
               </div>
             </Link>
 
-            <nav className="hidden items-center space-x-3 md:flex">
+            <nav className="hidden items-center gap-1 lg:gap-2 md:flex">
               {menus.map((menu) => {
                 const isActive = menu.exact
                   ? pathname === menu.path
@@ -644,7 +664,7 @@ export default function SiswaTopbar() {
                   <Link
                     key={menu.path}
                     href={menu.path}
-                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-all hover:scale-[1.05] hover:bg-white/10 hover:text-white ${
+                    className={`rounded-md px-2 py-1.5 text-sm font-medium transition-all hover:scale-[1.03] hover:bg-white/10 hover:text-white lg:px-3 ${
                       isActive ? "bg-white/15 text-white" : "text-white/80"
                     }`}
                   >

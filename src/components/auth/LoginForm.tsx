@@ -13,7 +13,6 @@ import {
   authService,
   clearAuthClientState,
   persistAuthActivity,
-  persistAuthToken,
   persistAuthUser,
 } from "@/lib/auth";
 
@@ -114,7 +113,6 @@ export function LoginForm() {
     }
 
     persistAuthUser(response.data.user);
-    persistAuthToken(response.data.token);
     persistAuthActivity();
 
     let targetPath = response.data.redirectPath;

@@ -15,7 +15,7 @@ import protect from "../middleware/protect";
 
 const router = Router();
 
-router.use(apiKeyMiddleware, protect, authorizeRole("admin", "owner"));
+router.use(apiKeyMiddleware, protect, authorizeRole("admin"));
 
 router.route("/").get(getStudents).post(createStudent);
 router.route("/export").get(exportStudents);

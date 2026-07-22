@@ -3,6 +3,7 @@ import "./config/env";
 import app from "./app";
 import connectDB from "./config/db";
 import { validateEnv } from "./config/env";
+import { startMembershipExpiryReminderJob } from "./jobs/membershipExpiryReminderJob";
 import { verifyEmailTransport } from "./utils/email";
 
 async function startServer(): Promise<void> {
@@ -11,6 +12,7 @@ async function startServer(): Promise<void> {
 
     await connectDB();
     await verifyEmailTransport();
+    startMembershipExpiryReminderJob();
 
     app.listen(env.port, '0.0.0.0', () => {
       console.log(`Auth server running on port ${env.port}`);

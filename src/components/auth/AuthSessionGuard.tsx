@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   AUTH_LAST_ACTIVITY_STORAGE_KEY,
   AUTH_TOKEN_STORAGE_KEY,
+  AUTH_USER_STORAGE_KEY,
   AuthRequestError,
   authService,
   clearAuthClientState,
@@ -155,7 +156,8 @@ export default function AuthSessionGuard({
 
     const handleStorageChange = (event: StorageEvent) => {
       if (
-        event.key === AUTH_TOKEN_STORAGE_KEY &&
+        (event.key === AUTH_TOKEN_STORAGE_KEY ||
+          event.key === AUTH_USER_STORAGE_KEY) &&
         event.oldValue &&
         !event.newValue
       ) {
