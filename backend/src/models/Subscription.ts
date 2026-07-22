@@ -24,6 +24,8 @@ export interface ISubscription {
   renewalOfSubscriptionId: Types.ObjectId | null;
   targetProgram: string | null;
   targetClassName: string | null;
+  membershipReminderEmailSentKeys: string[];
+  membershipReminderEmailLastSentAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -110,6 +112,14 @@ const subscriptionSchema = new Schema<ISubscription>(
       type: String,
       default: null,
       trim: true,
+    },
+    membershipReminderEmailSentKeys: {
+      type: [String],
+      default: [],
+    },
+    membershipReminderEmailLastSentAt: {
+      type: Date,
+      default: null,
     },
   },
   {

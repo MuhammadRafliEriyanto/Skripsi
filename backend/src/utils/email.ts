@@ -20,6 +20,15 @@ interface SendPasswordResetEmailParams {
   expiresAt: Date;
 }
 
+interface SendMembershipExpiryReminderEmailParams {
+  nama: string;
+  email: string;
+  packageName: string;
+  endDate: Date;
+  daysRemaining: number;
+  renewalUrl?: string;
+}
+
 let cachedTransporter: Transporter | null = null;
 
 function createTransporter(): Transporter {
@@ -233,6 +242,97 @@ export async function sendPasswordResetEmail({
       "Gagal mengirim instruksi reset password. Periksa konfigurasi SMTP dan coba lagi.",
       { providerMessage },
       "PASSWORD_RESET_EMAIL_SEND_FAILED",
+    );
+  }
+}
+
+export async function sendMembershipExpiryReminderEmail({
+  nama,
+  email,
+  packageName,
+  endDate,
+  daysRemaining,
+  renewalUrl,
+}: SendMembershipExpiryReminderEmailParams): Promise<void> {
+  const transporter = createTransporter();
+  const { emailUser } = validateEnv();
+  const endDateLabel = endDate.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  const remainingLabel =
+    daysRemaining <= 1 ? "kurang dari 1 hari" : `${daysRemaining} hari`;
+  const ctaHtml = renewalUrl
+    ? `
+          <a
+            href="${renewalUrl}"
+            style="display:inline-block;margin-top:4px;padding:14px 24px;border-radius:18px;background:linear-gradient(135deg,#f97316,#f59e0b);color:#ffffff;text-decoration:none;font-weight:600;"
+          >
+            Buka Tagihan Membership
+          </a>
+          <p style="margin:16px 0 0;font-size:13px;line-height:1.8;color:#94a3b8;word-break:break-word;">
+            Link dashboard: ${renewalUrl}
+          </p>
+      `
+    : "";
+
+  const html = `
+    <div style="margin:0;padding:32px;background:#fff7ed;font-family:Segoe UI,Arial,sans-serif;color:#0f172a;">
+      <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid rgba(251,146,60,0.24);border-radius:24px;box-shadow:0 24px 60px -32px rgba(15,23,42,0.18);overflow:hidden;">
+        <div style="padding:28px 32px;background:linear-gradient(135deg,#f97316,#f59e0b);color:#ffffff;">
+          <p style="margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;">Bimbel LMS</p>
+          <h1 style="margin:0;font-size:28px;line-height:1.25;">Membership hampir berakhir</h1>
+        </div>
+        <div style="padding:32px;">
+          <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">Halo ${nama},</p>
+          <p style="margin:0 0 18px;font-size:15px;line-height:1.8;color:#475569;">
+            Masa aktif ${packageName} Anda akan berakhir pada ${endDateLabel}. Saat ini tersisa ${remainingLabel} sebelum akses belajar perlu diperpanjang.
+          </p>
+          <div style="margin:0 0 22px;padding:18px 20px;border-radius:18px;background:#fff7ed;border:1px solid rgba(251,146,60,0.3);">
+            <p style="margin:0 0 6px;font-size:13px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#ea580c;">Pengingat Perpanjangan</p>
+            <p style="margin:0;font-size:14px;line-height:1.8;color:#475569;">
+              Silakan buka menu Tagihan di dashboard siswa untuk menyiapkan perpanjangan membership agar akses belajar tetap berlanjut.
+            </p>
+          </div>
+          ${ctaHtml}
+          <p style="margin:20px 0 0;font-size:13px;line-height:1.8;color:#94a3b8;">
+            Jika perpanjangan sudah diproses, abaikan email ini.
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const text = [
+    `Halo ${nama},`,
+    "",
+    `Masa aktif ${packageName} Anda akan berakhir pada ${endDateLabel}.`,
+    `Sisa masa aktif: ${remainingLabel}.`,
+    "",
+    "Silakan buka menu Tagihan di dashboard siswa untuk menyiapkan perpanjangan membership agar akses belajar tetap berlanjut.",
+    ...(renewalUrl ? ["", `Dashboard tagihan: ${renewalUrl}`] : []),
+    "",
+    "Jika perpanjangan sudah diproses, abaikan email ini.",
+  ].join("\n");
+
+  try {
+    await transporter.sendMail({
+      from: `"Bimbel LMS" <${emailUser as string}>`,
+      replyTo: emailUser as string,
+      to: email,
+      subject: "Pengingat Perpanjangan Membership Bimbel LMS",
+      html,
+      text,
+    });
+  } catch (error) {
+    const providerMessage = error instanceof Error ? error.message : "Unknown email send error";
+
+    throw new AppError(
+      502,
+      "Gagal mengirim email pengingat membership. Periksa konfigurasi SMTP dan coba lagi.",
+      { providerMessage },
+      "MEMBERSHIP_REMINDER_EMAIL_SEND_FAILED",
     );
   }
 }

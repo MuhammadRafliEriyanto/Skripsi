@@ -135,6 +135,7 @@ function formatNotificationGeneratedAt(value: string | null) {
 function resolveAdminNotificationTab(key: string): AdminTab {
   switch (key) {
     case "subscriptions_pending":
+    case "membership_expiry_follow_up":
     case "payments":
       return "payments";
     case "schedule_conflicts":

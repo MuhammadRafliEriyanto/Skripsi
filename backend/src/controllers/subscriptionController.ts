@@ -34,6 +34,7 @@ import {
   toPublicStudentMembership,
   toPublicSubscription,
 } from "../utils/subscription";
+import { sendMembershipExpiryReminderIfNeeded } from "../utils/membershipExpiryReminder";
 import { resolveNextAcademicClassSelection } from "../utils/studentClass";
 import { buildGeneratedPasswordForStudent } from "../utils/studentPassword";
 
@@ -376,6 +377,19 @@ export const getMySubscriptionStatus = asyncHandler(
       await findBlockingPendingPaymentForStudent(student._id);
     }
     const snapshot = await getMembershipSnapshotByUserId(req.user._id);
+
+    if (req.user.role === "siswa" && snapshot.subscription) {
+      void sendMembershipExpiryReminderIfNeeded({
+        subscription: snapshot.subscription,
+        user: req.user,
+      }).catch((error) => {
+        console.error("[subscription-me] membership_expiry_reminder_failed", {
+          message: error instanceof Error ? error.message : "Unknown reminder error",
+          subscriptionId: snapshot.subscription?._id.toString(),
+          userId: req.user?._id.toString(),
+        });
+      });
+    }
 
     sendSuccess(res, {
       message: "Status membership berhasil diambil.",

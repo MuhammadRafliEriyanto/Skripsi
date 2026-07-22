@@ -18,10 +18,16 @@ import {
   buildSchedulePresentation,
   type ScheduleWithTeacher,
 } from "../utils/scheduleConflicts";
+import {
+  isDeliverableMembershipEmail,
+  getMembershipExpiryReminderInfo,
+  MEMBERSHIP_EXPIRY_EMAIL_REMINDER_DAYS,
+} from "../utils/membershipExpiryReminder";
 
 type AdminNotificationSeverity = "info" | "warning" | "danger";
 type AdminNotificationKey =
   | "subscriptions_pending"
+  | "membership_expiry_follow_up"
   | "payments"
   | "schedule_conflicts"
   | "rooms_empty";
@@ -167,6 +173,55 @@ async function countScopedPendingSubscriptions(studentIds: Types.ObjectId[] | nu
   ).exec();
 }
 
+async function countScopedMembershipExpiryFollowUps(
+  studentIds: Types.ObjectId[] | null,
+) {
+  const now = new Date();
+  const reminderWindowEnd = new Date(
+    now.getTime() + MEMBERSHIP_EXPIRY_EMAIL_REMINDER_DAYS * 24 * 60 * 60 * 1000,
+  );
+  const subscriptions = await Subscription.find(
+    buildStudentScopedQuery(
+      {
+        paymentStatus: "paid",
+        endDate: {
+          $gt: now,
+          $lte: reminderWindowEnd,
+        },
+      },
+      studentIds,
+    ),
+  )
+    .populate({
+      path: "userId",
+      select: "email",
+      model: User,
+    })
+    .sort({ endDate: 1, createdAt: -1, _id: -1 })
+    .exec();
+  const studentIdsNeedingFollowUp = new Set<string>();
+
+  for (const subscription of subscriptions) {
+    const reminderInfo = getMembershipExpiryReminderInfo(subscription, now);
+
+    if (!reminderInfo) {
+      continue;
+    }
+
+    const studentId = subscription.studentId.toString();
+    const user = subscription.userId as unknown as { email?: string } | null;
+
+    if (
+      !studentIdsNeedingFollowUp.has(studentId) &&
+      !isDeliverableMembershipEmail(user?.email)
+    ) {
+      studentIdsNeedingFollowUp.add(studentId);
+    }
+  }
+
+  return studentIdsNeedingFollowUp.size;
+}
+
 function filterScopedRooms(rooms: RoomDocument[], scope: AdminBranchScope) {
   if (!scope.isScopedToManagedBranches) {
     return rooms;
@@ -218,6 +273,7 @@ export const getAdminNotificationSummary = asyncHandler(
       paidPaymentsCount,
       failedPaymentsCount,
       expiredPaymentsCount,
+      membershipExpiryFollowUpCount,
       scheduleDocuments,
     ] = await Promise.all([
       countScopedPendingSubscriptions(scopedStudentIds),
@@ -225,6 +281,7 @@ export const getAdminNotificationSummary = asyncHandler(
       countScopedPayments("paid", scopedStudentIds),
       countScopedPayments("failed", scopedStudentIds),
       countScopedPayments("expired", scopedStudentIds),
+      countScopedMembershipExpiryFollowUps(scopedStudentIds),
       getScheduleDocuments(scope),
     ]);
     const totalRoomsCount = scopedRooms.length;
@@ -250,6 +307,20 @@ export const getAdminNotificationSummary = asyncHandler(
           "pendaftaran membership menunggu pembayaran",
         )}`,
         count: pendingSubscriptionsCount,
+        severity: "warning",
+      });
+    }
+
+    if (membershipExpiryFollowUpCount > 0) {
+      items.push({
+        key: "membership_expiry_follow_up",
+        title: "Perpanjangan membership",
+        message: `${formatItemCount(
+          membershipExpiryFollowUpCount,
+          "membership siswa hampir habis dan perlu follow-up manual",
+          "membership siswa hampir habis dan perlu follow-up manual",
+        )} karena email belum valid.`,
+        count: membershipExpiryFollowUpCount,
         severity: "warning",
       });
     }

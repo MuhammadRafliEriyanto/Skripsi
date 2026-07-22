@@ -738,7 +738,7 @@ export const getMyStudentNotifications = asyncHandler(
         title: "Membership Hampir Berakhir",
         message: renewalMessage,
         type: "billing",
-        createdAt: toIsoDate(primarySubscription?.updatedAt),
+        createdAt: new Date().toISOString(),
         read: false,
         href: "/dashboard-siswa/tagihan",
       });

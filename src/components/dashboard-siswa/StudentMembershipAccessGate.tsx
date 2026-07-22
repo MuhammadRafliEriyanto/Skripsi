@@ -74,6 +74,14 @@ function isMembershipLocked(accessStatus: MembershipAccessStatus | undefined) {
   );
 }
 
+function isMembershipExpiringSoon(membershipData: MembershipStatusData | null) {
+  return (
+    membershipData?.accessStatus === "expiring" &&
+    typeof membershipData.daysRemaining === "number" &&
+    membershipData.daysRemaining <= 14
+  );
+}
+
 function isAcademicPath(pathname: string) {
   return ACADEMIC_PATH_PREFIXES.some(
     (pathPrefix) => pathname === pathPrefix || pathname.startsWith(`${pathPrefix}/`),
@@ -163,6 +171,25 @@ function getGateCopy(
         "Paket belajar akun ini sudah berakhir. Kamu tetap bisa login untuk melihat profil dan histori tagihan, tetapi area pembelajaran dikunci sampai paket diperpanjang.",
       primaryLabel: "Perpanjang Paket",
       secondaryLabel: "Riwayat Pembayaran",
+    };
+  }
+
+  if (isMembershipExpiringSoon(membershipData)) {
+    const packageLabel =
+      membershipData?.subscription?.packageName?.trim() || "Paket belajar";
+    const daysRemaining = membershipData?.daysRemaining ?? 0;
+    const daysLabel =
+      daysRemaining <= 0 ? "hari ini" : `dalam ${daysRemaining} hari`;
+    const endDateLabel = formatDateLabel(
+      membershipData?.subscription?.endDate ?? null,
+    );
+
+    return {
+      badge: "Hampir Berakhir",
+      title: "Masa aktif membership hampir selesai",
+      description: `${packageLabel} akan berakhir ${daysLabel} (${endDateLabel}). Kamu masih bisa belajar sampai masa aktif selesai, tetapi perpanjangan sudah bisa disiapkan dari menu Tagihan.`,
+      primaryLabel: "Perpanjang Paket",
+      secondaryLabel: "Lihat Tagihan",
     };
   }
 
@@ -413,7 +440,7 @@ function MembershipGateBanner({
             <p className="mt-1 max-w-3xl text-xs leading-5 text-orange-700/85">
               {pendingPayment
                 ? "Selesaikan pembayaran agar akses pembelajaran aktif kembali."
-                : "Buka halaman tagihan untuk cek status paket belajar dan mengaktifkan akses pembelajaran."}
+                : copy.description}
             </p>
           </div>
         </div>
@@ -492,7 +519,10 @@ export default function StudentMembershipAccessGate({
       setPendingPayment(nextPendingPayment);
       setBannerDismissed(false);
 
-      if (isMembershipLocked(nextMembershipData?.accessStatus)) {
+      if (
+        isMembershipLocked(nextMembershipData?.accessStatus) ||
+        isMembershipExpiringSoon(nextMembershipData)
+      ) {
         const dismissKey = getDismissKey(nextMembershipData, nextPendingPayment);
         const hasDismissed =
           typeof window !== "undefined" &&
@@ -532,7 +562,9 @@ export default function StudentMembershipAccessGate({
   }, [loadMembershipGate]);
 
   const isLocked = isMembershipLocked(membershipData?.accessStatus);
+  const isExpiringSoon = isMembershipExpiringSoon(membershipData);
   const isTagihanPath = pathname === TAGIHAN_PATH;
+  const shouldShowMembershipNotice = isLocked || isExpiringSoon;
   const shouldBlockChildren =
     !isLoading && isLocked && isAcademicPath(pathname);
   const copy = useMemo(
@@ -543,7 +575,7 @@ export default function StudentMembershipAccessGate({
   function handleDialogOpenChange(open: boolean) {
     setDialogOpen(open);
 
-    if (!open && isLocked) {
+    if (!open && shouldShowMembershipNotice) {
       const dismissKey = getDismissKey(membershipData, pendingPayment);
       window.sessionStorage.setItem(dismissKey, "1");
     }
@@ -551,7 +583,7 @@ export default function StudentMembershipAccessGate({
 
   return (
     <>
-      {!isLoading && isLocked && !isTagihanPath && !bannerDismissed ? (
+      {!isLoading && shouldShowMembershipNotice && !isTagihanPath && !bannerDismissed ? (
         <MembershipGateBanner
           copy={copy}
           pendingPayment={pendingPayment}
@@ -559,7 +591,7 @@ export default function StudentMembershipAccessGate({
         />
       ) : null}
 
-      {!isLoading && isLocked && !isTagihanPath ? (
+      {!isLoading && shouldShowMembershipNotice && !isTagihanPath ? (
         <MembershipGateDialog
           open={dialogOpen}
           onOpenChange={handleDialogOpenChange}

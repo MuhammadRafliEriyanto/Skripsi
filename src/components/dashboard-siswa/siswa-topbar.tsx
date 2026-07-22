@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  AlertTriangle,
   Bell,
   ChevronDown,
   LoaderCircle,
@@ -23,6 +24,15 @@ import {
 import { SiswaUserProfileDialog } from "@/components/dashboard-siswa/SiswaUserProfileDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -98,11 +108,23 @@ type StudentNotificationsResponse = {
   };
 };
 
+type MembershipExpiryPopupStage = "day-14" | "day-7" | "day-3";
+
+type MembershipExpiryPopup = {
+  stage: MembershipExpiryPopupStage;
+  storageKey: string;
+  packageName: string;
+  daysRemaining: number;
+  endDateLabel: string;
+};
+
 const fallbackProfile: SiswaTopbarProfile = {
   nama: "Siswa",
   role: "Memuat profil...",
   initials: "SI",
 };
+const membershipExpiryPopupDays = [14, 7, 3] as const;
+const membershipExpiryPopupStoragePrefix = "membership-expiry-popup-dismissed";
 
 function getInitials(name: string) {
   return (
@@ -203,6 +225,86 @@ function formatNotificationTime(value: string) {
   }).format(date);
 }
 
+function formatMembershipDateLabel(value: string | null | undefined) {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+}
+
+function getMembershipExpiryPopupStage(
+  daysRemaining: number | null | undefined,
+): MembershipExpiryPopupStage | null {
+  if (typeof daysRemaining !== "number") {
+    return null;
+  }
+
+  return membershipExpiryPopupDays.includes(
+    daysRemaining as (typeof membershipExpiryPopupDays)[number],
+  )
+    ? (`day-${daysRemaining}` as MembershipExpiryPopupStage)
+    : null;
+}
+
+function hasDismissedMembershipExpiryPopup(storageKey: string) {
+  try {
+    return window.localStorage.getItem(storageKey) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function dismissMembershipExpiryPopup(storageKey: string) {
+  try {
+    window.localStorage.setItem(storageKey, "1");
+  } catch {
+    // Ignore browsers that block localStorage; the reminder can appear again.
+  }
+}
+
+function resolveMembershipExpiryPopup(
+  data?: MembershipStatusData | null,
+): MembershipExpiryPopup | null {
+  if (data?.accessStatus !== "expiring" || !data.subscription) {
+    return null;
+  }
+
+  const stage = getMembershipExpiryPopupStage(data.daysRemaining);
+
+  if (!stage) {
+    return null;
+  }
+
+  const storageKey = [
+    membershipExpiryPopupStoragePrefix,
+    data.subscription.id,
+    stage,
+  ].join(":");
+
+  if (hasDismissedMembershipExpiryPopup(storageKey)) {
+    return null;
+  }
+
+  return {
+    stage,
+    storageKey,
+    packageName: data.subscription.packageName || "Membership",
+    daysRemaining: data.daysRemaining ?? 0,
+    endDateLabel: formatMembershipDateLabel(data.subscription.endDate),
+  };
+}
+
 function getNotificationTypeLabel(type: StudentNotificationItem["type"]) {
   switch (type) {
     case "schedule":
@@ -269,6 +371,8 @@ export default function SiswaTopbar() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isUserLoading, setIsUserLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [membershipExpiryPopup, setMembershipExpiryPopup] =
+    useState<MembershipExpiryPopup | null>(null);
 
   const redirectToLogin = useCallback(() => {
     startTransition(() => {
@@ -323,6 +427,14 @@ export default function SiswaTopbar() {
 
       if (studentProfile) {
         setProfile(studentProfile);
+      }
+
+      const nextMembershipExpiryPopup = resolveMembershipExpiryPopup(response.data);
+
+      if (nextMembershipExpiryPopup) {
+        setMembershipExpiryPopup(nextMembershipExpiryPopup);
+      } else {
+        setMembershipExpiryPopup(null);
       }
     } catch (error) {
       if (
@@ -466,6 +578,26 @@ export default function SiswaTopbar() {
         router.refresh();
       });
     }
+  }
+
+  function handleMembershipExpiryPopupOpenChange(open: boolean) {
+    if (open || !membershipExpiryPopup) {
+      return;
+    }
+
+    dismissMembershipExpiryPopup(membershipExpiryPopup.storageKey);
+    setMembershipExpiryPopup(null);
+  }
+
+  function handleMembershipExpiryPopupBillingClick() {
+    if (membershipExpiryPopup) {
+      dismissMembershipExpiryPopup(membershipExpiryPopup.storageKey);
+    }
+
+    setMembershipExpiryPopup(null);
+    startTransition(() => {
+      router.push("/dashboard-siswa/tagihan");
+    });
   }
 
   const displayName = currentUser?.nama ?? profile.nama;
@@ -749,6 +881,66 @@ export default function SiswaTopbar() {
           );
         }}
       />
+
+      <Dialog
+        open={Boolean(membershipExpiryPopup)}
+        onOpenChange={handleMembershipExpiryPopupOpenChange}
+      >
+        <DialogContent className="max-w-lg rounded-3xl border-orange-100 p-0">
+          <div className="bg-gradient-to-r from-orange-500 to-red-500 px-6 py-5 text-white">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 rounded-2xl bg-white/15 p-2 ring-1 ring-white/20">
+                <AlertTriangle className="size-5" />
+              </span>
+              <DialogHeader className="gap-1 text-left">
+                <DialogTitle className="text-xl font-semibold text-white">
+                  Membership Hampir Berakhir
+                </DialogTitle>
+                <DialogDescription className="text-sm leading-6 text-white/85">
+                  Sisa masa aktif belajar perlu diperhatikan.
+                </DialogDescription>
+              </DialogHeader>
+            </div>
+          </div>
+
+          {membershipExpiryPopup ? (
+            <div className="space-y-5 px-6 pb-6 pt-2">
+              <div className="rounded-2xl border border-orange-100 bg-orange-50/80 px-4 py-3">
+                <p className="text-sm font-semibold text-orange-800">
+                  {membershipExpiryPopup.packageName}
+                </p>
+                <p className="mt-1 text-sm leading-6 text-slate-600">
+                  Masa aktif akan berakhir dalam{" "}
+                  <span className="font-semibold text-slate-950">
+                    {membershipExpiryPopup.daysRemaining} hari
+                  </span>
+                  , pada {membershipExpiryPopup.endDateLabel}.
+                </p>
+              </div>
+              <p className="text-sm leading-6 text-slate-600">
+                Silakan buka menu Tagihan untuk menyiapkan perpanjangan agar akses
+                belajar tetap berlanjut.
+              </p>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleMembershipExpiryPopupOpenChange(false)}
+                >
+                  Nanti Saja
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleMembershipExpiryPopupBillingClick}
+                >
+                  Buka Tagihan
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
