@@ -90,6 +90,11 @@ type OwnerNotificationSummaryPayload = {
   generatedAt?: string;
 };
 
+type OwnerNotificationItem = NonNullable<OwnerNotificationSummaryPayload["items"]>[number];
+
+const ownerNotificationAcknowledgedStorageKey =
+  "owner-notifications-acknowledged";
+
 function getNotificationSeverityClasses(severity: OwnerNotificationSeverity) {
   switch (severity) {
     case "danger":
@@ -101,6 +106,54 @@ function getNotificationSeverityClasses(severity: OwnerNotificationSeverity) {
     default:
       return "border-slate-200 bg-slate-100 text-slate-700";
   }
+}
+
+function getOwnerNotificationAcknowledgementKey(item: OwnerNotificationItem) {
+  return `${item.key}:${item.count}`;
+}
+
+function readOwnerNotificationAcknowledgements() {
+  if (typeof window === "undefined") {
+    return new Set<string>();
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(
+      ownerNotificationAcknowledgedStorageKey,
+    );
+    const parsedValue = rawValue ? (JSON.parse(rawValue) as unknown) : [];
+
+    return new Set(
+      Array.isArray(parsedValue)
+        ? parsedValue.filter((value): value is string => typeof value === "string")
+        : [],
+    );
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function writeOwnerNotificationAcknowledgements(values: Set<string>) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(
+      ownerNotificationAcknowledgedStorageKey,
+      JSON.stringify([...values]),
+    );
+  } catch {
+    // Ignore storage failures; the notification will simply stay visible.
+  }
+}
+
+function filterAcknowledgedOwnerNotifications(items: OwnerNotificationItem[]) {
+  const acknowledgements = readOwnerNotificationAcknowledgements();
+
+  return items.filter(
+    (item) => !acknowledgements.has(getOwnerNotificationAcknowledgementKey(item)),
+  );
 }
 
 function formatNotificationGeneratedAt(value: string | null) {
@@ -173,7 +226,7 @@ export function OwnerDashboardTopbar({
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [notificationTotal, setNotificationTotal] = useState(0);
   const [notificationItems, setNotificationItems] = useState<
-    NonNullable<OwnerNotificationSummaryPayload["items"]>
+    OwnerNotificationItem[]
   >([]);
   const [notificationsError, setNotificationsError] = useState<string | null>(null);
   const [notificationsGeneratedAt, setNotificationsGeneratedAt] = useState<string | null>(
@@ -230,8 +283,14 @@ export function OwnerDashboardTopbar({
         },
       );
 
-      setNotificationTotal(response.data?.summary?.total ?? 0);
-      setNotificationItems(response.data?.items ?? []);
+      const nextItems = filterAcknowledgedOwnerNotifications(
+        response.data?.items ?? [],
+      );
+
+      setNotificationTotal(
+        nextItems.reduce((currentTotal, item) => currentTotal + item.count, 0),
+      );
+      setNotificationItems(nextItems);
       setNotificationsGeneratedAt(response.data?.generatedAt ?? null);
       setNotificationsError(null);
     } catch (error) {
@@ -411,6 +470,23 @@ export function OwnerDashboardTopbar({
     });
   }
 
+  function acknowledgeOwnerNotification(item: OwnerNotificationItem) {
+    const acknowledgementKey = getOwnerNotificationAcknowledgementKey(item);
+    const acknowledgements = readOwnerNotificationAcknowledgements();
+
+    acknowledgements.add(acknowledgementKey);
+    writeOwnerNotificationAcknowledgements(acknowledgements);
+
+    setNotificationItems((currentItems) =>
+      currentItems.filter(
+        (currentItem) =>
+          getOwnerNotificationAcknowledgementKey(currentItem) !==
+          acknowledgementKey,
+      ),
+    );
+    setNotificationTotal((currentTotal) => Math.max(0, currentTotal - item.count));
+  }
+
   return (
     <>
       <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/92 backdrop-blur-xl supports-[backdrop-filter]:bg-white/84">
@@ -587,6 +663,8 @@ export function OwnerDashboardTopbar({
                           className="cursor-pointer px-4 py-3 focus:bg-slate-50 data-[highlighted]:bg-slate-50"
                           onSelect={() => {
                             const href = resolveOwnerNotificationHref(item.key);
+
+                            acknowledgeOwnerNotification(item);
 
                             startTransition(() => {
                               router.push(href);
