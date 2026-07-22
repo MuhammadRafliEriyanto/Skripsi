@@ -394,8 +394,28 @@ export default function GuruTopbar() {
   }, []);
 
   const navigateTo = useCallback(
-    (href: string) => {
+    (href: string, notificationId?: string) => {
       setMobileOpen(false);
+
+      if (notificationId) {
+        setNotifications((current) => {
+          let hasChanged = false;
+          const next = current.map((notification) => {
+            if (notification.id === notificationId && !notification.read) {
+              hasChanged = true;
+              return { ...notification, read: true };
+            }
+
+            return notification;
+          });
+
+          if (hasChanged) {
+            setUnreadCount((count) => Math.max(0, count - 1));
+          }
+
+          return hasChanged ? next : current;
+        });
+      }
 
       startTransition(() => {
         router.push(href);
@@ -599,7 +619,7 @@ export default function GuruTopbar() {
                               key={notification.id}
                               className="cursor-pointer rounded-none px-4 py-3 focus:bg-slate-50 data-[highlighted]:bg-slate-50"
                               onSelect={() => {
-                                navigateTo(notification.href!);
+                                navigateTo(notification.href!, notification.id);
                               }}
                             >
                               {content}

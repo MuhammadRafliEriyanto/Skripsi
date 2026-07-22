@@ -100,6 +100,11 @@ type AdminNotificationSummaryPayload = {
   generatedAt?: string;
 };
 
+type AdminNotificationItem = NonNullable<AdminNotificationSummaryPayload["items"]>[number];
+
+const adminNotificationAcknowledgedStorageKey =
+  "admin-notifications-acknowledged";
+
 function getNotificationSeverityClasses(severity: AdminNotificationSeverity) {
   switch (severity) {
     case "danger":
@@ -111,6 +116,54 @@ function getNotificationSeverityClasses(severity: AdminNotificationSeverity) {
     default:
       return "border-slate-200 bg-slate-100 text-slate-700";
   }
+}
+
+function getAdminNotificationAcknowledgementKey(item: AdminNotificationItem) {
+  return `${item.key}:${item.count}`;
+}
+
+function readAdminNotificationAcknowledgements() {
+  if (typeof window === "undefined") {
+    return new Set<string>();
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(
+      adminNotificationAcknowledgedStorageKey,
+    );
+    const parsedValue = rawValue ? (JSON.parse(rawValue) as unknown) : [];
+
+    return new Set(
+      Array.isArray(parsedValue)
+        ? parsedValue.filter((value): value is string => typeof value === "string")
+        : [],
+    );
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function writeAdminNotificationAcknowledgements(values: Set<string>) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(
+      adminNotificationAcknowledgedStorageKey,
+      JSON.stringify([...values]),
+    );
+  } catch {
+    // Ignore storage failures; the notification will simply stay visible.
+  }
+}
+
+function filterAcknowledgedAdminNotifications(items: AdminNotificationItem[]) {
+  const acknowledgements = readAdminNotificationAcknowledgements();
+
+  return items.filter(
+    (item) => !acknowledgements.has(getAdminNotificationAcknowledgementKey(item)),
+  );
 }
 
 function formatNotificationGeneratedAt(value: string | null) {
@@ -177,9 +230,7 @@ export function AdminTopbar({
   const [isUserLoading, setIsUserLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [notificationTotal, setNotificationTotal] = useState(0);
-  const [notificationItems, setNotificationItems] = useState<
-    NonNullable<AdminNotificationSummaryPayload["items"]>
-  >([]);
+  const [notificationItems, setNotificationItems] = useState<AdminNotificationItem[]>([]);
   const [notificationsError, setNotificationsError] = useState<string | null>(
     null,
   );
@@ -238,8 +289,14 @@ export function AdminTopbar({
         },
       );
 
-      setNotificationTotal(response.data?.summary?.total ?? 0);
-      setNotificationItems(response.data?.items ?? []);
+      const nextItems = filterAcknowledgedAdminNotifications(
+        response.data?.items ?? [],
+      );
+
+      setNotificationTotal(
+        nextItems.reduce((currentTotal, item) => currentTotal + item.count, 0),
+      );
+      setNotificationItems(nextItems);
       setNotificationsGeneratedAt(response.data?.generatedAt ?? null);
       setNotificationsError(null);
     } catch (error) {
@@ -322,6 +379,23 @@ export function AdminTopbar({
         router.refresh();
       });
     }
+  }
+
+  function acknowledgeAdminNotification(item: AdminNotificationItem) {
+    const acknowledgementKey = getAdminNotificationAcknowledgementKey(item);
+    const acknowledgements = readAdminNotificationAcknowledgements();
+
+    acknowledgements.add(acknowledgementKey);
+    writeAdminNotificationAcknowledgements(acknowledgements);
+
+    setNotificationItems((currentItems) =>
+      currentItems.filter(
+        (currentItem) =>
+          getAdminNotificationAcknowledgementKey(currentItem) !==
+          acknowledgementKey,
+      ),
+    );
+    setNotificationTotal((currentTotal) => Math.max(0, currentTotal - item.count));
   }
 
   const resolvedUser =
@@ -472,6 +546,7 @@ export function AdminTopbar({
                           className="cursor-pointer px-4 py-3 focus:bg-slate-50 data-[highlighted]:bg-slate-50"
                           onSelect={() => {
                             const targetTab = resolveAdminNotificationTab(item.key);
+                            acknowledgeAdminNotification(item);
                             onSelectTab(targetTab);
                           }}
                         >
