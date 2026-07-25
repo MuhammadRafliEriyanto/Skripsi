@@ -24,6 +24,8 @@
     "data:finance:seed": "tsx src/scripts/seedBranchFinanceData.ts --apply",
     "data:learning:seed:dry-run": "tsx src/scripts/seedTeacherLearningMeetings.ts",
     "data:learning:seed": "tsx src/scripts/seedTeacherLearningMeetings.ts --apply",
+    "data:sidang:main:dry-run": "tsx src/scripts/seedSidangMainAccountsData.ts",
+    "data:sidang:main": "tsx src/scripts/seedSidangMainAccountsData.ts --apply",
     "data:teachers:merge-branches:dry-run": "tsx src/scripts/mergeDuplicateBranchTeachers.ts",
     "data:teachers:merge-branches": "tsx src/scripts/mergeDuplicateBranchTeachers.ts --apply",
     "data:schedules:reduce-adiwerna:dry-run": "tsx src/scripts/reduceAdiwernaTeacherSchedules.ts",
