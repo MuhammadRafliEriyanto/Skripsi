@@ -44,9 +44,6 @@ import {
 
 const menus = [
   { name: "Beranda", path: "/dashboard-guru", exact: true },
-  { name: "Jadwal", path: "/dashboard-guru/jadwal", exact: false },
-  { name: "Kelas", path: "/dashboard-guru/kelas", exact: false },
-  { name: "Absensi", path: "/dashboard-guru/absensi-kelas", exact: false },
   { name: "Ujian", path: "/dashboard-guru/ujian", exact: false },
 ] as const;
 
