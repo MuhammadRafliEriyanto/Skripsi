@@ -35,6 +35,7 @@ const initialMessages: ChatMessage[] = [
 
 const LANDING_CHATBOT_FALLBACK_TEXT =
   "Maaf, asisten sedang mengalami kendala. Silakan coba beberapa saat lagi.";
+const MAX_REQUEST_MESSAGES = 8;
 
 function wait(milliseconds: number) {
   return new Promise<void>((resolve) => {
@@ -42,14 +43,21 @@ function wait(milliseconds: number) {
   });
 }
 
-async function requestBotReply(message: string) {
+function toRequestMessages(messages: ChatMessage[]) {
+  return messages.slice(-MAX_REQUEST_MESSAGES).map((message) => ({
+    role: message.role,
+    text: message.text,
+  }));
+}
+
+async function requestBotReply(messages: ChatMessage[]) {
   const response = await fetch("/api/landing-chatbot", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      message,
+      messages: toRequestMessages(messages),
     }),
     cache: "no-store",
   });
@@ -120,21 +128,28 @@ export default function LandingChatbot() {
   }, []);
 
   function appendMessage(message: Omit<ChatMessage, "id">) {
+    const nextMessage = {
+      ...message,
+      id: nextIdRef.current++,
+    };
+
     setMessages((current) => [
       ...current,
-      {
-        ...message,
-        id: nextIdRef.current++,
-      },
+      nextMessage,
     ]);
+
+    return nextMessage;
   }
 
-  async function queueBotReply(prompt: string) {
+  async function queueBotReply(conversationMessages: ChatMessage[]) {
     const requestId = ++latestReplyRequestRef.current;
     setIsTyping(true);
 
     try {
-      const [replyResult] = await Promise.allSettled([requestBotReply(prompt), wait(520)]);
+      const [replyResult] = await Promise.allSettled([
+        requestBotReply(conversationMessages),
+        wait(520),
+      ]);
 
       if (latestReplyRequestRef.current !== requestId) {
         return;
@@ -173,13 +188,13 @@ export default function LandingChatbot() {
       return;
     }
 
-    appendMessage({
+    const userMessage = appendMessage({
       role: "user",
       text: trimmedMessage,
     });
     setInputValue("");
     setIsOpen(true);
-    void queueBotReply(trimmedMessage);
+    void queueBotReply([...messages, userMessage]);
   }
 
   function handleAnchorNavigation(href: string) {
