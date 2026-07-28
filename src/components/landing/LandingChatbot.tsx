@@ -273,7 +273,7 @@ export default function LandingChatbot() {
                           : "rounded-bl-[10px] border border-orange-100 bg-white text-slate-700",
                       )}
                     >
-                      <p>{message.text}</p>
+                      <p className="whitespace-pre-line">{message.text}</p>
 
                       {message.cta ? (
                         message.cta.href.startsWith("#") ? (

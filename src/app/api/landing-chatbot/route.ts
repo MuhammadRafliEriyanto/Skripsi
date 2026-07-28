@@ -45,6 +45,7 @@ const LANDING_CHATBOT_SYSTEM_PROMPT = [
   "5. Fitur siswa di LMS: Siswa dapat memantau jadwal kelas, absensi, tugas online, tryout, dan nilai melalui dashboard siswa.",
   "Aturan jawaban:",
   "- Jawab secukupnya dalam 2 sampai 5 kalimat, kecuali pengguna meminta detail.",
+  "- Untuk daftar paket atau harga, gunakan format bernomor agar mudah dibaca.",
   "- Fokus pada pendaftaran, paket, cabang, pembayaran, dan fitur siswa. Jangan membahas fitur internal admin atau guru.",
   "- Jika pertanyaan pengguna adalah lanjutan singkat seperti 'iya', 'lanjut', atau 'boleh', jawab dengan mengikuti konteks percakapan sebelumnya.",
   "- Jika informasi tidak ada pada fakta resmi, katakan bahwa informasinya belum tersedia dan arahkan pengguna menghubungi customer service.",
@@ -205,10 +206,21 @@ function buildPackageReply(level: keyof typeof PACKAGE_PRICE_BY_LEVEL | null) {
   if (level) {
     const price = PACKAGE_PRICE_BY_LEVEL[level];
 
-    return `Baik, untuk jenjang ${level}, tersedia paket 1 Semester sekitar ${price.oneSemester} dan paket 2 Semester sekitar ${price.twoSemesters}. Harga dapat menyesuaikan kelas yang dipilih saat pendaftaran.`;
+    return [
+      `Baik, untuk jenjang ${level}, pilihan paketnya:`,
+      `1. 1 Semester: sekitar ${price.oneSemester}.`,
+      `2. 2 Semester: sekitar ${price.twoSemesters}.`,
+      "Harga dapat menyesuaikan kelas yang dipilih saat pendaftaran.",
+    ].join("\n");
   }
 
-  return "Bina Cendekia menyediakan paket belajar untuk jenjang SD, SMP, dan SMA. Setiap jenjang memiliki pilihan 1 Semester dan 2 Semester: SD sekitar Rp1.800.000 sampai Rp1.900.000 per semester, SMP sekitar Rp2.000.000 sampai Rp2.050.000 per semester, dan SMA sekitar Rp2.150.000 sampai Rp2.250.000 per semester.";
+  return [
+    "Berikut paket belajar Bina Cendekia:",
+    `1. SD: 1 Semester sekitar ${PACKAGE_PRICE_BY_LEVEL.SD.oneSemester}; 2 Semester sekitar ${PACKAGE_PRICE_BY_LEVEL.SD.twoSemesters}.`,
+    `2. SMP: 1 Semester sekitar ${PACKAGE_PRICE_BY_LEVEL.SMP.oneSemester}; 2 Semester sekitar ${PACKAGE_PRICE_BY_LEVEL.SMP.twoSemesters}.`,
+    `3. SMA: 1 Semester sekitar ${PACKAGE_PRICE_BY_LEVEL.SMA.oneSemester}; 2 Semester sekitar ${PACKAGE_PRICE_BY_LEVEL.SMA.twoSemesters}.`,
+    "Harga dapat menyesuaikan kelas yang dipilih saat pendaftaran.",
+  ].join("\n");
 }
 
 function getLocalReply(contents: GeminiRequestContent[]) {
