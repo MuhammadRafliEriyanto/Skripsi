@@ -207,20 +207,20 @@ function buildPackageReply(level: keyof typeof PACKAGE_PRICE_BY_LEVEL | null) {
     const price = PACKAGE_PRICE_BY_LEVEL[level];
 
     return [
-      `Baik, untuk jenjang ${level}, pilihan paketnya:`,
+      `Kebetulan, untuk jenjang ${level}, di Bina Cendekia tersedia pilihan paket berikut:`,
       `1. 1 Semester: sekitar ${price.oneSemester}.`,
       `2. 2 Semester: sekitar ${price.twoSemesters}.`,
       "Harga dapat menyesuaikan kelas yang dipilih saat pendaftaran.",
-    ].join("\n");
+    ].join("\n\n");
   }
 
   return [
-    "Berikut paket belajar Bina Cendekia:",
+    "Kebetulan, di Bina Cendekia ada beberapa paket belajar yang bisa dipilih sesuai jenjang siswa:",
     `1. SD: 1 Semester sekitar ${PACKAGE_PRICE_BY_LEVEL.SD.oneSemester}; 2 Semester sekitar ${PACKAGE_PRICE_BY_LEVEL.SD.twoSemesters}.`,
     `2. SMP: 1 Semester sekitar ${PACKAGE_PRICE_BY_LEVEL.SMP.oneSemester}; 2 Semester sekitar ${PACKAGE_PRICE_BY_LEVEL.SMP.twoSemesters}.`,
     `3. SMA: 1 Semester sekitar ${PACKAGE_PRICE_BY_LEVEL.SMA.oneSemester}; 2 Semester sekitar ${PACKAGE_PRICE_BY_LEVEL.SMA.twoSemesters}.`,
     "Harga dapat menyesuaikan kelas yang dipilih saat pendaftaran.",
-  ].join("\n");
+  ].join("\n\n");
 }
 
 function getLocalReply(contents: GeminiRequestContent[]) {
