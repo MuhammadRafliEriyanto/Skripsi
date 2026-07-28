@@ -4,6 +4,8 @@ const GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
 const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 const LANDING_CHATBOT_FALLBACK_TEXT =
   "Maaf, asisten sedang mengalami kendala. Silakan coba beberapa saat lagi.";
+const LANDING_CHATBOT_SCOPE_TEXT =
+  "Maaf, saya hanya bisa membantu informasi seputar Bina Cendekia, seperti paket belajar, pendaftaran online, cabang, pembayaran, dan fitur LMS siswa.";
 const MAX_CONVERSATION_MESSAGES = 8;
 const PACKAGE_PRICE_BY_LEVEL = {
   SD: {
@@ -28,6 +30,15 @@ const OLD_STYLE_REPLY_REPLACEMENTS: [RegExp, string][] = [
   [/\basik\b/gi, "menarik"],
   [/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, ""],
 ];
+const GREETING_PATTERNS = [
+  /^(halo|hai|hi|hello|assalamualaikum|selamat\s+(pagi|siang|sore|malam))\b/i,
+  /^(terima\s+kasih|makasih|thanks|thank\s+you)\b/i,
+];
+const OUT_OF_SCOPE_PATTERNS = [
+  /\b(cuaca\w*|resep\w*|masak\w*|makanan\w*|politik|presiden|berita\w*|olahraga\w*|bola)\b/i,
+  /\b(film\w*|musik\w*|lagu\w*|game\w*|coding|programming|saham\w*|crypto|bitcoin)\b/i,
+  /\b(jodoh\w*|ramalan\w*|horoskop|translate|terjemahkan)\b/i,
+];
 
 const LANDING_CHATBOT_SYSTEM_PROMPT = [
   "Kamu adalah Cendekia AI, asisten virtual resmi untuk landing page LMS Bimbel Bina Cendekia.",
@@ -47,6 +58,7 @@ const LANDING_CHATBOT_SYSTEM_PROMPT = [
   "- Jawab secukupnya dalam 2 sampai 5 kalimat, kecuali pengguna meminta detail.",
   "- Untuk daftar paket atau harga, gunakan format bernomor agar mudah dibaca.",
   "- Fokus pada pendaftaran, paket, cabang, pembayaran, dan fitur siswa. Jangan membahas fitur internal admin atau guru.",
+  "- Untuk pertanyaan yang tidak berkaitan dengan Bina Cendekia, bimbel, atau LMS siswa, tolak dengan sopan dan arahkan kembali ke topik yang bisa kamu bantu.",
   "- Jika pertanyaan pengguna adalah lanjutan singkat seperti 'iya', 'lanjut', atau 'boleh', jawab dengan mengikuti konteks percakapan sebelumnya.",
   "- Jika informasi tidak ada pada fakta resmi, katakan bahwa informasinya belum tersedia dan arahkan pengguna menghubungi customer service.",
   "- Jangan menyebut penyedia model, API, atau detail teknis internal.",
@@ -191,7 +203,89 @@ function isShortFollowUp(message: string) {
 }
 
 function hasPackageIntent(message: string) {
-  return /\b(paket|harga|biaya|semester)\b/i.test(message);
+  return /\b(paket\w*|harga\w*|biaya\w*|semester)\b/i.test(message);
+}
+
+function hasRegistrationIntent(message: string) {
+  return /\b(daftar\w*|pendaftaran\w*|register)\b/i.test(message);
+}
+
+function hasPaymentIntent(message: string) {
+  return /\b(bayar\w*|pembayaran\w*|xendit|transfer\w*|tagihan\w*)\b/i.test(message);
+}
+
+function hasBranchIntent(message: string) {
+  return /\b(cabang\w*|lokasi\w*|alamat\w*|slawi|adiwerna)\b/i.test(message);
+}
+
+function hasStudentFeatureIntent(message: string) {
+  return /\b(lms|fitur\w*|dashboard|jadwal\w*|kelas\w*|absensi\w*|tugas\w*|tryout|ujian\w*|nilai\w*|siswa\w*)\b/i.test(
+    message,
+  );
+}
+
+function hasGreetingIntent(message: string) {
+  return GREETING_PATTERNS.some((pattern) => pattern.test(message.trim()));
+}
+
+function hasOutOfScopeIntent(message: string) {
+  return OUT_OF_SCOPE_PATTERNS.some((pattern) => pattern.test(message));
+}
+
+function buildScopeReply() {
+  return [
+    LANDING_CHATBOT_SCOPE_TEXT,
+    "Silakan tanyakan hal yang berkaitan dengan:",
+    "1. Paket belajar",
+    "2. Cara pendaftaran",
+    "3. Cabang Bina Cendekia",
+    "4. Pembayaran",
+    "5. Fitur LMS siswa",
+  ].join("\n\n");
+}
+
+function buildRegistrationReply() {
+  return [
+    "Untuk mendaftar di Bina Cendekia, alurnya seperti ini:",
+    "1. Buka halaman pendaftaran online di /register.",
+    "2. Isi data diri siswa dengan lengkap.",
+    "3. Pilih kelas dan paket belajar yang sesuai.",
+    "4. Lakukan verifikasi email.",
+    "5. Selesaikan pembayaran.",
+    "Setelah pembayaran terkonfirmasi, akun siswa akan dikirim otomatis ke email.",
+  ].join("\n\n");
+}
+
+function buildPaymentReply() {
+  return [
+    "Untuk pembayaran, Bina Cendekia menggunakan sistem yang terintegrasi dengan Xendit.",
+    "Alurnya singkat:",
+    "1. Siswa memilih paket saat pendaftaran.",
+    "2. Sistem menampilkan instruksi pembayaran.",
+    "3. Pembayaran diproses melalui Xendit.",
+    "4. Setelah pembayaran terkonfirmasi, akses siswa dapat aktif.",
+  ].join("\n\n");
+}
+
+function buildBranchReply() {
+  return [
+    "Untuk saat ini, pilihan cabang Bina Cendekia tersedia di:",
+    "1. Slawi",
+    "2. Adiwerna",
+    "Cabang bisa dipilih saat proses pendaftaran online.",
+  ].join("\n\n");
+}
+
+function buildStudentFeatureReply() {
+  return [
+    "Di LMS Bina Cendekia, siswa bisa mengakses beberapa fitur belajar utama:",
+    "1. Jadwal kelas",
+    "2. Absensi",
+    "3. Tugas online",
+    "4. Tryout atau ujian",
+    "5. Nilai siswa",
+    "Fitur tersebut bisa digunakan setelah akun dan akses belajar siswa aktif.",
+  ].join("\n\n");
 }
 
 function getRequestedPackageLevel(message: string) {
@@ -226,12 +320,35 @@ function buildPackageReply(level: keyof typeof PACKAGE_PRICE_BY_LEVEL | null) {
 function getLocalReply(contents: GeminiRequestContent[]) {
   const latestUserMessage = getLatestUserMessage(contents);
   const conversationText = contents.map(getContentText).join(" ");
+  const shouldAnswerScope =
+    !hasGreetingIntent(latestUserMessage) && hasOutOfScopeIntent(latestUserMessage);
+
+  if (shouldAnswerScope) {
+    return buildScopeReply();
+  }
+
+  if (hasRegistrationIntent(latestUserMessage)) {
+    return buildRegistrationReply();
+  }
+
   const shouldAnswerPackage =
     hasPackageIntent(latestUserMessage) ||
     (isShortFollowUp(latestUserMessage) && hasPackageIntent(conversationText));
 
   if (shouldAnswerPackage) {
     return buildPackageReply(getRequestedPackageLevel(conversationText));
+  }
+
+  if (hasBranchIntent(latestUserMessage)) {
+    return buildBranchReply();
+  }
+
+  if (hasPaymentIntent(latestUserMessage)) {
+    return buildPaymentReply();
+  }
+
+  if (hasStudentFeatureIntent(latestUserMessage)) {
+    return buildStudentFeatureReply();
   }
 
   return null;
@@ -281,8 +398,8 @@ function cleanReplyText(text: string | null) {
     (currentText, [pattern, replacement]) => currentText.replace(pattern, replacement),
     text,
   )
-    .replace(/\s{2,}/g, " ")
-    .replace(/\s+([,.!?])/g, "$1")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/[ \t]+([,.!?])/g, "$1")
     .trim();
 
   return cleanedText || null;
