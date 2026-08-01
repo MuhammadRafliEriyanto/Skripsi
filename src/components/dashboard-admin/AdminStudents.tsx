@@ -506,36 +506,7 @@ function StudentActions({
         <Pencil className="size-4" />
       </Button>
 
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        className={
-          student.status === "Aktif"
-            ? "size-9 rounded-xl border-amber-200 bg-white p-0 text-amber-600 shadow-sm transition hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700 active:border-amber-300 active:bg-amber-100/80 focus-visible:ring-orange-500/10"
-            : "size-9 rounded-xl border-emerald-200 bg-white p-0 text-emerald-600 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 active:border-emerald-300 active:bg-emerald-100/80 focus-visible:ring-orange-500/10"
-        }
-        aria-label={
-          student.status === "Aktif"
-            ? `Nonaktifkan ${student.name}`
-            : `Aktifkan ${student.name}`
-        }
-        title={
-          readOnly
-            ? readOnlyMessage
-            : student.status === "Aktif"
-              ? "Nonaktifkan"
-              : "Aktifkan"
-        }
-        disabled={readOnly}
-        onClick={() => onToggleStatus(student)}
-      >
-        {student.status === "Aktif" ? (
-          <PowerOff className="size-4" />
-        ) : (
-          <Power className="size-4" />
-        )}
-      </Button>
+
 
       <Button
         type="button"
