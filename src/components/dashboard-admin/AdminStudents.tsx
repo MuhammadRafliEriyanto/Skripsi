@@ -1531,27 +1531,7 @@ export function AdminStudents({
               </Select>
             </div>
 
-            <div className="w-full sm:w-[160px]">
-              <Select
-                value={academicYearFilter}
-                onValueChange={setAcademicYearFilter}
-              >
-                <SelectTrigger className={warmSelectTriggerClassName}>
-                  <SelectValue placeholder="Tahun Ajaran" />
-                </SelectTrigger>
-                <SelectContent className={warmSelectContentClassName}>
-                  {academicYearOptions.map((option) => (
-                    <SelectItem
-                      key={option}
-                      value={option}
-                      className={warmSelectItemClassName}
-                    >
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+
 
             <div className="w-full sm:w-[160px]">
               <Select
