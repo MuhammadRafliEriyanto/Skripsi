@@ -20,6 +20,7 @@ import {
 } from "react";
 
 import { requestAdminApi } from "@/lib/admin-api";
+import { notifyAdminDashboardDataChanged } from "@/lib/admin-dashboard-events";
 import {
   defaultAdminDashboardConfig,
   type AdminDashboardConfigData,
@@ -642,6 +643,7 @@ export function AdminTeachers({
         refreshTeachers(nextPage),
         Promise.resolve(onRefresh?.()),
       ]);
+      notifyAdminDashboardDataChanged();
     },
     [onRefresh, page, refreshTeachers],
   );

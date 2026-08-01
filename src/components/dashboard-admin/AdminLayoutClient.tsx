@@ -1,11 +1,12 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, Suspense } from "react";
+import { useCallback, useEffect, useState, Suspense } from "react";
 import { AdminSidebar, type AdminSidebarBadgeCounts } from "./AdminSidebar";
 import { AdminTopbar } from "./AdminTopbar";
 import { cn } from "@/lib/utils";
 import { getCurrentAdminAcademicYear } from "@/lib/admin-academic-year";
+import { ADMIN_DASHBOARD_DATA_CHANGED_EVENT } from "@/lib/admin-dashboard-events";
 import { adminPoppins } from "./components/admin-font";
 import {
   fetchAdminSchedules,
@@ -27,7 +28,7 @@ function AdminLayoutClientInner({ children }: { children: React.ReactNode }) {
   const [scheduleReviewCount, setScheduleReviewCount] = useState(0);
   const [paymentPendingCount, setPaymentPendingCount] = useState(0);
 
-  useEffect(() => {
+  const loadDashboardMetrics = useCallback(() => {
     fetchAdminStudents({ page: 1, limit: 1 }).then(res => setStudentActiveCount(res.summary.activeCount)).catch(() => {});
     fetchAdminTeachers({ page: 1, limit: 1 }).then(res => setTeacherActiveCount(res.summary.activeCount)).catch(() => {});
     fetchAdminSchedules({ page: 1, limit: 1, academicYear: currentAcademicYear }).then(res => setScheduleReviewCount(res.summary.reviewCount)).catch(() => {});
@@ -37,6 +38,24 @@ function AdminLayoutClientInner({ children }: { children: React.ReactNode }) {
     const end = new Date(today.setHours(23, 59, 59, 999)).toISOString();
     fetchAdminPaymentSummary({ period: "year", dateFrom: start, dateTo: end }).then(res => setPaymentPendingCount(res.summary.pendingCount)).catch(() => {});
   }, [currentAcademicYear]);
+
+  useEffect(() => {
+    loadDashboardMetrics();
+  }, [loadDashboardMetrics]);
+
+  useEffect(() => {
+    window.addEventListener(
+      ADMIN_DASHBOARD_DATA_CHANGED_EVENT,
+      loadDashboardMetrics,
+    );
+
+    return () => {
+      window.removeEventListener(
+        ADMIN_DASHBOARD_DATA_CHANGED_EVENT,
+        loadDashboardMetrics,
+      );
+    };
+  }, [loadDashboardMetrics]);
 
   const sidebarBadgeCounts: AdminSidebarBadgeCounts = {
     students: studentActiveCount,

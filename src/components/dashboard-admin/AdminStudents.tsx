@@ -21,6 +21,7 @@ import {
 } from "react";
 
 import { requestAdminApi } from "@/lib/admin-api";
+import { notifyAdminDashboardDataChanged } from "@/lib/admin-dashboard-events";
 import {
   getAdminAcademicYearLockMessage,
   getAdminAcademicYearStatus,
@@ -707,6 +708,7 @@ export function AdminStudents({
         refreshStudents(nextPage),
         Promise.resolve(onRefresh?.()),
       ]);
+      notifyAdminDashboardDataChanged();
     },
     [onRefresh, page, refreshStudents],
   );

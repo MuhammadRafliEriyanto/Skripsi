@@ -46,6 +46,7 @@ import {
   type AuthUser,
 } from "@/lib/auth";
 import { requestAdminApi } from "@/lib/admin-api";
+import { ADMIN_DASHBOARD_DATA_CHANGED_EVENT } from "@/lib/admin-dashboard-events";
 
 import { type AdminTab } from "./admin-data";
 import { type AdminSidebarBadgeCounts } from "./AdminSidebar";
@@ -353,10 +354,18 @@ export function AdminTopbar({
     };
 
     window.addEventListener("focus", refreshNotifications);
+    window.addEventListener(
+      ADMIN_DASHBOARD_DATA_CHANGED_EVENT,
+      refreshNotifications,
+    );
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       window.removeEventListener("focus", refreshNotifications);
+      window.removeEventListener(
+        ADMIN_DASHBOARD_DATA_CHANGED_EVENT,
+        refreshNotifications,
+      );
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [mounted, loadNotificationSummary]);
