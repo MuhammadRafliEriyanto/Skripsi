@@ -1163,6 +1163,55 @@ export const updateTeacher = asyncHandler(
   },
 );
 
+export const resetTeacherPassword = asyncHandler(
+  async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
+    const scope = await resolveAdminBranchScope(req.user, {
+      requireManagedBranchesForAdmin: true,
+    });
+    const teacher = await findTeacherByParam(req.params.id);
+
+    if (!teacher) {
+      next(new AppError(404, "Data guru tidak ditemukan."));
+      return;
+    }
+
+    assertTeacherBranchAccess(teacher, scope);
+
+    const loginCode = buildTeacherLoginCode(teacher.teacherId);
+    const generatedPassword = buildGeneratedPasswordFromTeacherId(teacher.teacherId);
+    const duplicateLoginCode = await User.findOne({
+      loginCode,
+      _id: { $ne: teacher.userId._id },
+    }).exec();
+
+    if (duplicateLoginCode) {
+      next(new AppError(409, "Kode login awal guru sudah digunakan akun lain."));
+      return;
+    }
+
+    teacher.userId.loginCode = loginCode;
+    teacher.userId.password = await bcrypt.hash(generatedPassword, 12);
+    teacher.userId.passwordResetToken = null;
+    teacher.userId.passwordResetExpires = null;
+    teacher.userId.isEmailVerified = true;
+    teacher.userId.emailVerificationToken = null;
+    teacher.userId.emailVerificationExpires = null;
+
+    await teacher.userId.save();
+
+    sendSuccess(res, {
+      message: "Password guru berhasil direset ke password awal.",
+      data: {
+        teacher: toPublicTeacher(teacher, teacher.userId),
+        credentials: {
+          loginCode,
+          password: generatedPassword,
+        },
+      },
+    });
+  },
+);
+
 export const deleteTeacher = asyncHandler(
   async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
     const scope = await resolveAdminBranchScope(req.user, {

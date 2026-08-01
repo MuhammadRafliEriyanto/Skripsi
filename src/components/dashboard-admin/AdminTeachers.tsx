@@ -3,6 +3,7 @@
 import {
   Download,
   Eye,
+  KeyRound,
   Pencil,
   Plus,
   RotateCcw,
@@ -130,6 +131,23 @@ type TeacherCreateGeneratedCredentials = {
 type TeacherCreateResponse = {
   teacher: AdminTeacher;
   generatedCredentials?: TeacherCreateGeneratedCredentials;
+};
+
+type TeacherPasswordResetCredentials = {
+  loginCode: string;
+  password: string;
+};
+
+type TeacherPasswordResetResponse = {
+  teacher: AdminTeacher;
+  credentials: TeacherPasswordResetCredentials;
+};
+
+type TeacherPasswordResetNotice = {
+  teacherId: string;
+  teacherName: string;
+  loginCode: string;
+  password: string;
 };
 
 type TeacherCreatedAccount = {
@@ -437,7 +455,6 @@ function TeacherActions({
 
             <div className="flex flex-wrap items-center gap-3">
               <AdminStatusBadge status={teacher.status} />
-              <AdminStatusBadge status={teacher.availability} />
             </div>
           </div>
         </SheetContent>
@@ -505,8 +522,11 @@ export function AdminTeachers({
     useState<TeacherImportResponse | null>(null);
   const [createdTeacherAccount, setCreatedTeacherAccount] =
     useState<TeacherCreatedAccount | null>(null);
+  const [resetTeacherAccount, setResetTeacherAccount] =
+    useState<TeacherPasswordResetNotice | null>(null);
   const [importInputVersion, setImportInputVersion] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [branchOptions, setBranchOptions] = useState<string[]>([]);
@@ -657,6 +677,7 @@ export function AdminTeachers({
 
   const openCreateDialog = () => {
     setEditingTeacherId(null);
+    setResetTeacherAccount(null);
     setFormValues(
       createEmptyTeacherForm(
         getDefaultBranch(branchOptions),
@@ -669,6 +690,7 @@ export function AdminTeachers({
 
   const openEditDialog = (teacher: AdminTeacher) => {
     setEditingTeacherId(teacher.id);
+    setResetTeacherAccount(null);
     setFormValues(toTeacherFormValues(teacher, branchOptions));
     setFormError(null);
     setIsFormOpen(true);
@@ -677,6 +699,7 @@ export function AdminTeachers({
   const closeFormDialog = () => {
     setIsFormOpen(false);
     setEditingTeacherId(null);
+    setResetTeacherAccount(null);
     setFormValues(
       createEmptyTeacherForm(
         getDefaultBranch(branchOptions),
@@ -852,6 +875,50 @@ export function AdminTeachers({
       );
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleResetTeacherPassword = async () => {
+    if (!editingTeacherId) {
+      return;
+    }
+
+    setIsResettingPassword(true);
+    setFormError(null);
+
+    try {
+      const payload = await requestAdminApi<TeacherPasswordResetResponse>(
+        `/api/teachers/${encodeURIComponent(editingTeacherId)}/reset-password`,
+        {
+          method: "POST",
+        },
+      );
+      const credentials = payload.data?.credentials;
+      const teacher = payload.data?.teacher;
+
+      if (!credentials) {
+        setFormError("Kredensial reset password guru tidak tersedia.");
+        return;
+      }
+
+      const teacherName =
+        (teacher?.name ?? normalizeText(formValues.name)) || "Guru";
+
+      setResetTeacherAccount({
+        teacherId: teacher?.id ?? editingTeacherId,
+        teacherName,
+        loginCode: credentials.loginCode,
+        password: credentials.password,
+      });
+      await refreshTeacherViews();
+    } catch (requestError) {
+      setFormError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Gagal mereset password guru.",
+      );
+    } finally {
+      setIsResettingPassword(false);
     }
   };
 
@@ -1052,12 +1119,7 @@ export function AdminTeachers({
     {
       key: "status",
       header: "Status",
-      cell: (teacher) => (
-        <div className="flex flex-wrap gap-2">
-          <AdminStatusBadge status={teacher.status} />
-          <AdminStatusBadge status={teacher.availability} />
-        </div>
-      ),
+      cell: (teacher) => <AdminStatusBadge status={teacher.status} />,
     },
     {
       key: "actions",
@@ -1078,7 +1140,7 @@ export function AdminTeachers({
     <>
       <AdminSectionCard
         title="Kelola guru"
-        description="Kelola data guru, filter cabang, serta atur status mengajar."
+        description="Kelola data guru dan status mengajar."
         square
         action={
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -1389,6 +1451,41 @@ export function AdminTeachers({
               <p className="rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-sm text-rose-600">
                 {formError}
               </p>
+            ) : null}
+
+            {isEditing ? (
+              <div className="rounded-xl border border-amber-100 bg-amber-50/70 px-4 py-3 text-sm text-amber-800">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-1">
+                    <p className="font-medium text-amber-900">
+                      Reset password awal guru
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full shrink-0 border-amber-200 bg-white text-amber-700 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-800 sm:w-auto"
+                    disabled={isResettingPassword || isSubmitting}
+                    onClick={handleResetTeacherPassword}
+                  >
+                    <KeyRound className="size-4" />
+                    {isResettingPassword ? "Mereset..." : "Reset Password"}
+                  </Button>
+                </div>
+
+                {resetTeacherAccount ? (
+                  <div className="mt-3 rounded-lg border border-emerald-100 bg-white px-3 py-2 text-emerald-700">
+                    <p className="font-medium">
+                      Password {resetTeacherAccount.teacherName} berhasil
+                      direset.
+                    </p>
+                    <p className="mt-1 text-xs leading-6">
+                      Kode Login: {resetTeacherAccount.loginCode} | Password:{" "}
+                      {resetTeacherAccount.password}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
             ) : null}
 
             <DialogFooter>
