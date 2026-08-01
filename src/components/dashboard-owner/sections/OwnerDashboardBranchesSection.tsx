@@ -193,8 +193,7 @@ export function OwnerDashboardBranchesSection({
               Manajemen Cabang
             </h2>
             <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500">
-              Kelola daftar cabang, ubah status operasional, dan lakukan import
-              atau export data cabang langsung dari dashboard owner.
+              Kelola data seluruh cabang bimbingan belajar.
             </p>
           </div>
 
@@ -214,16 +213,6 @@ export function OwnerDashboardBranchesSection({
                 <h3 className="text-xl font-semibold tracking-tight text-slate-950">
                   Daftar cabang owner
                 </h3>
-                <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
-                  Tabel ini menampilkan status operasional setiap cabang dan
-                  memberi akses cepat untuk tambah, edit, ubah status, hapus,
-                  import, dan export data.
-                </p>
-                <p className="mt-2 max-w-3xl text-xs leading-5 text-slate-400">
-                  Guru tersedia dihitung dari guru aktif yang dapat mengajar di
-                  cabang. Total siswa dihitung dari siswa yang terdaftar pada
-                  cabang tersebut.
-                </p>
               </div>
 
               <div className="flex w-full flex-nowrap items-center gap-2 overflow-x-auto pb-1 xl:w-auto xl:shrink-0 xl:justify-end xl:self-end xl:overflow-visible xl:pb-0">
