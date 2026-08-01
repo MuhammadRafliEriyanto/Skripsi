@@ -36,11 +36,11 @@ import { requestAdminApi } from "@/lib/admin-api";
 import { resolveOwnerNotificationHref } from "@/lib/owner-dashboard-routing";
 
 function getGreeting() {
-  const hour = new Date().getHours();
-  if (hour < 11) return "Selamat pagi";
-  if (hour < 15) return "Selamat siang";
-  if (hour < 18) return "Selamat sore";
-  return "Selamat malam";
+  const currentHour = new Date().getHours();
+  if (currentHour < 11) return "Selamat Pagi";
+  if (currentHour < 15) return "Selamat Siang";
+  if (currentHour < 18) return "Selamat Sore";
+  return "Selamat Malam";
 }
 
 function getInitials(name: string) {
@@ -356,9 +356,11 @@ export function OwnerDashboardTopbar({
               <Menu className="size-5" />
             </Button>
 
-            <div className="flex flex-col">
-              <p className="text-sm font-semibold text-slate-500">{getGreeting()},</p>
-              <p className="text-lg font-bold text-slate-900">{displayName}</p>
+            <div className="hidden flex-col justify-center lg:flex">
+              <span className="text-sm font-semibold text-slate-900">
+                {getGreeting()},
+              </span>
+              <span className="text-xs text-slate-500">{displayName}</span>
             </div>
           </div>
 
