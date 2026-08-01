@@ -17,6 +17,7 @@ import {
 export type OwnerDashboardBranchStatus = "Aktif" | "Persiapan" | "Nonaktif";
 const attentionBranchFilter = "Persiapan & Nonaktif" as const;
 export type OwnerDashboardBranchFilter =
+  | "Semua"
   | OwnerDashboardBranchStatus
   | typeof attentionBranchFilter
   | "Terhapus";
