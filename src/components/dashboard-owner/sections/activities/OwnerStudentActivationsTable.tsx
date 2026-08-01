@@ -209,7 +209,7 @@ export function OwnerStudentActivationsTable({
             <SelectTrigger className="h-12 rounded-2xl border-white/70 bg-white/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]">
               <SelectValue placeholder="Filter kelas" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-[240px]">
               <SelectItem value="Semua">Semua</SelectItem>
               {classFilterOptions.map((option) => (
                 <SelectItem key={option} value={option}>
