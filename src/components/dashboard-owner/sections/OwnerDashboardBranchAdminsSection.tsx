@@ -251,8 +251,7 @@ export function OwnerDashboardBranchAdminsSection({
               Admin Cabang
             </h2>
             <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500">
-              Kelola akun admin cabang yang nanti dipakai pada dropdown admin di
-              form Cabang owner.
+              Kelola data akun admin seluruh cabang.
             </p>
           </div>
 
@@ -271,11 +270,6 @@ export function OwnerDashboardBranchAdminsSection({
                 <h3 className="text-xl font-semibold tracking-tight text-slate-950">
                   Daftar akun admin cabang
                 </h3>
-                <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
-                  Owner membuat, mengubah, dan menghapus akun admin dari sini.
-                  Setelah akun dibuat, nama admin langsung tersedia pada dropdown
-                  admin cabang di halaman Cabang.
-                </p>
               </div>
 
               <Button
