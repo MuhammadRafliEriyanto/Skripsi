@@ -980,7 +980,7 @@ export const restoreBranch = asyncHandler(
     }
 
     branch.isDeleted = false;
-    branch.status = "Persiapan"; // Otomatis ke status persiapan agar dicek dulu
+    branch.status = "Nonaktif"; // Otomatis ke status nonaktif agar dicek dulu
     await branch.save();
 
     sendSuccess(res, {
