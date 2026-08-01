@@ -41,6 +41,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
@@ -50,14 +51,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 
 import type { AdminTeacher } from "./admin-data";
 import {
@@ -388,8 +381,8 @@ function TeacherActions({
 }) {
   return (
     <div className="flex items-center justify-center gap-1.5">
-      <Sheet>
-        <SheetTrigger asChild>
+      <Dialog>
+        <DialogTrigger asChild>
           <Button
             type="button"
             variant="outline"
@@ -400,49 +393,66 @@ function TeacherActions({
           >
             <Eye className="size-4" />
           </Button>
-        </SheetTrigger>
-        <SheetContent
-          side="right"
-          className={`w-[92vw] overflow-y-auto sm:max-w-lg ${warmOverlayPanelClassName}`}
+        </DialogTrigger>
+        <DialogContent
+          className={`max-h-[90vh] w-[92vw] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] sm:max-w-lg ${warmOverlayPanelClassName}`}
         >
-          <SheetHeader>
-            <SheetTitle>Detail guru</SheetTitle>
-            <SheetDescription>
-              Ringkasan profil guru, distribusi kelas aktif, dan status
-              ketersediaan mengajar.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="mt-6 space-y-5">
-            <div className="flex items-center gap-4 rounded-[22px] border border-orange-100/70 bg-gradient-to-r from-orange-50/85 to-white p-4 shadow-[0_16px_32px_-24px_rgba(249,115,22,0.22)]">
-              <Avatar className="size-14 rounded-full">
-                <AvatarFallback className={cn(warmAvatarFallbackClassName, "rounded-full")}>
-                  {getInitials(teacher.name)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0">
-                <p className="text-base font-semibold text-slate-950">
-                  {teacher.name}
-                </p>
-                <p className="truncate text-sm text-slate-500">
-                  {teacher.subject}
-                </p>
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-slate-800">
+              Detail Profil Guru
+            </DialogTitle>
+            <DialogDescription className="text-slate-500">
+              Informasi lengkap akun, mapel, dan status guru.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 space-y-6">
+            <div className="flex flex-col justify-between gap-4 rounded-2xl border border-orange-100 bg-gradient-to-r from-orange-50/80 to-white p-5 shadow-sm sm:flex-row sm:items-center">
+              <div className="flex items-center gap-4">
+                <Avatar className="size-14 rounded-full border-2 border-white shadow-sm">
+                  <AvatarFallback className={cn(warmAvatarFallbackClassName, "rounded-full text-lg")}>
+                    {getInitials(teacher.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <p className="text-lg font-bold text-slate-900">
+                    {teacher.name}
+                  </p>
+                  <p className="text-sm font-medium text-orange-600">
+                    ID: {teacher.loginCode || teacher.id}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <AdminStatusBadge status={teacher.status} />
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <DetailItem label="Kode Login" value={teacher.loginCode || teacher.id} />
-              <DetailItem label="Email Internal" value={teacher.email} />
-              <DetailItem label="Mapel" value={teacher.subject} />
-              <DetailItem
-                label="Cabang"
-                value={getTeacherBranchesLabel(teacher, branchOptions)}
-              />
-              <DetailItem label="Jadwal" value={teacher.schedule} />
-              <DetailItem
-                label="Kelas aktif"
-                value={`${teacher.activeClasses} kelas`}
-              />
-              <DetailItem label="ID Guru" value={teacher.id} />
+            <div className="space-y-3">
+              <h4 className="border-b border-slate-100 pb-2 text-sm font-semibold text-slate-800">
+                Akses & Akun
+              </h4>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <DetailItem label="Kode Login" value={teacher.loginCode || teacher.id} />
+                <DetailItem label="Email Internal" value={teacher.email} />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="border-b border-slate-100 pb-2 text-sm font-semibold text-slate-800">
+                Informasi Mengajar
+              </h4>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <DetailItem label="Mapel" value={teacher.subject} />
+                <DetailItem
+                  label="Cabang"
+                  value={getTeacherBranchesLabel(teacher, branchOptions)}
+                />
+                <DetailItem label="Jadwal" value={teacher.schedule} />
+                <DetailItem
+                  label="Kelas aktif"
+                  value={`${teacher.activeClasses} kelas`}
+                />
+              </div>
             </div>
 
             <div className="rounded-[20px] border border-slate-200/80 bg-white/95 p-4 shadow-[0_12px_26px_-22px_rgba(15,23,42,0.14)]">
@@ -454,12 +464,9 @@ function TeacherActions({
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <AdminStatusBadge status={teacher.status} />
-            </div>
           </div>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
       <Button
         type="button"
