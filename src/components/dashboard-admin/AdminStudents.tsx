@@ -696,7 +696,6 @@ export function AdminStudents({
           status: statusFilter === "Semua" ? undefined : statusFilter,
           className: classFilter,
           level: levelFilter === "Semua" ? undefined : levelFilter,
-          academicYear: academicYearFilter,
           sort: "createdAt_desc",
         });
 
@@ -1130,7 +1129,6 @@ export function AdminStudents({
         status: statusFilter === "Semua" ? undefined : statusFilter,
         className: classFilter,
         level: levelFilter === "Semua" ? undefined : levelFilter,
-        academicYear: academicYearFilter,
         sort: "createdAt_desc",
       });
     } catch (requestError) {
