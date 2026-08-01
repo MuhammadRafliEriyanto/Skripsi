@@ -119,13 +119,10 @@ export const getOwnerNotificationSummary = asyncHandler(
     const scheduledExpensesCount = expenses.filter(
       (expense) => expense.status === "Dijadwalkan",
     ).length;
-    const preparationBranchCount = branches.filter(
-      (branch) => branch.status === "Persiapan",
-    ).length;
     const inactiveBranchCount = branches.filter(
       (branch) => branch.status === "Nonaktif",
     ).length;
-    const attentionBranchCount = preparationBranchCount + inactiveBranchCount;
+    const attentionBranchCount = inactiveBranchCount;
 
     const items: OwnerNotificationSummaryItem[] = [];
 
@@ -203,20 +200,13 @@ export const getOwnerNotificationSummary = asyncHandler(
       items.push({
         key: "branches_attention",
         title: "Status cabang perlu perhatian",
-        message:
-          inactiveBranchCount > 0
-            ? `${formatItemCount(
-                attentionBranchCount,
-                "cabang masih berstatus Persiapan atau Nonaktif",
-                "cabang masih berstatus Persiapan atau Nonaktif",
-              )}.`
-            : `${formatItemCount(
-                preparationBranchCount,
-                "cabang masih dalam tahap Persiapan",
-                "cabang masih dalam tahap Persiapan",
-              )}.`,
+        message: `${formatItemCount(
+          attentionBranchCount,
+          "cabang berstatus Nonaktif",
+          "cabang berstatus Nonaktif",
+        )}.`,
         count: attentionBranchCount,
-        severity: inactiveBranchCount > 0 ? "danger" : "warning",
+        severity: "danger",
       });
     }
 

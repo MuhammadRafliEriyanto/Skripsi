@@ -14,12 +14,10 @@ import {
   type OwnerBranchesRouteState,
 } from "@/lib/owner-dashboard-routing";
 
-export type OwnerDashboardBranchStatus = "Aktif" | "Persiapan" | "Nonaktif";
-const attentionBranchFilter = "Persiapan & Nonaktif" as const;
+export type OwnerDashboardBranchStatus = "Aktif" | "Nonaktif";
 export type OwnerDashboardBranchFilter =
   | "Semua"
   | OwnerDashboardBranchStatus
-  | typeof attentionBranchFilter
   | "Terhapus";
 
 export type OwnerDashboardBranch = {
@@ -89,7 +87,6 @@ export type OwnerDashboardBranchManager = {
   summary: {
     total: number;
     active: number;
-    preparation: number;
     inactive: number;
   };
   statusMeta: Record<OwnerDashboardBranchStatus, OwnerDashboardBranchStatusMeta>;
@@ -112,15 +109,12 @@ export type OwnerDashboardBranchManager = {
 const branchFilterOptions = [
   "Semua",
   "Aktif",
-  attentionBranchFilter,
-  "Persiapan",
   "Nonaktif",
   "Terhapus",
 ] as const satisfies readonly OwnerDashboardBranchFilter[];
 
 const branchStatusOptions = [
   "Aktif",
-  "Persiapan",
   "Nonaktif",
 ] as const satisfies readonly OwnerDashboardBranchStatus[];
 
@@ -131,19 +125,14 @@ const branchStatusMeta = {
     summaryLabel: "Cabang aktif",
     dotClassName: "bg-emerald-500",
   },
-  Persiapan: {
-    badgeVariant: "warning",
-    label: "Persiapan",
-    summaryLabel: "Tahap persiapan",
-    dotClassName: "bg-amber-500",
-  },
   Nonaktif: {
     badgeVariant: "secondary",
     label: "Nonaktif",
     summaryLabel: "Cabang nonaktif",
     dotClassName: "bg-slate-400",
   },
-} satisfies Record<OwnerDashboardBranchStatus, OwnerDashboardBranchStatusMeta>;
+} as const satisfies Record<
+  OwnerDashboardBranchStatus, OwnerDashboardBranchStatusMeta>;
 
 type OwnerBranchApiItem = {
   id?: string;
@@ -173,9 +162,6 @@ function normalizeBranchStatus(value: string): OwnerDashboardBranchStatus | null
     case "aktif":
     case "active":
       return "Aktif";
-    case "persiapan":
-    case "preparation":
-      return "Persiapan";
     case "nonaktif":
     case "non-active":
     case "inactive":
@@ -441,12 +427,8 @@ function mapRouteBranchStatusToFilter(
   switch (status) {
     case "active":
       return "Aktif";
-    case "preparation":
-      return "Persiapan";
     case "inactive":
       return "Nonaktif";
-    case "attention":
-      return attentionBranchFilter;
     default:
       return "Semua";
   }
@@ -543,10 +525,6 @@ export function useOwnerDashboard({
           summary.active += 1;
         }
 
-        if (branch.status === "Persiapan") {
-          summary.preparation += 1;
-        }
-
         if (branch.status === "Nonaktif") {
           summary.inactive += 1;
         }
@@ -556,7 +534,6 @@ export function useOwnerDashboard({
       {
         total: 0,
         active: 0,
-        preparation: 0,
         inactive: 0,
       },
     );
@@ -573,9 +550,7 @@ export function useOwnerDashboard({
       const matchesStatus =
         branchStatusFilter === "Semua" || branchStatusFilter === "Terhapus"
           ? true
-          : branchStatusFilter === attentionBranchFilter
-            ? branch.status === "Persiapan" || branch.status === "Nonaktif"
-            : branch.status === branchStatusFilter;
+          : branch.status === branchStatusFilter;
 
       return matchesQuery && matchesStatus;
     });

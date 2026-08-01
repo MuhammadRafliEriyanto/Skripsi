@@ -1,6 +1,6 @@
 import { HydratedDocument, Model, Schema, model, models, type Types } from "mongoose";
 
-export const BRANCH_STATUSES = ["Aktif", "Persiapan", "Nonaktif"] as const;
+export const BRANCH_STATUSES = ["Aktif", "Nonaktif"] as const;
 
 export type BranchStatus = (typeof BRANCH_STATUSES)[number];
 
