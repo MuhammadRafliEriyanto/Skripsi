@@ -47,8 +47,6 @@ export const outgoingStatusOptions = [
 export const activationFilterOptions = [
   "Semua",
   "Aktif",
-  inactiveActivationStatusFilter,
-  "Menunggu Pembayaran",
   "Expired",
   "Pembayaran Gagal",
 ] as const satisfies readonly MembershipActivationFilter[];
