@@ -1140,7 +1140,6 @@ export function AdminDashboard() {
       const result = await fetchAdminStudents({
         page: 1,
         limit: 1,
-        academicYear: currentAcademicYear,
       });
 
       setStudentSummary(result.summary);
@@ -1374,7 +1373,6 @@ export function AdminDashboard() {
           limit: 5,
           q: trimmedQuery,
           sort: "createdAt_desc",
-          academicYear: currentAcademicYear,
         }),
         fetchAdminTeachers({
           page: 1,

@@ -29,7 +29,7 @@ function AdminLayoutClientInner({ children }: { children: React.ReactNode }) {
   const [paymentPendingCount, setPaymentPendingCount] = useState(0);
 
   useEffect(() => {
-    fetchAdminStudents({ page: 1, limit: 1, academicYear: currentAcademicYear }).then(res => setStudentActiveCount(res.summary.activeCount)).catch(() => {});
+    fetchAdminStudents({ page: 1, limit: 1 }).then(res => setStudentActiveCount(res.summary.activeCount)).catch(() => {});
     fetchAdminTeachers({ page: 1, limit: 1 }).then(res => setTeacherActiveCount(res.summary.activeCount)).catch(() => {});
     fetchAdminSchedules({ page: 1, limit: 1, academicYear: currentAcademicYear }).then(res => setScheduleReviewCount(res.summary.reviewCount)).catch(() => {});
     
