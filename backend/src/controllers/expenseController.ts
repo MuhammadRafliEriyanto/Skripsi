@@ -54,6 +54,23 @@ function isExpenseStatus(value: string): value is ExpenseStatus {
   return EXPENSE_STATUSES.includes(value as ExpenseStatus);
 }
 
+function matchesExpenseStatusFilter(
+  expenseStatus: ExpenseStatus,
+  filterValue: string,
+) {
+  if (!filterValue) {
+    return true;
+  }
+
+  if (filterValue === "Menunggu") {
+    return expenseStatus === "Menunggu" || expenseStatus === "Dijadwalkan";
+  }
+
+  return expenseStatus === filterValue;
+}
+
+const hiddenExpenseDetailValue = "Tidak dicatat";
+
 function parseOptionalDateInput(
   value: string | null | undefined,
   fieldLabel: string,
@@ -78,7 +95,7 @@ function parseOptionalDateInput(
 }
 
 function getExpenseDisplayDate(expense: ExpenseDocument) {
-  return expense.paidAt ?? expense.dueDate ?? expense.updatedAt ?? expense.createdAt;
+  return expense.paidAt ?? expense.updatedAt ?? expense.createdAt;
 }
 
 function toPublicExpense(expense: ExpenseDocument) {
@@ -139,7 +156,7 @@ function resolveExpensePayload(
       : normalizeText(body.status);
   const amount = body.amount === undefined ? currentExpense?.amount : body.amount;
   const paidAtInput = parseOptionalDateInput(body.paidAt, "Tanggal pembayaran");
-  const dueDateInput = parseOptionalDateInput(body.dueDate, "Tanggal jatuh tempo");
+  const dueDateInput = parseOptionalDateInput(body.dueDate, "Tanggal catatan");
   const note =
     body.note === undefined ? currentExpense?.note ?? "" : normalizeText(body.note);
 
@@ -149,14 +166,6 @@ function resolveExpensePayload(
 
   if (!category || !isExpenseCategory(category)) {
     throw new AppError(400, "Kategori pengeluaran belum valid.");
-  }
-
-  if (!vendorOrRecipient) {
-    throw new AppError(400, "Vendor atau penerima wajib diisi.");
-  }
-
-  if (!paymentMethod) {
-    throw new AppError(400, "Metode pembayaran wajib diisi.");
   }
 
   if (!status || !isExpenseStatus(status)) {
@@ -179,9 +188,9 @@ function resolveExpensePayload(
     title,
     branch,
     category,
-    vendorOrRecipient,
+    vendorOrRecipient: vendorOrRecipient || hiddenExpenseDetailValue,
     amount: Math.round(amount),
-    paymentMethod,
+    paymentMethod: paymentMethod || hiddenExpenseDetailValue,
     status,
     paidAt,
     dueDate,
@@ -220,7 +229,7 @@ export const getExpenses = asyncHandler(
 
     const filteredExpenses = expenses.filter((expense) => {
       const matchesCategory = categoryFilter ? expense.category === categoryFilter : true;
-      const matchesStatus = statusFilter ? expense.status === statusFilter : true;
+      const matchesStatus = matchesExpenseStatusFilter(expense.status, statusFilter);
       const matchesQuery = searchQuery
         ? [
             expense.expenseId,

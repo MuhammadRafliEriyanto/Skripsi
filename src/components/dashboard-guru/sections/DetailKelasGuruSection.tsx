@@ -378,6 +378,23 @@ function normalizeText(value: string | null | undefined) {
   return value?.trim().replace(/\s+/g, " ") ?? "";
 }
 
+function isUtbkClassName(value: string | null | undefined) {
+  const normalizedValue = normalizeText(value).toUpperCase();
+
+  return (
+    normalizedValue === "UTBK" ||
+    normalizedValue === "SNBT" ||
+    normalizedValue.startsWith("UTBK ") ||
+    normalizedValue.startsWith("SNBT ") ||
+    normalizedValue.includes("PROGRAM UTBK") ||
+    normalizedValue.includes("PROGRAM SNBT")
+  );
+}
+
+function isUtbkClassDetail(classDetail: Pick<ClassDetailData, "namaKelas" | "tingkat">) {
+  return isUtbkClassName(classDetail.namaKelas) || isUtbkClassName(classDetail.tingkat);
+}
+
 function buildTeacherMaterialAttachmentUrl(classId: string, materialId: string) {
   const normalizedClassId = normalizeText(classId);
   const normalizedMaterialId = normalizeText(materialId);
@@ -1082,8 +1099,12 @@ function mapTeacherDetailToClassData(
   const classItem = payload.class;
   const schedules = payload.schedules ?? [];
   const kelasId = normalizeText(classItem?.id);
+  const isUtbkClass =
+    isUtbkClassName(classItem?.className) || isUtbkClassName(classItem?.level);
   const materialRows = mapTeacherDetailToMaterials(payload, kelasId);
-  const taskRows = mapTeacherDetailToTasks(payload, kelasId);
+  const taskRows = isUtbkClass
+    ? []
+    : mapTeacherDetailToTasks(payload, kelasId);
   const attendanceSessions = (payload.attendanceSessions ?? [])
     .map((session, index) => {
       const meetingNumber = Math.max(
@@ -1344,10 +1365,26 @@ export default function DetailKelasGuruSection({
         : emptyClassDetail,
     [emptyClassDetail, realClassDetail, teacherName],
   );
+  const isUtbkClass = useMemo(
+    () => isUtbkClassDetail(activeClass),
+    [activeClass],
+  );
+  const visibleDetailSectionItems = useMemo(
+    () =>
+      isUtbkClass
+        ? DETAIL_SECTION_ITEMS.filter(
+            (item) => item.key !== "tugas" && item.key !== "belum-dinilai",
+          )
+        : DETAIL_SECTION_ITEMS,
+    [isUtbkClass],
+  );
   const defaultStudentId = activeClass.participants[0]?.id ?? "";
   const academicScheme = useMemo(
-    () => getAcademicGradeScheme(`${activeClass.namaKelas} ${activeClass.tingkat}`),
-    [activeClass.namaKelas, activeClass.tingkat],
+    () =>
+      isUtbkClass
+        ? "tryout"
+        : getAcademicGradeScheme(`${activeClass.namaKelas} ${activeClass.tingkat}`),
+    [activeClass.namaKelas, activeClass.tingkat, isUtbkClass],
   );
 
   const [activeSection, setActiveSection] = useState<DetailSection>("peserta");
@@ -1901,19 +1938,26 @@ export default function DetailKelasGuruSection({
         detailPayload.data,
         nextClassDetail.kelasId,
       );
-      const nextTasks = mapTeacherDetailToTasks(
-        detailPayload.data,
-        nextClassDetail.kelasId,
-      );
-      const nextGradeEntries = mapTeacherGradesToEntries(
-        gradesPayload?.data ?? {},
-        nextClassDetail.kelasId,
-      );
+      const nextClassIsUtbk = isUtbkClassDetail(nextClassDetail);
+      const nextTasks = nextClassIsUtbk
+        ? []
+        : mapTeacherDetailToTasks(
+            detailPayload.data,
+            nextClassDetail.kelasId,
+          );
+      const nextGradeEntries = nextClassIsUtbk
+        ? []
+        : mapTeacherGradesToEntries(
+            gradesPayload?.data ?? {},
+            nextClassDetail.kelasId,
+          );
       const nextAcademicScheme =
-        gradesPayload?.data?.scheme ??
-        getAcademicGradeScheme(
-          `${nextClassDetail.namaKelas} ${nextClassDetail.tingkat}`,
-        );
+        nextClassIsUtbk
+          ? "tryout"
+          : gradesPayload?.data?.scheme ??
+            getAcademicGradeScheme(
+              `${nextClassDetail.namaKelas} ${nextClassDetail.tingkat}`,
+            );
       const nextAcademicGradeEntries = mapTeacherAcademicGradesToEntries(
         gradesPayload?.data ?? {},
         nextClassDetail.kelasId,
@@ -1972,6 +2016,15 @@ export default function DetailKelasGuruSection({
   }, [activeClass.participants]);
 
   useEffect(() => {
+    if (
+      isUtbkClass &&
+      (activeSection === "tugas" || activeSection === "belum-dinilai")
+    ) {
+      setActiveSection("pertemuan");
+    }
+  }, [activeSection, isUtbkClass]);
+
+  useEffect(() => {
     if (!isMeetingTargetEditing) {
       setMeetingTargetDraft(
         activeClass.totalPertemuan > 0 ? String(activeClass.totalPertemuan) : "",
@@ -1998,9 +2051,14 @@ export default function DetailKelasGuruSection({
     setNilaiDraft(null);
   }, [isAcademicArchive]);
 
+  const classTasks = useMemo(() => (isUtbkClass ? [] : tasks), [
+    isUtbkClass,
+    tasks,
+  ]);
   const tasksWithGradeStatus = useMemo(
-    () => applyGradeStatusToTasks(tasks, activeClass.participants, gradeEntries),
-    [activeClass.participants, gradeEntries, tasks],
+    () =>
+      applyGradeStatusToTasks(classTasks, activeClass.participants, gradeEntries),
+    [activeClass.participants, classTasks, gradeEntries],
   );
   const defaultTaskForScore = useMemo(
     () =>
@@ -2040,6 +2098,15 @@ export default function DetailKelasGuruSection({
     }
 
     toast.error(archiveMessage);
+    return false;
+  }
+
+  function ensureClassTaskFlowEnabled() {
+    if (!isUtbkClass) {
+      return true;
+    }
+
+    toast.error("Program UTBK menggunakan materi dan tryout, bukan tugas pertemuan.");
     return false;
   }
 
@@ -2175,6 +2242,10 @@ export default function DetailKelasGuruSection({
   }
 
   async function openTaskSubmissionDialog(task: TugasPertemuan) {
+    if (!ensureClassTaskFlowEnabled()) {
+      return;
+    }
+
     setSelectedTaskForSubmissions(task);
     setTaskSubmissionRows([]);
     setSelectedSubmissionId("");
@@ -2349,7 +2420,7 @@ export default function DetailKelasGuruSection({
   }
 
   function openAddTugasDialog() {
-    if (!ensureAcademicYearEditable()) {
+    if (!ensureAcademicYearEditable() || !ensureClassTaskFlowEnabled()) {
       return;
     }
 
@@ -2363,7 +2434,7 @@ export default function DetailKelasGuruSection({
   }
 
   function openEditTugasDialog(task: TugasPertemuan) {
-    if (!ensureAcademicYearEditable()) {
+    if (!ensureAcademicYearEditable() || !ensureClassTaskFlowEnabled()) {
       return;
     }
 
@@ -2424,7 +2495,7 @@ export default function DetailKelasGuruSection({
   }
 
   async function handleSaveTugas() {
-    if (!ensureAcademicYearEditable()) {
+    if (!ensureAcademicYearEditable() || !ensureClassTaskFlowEnabled()) {
       return;
     }
 
@@ -2462,7 +2533,7 @@ export default function DetailKelasGuruSection({
   }
 
   async function handleDeleteTugas(taskId: string) {
-    if (!ensureAcademicYearEditable()) {
+    if (!ensureAcademicYearEditable() || !ensureClassTaskFlowEnabled()) {
       return;
     }
 
@@ -2529,7 +2600,7 @@ export default function DetailKelasGuruSection({
   }
 
   function openNilaiDialogForTask(task: TugasPertemuan) {
-    if (!ensureAcademicYearEditable()) {
+    if (!ensureAcademicYearEditable() || !ensureClassTaskFlowEnabled()) {
       return;
     }
 
@@ -2710,6 +2781,21 @@ export default function DetailKelasGuruSection({
           />
         );
       case "tugas":
+        if (isUtbkClass) {
+          return (
+            <DetailPertemuanTable
+              kelasName={activeClass.namaKelas}
+              materials={materials}
+              readOnly={isAcademicArchive}
+              readOnlyMessage={archiveMessage}
+              totalMeetings={activeClass.totalPertemuan}
+              onAdd={openAddMateriDialog}
+              onDelete={handleDeleteMateri}
+              onEdit={openEditMateriDialog}
+            />
+          );
+        }
+
         return (
           <TugasPertemuanTable
             kelasName={activeClass.namaKelas}
@@ -2724,6 +2810,21 @@ export default function DetailKelasGuruSection({
           />
         );
       case "belum-dinilai":
+        if (isUtbkClass) {
+          return (
+            <DetailPertemuanTable
+              kelasName={activeClass.namaKelas}
+              materials={materials}
+              readOnly={isAcademicArchive}
+              readOnlyMessage={archiveMessage}
+              totalMeetings={activeClass.totalPertemuan}
+              onAdd={openAddMateriDialog}
+              onDelete={handleDeleteMateri}
+              onEdit={openEditMateriDialog}
+            />
+          );
+        }
+
         return (
           <BelumDinilaiTable
             kelasName={activeClass.namaKelas}
@@ -2742,6 +2843,7 @@ export default function DetailKelasGuruSection({
             readOnlyMessage={archiveMessage}
             onEditNilai={openNilaiDialogForStudent}
             scheme={academicScheme}
+            includeTaskScore={!isUtbkClass}
           />
         );
       default:
@@ -2842,9 +2944,21 @@ export default function DetailKelasGuruSection({
                   </h1>
 
                   <p className="mt-2 max-w-2xl text-sm text-slate-500 md:text-base">
-                    Jadwal detail di bawah ini akan aktif setelah modul
-                    sudah terhubung dengan jadwal kelas Anda.
+                    {isUtbkClass
+                      ? "Program UTBK difokuskan pada jadwal kelas, absensi, materi, dan tryout."
+                      : "Jadwal detail di bawah ini akan aktif setelah modul sudah terhubung dengan jadwal kelas Anda."}
                   </p>
+
+                  {isUtbkClass ? (
+                    <div className="mt-4">
+                      <Link
+                        href={buildGuruUrl("/dashboard-guru/ujian", searchParams)}
+                        className="inline-flex items-center rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-semibold text-orange-700 transition hover:border-orange-300 hover:bg-orange-100"
+                      >
+                        Kelola Tryout
+                      </Link>
+                    </div>
+                  ) : null}
 
                   <div className="mt-4 grid grid-cols-2 gap-2 text-sm sm:flex sm:flex-wrap sm:gap-2.5">
                     <div className="flex min-h-10 items-center gap-2 rounded-xl border border-orange-100/60 bg-white px-3 py-2 text-slate-700 shadow-sm">
@@ -2941,16 +3055,33 @@ export default function DetailKelasGuruSection({
               value={`${materials.length}/${activeClass.totalPertemuan}`}
               helper="Materi yang sudah tersusun untuk tiap pertemuan."
             />
-            <SummaryMetric
-              label="Latihan Berjalan"
-              value={tasksWithGradeStatus.length}
-              helper="Seluruh latihan yang muncul dari pertemuan aktif."
-            />
-            <SummaryMetric
-              label="Belum Dinilai"
-              value={pendingTasks.length}
-              helper="Latihan yang masih perlu penilaian lanjutan."
-            />
+            {isUtbkClass ? (
+              <>
+                <SummaryMetric
+                  label="Absensi"
+                  value={`${activeClass.pertemuanSelesai}/${activeClass.totalPertemuan}`}
+                  helper="Sesi yang sudah ditutup dari jadwal kelas."
+                />
+                <SummaryMetric
+                  label="Tryout"
+                  value="Ujian"
+                  helper="Soal dan hasil tryout dikelola dari menu Ujian."
+                />
+              </>
+            ) : (
+              <>
+                <SummaryMetric
+                  label="Latihan Berjalan"
+                  value={tasksWithGradeStatus.length}
+                  helper="Seluruh latihan yang muncul dari pertemuan aktif."
+                />
+                <SummaryMetric
+                  label="Belum Dinilai"
+                  value={pendingTasks.length}
+                  helper="Latihan yang masih perlu penilaian lanjutan."
+                />
+              </>
+            )}
           </div>
         </section>
 
@@ -2958,7 +3089,7 @@ export default function DetailKelasGuruSection({
           <DetailKelasSidebar
             activeSection={activeSection}
             onSectionChange={setActiveSection}
-            sectionItems={DETAIL_SECTION_ITEMS}
+            sectionItems={visibleDetailSectionItems}
           />
 
           <div
@@ -3030,6 +3161,7 @@ export default function DetailKelasGuruSection({
         selectedTask={selectedTaskForScore}
         tasks={tasksWithGradeStatus}
         scheme={academicScheme}
+        includeTaskScore={!isUtbkClass}
       />
     </div>
   );

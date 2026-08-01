@@ -8,13 +8,21 @@ import type { StudentAcademicAccess } from "./studentAcademicAccess";
 export type AssessmentType = "UTS" | "UAS" | "Tryout";
 
 export type StudentTryoutAttempt = {
-  id: string;
-  tryoutId: string;
-  studentId: string;
-  classId: string;
-  teacherId: string;
-  status: string;
-  startedAt: string;
+  id?: string;
+  attemptId?: string | null;
+  tryoutId?: string;
+  studentId?: string;
+  classId?: string;
+  teacherId?: string;
+  submitted?: boolean;
+  status: string | null;
+  score?: number | null;
+  correctCount?: number | null;
+  wrongCount?: number | null;
+  unansweredCount?: number | null;
+  startedAt: string | null;
+  expiresAt?: string | null;
+  remainingSeconds?: number | null;
   endedAt: string | null;
   submittedAt: string | null;
   timeUsedSeconds?: number | null;

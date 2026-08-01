@@ -40,6 +40,7 @@ type SiswaUserProfileDialogProps = {
   isUserLoading?: boolean;
   onProfileUpdated: (user: AuthUser) => void;
   profileLabel?: string | null;
+  isUtbkStudent?: boolean;
 };
 
 type PasswordVisibilityState = {
@@ -175,6 +176,7 @@ export function SiswaUserProfileDialog({
   user,
   isUserLoading = false,
   onProfileUpdated,
+  isUtbkStudent = false,
 }: SiswaUserProfileDialogProps) {
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const [activeTab, setActiveTab] = useState("profile");
@@ -447,26 +449,43 @@ export function SiswaUserProfileDialog({
               </div>
             </div>
 
-            <Link
-              href="/dashboard-siswa/riwayat-akademik"
-              onClick={() => onOpenChange(false)}
-              className="group flex items-center justify-between gap-4 rounded-[24px] border border-slate-200/80 bg-white p-4 shadow-[0_18px_30px_-24px_rgba(15,23,42,0.16)] transition hover:border-orange-200 hover:bg-orange-50/50"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-orange-100 bg-orange-50 text-orange-600">
+            {isUtbkStudent ? (
+              <div className="flex items-center gap-3 rounded-[24px] border border-orange-100 bg-orange-50/60 p-4">
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-orange-100 bg-white text-orange-600">
                   <GraduationCap className="size-5" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-950">
-                    Riwayat Akademik
+                    Program UTBK
                   </p>
                   <p className="mt-1 text-xs leading-5 text-slate-500">
-                    Lihat perjalanan belajar, paket aktif, dan catatan akademik.
+                    Target kampus, jurusan, jadwal, absensi, dan progress tryout
+                    tersedia di dashboard UTBK.
                   </p>
                 </div>
               </div>
-              <ArrowRight className="size-4 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-orange-600" />
-            </Link>
+            ) : (
+              <Link
+                href="/dashboard-siswa/riwayat-akademik"
+                onClick={() => onOpenChange(false)}
+                className="group flex items-center justify-between gap-4 rounded-[24px] border border-slate-200/80 bg-white p-4 shadow-[0_18px_30px_-24px_rgba(15,23,42,0.16)] transition hover:border-orange-200 hover:bg-orange-50/50"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-orange-100 bg-orange-50 text-orange-600">
+                    <GraduationCap className="size-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-950">
+                      Riwayat Akademik
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                      Lihat perjalanan belajar, paket aktif, dan catatan akademik.
+                    </p>
+                  </div>
+                </div>
+                <ArrowRight className="size-4 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-orange-600" />
+              </Link>
+            )}
 
             <NoticeBox variant="success" message={profileSuccess} />
             <NoticeBox variant="error" message={profileError} />

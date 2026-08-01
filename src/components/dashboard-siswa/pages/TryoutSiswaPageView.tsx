@@ -23,6 +23,8 @@ import {
   getStudentAcademicAccessMessage,
   type StudentAcademicAccess,
 } from "../data/studentAcademicAccess";
+import type { StudentLearningProfile } from "../data/learning-types";
+import { isUtbkStudentProfile } from "../data/studentProgram";
 import StudentLearningShell from "../learning/StudentLearningShell";
 import { subscribeStudentDashboardRefresh } from "../student-dashboard-refresh-events";
 import {
@@ -151,6 +153,7 @@ function EmptyTryoutState({
 export default function TryoutSiswaPageView() {
   const router = useRouter();
   const [tryouts, setTryouts] = useState<StudentTryoutItem[]>([]);
+  const [student, setStudent] = useState<StudentLearningProfile | null>(null);
   const [activeSession, setActiveSession] = useState<ActiveTryoutSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
@@ -159,11 +162,12 @@ export default function TryoutSiswaPageView() {
     useState<StudentAcademicAccess | null>(null);
 
   const totalQuestions = activeSession?.totalQuestions ?? 0;
+  const isUtbkStudent = isUtbkStudentProfile(student);
   const academicAccessMessage =
     getStudentAcademicAccessMessage(academicAccess);
   const summaryText = isLoading
     ? "Memuat ujian"
-    : `${tryouts.length} ujian tersedia`;
+    : `${tryouts.length} ${isUtbkStudent ? "tryout tersedia" : "ujian tersedia"}`;
 
   const loadTryoutList = useCallback(async () => {
     try {
@@ -187,6 +191,7 @@ export default function TryoutSiswaPageView() {
       }
 
       const nextTryouts = payload.data?.tryouts ?? [];
+      setStudent(payload.data?.student ?? null);
       setTryouts(nextTryouts);
       setAcademicAccess(payload.data?.academicAccess ?? null);
 
@@ -199,6 +204,7 @@ export default function TryoutSiswaPageView() {
     } catch (error) {
       console.error("[tryout-siswa-page] load_tryouts_failed", error);
       setTryouts([]);
+      setStudent(null);
       setActiveSession(null);
       setAcademicAccess(null);
       setLoadError(
@@ -289,9 +295,15 @@ export default function TryoutSiswaPageView() {
 
   return (
     <StudentLearningShell
-      title="Ujian Siswa"
-      description="Kerjakan UTS, UAS, atau Tryout sesuai cabang dan kelas kamu. Jawaban dan hasil tersimpan otomatis."
+      title={isUtbkStudent ? "Tryout UTBK/SNBT" : "Ujian Siswa"}
+      description={
+        isUtbkStudent
+          ? "Kerjakan Tryout UTBK 1, 2, dan 3 sesuai jadwal untuk melihat rekap nilai berdasarkan hasil pengerjaanmu."
+          : "Kerjakan UTS, UAS, atau Tryout sesuai cabang dan kelas kamu. Jawaban dan hasil tersimpan otomatis."
+      }
       summary={summaryText}
+      isUtbkStudent={isUtbkStudent}
+      isNavigationLoading={isLoading && !student}
     >
       {isLoading ? (
         <section className="rounded-[24px] border border-slate-100 bg-white px-5 py-10 text-center shadow-sm">
@@ -314,7 +326,9 @@ export default function TryoutSiswaPageView() {
           title="Belum ada ujian yang tersedia untuk akun ini"
           description={
             academicAccessMessage ??
-            "Siswa hanya melihat UTS, UAS, atau Tryout yang sudah diterbitkan guru dan cocok dengan cabang serta kelasnya."
+            (isUtbkStudent
+              ? "Tryout UTBK/SNBT akan muncul setelah guru menerbitkan sesi tryout yang cocok dengan cabang dan programmu."
+              : "Siswa hanya melihat UTS, UAS, atau Tryout yang sudah diterbitkan guru dan cocok dengan cabang serta kelasnya.")
           }
           onRetry={loadTryoutList}
         />
@@ -364,7 +378,7 @@ export default function TryoutSiswaPageView() {
             <TryoutStatCard
               label="Cabang"
               value={activeSession.branch}
-              helper={`${activeSession.assessmentLabel} difilter sesuai cabang dan kelas akun siswa.`}
+              helper={`${activeSession.assessmentLabel} mengikuti cabang dan kelas kamu.`}
               icon={Target}
               tone="highlight"
             />
@@ -383,25 +397,25 @@ export default function TryoutSiswaPageView() {
                   <div className="max-w-3xl">
                     <div className="inline-flex items-center gap-2 rounded-full border border-orange-100 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-orange-600 shadow-sm">
                       <Sparkles className="h-4 w-4" />
-                      Sesi CBT Backend
+                      Sesi Tryout
                     </div>
                     <h2 className="mt-4 text-2xl font-semibold text-slate-800 md:text-[30px]">
                       {activeSession.title}
                     </h2>
                     <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
                       {activeSession.subject} untuk {activeSession.level} di
-                      cabang {activeSession.branch}. Data ini sudah difilter
-                      berdasarkan akun siswa yang login.
+                      cabang {activeSession.branch}. Ikuti sesi saat jadwal
+                      sudah dibuka.
                     </p>
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="rounded-[20px] border border-slate-100 bg-white px-4 py-3 shadow-sm">
                       <p className="text-[11px] uppercase tracking-[0.14em] text-slate-400">
-                        Kode
+                        Jenis Sesi
                       </p>
                       <p className="mt-1 text-sm font-semibold text-slate-800">
-                        {activeSession.code}
+                        {activeSession.mode}
                       </p>
                     </div>
                     <div className="rounded-[20px] border border-slate-100 bg-white px-4 py-3 shadow-sm">

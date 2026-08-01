@@ -52,6 +52,7 @@ import {
   formatRupiah,
   getPriceByClassAndPackage,
   membershipService,
+  resolveProgramPricingClassName,
   type OnlinePackageKey,
   type ProgramOptionValue,
   type MembershipStatusData,
@@ -65,6 +66,7 @@ type MembershipOverview = {
   branch: string;
   className: string;
   program: string;
+  utbkTrack: string;
   packageKey: string | null;
   packageName: string;
   durationLabel: string;
@@ -86,6 +88,7 @@ const emptyOverview: MembershipOverview = {
   branch: "-",
   className: "-",
   program: "-",
+  utbkTrack: "",
   packageKey: null,
   packageName: "Belum ada paket belajar aktif",
   durationLabel: "-",
@@ -146,6 +149,10 @@ function inferProgramFromOverview(
     return normalizedProgram;
   }
 
+  if (normalizedProgram === "UTBK") {
+    return "UTBK";
+  }
+
   if (normalizedClassName.includes("SD")) {
     return "SD";
   }
@@ -178,6 +185,17 @@ function inferClassLevelFromClassName(
   program: ProgramOptionValue,
   classOptionsByProgram: Record<string, string[]>,
 ) {
+  if (program.trim().toUpperCase() === "UTBK") {
+    const utbkTrack = overview.utbkTrack.trim();
+    const classOptions = classOptionsByProgram[program] ?? [];
+
+    if (utbkTrack && classOptions.includes(utbkTrack)) {
+      return utbkTrack;
+    }
+
+    return classOptions.includes("Kelas 12") ? "Kelas 12" : null;
+  }
+
   const grade = extractGrade(overview.className) ?? "";
   const classLevel = grade ? `Kelas ${grade}` : "";
 
@@ -191,6 +209,13 @@ function getSuggestedRenewalClass(
   classLevel: string,
   classOptionsByProgram: Record<string, string[]>,
 ): Pick<RenewalFormValues, "program" | "classLevel"> {
+  if (program.trim().toUpperCase() === "UTBK") {
+    return {
+      program,
+      classLevel,
+    };
+  }
+
   const classOptions = classOptionsByProgram[program] ?? [];
   const currentIndex = classOptions.indexOf(classLevel);
 
@@ -221,6 +246,10 @@ function getSuggestedRenewalClass(
 }
 
 function formatClassTargetLabel(program: ProgramOptionValue, classLevel: string) {
+  if (program.trim().toUpperCase() === "UTBK") {
+    return `UTBK ${classLevel}`;
+  }
+
   return `${program} ${classLevel.replace(/^Kelas\s+/i, "")}`;
 }
 
@@ -396,6 +425,7 @@ function buildMembershipOverview(
     branch: data.student?.branch?.trim() || "-",
     className: data.student?.className?.trim() || "-",
     program: data.student?.program?.trim() || "-",
+    utbkTrack: data.student?.utbkTrack?.trim() || "",
     packageKey: data.subscription?.packageKey?.trim() || null,
     packageName: data.subscription?.packageName?.trim() || "Belum ada paket belajar aktif",
     durationLabel: resolvedPackage
@@ -599,7 +629,10 @@ export default function TagihanSiswaPageView() {
     packageOptions[0] ??
     null;
   const selectedRenewalAmount = getPriceByClassAndPackage(
-    effectiveRenewalFormValues.classLevel,
+    resolveProgramPricingClassName(
+      effectiveRenewalFormValues.program,
+      effectiveRenewalFormValues.classLevel,
+    ),
     effectiveRenewalFormValues.packageKey,
     subscriptionConfig.classPricingMatrix,
     packageOptions,

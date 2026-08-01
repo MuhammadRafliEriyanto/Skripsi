@@ -85,7 +85,7 @@ type AdminScheduleProps = {
   globalSearchQuery?: string;
 };
 
-type ScheduleLevel = AdminAcademicLevel;
+type ScheduleLevel = AdminAcademicLevel | "UTBK";
 
 type ScheduleFormValues = {
   day: string;
@@ -132,8 +132,17 @@ const warmOverlayPanelClassName =
   "[&>button]:hover:bg-orange-50 [&>button]:hover:text-orange-700 [&>button]:focus-visible:ring-orange-500/10";
 const warmFileInputClassName =
   "block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition hover:border-orange-200 focus:border-orange-300 focus:ring-4 focus:ring-orange-500/10 focus-visible:border-orange-300 focus-visible:ring-4 focus-visible:ring-orange-500/10 file:mr-4 file:rounded-xl file:border-0 file:bg-orange-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-orange-700";
-const defaultScheduleGradeOptionsByLevel =
-  defaultAdminDashboardConfig.academic.gradesByLevel;
+const utbkScheduleLevel = "UTBK" as const;
+const utbkScheduleGeneralGrade = "Program Umum";
+const utbkScheduleGradeOptions = [
+  utbkScheduleGeneralGrade,
+  "Kelas 12",
+  "Alumni / Gap Year",
+] as const;
+const defaultScheduleGradeOptionsByLevel: Record<ScheduleLevel, string[]> = {
+  ...defaultAdminDashboardConfig.academic.gradesByLevel,
+  UTBK: [...utbkScheduleGradeOptions],
+};
 const defaultScheduleSubjectOptions = defaultAdminDashboardConfig.schedule.subjects;
 const defaultOrderedScheduleDays = defaultAdminDashboardConfig.schedule.days;
 const fallbackScheduleStatus: AdminScheduleItem["status"] =
@@ -168,6 +177,12 @@ function buildAcademicClassName(
     return "";
   }
 
+  if (normalizedLevel === utbkScheduleLevel) {
+    return normalizedGrade === utbkScheduleGeneralGrade
+      ? utbkScheduleLevel
+      : `${utbkScheduleLevel} ${normalizedGrade}`;
+  }
+
   return `${normalizedLevel} ${normalizedGrade}`;
 }
 
@@ -176,6 +191,14 @@ function parseAcademicClassName(
   gradeOptionsByLevel: Record<ScheduleLevel, string[]> = defaultScheduleGradeOptionsByLevel,
 ) {
   const normalizedValue = normalizeText(value);
+
+  if (normalizedValue.toUpperCase() === utbkScheduleLevel) {
+    return {
+      level: utbkScheduleLevel,
+      grade: utbkScheduleGeneralGrade,
+    };
+  }
+
   const match = /^([A-Za-z]+)\s+(.+)$/.exec(normalizedValue);
 
   if (!match) {
@@ -536,8 +559,14 @@ export function AdminSchedule({
     allScheduleStatusFilterLabel,
     ...scheduleStatusOptions,
   ];
-  const scheduleLevelOptions = dashboardConfig.academic.levels;
-  const scheduleGradeOptionsByLevel = dashboardConfig.academic.gradesByLevel;
+  const scheduleLevelOptions: ScheduleLevel[] = [
+    ...dashboardConfig.academic.levels,
+    utbkScheduleLevel,
+  ];
+  const scheduleGradeOptionsByLevel: Record<ScheduleLevel, string[]> = {
+    ...dashboardConfig.academic.gradesByLevel,
+    UTBK: [...utbkScheduleGradeOptions],
+  };
   const scheduleSubjectOptions = dashboardConfig.schedule.subjects;
   const scheduleTimeSlotOptions = dashboardConfig.schedule.timeSlots;
   const orderedScheduleDays = dashboardConfig.schedule.days;
@@ -1609,6 +1638,10 @@ export function AdminSchedule({
                     jadwal yang tersedia sebelum menyimpan perubahan.
                   </p>
                 ) : null}
+                <p className="text-xs leading-5 text-slate-500">
+                  Tombol Mulai Absen siswa otomatis muncul hanya saat hari dan
+                  jam ini sedang berlangsung.
+                </p>
               </ScheduleField>
 
               <ScheduleField label="Jenjang">
@@ -1673,7 +1706,7 @@ export function AdminSchedule({
                 !formValues.grade ? (
                   <p className="text-xs text-amber-600">
                     Kelas pada jadwal lama belum sesuai format `SD 4`, `SMP 8`,
-                    atau `SMA 11`. Pilih ulang kelas akademik sebelum
+                    `SMA 11`, atau `UTBK`. Pilih ulang kelas akademik sebelum
                     menyimpan perubahan.
                   </p>
                 ) : null}

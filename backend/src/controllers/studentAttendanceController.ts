@@ -18,6 +18,10 @@ import {
   isAttendanceSessionOnOrAfterAcademicJoin,
   parseValidDate,
 } from "../utils/studentAcademicStatus";
+import {
+  isUtbkStudent,
+  matchesUtbkScheduleClassName,
+} from "../utils/studentProgram";
 
 function normalizeText(value: string | null | undefined): string {
   return value?.trim().replace(/\s+/g, " ") ?? "";
@@ -169,12 +173,18 @@ export const getMyAttendanceHistory = asyncHandler(
       .lean()
       .exec();
 
-    const matchedSessions = sessions.filter(
-      (session) =>
-        matchesStudentClass(session.className, student.className) &&
+    const isUtbkProgram = isUtbkStudent(student);
+    const matchedSessions = sessions.filter((session) => {
+      const matchesClass = isUtbkProgram
+        ? matchesUtbkScheduleClassName(session.className, student)
+        : matchesStudentClass(session.className, student.className);
+
+      return (
+        matchesClass &&
         matchesStudentBranch(session.branch, student.branch) &&
-        isAttendanceSessionOnOrAfterAcademicJoin(session, subscriptionStartAt),
-    );
+        isAttendanceSessionOnOrAfterAcademicJoin(session, subscriptionStartAt)
+      );
+    });
     const sessionMap = new Map(
       matchedSessions.map((session) => [normalizeText(session.sessionId), session]),
     );

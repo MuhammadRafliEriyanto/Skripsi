@@ -36,7 +36,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { isOwnerExpenseLegacyCategory } from "@/lib/owner-expenses";
+import {
+  getOwnerExpenseStatusLabel,
+  isOwnerExpenseLegacyCategory,
+} from "@/lib/owner-expenses";
 import { cn } from "@/lib/utils";
 
 type OwnerDashboardExpensesSectionProps = {
@@ -53,15 +56,15 @@ const flashToneClasses = {
 const expenseStatusMeta = {
   Menunggu: {
     badgeVariant: "warning" as const,
-    label: "Menunggu",
+    label: "Belum Dibayar",
   },
   Dijadwalkan: {
-    badgeVariant: "secondary" as const,
-    label: "Dijadwalkan",
+    badgeVariant: "warning" as const,
+    label: "Belum Dibayar",
   },
   Selesai: {
     badgeVariant: "success" as const,
-    label: "Selesai",
+    label: "Sudah Dibayar",
   },
   Dibatalkan: {
     badgeVariant: "danger" as const,
@@ -157,7 +160,7 @@ export function OwnerDashboardExpensesSection({
               <Input
                 value={manager.searchQuery}
                 onChange={(event) => manager.setSearchQuery(event.target.value)}
-                placeholder="Cari judul, cabang, vendor, kategori, metode, atau no referensi..."
+                placeholder="Cari judul, cabang, kategori, atau no referensi..."
                 className="pl-10"
               />
             </div>
@@ -210,7 +213,9 @@ export function OwnerDashboardExpensesSection({
               <SelectContent>
                 {manager.statusFilterOptions.map((option) => (
                   <SelectItem key={option} value={option}>
-                    {option}
+                    {option === "Semua"
+                      ? "Semua status"
+                      : getOwnerExpenseStatusLabel(option)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -264,7 +269,7 @@ export function OwnerDashboardExpensesSection({
                   Judul / Cabang
                 </TableHead>
                 <TableHead className="w-56 text-[11px] uppercase tracking-[0.18em] text-slate-500">
-                  Kategori / Vendor
+                  Kategori
                 </TableHead>
                 <TableHead className="w-40 text-[11px] uppercase tracking-[0.18em] text-slate-500">
                   Nominal
@@ -296,11 +301,7 @@ export function OwnerDashboardExpensesSection({
                     <TableCell>
                       <div className="space-y-1">
                         <p className="font-semibold text-slate-900">{expense.title}</p>
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                          <span>{expense.branch}</span>
-                          <span>-</span>
-                          <span>{expense.paymentMethod || "Metode belum diisi"}</span>
-                        </div>
+                        <p className="text-xs text-slate-500">{expense.branch}</p>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -315,9 +316,6 @@ export function OwnerDashboardExpensesSection({
                             </Badge>
                           ) : null}
                         </div>
-                        <p className="text-xs text-slate-500">
-                          {expense.vendorOrRecipient}
-                        </p>
                       </div>
                     </TableCell>
                     <TableCell className="text-sm font-semibold text-slate-900">
@@ -332,7 +330,7 @@ export function OwnerDashboardExpensesSection({
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-slate-600">
-                      {formatDate(expense.paidAt ?? expense.dueDate ?? expense.updatedAt)}
+                      {formatDate(expense.paidAt ?? expense.updatedAt)}
                     </TableCell>
                     <TableCell className="px-6">
                       <div className="flex items-center justify-center gap-2">
@@ -407,7 +405,8 @@ export function OwnerDashboardExpensesSection({
           <DialogHeader>
             <DialogTitle>Detail Pengeluaran</DialogTitle>
             <DialogDescription>
-              Owner hanya memantau detail pengeluaran operasional cabang.
+              Owner memantau catatan pengeluaran cabang. Pembayaran dilakukan
+              di luar LMS.
             </DialogDescription>
           </DialogHeader>
 
@@ -416,15 +415,7 @@ export function OwnerDashboardExpensesSection({
               <DetailItem label="No. Referensi" value={selectedExpense.expenseId} />
               <DetailItem label="Cabang" value={selectedExpense.branch} />
               <DetailItem label="Judul" value={selectedExpense.title} />
-              <DetailItem
-                label="Vendor / penerima"
-                value={selectedExpense.vendorOrRecipient}
-              />
               <DetailItem label="Kategori" value={selectedExpense.category} />
-              <DetailItem
-                label="Metode pembayaran"
-                value={selectedExpense.paymentMethod || "-"}
-              />
               <DetailItem
                 label="Nominal"
                 value={formatCurrency(selectedExpense.amount)}
@@ -437,16 +428,12 @@ export function OwnerDashboardExpensesSection({
                   variant={expenseStatusMeta[selectedExpense.status].badgeVariant}
                   className="mt-2 rounded-full px-3 py-1.5"
                 >
-                  {expenseStatusMeta[selectedExpense.status].label}
+                  {getOwnerExpenseStatusLabel(selectedExpense.status)}
                 </Badge>
               </div>
               <DetailItem
-                label="Tanggal dibayar"
+                label="Tanggal dicatat dibayar"
                 value={formatDate(selectedExpense.paidAt)}
-              />
-              <DetailItem
-                label="Jatuh tempo"
-                value={formatDate(selectedExpense.dueDate)}
               />
               <DetailItem
                 label="Terakhir diperbarui"

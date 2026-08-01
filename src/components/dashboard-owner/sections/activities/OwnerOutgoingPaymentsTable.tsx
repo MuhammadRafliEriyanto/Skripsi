@@ -98,11 +98,11 @@ export function OwnerOutgoingPaymentsTable({
   return (
     <OwnerActivitySectionPanel
       tone="sky"
-      badgeLabel="Pembayaran keluar"
-      title="Ringkasan pembayaran keluar"
+      badgeLabel="Pengeluaran cabang"
+      title="Ringkasan pengeluaran cabang"
       description={
         outgoingPaymentsAvailable
-          ? "Pantau pengeluaran operasional per cabang dengan lebih ringkas."
+          ? "Pantau catatan pengeluaran operasional per cabang dengan lebih ringkas."
           : "Belum ada data pengeluaran operasional."
       }
       actions={
@@ -112,7 +112,7 @@ export function OwnerOutgoingPaymentsTable({
             <Input
               value={searchQuery}
               onChange={(event) => onSearchQueryChange(event.target.value)}
-              placeholder="Cari judul pengeluaran, vendor, kategori, cabang, atau reference ID..."
+              placeholder="Cari judul pengeluaran, kategori, cabang, atau reference ID..."
               className="h-12 rounded-2xl border-white/70 bg-white/88 pl-11 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]"
               disabled={!outgoingPaymentsAvailable}
             />
@@ -173,7 +173,9 @@ export function OwnerOutgoingPaymentsTable({
             <SelectContent>
               {outgoingStatusOptions.map((option) => (
                 <SelectItem key={option} value={option}>
-                  {option}
+                  {option === "Semua"
+                    ? "Semua status"
+                    : outgoingStatusMeta[option].label}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -208,13 +210,13 @@ export function OwnerOutgoingPaymentsTable({
               Cabang
             </TableHead>
             <TableHead className="w-52 text-[11px] uppercase tracking-[0.18em] text-slate-500">
-              Kategori / Vendor
+              Kategori
             </TableHead>
             <TableHead className="w-40 text-[11px] uppercase tracking-[0.18em] text-slate-500">
               Nominal
             </TableHead>
             <TableHead className="w-40 text-[11px] uppercase tracking-[0.18em] text-slate-500">
-              Tanggal Keluar
+              Tanggal Catatan
             </TableHead>
             <TableHead className="w-44 text-[11px] uppercase tracking-[0.18em] text-slate-500">
               Status
@@ -248,14 +250,13 @@ export function OwnerOutgoingPaymentsTable({
                     <p className="text-sm font-semibold text-slate-900">
                       {payment.category}
                     </p>
-                    <p className="text-xs text-slate-500">{payment.vendor}</p>
                   </div>
                 </TableCell>
                 <TableCell className="text-sm font-semibold text-slate-900">
                   {formatCurrency(payment.amount)}
                 </TableCell>
                 <TableCell className="text-sm text-slate-600">
-                  {formatDate(payment.disbursedAt)}
+                  {formatDate(payment.disbursedAt ?? payment.updatedAt)}
                 </TableCell>
                 <TableCell>
                   <Badge
@@ -272,11 +273,11 @@ export function OwnerOutgoingPaymentsTable({
                       variant="subtle"
                       size="icon"
                       className="size-10 rounded-full"
-                      title="Lihat detail pembayaran keluar"
+                      title="Lihat detail pengeluaran"
                       onClick={() => onOpenDetail(payment.id)}
                     >
                       <Eye className="size-4" />
-                      <span className="sr-only">Lihat detail pembayaran keluar</span>
+                      <span className="sr-only">Lihat detail pengeluaran</span>
                     </Button>
                   </div>
                 </TableCell>
@@ -311,7 +312,7 @@ export function OwnerOutgoingPaymentsTable({
                   </div>
                   <div className="space-y-1">
                     <p className="text-base font-semibold text-slate-900">
-                      Data pembayaran keluar tidak ditemukan
+                      Data pengeluaran tidak ditemukan
                     </p>
                     <p className="max-w-md text-sm leading-6 text-slate-500">
                       {emptyDescription}

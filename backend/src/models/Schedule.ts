@@ -8,6 +8,12 @@ export const SCHEDULE_SUBJECTS = [
   "IPA",
   "IPS",
   "Guru Kelas SD",
+  "TPS",
+  "Literasi Bahasa Indonesia",
+  "Literasi Bahasa Inggris",
+  "Penalaran Matematika",
+  "Pembahasan Tryout UTBK",
+  "Strategi SNBT",
 ] as const;
 
 export type ScheduleStatus = (typeof SCHEDULE_STATUSES)[number];

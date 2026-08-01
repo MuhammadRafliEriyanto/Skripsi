@@ -17,6 +17,19 @@ export type StudentAcademicSummary = {
   evaluatedAt: string | null;
 };
 
+export type StudentLearningProfile = {
+  id: string;
+  name: string;
+  branch: string;
+  program: string;
+  className: string;
+  utbkTrack?: string;
+  targetKampus?: string;
+  targetJurusan?: string;
+  status: string;
+  accessStatus: string;
+};
+
 export type StudentMaterial = {
   id: string;
   mapel: string;

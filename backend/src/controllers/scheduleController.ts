@@ -31,6 +31,7 @@ import {
 } from "../utils/scheduleConflicts";
 import { normalizeCanonicalClassName } from "../utils/studentClass";
 import { syncTeacherScheduleStats } from "../utils/teacherStats";
+import { normalizeUtbkScheduleClassName } from "../utils/studentProgram";
 
 type ScheduleRequestBody = {
   day?: string;
@@ -189,6 +190,12 @@ function resolveCreatedAt(value: Date | string | null | undefined) {
 
 function normalizeAcademicClassName(value: string | undefined): string {
   const normalizedValue = normalizeText(value);
+  const utbkClassName = normalizeUtbkScheduleClassName(normalizedValue);
+
+  if (utbkClassName) {
+    return utbkClassName;
+  }
+
   const match = /^(SD|SMP|SMA)\s+(\d{1,2})$/i.exec(normalizedValue);
 
   if (!match) {
@@ -204,6 +211,15 @@ function normalizeAcademicClassName(value: string | undefined): string {
   }
 
   return `${level} ${grade}`;
+}
+
+function normalizeScheduleClassFilter(value: string | undefined) {
+  const normalizedValue = normalizeText(value);
+  return (
+    normalizeUtbkScheduleClassName(normalizedValue) ||
+    normalizeCanonicalClassName(normalizedValue) ||
+    ""
+  );
 }
 
 function normalizeScheduleSubject(value: string | undefined): string {
@@ -504,7 +520,7 @@ async function buildScheduleListPayload(
   const searchTokens = tokenizeSearchQuery(query.q);
   const normalizedStatus = normalizeText(query.status);
   const branchFilter = normalizeText(query.branch);
-  const normalizedClassName = normalizeCanonicalClassName(query.className);
+  const normalizedClassName = normalizeScheduleClassFilter(query.className);
   const normalizedDay = normalizeText(query.day);
   const requestedPage = parsePositiveIntegerParam(query.page, 1, {
     min: 1,
@@ -556,7 +572,7 @@ async function buildScheduleListPayload(
       const matchesStatus = normalizedStatus ? schedule.status === normalizedStatus : true;
       const matchesBranch = matchesBranchScope(schedule.branch, scope, branchFilter);
       const matchesClassName = normalizedClassName
-        ? normalizeCanonicalClassName(schedule.className) === normalizedClassName
+        ? normalizeScheduleClassFilter(schedule.className) === normalizedClassName
         : true;
       const matchesDay = normalizedDay ? schedule.day === normalizedDay : true;
 

@@ -45,6 +45,7 @@ function formatScore(score: number | null) {
 }
 
 export default function TabelNilaiTable({
+  includeTaskScore = true,
   nilaiRows,
   onEditNilai,
   participants,
@@ -70,15 +71,13 @@ export default function TabelNilaiTable({
         },
         note: "",
       };
-    const average = averageAvailableScores([
-      currentScore.tugas,
+    const scoreValues = [
+      ...(includeTaskScore ? [currentScore.tugas] : []),
       ...scoreKeys.map((scoreKey) => currentScore.scores[scoreKey]),
-    ]);
+    ];
 
-    const total = calculateTotalScores([
-      currentScore.tugas,
-      ...scoreKeys.map((scoreKey) => currentScore.scores[scoreKey]),
-    ]);
+    const average = averageAvailableScores(scoreValues);
+    const total = calculateTotalScores(scoreValues);
 
     return {
       average,
@@ -117,7 +116,9 @@ export default function TabelNilaiTable({
             {readOnly
               ? readOnlyMessage ?? "Tahun ajaran ini sudah menjadi arsip. Nilai hanya bisa dilihat."
               : scheme === "tryout"
-                ? "Rekap tugas dan tiga tahap tryout untuk kelas akhir jenjang."
+                ? includeTaskScore
+                  ? "Rekap tugas dan tiga tahap tryout untuk kelas akhir jenjang."
+                  : "Rekap tiga tahap tryout untuk program UTBK."
                 : "Rekap tugas dan tiga tahap UTS untuk kelas reguler."}
           </p>
         </div>
@@ -128,12 +129,14 @@ export default function TabelNilaiTable({
 
       <div className="px-5 py-5 md:px-6">
         <div className="overflow-x-auto border border-slate-200 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-slate-50 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300">
-          <table className="min-w-[900px] w-full">
+          <table className={`${includeTaskScore ? "min-w-[900px]" : "min-w-[760px]"} w-full`}>
             <thead className="bg-orange-50/50 text-left backdrop-blur-sm">
               <tr className="text-xs uppercase tracking-[0.16em] text-slate-500">
                 <th className="px-4 py-4 font-semibold">No</th>
                 <th className="px-4 py-4 font-semibold">Nama Siswa</th>
-                <th className="px-4 py-4 font-semibold">Tugas</th>
+                {includeTaskScore ? (
+                  <th className="px-4 py-4 font-semibold">Tugas</th>
+                ) : null}
                 {scoreKeys.map((scoreKey) => (
                   <th key={scoreKey} className="px-4 py-4 font-semibold">
                     {ACADEMIC_SCORE_LABELS[scoreKey]}
@@ -157,9 +160,11 @@ export default function TabelNilaiTable({
                   <td className="px-4 py-4 font-semibold text-slate-800">
                     {row.name}
                   </td>
-                  <td className="px-4 py-4 text-slate-600">
-                    {formatScore(row.scores.tugas)}
-                  </td>
+                  {includeTaskScore ? (
+                    <td className="px-4 py-4 text-slate-600">
+                      {formatScore(row.scores.tugas)}
+                    </td>
+                  ) : null}
                   {scoreKeys.map((scoreKey) => (
                     <td key={scoreKey} className="px-4 py-4 text-slate-600">
                       {formatScore(row.scores.scores[scoreKey])}

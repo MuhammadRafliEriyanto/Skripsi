@@ -8,6 +8,8 @@ type StudentLearningShellProps = {
   title: string;
   description: string;
   summary: string;
+  isUtbkStudent?: boolean;
+  isNavigationLoading?: boolean;
   children: ReactNode;
 };
 
@@ -15,6 +17,8 @@ export default function StudentLearningShell({
   title,
   description,
   summary,
+  isUtbkStudent = false,
+  isNavigationLoading = false,
   children,
 }: StudentLearningShellProps) {
   return (
@@ -53,7 +57,13 @@ export default function StudentLearningShell({
             </div>
 
             <div className="mt-5">
-              <StudentLearningNav />
+              {isNavigationLoading ? (
+                <div className="h-12 rounded-[20px] bg-orange-50/80 ring-1 ring-orange-100/80">
+                  <span className="sr-only">Memuat navigasi pembelajaran...</span>
+                </div>
+              ) : (
+                <StudentLearningNav isUtbkStudent={isUtbkStudent} />
+              )}
             </div>
           </div>
         </div>

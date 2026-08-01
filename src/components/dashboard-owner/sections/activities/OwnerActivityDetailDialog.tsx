@@ -206,7 +206,10 @@ export function OwnerActivityDetailDialog({
                 <DialogTitle className="text-2xl">
                   {selectedOutgoingPayment.title}
                 </DialogTitle>
-                <DialogDescription>Detail pengeluaran operasional.</DialogDescription>
+                <DialogDescription>
+                  Detail catatan pengeluaran operasional. Pembayaran dilakukan
+                  di luar LMS.
+                </DialogDescription>
               </DialogHeader>
 
               <div className="grid gap-3 sm:grid-cols-2">
@@ -230,12 +233,6 @@ export function OwnerActivityDetailDialog({
                 />
                 <DetailItem
                   tone="sky"
-                  label="Vendor / penerima"
-                  value={selectedOutgoingPayment.vendor}
-                  icon={ShieldCheck}
-                />
-                <DetailItem
-                  tone="sky"
                   label="Nominal"
                   value={formatCurrency(selectedOutgoingPayment.amount)}
                   icon={WalletCards}
@@ -248,20 +245,8 @@ export function OwnerActivityDetailDialog({
                 />
                 <DetailItem
                   tone="sky"
-                  label="Metode pembayaran"
-                  value={selectedOutgoingPayment.paymentMethod || "-"}
-                  icon={CreditCard}
-                />
-                <DetailItem
-                  tone="sky"
-                  label="Tanggal keluar"
+                  label="Tanggal dicatat dibayar"
                   value={formatLongDate(selectedOutgoingPayment.disbursedAt)}
-                  icon={CalendarClock}
-                />
-                <DetailItem
-                  tone="sky"
-                  label="Jatuh tempo"
-                  value={formatLongDate(selectedOutgoingPayment.dueDate)}
                   icon={CalendarClock}
                 />
                 <DetailItem

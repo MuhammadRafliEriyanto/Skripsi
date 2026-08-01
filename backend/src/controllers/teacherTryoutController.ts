@@ -36,6 +36,7 @@ import {
 import { getNextPublicId } from "../utils/publicId";
 import { parseTryoutXlsxBuffer } from "../utils/tryoutXlsxParser";
 import { normalizeCanonicalClassName } from "../utils/studentClass";
+import { normalizeUtbkScheduleClassName } from "../utils/studentProgram";
 import {
   buildStableTeacherClassId,
   getTeacherBranchNames,
@@ -57,7 +58,9 @@ import {
 
 type TryoutMutationBody = {
   assessmentType?: string;
+  classId?: string;
   branch?: string;
+  canonicalClassName?: string;
   title?: string;
   jenjang?: string;
   kelas?: string;
@@ -176,6 +179,14 @@ function getGradeFromCanonicalClassName(className: string) {
 
 function isFinalAssessmentClass(className: string) {
   return [6, 9, 12].includes(getGradeFromCanonicalClassName(className));
+}
+
+function normalizeAssessmentClassName(value: string | null | undefined) {
+  return (
+    normalizeUtbkScheduleClassName(value) ||
+    normalizeCanonicalClassName(value) ||
+    ""
+  );
 }
 
 function normalizePublishStatus(
@@ -447,6 +458,9 @@ async function ensureTeacherTeachesClass(input: {
   branch: string;
   canonicalClassName: string;
 }) {
+  const normalizedTargetClassName = normalizeAssessmentClassName(
+    input.canonicalClassName,
+  );
   const schedules = await Schedule.find({
     teacherId: input.teacherObjectId,
     branch: new RegExp(`^${escapeRegex(input.branch)}$`, "i"),
@@ -456,8 +470,8 @@ async function ensureTeacherTeachesClass(input: {
     .exec();
   const matchedSchedule = schedules.find(
     (schedule) =>
-      normalizeCanonicalClassName(normalizeText(schedule.className)) ===
-      input.canonicalClassName,
+      normalizeAssessmentClassName(schedule.className) ===
+      normalizedTargetClassName,
   );
 
   if (!matchedSchedule) {
@@ -479,8 +493,15 @@ async function resolveTeacherTryoutPayload(
   },
   currentTryout?: TeacherTryoutDocument | null,
 ): Promise<ResolvedTeacherTryoutPayload> {
+  const requestedUtbkClassName =
+    normalizeUtbkScheduleClassName(body.canonicalClassName) ||
+    normalizeUtbkScheduleClassName(body.kelas) ||
+    normalizeUtbkScheduleClassName(currentTryout?.canonicalClassName) ||
+    normalizeUtbkScheduleClassName(currentTryout?.kelas);
   const nextJenjang =
-    normalizeJenjang(body.jenjang) ?? currentTryout?.jenjang ?? null;
+    normalizeJenjang(body.jenjang) ??
+    currentTryout?.jenjang ??
+    (requestedUtbkClassName ? "SMA" : null);
 
   if (!nextJenjang) {
     throw new AppError(400, "Jenjang assessment wajib diisi.");
@@ -488,6 +509,7 @@ async function resolveTeacherTryoutPayload(
 
   const normalizedKelas = normalizeText(body.kelas);
   const nextKelas =
+    requestedUtbkClassName ||
     normalizedKelas ||
     (currentTryout && currentTryout.jenjang === nextJenjang
       ? normalizeText(currentTryout.kelas)
@@ -508,9 +530,9 @@ async function resolveTeacherTryoutPayload(
     throw new AppError(403, "Cabang target tidak termasuk cabang guru ini.");
   }
 
-  const canonicalClassName = normalizeCanonicalClassName(
-    `${nextJenjang} ${nextKelas}`,
-  );
+  const canonicalClassName =
+    requestedUtbkClassName ||
+    normalizeCanonicalClassName(`${nextJenjang} ${nextKelas}`);
 
   if (!canonicalClassName) {
     throw new AppError(400, "Kelas target assessment tidak valid.");
@@ -520,12 +542,17 @@ async function resolveTeacherTryoutPayload(
     normalizeAssessmentType(body.assessmentType) ??
     currentTryout?.assessmentType ??
     "Tryout";
-  const isFinalClass = isFinalAssessmentClass(canonicalClassName);
+  const isUtbkClass = Boolean(requestedUtbkClassName);
+  const isFinalClass = isUtbkClass || isFinalAssessmentClass(canonicalClassName);
+
+  if (isUtbkClass && nextAssessmentType !== "Tryout") {
+    throw new AppError(400, "Program UTBK menggunakan jenis ujian Tryout.");
+  }
 
   if (nextAssessmentType === "Tryout" && !isFinalClass) {
     throw new AppError(
       400,
-      "Tryout hanya bisa dibuat untuk kelas akhir: SD 6, SMP 9, atau SMA 12.",
+      "Tryout hanya bisa dibuat untuk kelas akhir: SD 6, SMP 9, SMA 12, atau program UTBK.",
     );
   }
 
@@ -1608,9 +1635,12 @@ export const uploadMyTeacherTryoutQuestionsFromXlsx = asyncHandler(
     } | null = null;
 
     if (parsedUpload.metadata?.className) {
-      const canonicalClassName = normalizeCanonicalClassName(
-        parsedUpload.metadata.className,
-      );
+      const metadataRawClassName = normalizeText(parsedUpload.metadata.className);
+      const metadataUtbkClassName =
+        normalizeUtbkScheduleClassName(metadataRawClassName);
+      const canonicalClassName =
+        metadataUtbkClassName ||
+        normalizeCanonicalClassName(metadataRawClassName);
 
       if (!canonicalClassName) {
         throw new AppError(
@@ -1619,28 +1649,45 @@ export const uploadMyTeacherTryoutQuestionsFromXlsx = asyncHandler(
         );
       }
 
-      const [jenjang, grade] = canonicalClassName.split(" ");
+      let jenjang: TeacherTryoutJenjang;
+      let kelas: string;
 
-      if (jenjang !== "SD" && jenjang !== "SMP" && jenjang !== "SMA") {
-        throw new AppError(
-          400,
-          "Metadata kelas XLSX tidak valid.",
-        );
+      if (metadataUtbkClassName) {
+        jenjang = "SMA";
+        kelas = metadataUtbkClassName;
+      } else {
+        const [metadataJenjang, grade] = canonicalClassName.split(" ");
+
+        if (
+          metadataJenjang !== "SD" &&
+          metadataJenjang !== "SMP" &&
+          metadataJenjang !== "SMA"
+        ) {
+          throw new AppError(
+            400,
+            "Metadata kelas XLSX tidak valid.",
+          );
+        }
+
+        jenjang = metadataJenjang;
+        kelas = `Kelas ${grade}`;
       }
 
-      const metadataIsFinalClass = isFinalAssessmentClass(canonicalClassName);
+      const metadataIsFinalClass =
+        Boolean(metadataUtbkClassName) ||
+        isFinalAssessmentClass(canonicalClassName);
 
       if ((tryout.assessmentType ?? "Tryout") === "Tryout" && !metadataIsFinalClass) {
         throw new AppError(
           400,
-          "Metadata kelas XLSX bukan kelas akhir untuk Tryout.",
+          "Metadata kelas XLSX bukan kelas akhir atau program UTBK untuk Tryout.",
         );
       }
 
       if ((tryout.assessmentType ?? "Tryout") !== "Tryout" && metadataIsFinalClass) {
         throw new AppError(
           400,
-          "Metadata kelas XLSX adalah kelas akhir. UTS/UAS hanya untuk kelas non-akhir.",
+          "Metadata kelas XLSX adalah kelas akhir atau program UTBK. UTS/UAS hanya untuk kelas non-akhir.",
         );
       }
 
@@ -1659,7 +1706,7 @@ export const uploadMyTeacherTryoutQuestionsFromXlsx = asyncHandler(
 
       metadataClassScope = {
         jenjang,
-        kelas: `Kelas ${grade}`,
+        kelas,
         canonicalClassName,
         classId: buildStableTeacherClassId(
           teacher.teacherId,

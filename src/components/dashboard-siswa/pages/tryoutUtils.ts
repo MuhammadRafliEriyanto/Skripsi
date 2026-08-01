@@ -1,5 +1,8 @@
 import { withStoredAuthHeader } from "@/lib/auth";
+import { formatUtbkTryoutStageLabel } from "@/lib/utbk-tryout-stages";
+import { formatUtbkSubjectLabel } from "@/lib/utbk-subjects";
 import { cn } from "@/lib/utils";
+import type { StudentLearningProfile } from "../data/learning-types";
 import type { StudentAcademicAccess } from "../data/studentAcademicAccess";
 
 export type AnswerMap = Record<string, string>;
@@ -72,6 +75,7 @@ export type StudentTryoutListResponse = {
   success: boolean;
   message?: string;
   data?: {
+    student?: StudentLearningProfile | null;
     tryouts?: StudentTryoutItem[];
     academicAccess?: StudentAcademicAccess | null;
   };
@@ -295,9 +299,10 @@ export function buildSessionFromTryout(
     assessmentType === "Tryout" &&
     typeof tryout.stage === "number" &&
     Number.isFinite(tryout.stage)
-      ? `Tryout ${tryout.stage}`
+      ? formatUtbkTryoutStageLabel(tryout.stage, `Tryout ${tryout.stage}`)
       : assessmentType;
-  const subject = normalizeText(tryout.subject) || "Mapel ujian";
+  const rawSubject = normalizeText(tryout.subject);
+  const subject = rawSubject ? formatUtbkSubjectLabel(rawSubject) : "Mapel ujian";
   const level =
     normalizeText(tryout.canonicalClassName) ||
     [normalizeText(tryout.jenjang), normalizeText(tryout.kelas)]

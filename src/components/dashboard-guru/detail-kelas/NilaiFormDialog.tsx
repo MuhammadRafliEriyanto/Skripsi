@@ -18,6 +18,7 @@ import type { NilaiFormDialogProps } from "./types";
 
 export default function NilaiFormDialog({
   draft,
+  includeTaskScore = true,
   mode,
   onAcademicScoreChange,
   onChange,
@@ -45,14 +46,16 @@ export default function NilaiFormDialog({
           </DialogTitle>
           <DialogDescription className="text-sm text-slate-500">
             {scheme === "tryout"
-              ? "Simpan nilai tugas dan hasil Tryout 1 sampai Tryout 3."
+              ? includeTaskScore
+                ? "Simpan nilai tugas dan hasil Tryout 1 sampai Tryout 3."
+                : "Simpan hasil Tryout 1 sampai Tryout 3."
               : "Simpan nilai tugas dan tiga tahap UTS siswa."}
           </DialogDescription>
         </DialogHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <div className="grid gap-4 px-5 py-5">
-          {tasks.length > 0 ? (
+          {includeTaskScore && tasks.length > 0 ? (
             <label className="grid gap-2 text-sm font-medium text-slate-700">
               Pilih Tugas
               <select
@@ -69,7 +72,7 @@ export default function NilaiFormDialog({
             </label>
           ) : null}
 
-          {selectedTask ? (
+          {includeTaskScore && selectedTask ? (
             <div className="border border-slate-200 bg-slate-50/60 p-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
                 Latihan Aktif
@@ -112,18 +115,20 @@ export default function NilaiFormDialog({
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="grid gap-2 text-sm font-medium text-slate-700">
-              Nilai Latihan
-              <input
-                type="number"
-                min={0}
-                max={100}
-                value={draft?.tugas ?? ""}
-                onChange={(event) => onChange("tugas", event.target.value)}
-                placeholder="Belum dinilai"
-                className="border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
-              />
-            </label>
+            {includeTaskScore ? (
+              <label className="grid gap-2 text-sm font-medium text-slate-700">
+                Nilai Latihan
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={draft?.tugas ?? ""}
+                  onChange={(event) => onChange("tugas", event.target.value)}
+                  placeholder="Belum dinilai"
+                  className="border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                />
+              </label>
+            ) : null}
 
             {academicScoreKeys.map((scoreKey) => (
               <label

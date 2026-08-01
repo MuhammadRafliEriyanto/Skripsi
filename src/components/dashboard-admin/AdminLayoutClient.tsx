@@ -51,6 +51,9 @@ function AdminLayoutClientInner({ children }: { children: React.ReactNode }) {
     if (pathname.includes("/guru")) return "teachers";
     if (pathname.includes("/pembayaran")) return "payments";
     if (pathname.includes("/jadwal")) return "schedule";
+    if (pathname.includes("/monitoring-akademik")) return "utbkAssessments";
+    if (pathname.includes("/akademik")) return "utbkAssessments";
+    if (pathname.includes("/penilaian-utbk")) return "utbkAssessments";
     if (pathname.includes("/profil")) return "profile";
     return "overview";
   };
@@ -63,6 +66,7 @@ function AdminLayoutClientInner({ children }: { children: React.ReactNode }) {
       case "teachers": router.push("/dashboard-admin/guru"); break;
       case "payments": router.push("/dashboard-admin/pembayaran"); break;
       case "schedule": router.push("/dashboard-admin/jadwal"); break;
+      case "utbkAssessments": router.push("/dashboard-admin/monitoring-akademik"); break;
       case "profile": router.push("/dashboard-admin/profil"); break;
       default: router.push("/dashboard-admin"); break;
     }

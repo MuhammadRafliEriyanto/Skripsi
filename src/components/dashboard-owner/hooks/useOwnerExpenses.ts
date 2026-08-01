@@ -11,7 +11,8 @@ import {
   fetchOwnerExpensesFromApi,
   isOwnerExpenseLegacyCategory,
   normalizeOwnerExpenseFormCategory,
-  ownerExpenseStatusOptions,
+  normalizeOwnerExpenseFormStatus,
+  ownerExpenseFormStatusOptions,
   ownerExpenseVisibleCategoryOptions,
   updateOwnerExpense,
   type OwnerExpense,
@@ -99,8 +100,9 @@ const categoryFilterOptions = [
 ] as const satisfies readonly OwnerExpenseCategoryFilter[];
 const statusFilterOptions = [
   "Semua",
-  ...ownerExpenseStatusOptions,
+  ...ownerExpenseFormStatusOptions,
 ] as const satisfies readonly OwnerExpenseStatusFilter[];
+const hiddenExpenseDetailValue = "Tidak dicatat";
 
 function normalizeText(value: string) {
   return value.trim().replace(/\s+/g, " ");
@@ -116,14 +118,29 @@ function resolveDefaultBranch(branchOptions: string[]) {
   return selectRelevantBranchOptions(branchOptions)[0] ?? "";
 }
 
+function matchesExpenseStatusFilter(
+  expenseStatus: OwnerExpenseStatus,
+  filterValue: OwnerExpenseStatusFilter,
+) {
+  if (filterValue === "Semua") {
+    return true;
+  }
+
+  if (filterValue === "Menunggu") {
+    return expenseStatus === "Menunggu" || expenseStatus === "Dijadwalkan";
+  }
+
+  return expenseStatus === filterValue;
+}
+
 function buildDefaultExpenseForm(branchOptions: string[]): OwnerExpenseForm {
   return {
     title: "",
     branch: resolveDefaultBranch(branchOptions),
     category: "Listrik",
-    vendorOrRecipient: "",
+    vendorOrRecipient: hiddenExpenseDetailValue,
     amount: "",
-    paymentMethod: "",
+    paymentMethod: hiddenExpenseDetailValue,
     status: "Menunggu",
     paidAt: "",
     dueDate: "",
@@ -136,12 +153,12 @@ function buildExpenseMutationPayload(form: OwnerExpenseForm): OwnerExpenseMutati
     title: normalizeText(form.title),
     branch: normalizeText(form.branch),
     category: form.category,
-    vendorOrRecipient: normalizeText(form.vendorOrRecipient),
+    vendorOrRecipient: normalizeText(form.vendorOrRecipient) || hiddenExpenseDetailValue,
     amount: Math.round(Number(form.amount)),
-    paymentMethod: normalizeText(form.paymentMethod),
+    paymentMethod: normalizeText(form.paymentMethod) || hiddenExpenseDetailValue,
     status: form.status,
     paidAt: form.paidAt.trim() || null,
-    dueDate: form.dueDate.trim() || null,
+    dueDate: null,
     note: normalizeText(form.note),
   };
 }
@@ -252,15 +269,13 @@ export function useOwnerExpenses() {
         ? expense.title.toLowerCase().includes(normalizedQuery) ||
           expense.branch.toLowerCase().includes(normalizedQuery) ||
           expense.category.toLowerCase().includes(normalizedQuery) ||
-          expense.vendorOrRecipient.toLowerCase().includes(normalizedQuery) ||
-          expense.paymentMethod.toLowerCase().includes(normalizedQuery) ||
           expense.expenseId.toLowerCase().includes(normalizedQuery)
         : true;
       const matchesBranch =
         branchFilter === allBranchFilter ? true : expense.branch === branchFilter;
       const matchesCategory =
         categoryFilter === "Semua" ? true : expense.category === categoryFilter;
-      const matchesStatus = statusFilter === "Semua" ? true : expense.status === statusFilter;
+      const matchesStatus = matchesExpenseStatusFilter(expense.status, statusFilter);
 
       return matchesQuery && matchesBranch && matchesCategory && matchesStatus;
     });
@@ -310,12 +325,12 @@ export function useOwnerExpenses() {
       title: expense.title,
       branch: expense.branch,
       category: normalizeOwnerExpenseFormCategory(expense.category),
-      vendorOrRecipient: expense.vendorOrRecipient,
+      vendorOrRecipient: expense.vendorOrRecipient || hiddenExpenseDetailValue,
       amount: String(expense.amount),
-      paymentMethod: expense.paymentMethod,
-      status: expense.status,
+      paymentMethod: expense.paymentMethod || hiddenExpenseDetailValue,
+      status: normalizeOwnerExpenseFormStatus(expense.status),
       paidAt: expense.paidAt ? expense.paidAt.slice(0, 10) : "",
-      dueDate: expense.dueDate ? expense.dueDate.slice(0, 10) : "",
+      dueDate: "",
       note: expense.note,
     });
     setDialogError(null);
@@ -344,8 +359,6 @@ export function useOwnerExpenses() {
     const nextErrors: OwnerExpenseFieldErrors = {};
     const title = normalizeText(form.title);
     const branch = normalizeText(form.branch);
-    const vendorOrRecipient = normalizeText(form.vendorOrRecipient);
-    const paymentMethod = normalizeText(form.paymentMethod);
     const amount = Number(form.amount);
 
     if (!title) {
@@ -354,14 +367,6 @@ export function useOwnerExpenses() {
 
     if (!branch) {
       nextErrors.branch = "Cabang wajib dipilih.";
-    }
-
-    if (!vendorOrRecipient) {
-      nextErrors.vendorOrRecipient = "Vendor atau penerima wajib diisi.";
-    }
-
-    if (!paymentMethod) {
-      nextErrors.paymentMethod = "Metode pembayaran wajib diisi.";
     }
 
     if (!form.amount.trim()) {
@@ -383,8 +388,9 @@ export function useOwnerExpenses() {
         ...form,
         title,
         branch,
-        vendorOrRecipient,
-        paymentMethod,
+        vendorOrRecipient:
+          normalizeText(form.vendorOrRecipient) || hiddenExpenseDetailValue,
+        paymentMethod: normalizeText(form.paymentMethod) || hiddenExpenseDetailValue,
       });
 
       if (dialogMode === "edit" && editingExpenseId) {
@@ -461,17 +467,17 @@ export function useOwnerExpenses() {
     mode: dialogMode,
     title:
       dialogMode === "create"
-        ? "Tambah Pengeluaran Operasional"
-        : "Edit Pengeluaran Operasional",
+        ? "Catat Pengeluaran Operasional"
+        : "Edit Catatan Pengeluaran",
     description:
       dialogMode === "create"
-        ? "Catat biaya operasional cabang agar langsung masuk ke monitoring owner dan perhitungan saldo bersih."
+        ? "Pembayaran dilakukan di luar LMS. Form ini hanya menyimpan catatan pengeluaran cabang."
         : editingLegacyCategory
           ? `Data lama dengan kategori legacy "${editingLegacyCategory}" bisa diperbarui ke kategori operasional baru tanpa mengubah flow pembayaran.`
-          : "Perbarui data pengeluaran operasional yang ada di sistem.",
+          : "Perbarui catatan pengeluaran operasional yang dibayar manual di luar LMS.",
     submitLabel:
       dialogMode === "create"
-        ? "Simpan pengeluaran"
+        ? "Simpan catatan"
         : "Simpan perubahan",
     error: dialogError,
     fieldErrors,
@@ -497,7 +503,7 @@ export function useOwnerExpenses() {
     statusFilterOptions,
     formBranchOptions,
     categoryOptions: ownerExpenseVisibleCategoryOptions,
-    statusOptions: ownerExpenseStatusOptions,
+    statusOptions: ownerExpenseFormStatusOptions,
     flash,
     dismissFlash,
     dialog,

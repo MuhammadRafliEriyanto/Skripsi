@@ -43,6 +43,20 @@ type TeacherAttendanceRecordStatus =
   | "Izin"
   | "Alpa";
 type TeacherAttendanceSessionStatus = "open" | "closed";
+type LocalAttendanceWindowStatus =
+  | "open"
+  | "upcoming"
+  | "ended"
+  | "not_today"
+  | "unavailable";
+
+type LocalAttendanceWindow = {
+  status: LocalAttendanceWindowStatus;
+  canStartAttendance: boolean;
+  label: string;
+  startTime: string | null;
+  endTime: string | null;
+};
 
 type StudentAttendanceRow = {
   id: string;
@@ -288,6 +302,181 @@ function toSafeNumber(value: unknown) {
 
 function formatTimeLabel(value: string) {
   return normalizeText(value).replace(/:/g, ".");
+}
+
+const DAY_ALIASES = new Map<string, string>([
+  ["senin", "senin"],
+  ["monday", "senin"],
+  ["selasa", "selasa"],
+  ["tuesday", "selasa"],
+  ["rabu", "rabu"],
+  ["wednesday", "rabu"],
+  ["kamis", "kamis"],
+  ["thursday", "kamis"],
+  ["jumat", "jumat"],
+  ["jum'at", "jumat"],
+  ["friday", "jumat"],
+  ["sabtu", "sabtu"],
+  ["saturday", "sabtu"],
+  ["minggu", "minggu"],
+  ["ahad", "minggu"],
+  ["sunday", "minggu"],
+]);
+
+function normalizeDayKey(value: string | null | undefined) {
+  return DAY_ALIASES.get(normalizeText(value).toLowerCase()) ?? null;
+}
+
+function formatMinutes(totalMinutes: number) {
+  const hours = Math.floor(totalMinutes / 60)
+    .toString()
+    .padStart(2, "0");
+  const minutes = (totalMinutes % 60).toString().padStart(2, "0");
+
+  return `${hours}:${minutes}`;
+}
+
+function parseClockToken(hours: string | undefined, minutes: string | undefined) {
+  const parsedHours = Number(hours ?? "");
+  const parsedMinutes = Number(minutes ?? "");
+
+  if (
+    !Number.isInteger(parsedHours) ||
+    !Number.isInteger(parsedMinutes) ||
+    parsedHours < 0 ||
+    parsedHours > 23 ||
+    parsedMinutes < 0 ||
+    parsedMinutes > 59
+  ) {
+    return null;
+  }
+
+  return parsedHours * 60 + parsedMinutes;
+}
+
+function parseScheduleTimeRange(value: string | null | undefined) {
+  const normalizedTime = normalizeText(value)
+    .replace(/[\u2013\u2014]/g, "-")
+    .replace(/\b(?:s\/d|sd|sampai|hingga|to)\b/gi, "-");
+  const matches = Array.from(
+    normalizedTime.matchAll(/(\d{1,2})\s*[:.]\s*(\d{2})/g),
+  );
+  const startMinutes = parseClockToken(matches[0]?.[1], matches[0]?.[2]);
+  const endMinutes = parseClockToken(matches[1]?.[1], matches[1]?.[2]);
+
+  if (startMinutes === null || endMinutes === null || endMinutes <= startMinutes) {
+    return null;
+  }
+
+  return {
+    startMinutes,
+    endMinutes,
+    startTime: formatMinutes(startMinutes),
+    endTime: formatMinutes(endMinutes),
+  };
+}
+
+function getJakartaDayKey(now: Date) {
+  return normalizeDayKey(
+    new Intl.DateTimeFormat("id-ID", {
+      weekday: "long",
+      timeZone: "Asia/Jakarta",
+    }).format(now),
+  );
+}
+
+function getJakartaCurrentMinutes(now: Date) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Jakarta",
+  }).formatToParts(now);
+  const hours = Number(parts.find((part) => part.type === "hour")?.value ?? "0");
+  const minutes = Number(
+    parts.find((part) => part.type === "minute")?.value ?? "0",
+  );
+
+  if (
+    !Number.isInteger(hours) ||
+    !Number.isInteger(minutes) ||
+    hours < 0 ||
+    hours > 23 ||
+    minutes < 0 ||
+    minutes > 59
+  ) {
+    return null;
+  }
+
+  return hours * 60 + minutes;
+}
+
+function buildLocalAttendanceWindow(
+  status: LocalAttendanceWindowStatus,
+  label: string,
+  startTime: string | null,
+  endTime: string | null,
+): LocalAttendanceWindow {
+  return {
+    status,
+    canStartAttendance: status === "open",
+    label,
+    startTime,
+    endTime,
+  };
+}
+
+function resolveLocalAttendanceWindow(
+  activeClass: Pick<AttendanceClassData, "jadwal" | "jadwalHari">,
+  now = new Date(),
+) {
+  const scheduleDayKey = normalizeDayKey(activeClass.jadwalHari);
+  const currentDayKey = getJakartaDayKey(now);
+  const currentMinutes = getJakartaCurrentMinutes(now);
+  const timeRange = parseScheduleTimeRange(activeClass.jadwal);
+
+  if (!scheduleDayKey || !currentDayKey || currentMinutes === null || !timeRange) {
+    return buildLocalAttendanceWindow(
+      "unavailable",
+      "Format hari atau jam jadwal belum valid.",
+      timeRange?.startTime ?? null,
+      timeRange?.endTime ?? null,
+    );
+  }
+
+  if (scheduleDayKey !== currentDayKey) {
+    return buildLocalAttendanceWindow(
+      "not_today",
+      "Absensi dibuka otomatis pada hari jadwal.",
+      timeRange.startTime,
+      timeRange.endTime,
+    );
+  }
+
+  if (currentMinutes < timeRange.startMinutes) {
+    return buildLocalAttendanceWindow(
+      "upcoming",
+      `Absensi dibuka pukul ${timeRange.startTime} WIB.`,
+      timeRange.startTime,
+      timeRange.endTime,
+    );
+  }
+
+  if (currentMinutes <= timeRange.endMinutes) {
+    return buildLocalAttendanceWindow(
+      "open",
+      `Absensi aktif sampai ${timeRange.endTime} WIB.`,
+      timeRange.startTime,
+      timeRange.endTime,
+    );
+  }
+
+  return buildLocalAttendanceWindow(
+    "ended",
+    "Waktu absensi jadwal ini sudah berakhir.",
+    timeRange.startTime,
+    timeRange.endTime,
+  );
 }
 
 function buildScheduleLabel(
@@ -696,6 +885,7 @@ export default function AbsensiKelasSection({
   const [closingSession, setClosingSession] = useState(false);
   const [isQrOpen, setIsQrOpen] = useState(false);
   const [isQrZoomed, setIsQrZoomed] = useState(false);
+  const [scheduleWindowTick, setScheduleWindowTick] = useState(() => Date.now());
 
   function applyAttendanceSessionState(
     session: TeacherAttendanceSession | null,
@@ -896,6 +1086,11 @@ export default function AbsensiKelasSection({
     }
 
     if (!activeClass?.kelasId || sessionLoading || closingSession) {
+      return;
+    }
+
+    if (attendanceWindow && !attendanceWindow.canStartAttendance) {
+      setActionError(attendanceWindow.label);
       return;
     }
 
@@ -1211,6 +1406,18 @@ export default function AbsensiKelasSection({
     });
   }, [isAcademicArchive]);
 
+  useEffect(() => {
+    if (!activeClass || attendanceSession) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setScheduleWindowTick(Date.now());
+    }, 30_000);
+
+    return () => window.clearInterval(intervalId);
+  }, [activeClass, attendanceSession]);
+
   const attendanceRows = useMemo(() => {
     if (!activeClass) {
       return [];
@@ -1263,8 +1470,23 @@ export default function AbsensiKelasSection({
 
   const isSessionOpen = attendanceSession?.status === "open";
   const isSessionClosed = attendanceSession?.status === "closed";
+  const attendanceWindow = useMemo(
+    () =>
+      activeClass
+        ? resolveLocalAttendanceWindow(activeClass, new Date(scheduleWindowTick))
+        : null,
+    [activeClass, scheduleWindowTick],
+  );
+  const canStartNewSession = Boolean(
+    !attendanceSession && attendanceWindow?.canStartAttendance,
+  );
+  const shouldShowPrimaryButton = Boolean(attendanceSession) || canStartNewSession;
   const primaryActionDisabled =
-    isAcademicArchive || sessionLoading || closingSession || isSessionClosed;
+    isAcademicArchive ||
+    sessionLoading ||
+    closingSession ||
+    isSessionClosed ||
+    (!attendanceSession && !canStartNewSession);
   const attendanceControlsDisabled =
     isAcademicArchive ||
     sessionLoading ||
@@ -1284,6 +1506,14 @@ export default function AbsensiKelasSection({
     }
 
     if (!attendanceSession) {
+      if (!canStartNewSession) {
+        setActionError(
+          attendanceWindow?.label ??
+            "Absensi hanya bisa dimulai saat jadwal berlangsung.",
+        );
+        return;
+      }
+
       void startAttendanceSession();
       return;
     }
@@ -1349,12 +1579,16 @@ export default function AbsensiKelasSection({
       ? {
           label: "Memuat sesi absensi...",
           className: "border-orange-200 bg-orange-50 text-orange-700",
+      }
+    : !attendanceSession
+      ? {
+          label: attendanceWindow?.canStartAttendance
+            ? "Sesi absensi siap dimulai"
+            : attendanceWindow?.label ?? "Sesi absensi belum dimulai",
+          className: attendanceWindow?.canStartAttendance
+            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+            : "border-amber-200 bg-amber-50 text-amber-700",
         }
-      : !attendanceSession
-        ? {
-            label: "Sesi absensi belum dimulai",
-            className: "border-amber-200 bg-amber-50 text-amber-700",
-          }
         : isSessionClosed
           ? {
               label: "Sesi ditutup",
@@ -1447,23 +1681,30 @@ export default function AbsensiKelasSection({
                 </div>
 
                 <div className="flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={handlePrimaryAction}
-                    disabled={primaryActionDisabled}
-                    className={`inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold transition ${
-                      primaryActionDisabled
-                        ? "cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400 shadow-none"
-                        : "border border-orange-300/70 bg-gradient-to-r from-orange-500 via-orange-500 to-amber-400 text-white shadow-[0_18px_30px_-24px_rgba(249,115,22,0.6)] hover:scale-[1.01] hover:shadow-[0_24px_36px_-24px_rgba(249,115,22,0.72)]"
-                    }`}
-                  >
-                    {sessionLoading ? (
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <QrCode className="h-4 w-4" />
-                    )}
-                    {primaryButtonLabel}
-                  </button>
+                  {shouldShowPrimaryButton ? (
+                    <button
+                      type="button"
+                      onClick={handlePrimaryAction}
+                      disabled={primaryActionDisabled}
+                      className={`inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold transition ${
+                        primaryActionDisabled
+                          ? "cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400 shadow-none"
+                          : "border border-orange-300/70 bg-gradient-to-r from-orange-500 via-orange-500 to-amber-400 text-white shadow-[0_18px_30px_-24px_rgba(249,115,22,0.6)] hover:scale-[1.01] hover:shadow-[0_24px_36px_-24px_rgba(249,115,22,0.72)]"
+                      }`}
+                    >
+                      {sessionLoading ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <QrCode className="h-4 w-4" />
+                      )}
+                      {primaryButtonLabel}
+                    </button>
+                  ) : (
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
+                      {attendanceWindow?.label ??
+                        "Absensi dibuka saat jadwal berlangsung."}
+                    </div>
+                  )}
 
                   {isSessionOpen ? (
                     <button

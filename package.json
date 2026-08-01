@@ -8,7 +8,12 @@
     "dev:backend": "npm --prefix backend run dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:blackbox:evidence": "playwright test tests/blackbox-landing-evidence.spec.ts --project=chromium --reporter=list",
+    "test:blackbox:owner": "playwright test tests/blackbox-owner-evidence.spec.ts --project=chromium --reporter=list",
+    "test:blackbox:admin": "playwright test tests/blackbox-admin-evidence.spec.ts --project=chromium --reporter=list",
+    "test:blackbox:guru": "playwright test tests/blackbox-guru-evidence.spec.ts --project=chromium --reporter=list",
+    "test:blackbox:siswa": "playwright test tests/blackbox-siswa-evidence.spec.ts --project=chromium --reporter=list"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.11",

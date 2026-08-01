@@ -14,10 +14,15 @@ import {
   AttendanceSession,
   type AttendanceSessionDocument,
 } from "../models/AttendanceSession";
+import { Schedule } from "../models/Schedule";
 import { Teacher } from "../models/Teacher";
 import asyncHandler from "../utils/asyncHandler";
 import { AppError, sendSuccess } from "../utils/apiResponse";
 import { getNextPublicId } from "../utils/publicId";
+import {
+  resolveScheduleAttendanceWindow,
+  type ScheduleAttendanceWindow,
+} from "../utils/scheduleAttendanceWindow";
 import { resolveStudentAcademicContentAccess } from "../utils/studentAcademicAccess";
 import { resolveStudentMembershipContentAccess } from "../utils/studentMembershipAccess";
 import {
@@ -84,6 +89,66 @@ function getCurrentJakartaTime() {
   const minute = parts.find((part) => part.type === "minute")?.value ?? "00";
 
   return `${hour}:${minute}`;
+}
+
+function buildBlockedAttendanceWindow(
+  label: string,
+): ScheduleAttendanceWindow {
+  return {
+    status: "unavailable",
+    canStartAttendance: false,
+    label,
+    startTime: null,
+    endTime: null,
+  };
+}
+
+async function getScheduleAttendanceWindowForSession(
+  session: AttendanceSessionDocument,
+): Promise<ScheduleAttendanceWindow> {
+  const scheduleId = normalizeText(session.scheduleId);
+  const sessionBranch = normalizeText(session.branch);
+  const shouldMatchBranch = Boolean(sessionBranch && sessionBranch !== "-");
+  const scheduleSelectFields = "scheduleId day time className branch subject status";
+  const schedules = scheduleId
+    ? await Schedule.find({ scheduleId })
+        .select(scheduleSelectFields)
+        .lean()
+        .exec()
+      : await Schedule.find({
+        teacherId: session.teacherId,
+        className: normalizeText(session.className),
+        ...(shouldMatchBranch ? { branch: sessionBranch } : {}),
+      })
+        .select(scheduleSelectFields)
+        .lean()
+        .exec();
+
+  if (!schedules.length) {
+    return buildBlockedAttendanceWindow(
+      "Absensi belum bisa diproses karena jadwal admin untuk sesi ini belum ditemukan.",
+    );
+  }
+
+  const scheduleWindows = schedules.map((schedule) =>
+    resolveScheduleAttendanceWindow(schedule),
+  );
+  const activeWindow =
+    scheduleWindows.find((window) => window.canStartAttendance) ?? null;
+
+  if (activeWindow) {
+    return activeWindow;
+  }
+
+  return (
+    scheduleWindows.find((window) =>
+      ["upcoming", "ended", "not_today"].includes(window.status),
+    ) ??
+    scheduleWindows[0] ??
+    buildBlockedAttendanceWindow(
+      "Absensi baru bisa diproses saat jadwal admin sedang berlangsung.",
+    )
+  );
 }
 
 function normalizeAttendanceRecordStatus(
@@ -727,6 +792,13 @@ export const scanStudentAttendanceByQr = asyncHandler(
 
     if (normalizeText(session.date) !== getCurrentJakartaDate()) {
       next(new AppError(400, "QR absensi ini sudah tidak berlaku."));
+      return;
+    }
+
+    const attendanceWindow = await getScheduleAttendanceWindowForSession(session);
+
+    if (!attendanceWindow.canStartAttendance) {
+      next(new AppError(400, attendanceWindow.label));
       return;
     }
 

@@ -207,6 +207,8 @@ function getSearchPlaceholder(activeTab: AdminTab) {
       return "Cari nama guru, email, nomor induk, cabang, atau mapel...";
     case "schedule":
       return "Cari kelas, mapel, guru, hari, atau ruangan...";
+    case "utbkAssessments":
+      return "Cari siswa, kode login, kelas, target kampus, jurusan, atau cabang...";
     case "payments":
       return "Cari no referensi, siswa, paket, pengeluaran, atau aktivasi...";
     case "overview":

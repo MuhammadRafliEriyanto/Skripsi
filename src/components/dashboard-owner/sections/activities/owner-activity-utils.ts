@@ -40,7 +40,6 @@ export const incomingPeriodOptions = [
 export const outgoingStatusOptions = [
   "Semua",
   "Menunggu",
-  "Dijadwalkan",
   "Selesai",
   "Dibatalkan",
 ] as const satisfies readonly OutgoingPaymentStatusFilter[];
@@ -110,15 +109,15 @@ export const incomingStatusMeta = {
 export const outgoingStatusMeta = {
   Menunggu: {
     badgeVariant: "warning",
-    label: "Menunggu",
+    label: "Belum Dibayar",
   },
   Dijadwalkan: {
-    badgeVariant: "secondary",
-    label: "Dijadwalkan",
+    badgeVariant: "warning",
+    label: "Belum Dibayar",
   },
   Selesai: {
     badgeVariant: "success",
-    label: "Selesai",
+    label: "Sudah Dibayar",
   },
   Dibatalkan: {
     badgeVariant: "danger",
@@ -255,7 +254,7 @@ export function mapRouteOutgoingStatusToFilter(
     case "menunggu":
       return "Menunggu";
     case "dijadwalkan":
-      return "Dijadwalkan";
+      return "Menunggu";
     case "selesai":
       return "Selesai";
     case "dibatalkan":
@@ -345,7 +344,7 @@ export function triggerDownload(fileName: string, content: string, type: string)
 }
 
 export function createExportFileName(
-  prefix: "pembayaran-masuk" | "pembayaran-keluar" | "aktivasi-siswa",
+  prefix: "pembayaran-masuk" | "pengeluaran-cabang" | "aktivasi-siswa",
   extension: "csv" | "json",
 ) {
   const stamp = new Intl.DateTimeFormat("sv-SE", {

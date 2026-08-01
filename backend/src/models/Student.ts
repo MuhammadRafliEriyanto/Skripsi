@@ -11,6 +11,9 @@ export interface IStudent {
   branch: string;
   program: string;
   className: string;
+  utbkTrack?: string;
+  targetKampus?: string;
+  targetJurusan?: string;
   academicYear: string;
   birthDate: Date | null;
   status: StudentStatus;
@@ -53,6 +56,21 @@ const studentSchema = new Schema<IStudent>(
     className: {
       type: String,
       required: [true, "Kelas wajib diisi."],
+      trim: true,
+    },
+    utbkTrack: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    targetKampus: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    targetJurusan: {
+      type: String,
+      default: "",
       trim: true,
     },
     academicYear: {

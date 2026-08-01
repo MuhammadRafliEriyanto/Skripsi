@@ -12,14 +12,14 @@ import {
 
 const registrationChecklist = [
   "Nama siswa, email, program, dan kelas.",
-  "Pilihan program dan kelas yang sesuai dengan jenjang.",
+  "Pilihan program SD, SMP, SMA, atau UTBK sesuai kebutuhan belajar.",
   "Paket membership 1 semester atau 2 semester.",
   "Konfirmasi pembayaran sebelum akses dashboard dibuka.",
 ] as const;
 
 const registrationIntroPoints = [
   "Isi data siswa dan kontak aktif untuk membuat akun.",
-  "Pilih program, kelas, dan paket membership yang paling sesuai.",
+  "Pilih program reguler atau UTBK untuk siswa kelas 12 dan alumni.",
   "Verifikasi email dan tunggu konfirmasi pembayaran agar akses aktif.",
 ] as const;
 

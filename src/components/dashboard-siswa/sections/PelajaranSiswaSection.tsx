@@ -15,6 +15,8 @@ import { useStudentDashboardData } from "../data/useStudentDashboardData";
 import { useStudentLearningData } from "../data/useStudentLearningData";
 import { useStudentTryouts } from "../data/useStudentTryouts";
 import { getStudentAcademicAccessMessage } from "../data/studentAcademicAccess";
+import { isUtbkStudentProfile } from "../data/studentProgram";
+import { formatUtbkTryoutStageLabel } from "@/lib/utbk-tryout-stages";
 
 type TabKey = "materi" | "tugas" | "tryout";
 
@@ -87,8 +89,8 @@ function SectionAction({
 
 export default function PelajaranSection() {
   const [activeTab, setActiveTab] = useState<TabKey>("materi");
-  const { isLoading: isDashboardLoading } = useStudentDashboardData();
-  const { materials, tasks, academicAccess, isLoading, loadError } =
+  const { dashboardData, isLoading: isDashboardLoading } = useStudentDashboardData();
+  const { materials, tasks, student, academicAccess, isLoading, loadError } =
     useStudentLearningData();
   const {
     tryouts,
@@ -100,10 +102,31 @@ export default function PelajaranSection() {
     getStudentAcademicAccessMessage(academicAccess);
   const tryoutAcademicAccessMessage =
     getStudentAcademicAccessMessage(tryoutAcademicAccess);
+  const isUtbkStudent = isUtbkStudentProfile(student ?? dashboardData?.student);
+  const visibleTabs = useMemo(
+    () =>
+      tabs
+        .filter((tab) => !isUtbkStudent || tab.key !== "tugas")
+        .map((tab) =>
+          isUtbkStudent && tab.key === "tryout"
+            ? {
+                ...tab,
+                label: "Sesi Tryout",
+                shortLabel: "Tryout",
+              }
+            : tab,
+        ),
+    [isUtbkStudent],
+  );
+  const resolvedActiveTab =
+    isUtbkStudent && activeTab === "tugas" ? "materi" : activeTab;
 
   const activeTabConfig = useMemo(
-    () => tabs.find((tab) => tab.key === activeTab) ?? tabs[0],
-    [activeTab],
+    () =>
+      visibleTabs.find((tab) => tab.key === resolvedActiveTab) ??
+      visibleTabs[0] ??
+      tabs[0],
+    [resolvedActiveTab, visibleTabs],
   );
 
   const summaryLabel = useMemo(() => {
@@ -111,11 +134,11 @@ export default function PelajaranSection() {
       return "Memuat data aktivitas...";
     }
 
-    if (activeTab === "materi")
+    if (resolvedActiveTab === "materi")
       return `${materials.length} materi tersedia`;
-    if (activeTab === "tugas") return `${tasks.length} tugas aktif`;
-    return `${tryouts.length} ujian tersedia`;
-  }, [activeTab, isLoading, isDashboardLoading, isTryoutsLoading, materials.length, tasks.length, tryouts.length]);
+    if (resolvedActiveTab === "tugas") return `${tasks.length} tugas aktif`;
+    return `${tryouts.length} ${isUtbkStudent ? "tryout tersedia" : "ujian tersedia"}`;
+  }, [resolvedActiveTab, isLoading, isDashboardLoading, isTryoutsLoading, materials.length, tasks.length, tryouts.length, isUtbkStudent]);
 
   const renderMateri = () => {
     if (isLoading) {
@@ -280,7 +303,12 @@ export default function PelajaranSection() {
           const assessmentType = tryout.assessmentType || "Ujian";
           const assessmentLabel =
             assessmentType === "Tryout" && tryout.stage
-              ? `Tryout ${tryout.stage}`
+              ? isUtbkStudent
+                ? formatUtbkTryoutStageLabel(
+                    tryout.stage,
+                    `Tryout ${tryout.stage}`,
+                  )
+                : `Tryout ${tryout.stage}`
               : assessmentType;
           const totalQ = Math.max(
             tryout.totalQuestions ?? 0,
@@ -355,7 +383,9 @@ export default function PelajaranSection() {
             Aktivitas Belajar
           </p>
           <h3 className="mt-1 text-base font-semibold text-slate-800">
-            Materi, tugas, dan tryout siswa
+            {isUtbkStudent
+              ? "Materi dan tryout UTBK"
+              : "Materi, tugas, dan tryout siswa"}
           </h3>
         </div>
 
@@ -372,8 +402,8 @@ export default function PelajaranSection() {
 
       <div className="overflow-hidden rounded-[22px] border border-slate-100 bg-slate-50/50">
         <div className="flex flex-wrap border-b border-slate-100 bg-slate-50">
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab.key;
+          {visibleTabs.map((tab) => {
+            const isActive = resolvedActiveTab === tab.key;
             const Icon = tab.icon;
 
             return (
@@ -395,9 +425,9 @@ export default function PelajaranSection() {
           })}
         </div>
 
-        {activeTab === "materi" && renderMateri()}
-        {activeTab === "tugas" && renderTugas()}
-        {activeTab === "tryout" && renderTryout()}
+        {resolvedActiveTab === "materi" && renderMateri()}
+        {resolvedActiveTab === "tugas" && renderTugas()}
+        {resolvedActiveTab === "tryout" && renderTryout()}
       </div>
     </section>
   );

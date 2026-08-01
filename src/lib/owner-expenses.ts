@@ -40,6 +40,32 @@ export type OwnerExpenseLegacyCategory =
   (typeof ownerExpenseLegacyCategoryOptions)[number];
 export type OwnerExpenseStatus = (typeof ownerExpenseStatusOptions)[number];
 
+export const ownerExpenseFormStatusOptions = [
+  "Menunggu",
+  "Selesai",
+  "Dibatalkan",
+] as const satisfies readonly OwnerExpenseStatus[];
+
+export function normalizeOwnerExpenseFormStatus(
+  value: OwnerExpenseStatus,
+): OwnerExpenseStatus {
+  return value === "Dijadwalkan" ? "Menunggu" : value;
+}
+
+export function getOwnerExpenseStatusLabel(status: string) {
+  switch (status) {
+    case "Menunggu":
+    case "Dijadwalkan":
+      return "Belum Dibayar";
+    case "Selesai":
+      return "Sudah Dibayar";
+    case "Dibatalkan":
+      return "Dibatalkan";
+    default:
+      return status;
+  }
+}
+
 export function isOwnerExpenseLegacyCategory(
   value: string | null | undefined,
 ): value is OwnerExpenseLegacyCategory {
@@ -136,18 +162,22 @@ function normalizeLookupKey(value: string | null | undefined) {
   return normalizeText(value).toLowerCase();
 }
 
+const hiddenExpenseDetailValue = "Tidak dicatat";
+
 function toOwnerExpense(expense: OwnerExpenseApiItem): OwnerExpense | null {
   const id = String(expense.id ?? "").trim();
   const expenseId = String(expense.expenseId ?? "").trim();
   const title = normalizeText(expense.title);
   const branch = normalizeText(expense.branch) || "Pusat";
   const category = normalizeText(expense.category) as OwnerExpenseCategory;
-  const vendorOrRecipient = normalizeText(expense.vendorOrRecipient);
+  const vendorOrRecipient =
+    normalizeText(expense.vendorOrRecipient) || hiddenExpenseDetailValue;
   const amount =
     typeof expense.amount === "number" && Number.isFinite(expense.amount)
       ? expense.amount
       : NaN;
-  const paymentMethod = normalizeText(expense.paymentMethod);
+  const paymentMethod =
+    normalizeText(expense.paymentMethod) || hiddenExpenseDetailValue;
   const status = normalizeText(expense.status) as OwnerExpenseStatus;
   const createdAt = String(expense.createdAt ?? "").trim();
   const updatedAt = String(expense.updatedAt ?? "").trim();
@@ -156,8 +186,6 @@ function toOwnerExpense(expense: OwnerExpenseApiItem): OwnerExpense | null {
     !id ||
     !expenseId ||
     !title ||
-    !vendorOrRecipient ||
-    !paymentMethod ||
     !createdAt ||
     !updatedAt ||
     !ownerExpenseCategoryOptions.includes(category) ||

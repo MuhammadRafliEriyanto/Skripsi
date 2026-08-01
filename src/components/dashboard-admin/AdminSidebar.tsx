@@ -38,9 +38,14 @@ function resolveSidebarBadgeLabel(value: number | undefined) {
 function buildSidebarNavigation(badgeCounts: AdminSidebarBadgeCounts): AdminNavItem[] {
   return adminNavigation
     .filter((item) =>
-      ["overview", "students", "teachers", "schedule", "payments"].includes(
-        item.value,
-      ),
+      [
+        "overview",
+        "students",
+        "teachers",
+        "schedule",
+        "utbkAssessments",
+        "payments",
+      ].includes(item.value),
     )
     .map((item) => {
       const badgeLabel = item.showBadge
@@ -75,6 +80,14 @@ function buildSidebarNavigation(badgeCounts: AdminSidebarBadgeCounts): AdminNavI
           label: "Jadwal Kelas",
           description: "Management",
           ...(badgeLabel ? { badge: badgeLabel } : {}),
+        };
+      }
+
+      if (item.value === "utbkAssessments") {
+        return {
+          ...item,
+          label: "Monitoring Akademik",
+          description: "Akademik",
         };
       }
 

@@ -113,6 +113,23 @@ function isFinanceTransactionKind(value: string): value is FinanceTransactionKin
   return FINANCE_TRANSACTION_KINDS.includes(value as FinanceTransactionKind);
 }
 
+function matchesFinanceStatusFilter(
+  transaction: FinanceTransaction,
+  filterValue: string,
+) {
+  if (!filterValue) {
+    return true;
+  }
+
+  const normalizedStatus = normalizeText(transaction.status).toLowerCase();
+
+  if (transaction.kind === "expense" && filterValue === "menunggu") {
+    return normalizedStatus === "menunggu" || normalizedStatus === "dijadwalkan";
+  }
+
+  return normalizedStatus === filterValue;
+}
+
 function toDocumentIdString(value: { toString: () => string } | string | null | undefined) {
   if (!value) {
     return "";
@@ -131,7 +148,7 @@ function getBranchIncomeDisplayDate(income: BranchIncomeDocument) {
 }
 
 function getExpenseDisplayDate(expense: ExpenseDocument) {
-  return expense.paidAt ?? expense.dueDate ?? expense.updatedAt ?? expense.createdAt;
+  return expense.paidAt ?? expense.updatedAt ?? expense.createdAt;
 }
 
 async function buildFinanceTransactions(
@@ -323,9 +340,7 @@ function filterFinanceTransactions(
     const matchesCategory = categoryFilter
       ? normalizeText(transaction.category).toLowerCase() === categoryFilter
       : true;
-    const matchesStatus = statusFilter
-      ? normalizeText(transaction.status).toLowerCase() === statusFilter
-      : true;
+    const matchesStatus = matchesFinanceStatusFilter(transaction, statusFilter);
     const matchesQuery = matchesSearchQuery(searchTokens, [
       transaction.referenceId,
       transaction.title,

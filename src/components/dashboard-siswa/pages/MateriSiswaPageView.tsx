@@ -3,13 +3,11 @@
 import { useState } from "react";
 import {
   BookOpen,
-  CalendarClock,
   CheckCircle2,
   Download,
   Eye,
   FileText,
   Clock,
-  X,
   FlaskConical,
   Calculator,
   Globe,
@@ -18,8 +16,11 @@ import {
 
 import { useStudentLearningData } from "../data/useStudentLearningData";
 import { getStudentAcademicAccessMessage } from "../data/studentAcademicAccess";
+import { isUtbkStudentProfile } from "../data/studentProgram";
 import StudentLearningShell from "../learning/StudentLearningShell";
-import { Dialog, DialogContent, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import UtbkTargetWidget from "../widgets/UtbkTargetWidget";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { formatUtbkSubjectLabel } from "@/lib/utbk-subjects";
 
 function getMaterialStatusClass(status: "Baru" | "Dipelajari") {
   if (status === "Baru") {
@@ -47,10 +48,11 @@ function getSubjectStyle(subject: string) {
 }
 
 export default function MateriSiswaPageView() {
-  const { materials, academicAccess, isLoading, loadError } =
+  const { materials, student, academicAccess, isLoading, loadError } =
     useStudentLearningData();
   const [selectedMaterialId, setSelectedMaterialId] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const isUtbkStudent = isUtbkStudentProfile(student);
   
   const academicAccessMessage =
     getStudentAcademicAccessMessage(academicAccess);
@@ -64,12 +66,27 @@ export default function MateriSiswaPageView() {
 
   return (
     <StudentLearningShell
-      title="Materi Belajar"
-      description="Jelajahi dan pelajari materi yang telah disiapkan khusus untuk kelasmu."
-      summary={
-        isLoading ? "Memuat materi..." : `${materials.length} materi siap dipelajari`
+      title={isUtbkStudent ? "Materi UTBK/SNBT" : "Materi Belajar"}
+      description={
+        isUtbkStudent
+          ? "Jelajahi modul persiapan UTBK dan SNBT yang difokuskan untuk target kampus serta jurusanmu."
+          : "Jelajahi dan pelajari materi yang telah disiapkan khusus untuk kelasmu."
       }
+      summary={
+        isLoading
+          ? "Memuat materi..."
+          : `${materials.length} materi siap dipelajari`
+      }
+      isUtbkStudent={isUtbkStudent}
+      isNavigationLoading={isLoading && !student}
     >
+      {!isLoading && isUtbkStudent ? (
+        <UtbkTargetWidget
+          student={student}
+          materialCount={materials.length}
+        />
+      ) : null}
+
       {isLoading ? (
         <section className="rounded-[24px] border border-slate-200/60 bg-white p-12 text-center shadow-sm">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-50 text-slate-400 mb-4">
@@ -110,6 +127,9 @@ export default function MateriSiswaPageView() {
               const SubjectIcon = getSubjectStyle(material.mapel).icon;
               const subjectBg = getSubjectStyle(material.mapel).bg;
               const subjectText = getSubjectStyle(material.mapel).text;
+              const subjectLabel = isUtbkStudent
+                ? formatUtbkSubjectLabel(material.mapel)
+                : material.mapel;
 
               return (
                 <article
@@ -125,7 +145,7 @@ export default function MateriSiswaPageView() {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         <span className="rounded-full bg-orange-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-orange-600">
-                          {material.mapel}
+                          {subjectLabel}
                         </span>
                         <span className="rounded-full bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-500">
                           Pertemuan {material.pertemuan}
@@ -192,7 +212,9 @@ export default function MateriSiswaPageView() {
               <div>
                 <h4 className="text-sm font-bold text-orange-700">Tips Belajar</h4>
                 <p className="text-sm font-medium text-slate-600 mt-0.5">
-                  Pelajari materi secara bertahap dan kerjakan tugas untuk meningkatkan pemahamanmu.
+                  {isUtbkStudent
+                    ? "Pelajari materi secara bertahap dan gunakan sesi ujian/tryout untuk melihat capaian belajar UTBK."
+                    : "Pelajari materi secara bertahap dan kerjakan tugas untuk meningkatkan pemahamanmu."}
                 </p>
               </div>
             </div>
@@ -209,7 +231,9 @@ export default function MateriSiswaPageView() {
               <div className="bg-slate-50 px-6 py-6 border-b border-slate-100 pr-12">
                 <div className="flex flex-wrap items-center gap-2 mb-3">
                     <span className="rounded-full bg-orange-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-orange-600">
-                      {selectedMaterial.mapel}
+                      {isUtbkStudent
+                        ? formatUtbkSubjectLabel(selectedMaterial.mapel)
+                        : selectedMaterial.mapel}
                     </span>
                     <span className="rounded-full bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-500">
                       Pertemuan {selectedMaterial.pertemuan}

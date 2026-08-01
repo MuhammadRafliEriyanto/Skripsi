@@ -22,6 +22,7 @@ import {
   EyeOff,
   FileText,
   Loader2,
+  MoreHorizontal,
   Pencil,
   Plus,
   Search,
@@ -38,12 +39,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { clearAuthClientState } from "@/lib/auth";
 import {
   buildGuruApiUrl,
   getGuruAcademicYearStatus,
   getSelectedAcademicPeriod,
 } from "@/lib/guru-helpers";
+import { formatUtbkTryoutStageLabel } from "@/lib/utbk-tryout-stages";
 
 type TryoutJenjang = "SD" | "SMP" | "SMA";
 type AssessmentType = "UTS" | "UAS" | "Tryout";
@@ -316,14 +325,54 @@ function isFinalAssessmentClass(className: string) {
   return [6, 9, 12].includes(getGradeFromClassName(className));
 }
 
+function normalizeUtbkClassName(value: string | null | undefined) {
+  const normalizedValue = normalizeText(value);
+  const normalizedUpper = normalizedValue.toUpperCase();
+
+  if (!normalizedValue) {
+    return "";
+  }
+
+  if (normalizedUpper === "UTBK" || normalizedUpper === "SNBT") {
+    return "UTBK";
+  }
+
+  const trackValue = normalizedValue.replace(/^(UTBK|SNBT)\s*[-/]?\s*/i, "");
+  const normalizedTrack = trackValue
+    .replace(/\s*\/\s*/g, " / ")
+    .trim()
+    .toUpperCase();
+
+  if (normalizedTrack === "12" || normalizedTrack === "KELAS 12") {
+    return "UTBK Kelas 12";
+  }
+
+  if (
+    normalizedTrack === "ALUMNI" ||
+    normalizedTrack === "GAP YEAR" ||
+    normalizedTrack === "ALUMNI/GAP YEAR" ||
+    normalizedTrack === "ALUMNI / GAP YEAR"
+  ) {
+    return "UTBK Alumni / Gap Year";
+  }
+
+  return "";
+}
+
 function getAssessmentModeForClass(className: string): AssessmentMode {
-  return isFinalAssessmentClass(className) ? "tryout" : "semester";
+  return normalizeUtbkClassName(className) || isFinalAssessmentClass(className)
+    ? "tryout"
+    : "semester";
 }
 
 function getAssessmentTypeLabel(type: AssessmentType) {
   if (type === "UTS") return "Simulasi UTS 1";
   if (type === "UAS") return "Simulasi UAS 1";
   return type;
+}
+
+function getTryoutStageLabel(stage: number | null | undefined) {
+  return formatUtbkTryoutStageLabel(stage, stage ? `Tryout ${stage}` : "Tryout");
 }
 
 function getJenjangFromClassName(className: string): TryoutJenjang | null {
@@ -354,6 +403,23 @@ function mapTeacherClassApiItem(
 ): TeacherAssessmentClassOption | null {
   const className = normalizeText(item.className);
   const branch = normalizeText(item.branch);
+  const utbkClassName = normalizeUtbkClassName(className);
+
+  if (className && branch && utbkClassName) {
+    return {
+      id: normalizeText(item.id) || `${branch}-${utbkClassName}`,
+      className,
+      branch,
+      subject: normalizeText(item.subject) || fallbackSubject,
+      jenjang: "SMA",
+      kelas: utbkClassName,
+      canonicalClassName: utbkClassName,
+      assessmentMode: "tryout",
+      studentCount: toSafeNumber(item.studentCount, 0),
+      scheduleCount: toSafeNumber(item.scheduleCount, 0),
+    };
+  }
+
   const jenjang = getJenjangFromClassName(className);
   const kelas = getKelasLabelFromClassName(className);
 
@@ -828,7 +894,9 @@ function upsertTryoutFromApi(
 function buildTryoutMutationPayload(draft: TryoutDraft) {
   return {
     assessmentType: draft.assessmentType,
+    classId: normalizeText(draft.classId),
     branch: normalizeText(draft.branch),
+    canonicalClassName: normalizeText(draft.canonicalClassName),
     title: normalizeText(draft.judulTryout),
     jenjang: draft.jenjang,
     kelas: draft.kelas,
@@ -1164,6 +1232,161 @@ function ActionIconButton({
   );
 }
 
+function PrimaryActionButton({
+  label,
+  title,
+  icon: Icon,
+  className,
+  onClick,
+  disabled = false,
+}: {
+  label: string;
+  title: string;
+  icon: LucideIcon;
+  className: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-label={title}
+      disabled={disabled}
+      onClick={onClick}
+      className={`inline-flex h-9 items-center justify-center gap-2 rounded-xl border px-3 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
+    >
+      <Icon className="h-4 w-4 shrink-0" />
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function TryoutActionControls({
+  tryout,
+  isAcademicArchive,
+  archiveMessage,
+  onEdit,
+  onManageQuestions,
+  onViewResults,
+  onTogglePublish,
+  onDelete,
+}: {
+  tryout: TryoutItem;
+  isAcademicArchive: boolean;
+  archiveMessage: string;
+  onEdit: () => void;
+  onManageQuestions: () => void;
+  onViewResults: () => void;
+  onTogglePublish: () => void;
+  onDelete: () => void;
+}) {
+  const isReadyToPublish = isTryoutReadyToPublish(tryout);
+  const isPublished = tryout.publishStatus === "Published";
+  const hasQuestions = tryout.jumlahSoal > 0;
+  const primaryAction = isPublished
+    ? {
+        label: "Hasil",
+        title: "Lihat Hasil",
+        icon: BarChart3,
+        className: "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100",
+        onClick: onViewResults,
+        disabled: false,
+      }
+    : isReadyToPublish
+      ? {
+          label: "Terbitkan",
+          title: "Terbitkan Ujian",
+          icon: Eye,
+          className:
+            "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
+          onClick: onTogglePublish,
+          disabled: isAcademicArchive,
+        }
+      : hasQuestions
+        ? {
+            label: "Lengkapi",
+            title: "Lengkapi Data Ujian",
+            icon: Pencil,
+            className:
+              "border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100",
+            onClick: onEdit,
+            disabled: isAcademicArchive,
+          }
+        : {
+            label: "Soal",
+            title: "Unggah atau Kelola Soal",
+            icon: UploadCloud,
+            className:
+              "border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100",
+            onClick: onManageQuestions,
+            disabled: isAcademicArchive,
+          };
+
+  return (
+    <div className="flex items-center justify-end gap-2">
+      <PrimaryActionButton
+        label={primaryAction.label}
+        title={isAcademicArchive ? archiveMessage : primaryAction.title}
+        icon={primaryAction.icon}
+        className={primaryAction.className}
+        onClick={primaryAction.onClick}
+        disabled={primaryAction.disabled}
+      />
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            title="Aksi Lainnya"
+            aria-label="Aksi Lainnya"
+            className={`${ACTION_BUTTON_CLASS} rounded-xl border-slate-200 bg-white text-slate-600 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700`}
+          >
+            <MoreHorizontal className="h-4 w-4 shrink-0" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-[13rem]">
+          <DropdownMenuItem disabled={isAcademicArchive} onSelect={onEdit}>
+            <Pencil className="h-4 w-4" />
+            Edit Ujian
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={onManageQuestions}>
+            <UploadCloud className="h-4 w-4" />
+            {isPublished ? "Lihat Soal" : "Kelola Soal"}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={onViewResults}>
+            <BarChart3 className="h-4 w-4" />
+            Lihat Hasil
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={
+              isAcademicArchive ||
+              (!isPublished && !isReadyToPublish)
+            }
+            onSelect={onTogglePublish}
+          >
+            {isPublished ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
+            {isPublished ? "Tarik Publikasi" : "Terbitkan"}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            disabled={isAcademicArchive || isPublished}
+            onSelect={onDelete}
+            className="text-rose-700 focus:text-rose-700 data-[highlighted]:text-rose-700"
+          >
+            <Trash2 className="h-4 w-4" />
+            Hapus Ujian
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
 function TryoutFormDialog({
   draft,
   classOptions,
@@ -1287,32 +1510,41 @@ function TryoutFormDialog({
 
           {currentAssessmentType === "Tryout" ? (
             <label className="grid gap-2">
-              <span className={LABEL_CLASS}>Tahap Tryout</span>
+              <span className={LABEL_CLASS}>Tahap Tryout UTBK/SNBT</span>
               <select
                 value={String(draft?.stage ?? 1)}
                 onChange={(event) => onChange("stage", Number(event.target.value))}
                 className={FIELD_CLASS}
               >
-                <option value="1">Tryout 1</option>
-                <option value="2">Tryout 2</option>
-                <option value="3">Tryout 3</option>
+                <option value="1">{getTryoutStageLabel(1)}</option>
+                <option value="2">{getTryoutStageLabel(2)}</option>
+                <option value="3">{getTryoutStageLabel(3)}</option>
               </select>
             </label>
           ) : null}
 
-          <label className="grid gap-2">
-            <span className={LABEL_CLASS}>Status Ujian</span>
-            <select
-              value={draft?.publishStatus ?? "Draft"}
-              onChange={(event) =>
-                onChange("publishStatus", event.target.value)
-              }
-              className={FIELD_CLASS}
-            >
-              <option value="Draft">Belum Diterbitkan</option>
-              <option value="Published">Diterbitkan</option>
-            </select>
-          </label>
+          {mode === "edit" ? (
+            <label className="grid gap-2">
+              <span className={LABEL_CLASS}>Status Ujian</span>
+              <select
+                value={draft?.publishStatus ?? "Draft"}
+                onChange={(event) =>
+                  onChange("publishStatus", event.target.value)
+                }
+                className={FIELD_CLASS}
+              >
+                <option value="Draft">Belum Diterbitkan</option>
+                <option value="Published">Diterbitkan</option>
+              </select>
+            </label>
+          ) : (
+            <div className="grid gap-2">
+              <span className={LABEL_CLASS}>Status Ujian</span>
+              <div className="flex min-h-11 items-center rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-600">
+                Disimpan sebagai Draft
+              </div>
+            </div>
+          )}
 
           <label className="grid gap-2">
             <span className={LABEL_CLASS}>Durasi Menit</span>
@@ -2713,7 +2945,7 @@ export default function TryoutGuruSection() {
       const { response, payload } =
         await fetchTeacherTryoutJson<TeacherTryoutDetailResponse>(
           buildGuruApiUrl(
-            `/api/teacher/me/tryouts/${encodeURIComponent(tryoutId)}`,
+            `/api/teacher/me/tryouts/${encodeURIComponent(targetTryout.id)}`,
             searchParams,
           ),
           {
@@ -2741,51 +2973,10 @@ export default function TryoutGuruSection() {
     }
   }
 
-  async function handleTogglePublish(tryoutId: string) {
-    if (!ensureAcademicYearEditable()) {
-      return;
-    }
-
-    const targetTryout = tryouts.find((item) => item.id === tryoutId);
-
-    if (
-      targetTryout &&
-      targetTryout.publishStatus === "Draft" &&
-      !isTryoutQuestionSourceReady(targetTryout.questionSource)
-    ) {
-      toast.error(
-        "Sumber soal ini belum siap diterbitkan.",
-      );
-      return;
-    }
-
-    if (
-      targetTryout &&
-      targetTryout.publishStatus === "Draft" &&
-      targetTryout.jumlahSoal === 0
-    ) {
-      toast.error(
-        targetTryout.questionSource === "manual"
-      ? "Ujian manual belum dapat diterbitkan karena belum memiliki soal."
-      : "Ujian belum dapat diterbitkan karena sumber soal belum siap.",
-      );
-      return;
-    }
-
-    if (!targetTryout) {
-      return;
-    }
-
-    if (
-      targetTryout.publishStatus === "Draft" &&
-      !isTryoutReadyToPublish(targetTryout)
-    ) {
-      toast.error(
-        "Lengkapi judul, kelas, mapel, durasi, dan minimal 1 soal sebelum diterbitkan.",
-      );
-      return;
-    }
-
+  async function updateTryoutPublishStatus(
+    targetTryout: TryoutItem,
+    nextPublishStatus: PublishStatus,
+  ) {
     const nextDraft = normalizeTryoutDraft(
       {
         id: targetTryout.id,
@@ -2802,8 +2993,7 @@ export default function TryoutGuruSection() {
         durasiMenit: targetTryout.durasiMenit,
         tanggalMulai: targetTryout.tanggalMulai,
         tanggalSelesai: targetTryout.tanggalSelesai,
-        publishStatus:
-          targetTryout.publishStatus === "Published" ? "Draft" : "Published",
+        publishStatus: nextPublishStatus,
         questionSource: targetTryout.questionSource,
         questionBankId: targetTryout.questionBankId,
         fileName: targetTryout.fileName,
@@ -2815,7 +3005,7 @@ export default function TryoutGuruSection() {
       const { response, payload } =
         await fetchTeacherTryoutJson<TeacherTryoutDetailResponse>(
           buildGuruApiUrl(
-            `/api/teacher/me/tryouts/${encodeURIComponent(tryoutId)}`,
+            `/api/teacher/me/tryouts/${encodeURIComponent(targetTryout.id)}`,
             searchParams,
           ),
           {
@@ -2836,6 +3026,11 @@ export default function TryoutGuruSection() {
         upsertTryoutFromApi(current, payload.data?.tryout as TeacherTryoutApiItem),
       );
       setLoadError(null);
+      toast.success(
+        nextPublishStatus === "Published"
+          ? "Ujian berhasil diterbitkan."
+          : "Publikasi ujian berhasil ditarik.",
+      );
     } catch (error) {
       console.error("[tryout-guru-section] toggle_publish_failed", error);
       toast.error(
@@ -2844,6 +3039,55 @@ export default function TryoutGuruSection() {
           : "Status tryout belum bisa diperbarui.",
       );
     }
+  }
+
+  async function handleTogglePublish(tryoutId: string) {
+    if (!ensureAcademicYearEditable()) {
+      return;
+    }
+
+    const targetTryout = tryouts.find((item) => item.id === tryoutId);
+
+    if (!targetTryout) {
+      return;
+    }
+
+    if (
+      targetTryout.publishStatus === "Draft" &&
+      !isTryoutQuestionSourceReady(targetTryout.questionSource)
+    ) {
+      toast.error(
+        "Sumber soal ini belum siap diterbitkan.",
+      );
+      return;
+    }
+
+    if (
+      targetTryout.publishStatus === "Draft" &&
+      targetTryout.jumlahSoal === 0
+    ) {
+      toast.error(
+        targetTryout.questionSource === "manual"
+          ? "Ujian manual belum dapat diterbitkan karena belum memiliki soal."
+          : "Ujian belum dapat diterbitkan karena sumber soal belum siap.",
+      );
+      return;
+    }
+
+    if (
+      targetTryout.publishStatus === "Draft" &&
+      !isTryoutReadyToPublish(targetTryout)
+    ) {
+      toast.error(
+        "Lengkapi judul, kelas, mapel, durasi, dan minimal 1 soal sebelum diterbitkan.",
+      );
+      return;
+    }
+
+    await updateTryoutPublishStatus(
+      targetTryout,
+      targetTryout.publishStatus === "Published" ? "Draft" : "Published",
+    );
   }
 
   function openUploadDialog(tryoutId: string) {
@@ -2951,19 +3195,31 @@ export default function TryoutGuruSection() {
         throw new Error(payload?.message || "File Excel belum bisa diproses.");
       }
 
-      setTryouts((current) =>
-        syncTryoutQuestionsFromApi(
-          current,
-          selectedUploadTryoutId,
-          payload.data?.questions ?? [],
-          payload.data?.tryout,
-        ),
+      const uploadedQuestions = payload.data?.questions ?? [];
+      const nextTryouts = syncTryoutQuestionsFromApi(
+        tryouts,
+        selectedUploadTryoutId,
+        uploadedQuestions,
+        payload.data?.tryout,
       );
+      const nextTryout = nextTryouts.find(
+        (item) => item.id === selectedUploadTryoutId,
+      );
+
+      setTryouts(nextTryouts);
       setLoadError(null);
       setQuestionLoadError(null);
       setQuestionSuccessMessage(
-        `File ${file.name} berhasil diproses menjadi ${payload.data?.questions?.length ?? 0} soal.`,
+        `File ${file.name} berhasil diproses menjadi ${uploadedQuestions.length} soal.`,
       );
+
+      if (
+        nextTryout?.publishStatus === "Draft" &&
+        isTryoutReadyToPublish(nextTryout) &&
+        window.confirm("Soal sudah siap. Terbitkan ujian ini sekarang?")
+      ) {
+        await updateTryoutPublishStatus(nextTryout, "Published");
+      }
     } catch (error) {
       console.error("[tryout-guru-section] upload_xlsx_failed", error);
       setQuestionLoadError(
@@ -3533,7 +3789,7 @@ export default function TryoutGuruSection() {
                                 </p>
                                 {tryout.stage ? (
                                   <p className="text-xs text-orange-600">
-                                    Tryout {tryout.stage}
+                                    {getTryoutStageLabel(tryout.stage)}
                                   </p>
                                 ) : null}
                               </div>
@@ -3598,81 +3854,20 @@ export default function TryoutGuruSection() {
                               </div>
                             </td>
                             <td className="px-4 py-4 align-middle text-center">
-                              <div className="mx-auto flex w-fit items-center justify-center gap-2">
-                                <ActionIconButton
-                                  title="Edit Ujian"
-                                  disabled={isAcademicArchive}
-                                  onClick={() => openEditDialog(tryout)}
-                                  className="border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100"
-                                >
-                                  <Pencil className="h-4 w-4 shrink-0" />
-                                </ActionIconButton>
-                                <ActionIconButton
-                                  title={
-                                    isAcademicArchive
-                                      ? "Tahun ajaran arsip"
-                                      : tryout.publishStatus === "Draft"
-                                      ? "Kelola Soal"
-                                      : "Lihat Soal Terkunci"
-                                  }
-                                  onClick={() => openUploadDialog(tryout.id)}
-                                  className="border-slate-200 bg-white text-slate-600 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"
-                                >
-                                  <UploadCloud className="h-4 w-4 shrink-0" />
-                                </ActionIconButton>
-                                <ActionIconButton
-                                  title="Lihat Hasil"
-                                  onClick={() => openResultDialog(tryout.id)}
-                                  className="border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100"
-                                >
-                                  <BarChart3 className="h-4 w-4 shrink-0" />
-                                </ActionIconButton>
-                                <ActionIconButton
-                                  title={
-                                    isAcademicArchive
-                                      ? "Tahun ajaran arsip"
-                                      : tryout.publishStatus === "Published"
-                                      ? "Tarik Publikasi Ujian"
-                                      : isTryoutReadyToPublish(tryout)
-                                        ? "Terbitkan Ujian"
-                                        : "Lengkapi data dan soal sebelum diterbitkan"
-                                  }
-                                  disabled={
-                                    isAcademicArchive ||
-                                    (tryout.publishStatus === "Draft" &&
-                                      !isTryoutReadyToPublish(tryout))
-                                  }
-                                  onClick={() => handleTogglePublish(tryout.id)}
-                                  className={
-                                    tryout.publishStatus === "Published"
-                                      ? "border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100"
-                                      : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                                  }
-                                >
-                                  {tryout.publishStatus === "Published" ? (
-                                    <EyeOff className="h-4 w-4 shrink-0" />
-                                  ) : (
-                                    <Eye className="h-4 w-4 shrink-0" />
-                                  )}
-                                </ActionIconButton>
-                                <ActionIconButton
-                                  title={
-                                    isAcademicArchive
-                                      ? "Tahun ajaran arsip"
-                                      : tryout.publishStatus === "Draft"
-                                      ? "Hapus Ujian"
-                                      : "Tarik publikasi ujian sebelum menghapus"
-                                  }
-                                  disabled={
-                                    isAcademicArchive ||
-                                    tryout.publishStatus !== "Draft"
-                                  }
-                                  onClick={() => handleDeleteTryout(tryout.id)}
-                                  className="border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
-                                >
-                                  <Trash2 className="h-4 w-4 shrink-0" />
-                                </ActionIconButton>
-                              </div>
+                              <TryoutActionControls
+                                tryout={tryout}
+                                isAcademicArchive={isAcademicArchive}
+                                archiveMessage={archiveMessage}
+                                onEdit={() => openEditDialog(tryout)}
+                                onManageQuestions={() => openUploadDialog(tryout.id)}
+                                onViewResults={() => openResultDialog(tryout.id)}
+                                onTogglePublish={() => {
+                                  void handleTogglePublish(tryout.id);
+                                }}
+                                onDelete={() => {
+                                  void handleDeleteTryout(tryout.id);
+                                }}
+                              />
                             </td>
                           </tr>
                         ))}
@@ -3742,7 +3937,7 @@ export default function TryoutGuruSection() {
                             </StatusBadge>
                             {tryout.stage ? (
                               <StatusBadge className="border-orange-200 bg-orange-50 text-orange-700">
-                                Tryout {tryout.stage}
+                                {getTryoutStageLabel(tryout.stage)}
                               </StatusBadge>
                             ) : null}
                             <StatusBadge
@@ -3771,80 +3966,21 @@ export default function TryoutGuruSection() {
                             </p>
                           ) : null}
 
-                          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-orange-100 pt-4">
-                            <ActionIconButton
-                              title="Edit Ujian"
-                              disabled={isAcademicArchive}
-                              onClick={() => openEditDialog(tryout)}
-                              className="border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100"
-                            >
-                              <Pencil className="h-4 w-4 shrink-0" />
-                            </ActionIconButton>
-                            <ActionIconButton
-                              title={
-                                isAcademicArchive
-                                  ? "Tahun ajaran arsip"
-                                  : tryout.publishStatus === "Draft"
-                                  ? "Kelola Soal"
-                                  : "Lihat Soal Terkunci"
-                              }
-                              onClick={() => openUploadDialog(tryout.id)}
-                              className="border-slate-200 bg-white text-slate-600 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"
-                            >
-                              <UploadCloud className="h-4 w-4 shrink-0" />
-                            </ActionIconButton>
-                            <ActionIconButton
-                              title="Lihat Hasil"
-                              onClick={() => openResultDialog(tryout.id)}
-                              className="border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100"
-                            >
-                              <BarChart3 className="h-4 w-4 shrink-0" />
-                            </ActionIconButton>
-                            <ActionIconButton
-                              title={
-                                isAcademicArchive
-                                  ? "Tahun ajaran arsip"
-                                  : tryout.publishStatus === "Published"
-                                  ? "Tarik Publikasi Ujian"
-                                  : isTryoutReadyToPublish(tryout)
-                                    ? "Terbitkan Ujian"
-                                    : "Lengkapi data dan soal sebelum diterbitkan"
-                              }
-                              disabled={
-                                isAcademicArchive ||
-                                (tryout.publishStatus === "Draft" &&
-                                  !isTryoutReadyToPublish(tryout))
-                              }
-                              onClick={() => handleTogglePublish(tryout.id)}
-                              className={
-                                tryout.publishStatus === "Published"
-                                  ? "border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100"
-                                  : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                              }
-                            >
-                              {tryout.publishStatus === "Published" ? (
-                                <EyeOff className="h-4 w-4 shrink-0" />
-                              ) : (
-                                <Eye className="h-4 w-4 shrink-0" />
-                              )}
-                            </ActionIconButton>
-                            <ActionIconButton
-                              title={
-                                isAcademicArchive
-                                  ? "Tahun ajaran arsip"
-                                  : tryout.publishStatus === "Draft"
-                                  ? "Hapus Ujian"
-                                  : "Tarik publikasi ujian sebelum menghapus"
-                              }
-                              disabled={
-                                isAcademicArchive ||
-                                tryout.publishStatus !== "Draft"
-                              }
-                              onClick={() => handleDeleteTryout(tryout.id)}
-                              className="border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
-                            >
-                              <Trash2 className="h-4 w-4 shrink-0" />
-                            </ActionIconButton>
+                          <div className="border-t border-orange-100 pt-4">
+                            <TryoutActionControls
+                              tryout={tryout}
+                              isAcademicArchive={isAcademicArchive}
+                              archiveMessage={archiveMessage}
+                              onEdit={() => openEditDialog(tryout)}
+                              onManageQuestions={() => openUploadDialog(tryout.id)}
+                              onViewResults={() => openResultDialog(tryout.id)}
+                              onTogglePublish={() => {
+                                void handleTogglePublish(tryout.id);
+                              }}
+                              onDelete={() => {
+                                void handleDeleteTryout(tryout.id);
+                              }}
+                            />
                           </div>
                         </div>
                       </article>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
 
@@ -12,11 +12,14 @@ import {
   Clock3,
   GraduationCap,
   MapPin,
+  ScanLine,
   School,
   UserRound,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { resolveScheduleAttendanceWindow } from "@/lib/schedule-attendance-window";
+import { getUtbkSubjectInfo } from "@/lib/utbk-subjects";
 import { cn } from "@/lib/utils";
 
 import {
@@ -24,6 +27,7 @@ import {
   type StudentDashboardSchedule,
 } from "../data/useStudentDashboardData";
 import { getStudentAcademicAccessMessage } from "../data/studentAcademicAccess";
+import { isUtbkStudentProfile } from "../data/studentProgram";
 
 const WEEK_DAYS = [
   "Senin",
@@ -41,11 +45,11 @@ function normalizeText(value: string | null | undefined) {
   return value?.trim().replace(/\s+/g, " ") ?? "";
 }
 
-function getCurrentIndonesianDay() {
+function getCurrentIndonesianDay(value = new Date()) {
   return new Intl.DateTimeFormat("id-ID", {
     weekday: "long",
     timeZone: "Asia/Jakarta",
-  }).format(new Date());
+  }).format(value);
 }
 
 function getScheduleBadge(status: string): {
@@ -149,10 +153,12 @@ export default function JadwalSiswaPageView() {
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(
     null,
   );
+  const [attendanceClock, setAttendanceClock] = useState(() => Date.now());
 
   const schedules = dashboardData?.schedules ?? [];
   const todaySchedules = dashboardData?.todaySchedules ?? [];
-  const currentDay = getCurrentIndonesianDay();
+  const attendanceNow = new Date(attendanceClock);
+  const currentDay = getCurrentIndonesianDay(attendanceNow);
   const availableDays = WEEK_DAYS.filter((day) =>
     schedules.some(
       (schedule) =>
@@ -181,11 +187,22 @@ export default function JadwalSiswaPageView() {
   const academicAccessMessage = getStudentAcademicAccessMessage(
     dashboardData?.academicAccess,
   );
+  const isUtbkStudent = isUtbkStudentProfile(student);
 
   function selectDay(day: string) {
     setSelectedDay(day);
     setSelectedScheduleId(null);
   }
+
+  useEffect(() => {
+    const timerId = window.setInterval(() => {
+      setAttendanceClock(Date.now());
+    }, 30000);
+
+    return () => {
+      window.clearInterval(timerId);
+    };
+  }, []);
 
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 md:py-8">
@@ -315,6 +332,13 @@ export default function JadwalSiswaPageView() {
                   const isToday =
                     normalizeText(schedule.day).toLowerCase() ===
                     currentDay.toLowerCase();
+                  const attendanceWindow = resolveScheduleAttendanceWindow(
+                    schedule,
+                    attendanceNow,
+                  );
+                  const subjectInfo = isUtbkStudent
+                    ? getUtbkSubjectInfo(schedule.subject)
+                    : null;
 
                   return (
                     <button
@@ -350,7 +374,7 @@ export default function JadwalSiswaPageView() {
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <h3 className="text-sm font-semibold text-slate-800 transition-colors">
-                            {schedule.subject}
+                            {subjectInfo?.label ?? schedule.subject}
                           </h3>
                           <Badge
                             variant={badge.variant}
@@ -366,7 +390,20 @@ export default function JadwalSiswaPageView() {
                               Hari Ini
                             </Badge>
                           ) : null}
+                          {attendanceWindow.canStartAttendance ? (
+                            <Badge
+                              variant="success"
+                              className="px-2 py-0.5 text-[10px]"
+                            >
+                              Absen Aktif
+                            </Badge>
+                          ) : null}
                         </div>
+                        {subjectInfo ? (
+                          <p className="mt-2 max-w-2xl text-xs leading-5 text-slate-500">
+                            {subjectInfo.description}
+                          </p>
+                        ) : null}
                         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-slate-500">
                           <span className="inline-flex items-center gap-1.5 transition-colors">
                             <UserRound className="h-3.5 w-3.5 text-slate-400 transition-colors" />
@@ -384,19 +421,22 @@ export default function JadwalSiswaPageView() {
                       </div>
 
                       <div className="shrink-0">
-                        <Link
-                          href={`/dashboard-siswa/scan-absen?scheduleId=${schedule.id}`}
-                          className={cn(
-                            "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-all duration-300",
-                            isSelected
-                              ? "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700"
-                              : "bg-slate-50 text-slate-400 group-hover:bg-orange-500 group-hover:text-white group-hover:shadow-sm group-hover:-translate-x-1",
-                          )}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          Mulai Absen
-                          <ChevronRight className="h-3.5 w-3.5" />
-                        </Link>
+                        {attendanceWindow.canStartAttendance ? (
+                          <Link
+                            href={`/dashboard-siswa/scan-absen?scheduleId=${schedule.id}`}
+                            className={cn(
+                              "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-all duration-300",
+                              isSelected
+                                ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                                : "bg-slate-50 text-slate-400 group-hover:bg-orange-500 group-hover:text-white group-hover:shadow-sm group-hover:-translate-x-1",
+                            )}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <ScanLine className="h-3.5 w-3.5" />
+                            Mulai Absen
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          </Link>
+                        ) : null}
                       </div>
                     </button>
                   );
@@ -406,7 +446,11 @@ export default function JadwalSiswaPageView() {
 
             <aside className="lg:sticky lg:top-24">
               {selectedSchedule ? (
-                <ScheduleDetailPanel schedule={selectedSchedule} />
+                <ScheduleDetailPanel
+                  schedule={selectedSchedule}
+                  attendanceNow={attendanceNow}
+                  isUtbkStudent={isUtbkStudent}
+                />
               ) : null}
             </aside>
           </div>
@@ -418,10 +462,20 @@ export default function JadwalSiswaPageView() {
 
 function ScheduleDetailPanel({
   schedule,
+  attendanceNow,
+  isUtbkStudent,
 }: {
   schedule: StudentDashboardSchedule;
+  attendanceNow: Date;
+  isUtbkStudent: boolean;
 }) {
   const badge = getScheduleBadge(schedule.status);
+  const attendanceWindow = resolveScheduleAttendanceWindow(
+    schedule,
+    attendanceNow,
+  );
+  const subjectInfo = isUtbkStudent ? getUtbkSubjectInfo(schedule.subject) : null;
+  const subjectLabel = subjectInfo?.label ?? schedule.subject;
 
   return (
     <section className="overflow-hidden rounded-[26px] border border-slate-100 bg-white shadow-sm">
@@ -432,11 +486,16 @@ function ScheduleDetailPanel({
               Detail Sesi
             </p>
             <h2 className="mt-2 text-xl font-semibold text-slate-800">
-              {schedule.subject}
+              {subjectLabel}
             </h2>
             <p className="mt-1 text-sm text-slate-500">
               {schedule.day}, {schedule.time}
             </p>
+            {subjectInfo ? (
+              <p className="mt-2 max-w-sm text-xs leading-5 text-slate-500">
+                {subjectInfo.description}
+              </p>
+            ) : null}
           </div>
           <Badge variant={badge.variant}>{badge.label}</Badge>
         </div>
@@ -470,14 +529,34 @@ function ScheduleDetailPanel({
         />
 
         <div className="rounded-[16px] border border-slate-100 bg-slate-50 px-4 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-            Referensi Sesi
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+              Absensi Siswa
+            </p>
+            <Badge
+              variant={
+                attendanceWindow.canStartAttendance ? "success" : "secondary"
+              }
+              className="px-2 py-0.5 text-[10px]"
+            >
+              {attendanceWindow.canStartAttendance ? "Aktif" : "Terkunci"}
+            </Badge>
+          </div>
+          <p className="mt-2 text-xs leading-5 text-slate-500">
+            {attendanceWindow.label}
           </p>
-          <p className="mt-1 break-all text-sm font-semibold text-slate-700">
-            {schedule.id}
+        </div>
+
+        <div className="rounded-[16px] border border-slate-100 bg-slate-50 px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+            Informasi Sesi
+          </p>
+          <p className="mt-1 text-sm font-semibold text-slate-700">
+            Sesi kelas terjadwal
           </p>
           <p className="mt-2 text-xs leading-5 text-slate-500">
-            Jadwal ini berasal dari kelas dan cabang siswa yang sedang login.
+            Absensi mengikuti jadwal {subjectInfo?.shortLabel ?? "kelas"} di
+            cabang {schedule.branch || "yang aktif"}.
           </p>
         </div>
       </div>

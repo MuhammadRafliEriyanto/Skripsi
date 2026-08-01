@@ -45,6 +45,13 @@ import {
   buildAcademicRecordSubscriptionFilter,
   findActiveSubscriptionIdsForAcademicRecords,
 } from "../utils/subscription";
+import {
+  getUtbkScheduleClassNames,
+  isUtbkScheduleClassName,
+  isUtbkStudent,
+  matchesUtbkScheduleClassName,
+  normalizeUtbkScheduleClassName,
+} from "../utils/studentProgram";
 
 type TeacherOwnedSchedule = Pick<
   ISchedule,
@@ -58,7 +65,10 @@ type TeacherOwnedSchedule = Pick<
   | "status"
 >;
 
-type StudentClassLookup = Pick<IStudent, "branch" | "className"> & {
+type StudentClassLookup = Pick<
+  IStudent,
+  "branch" | "className" | "program" | "utbkTrack"
+> & {
   _id?: unknown;
 };
 
@@ -171,6 +181,8 @@ type StudentParticipantLookup = {
   phone?: string;
   branch?: string;
   className?: string;
+  program?: string;
+  utbkTrack?: string;
   nama?: string | null;
   name?: string | null;
   fullName?: string | null;
@@ -283,6 +295,14 @@ function extractGrade(value: string): string | null {
 }
 
 function getClassLevel(className: string): string {
+  const utbkClassName = normalizeUtbkScheduleClassName(className);
+
+  if (utbkClassName) {
+    return utbkClassName === "UTBK"
+      ? "Program UTBK"
+      : utbkClassName.replace(/^UTBK\s+/i, "");
+  }
+
   const grade = extractGrade(className);
   return grade ? `Kelas ${grade}` : "Kelas belum diatur";
 }
@@ -1016,24 +1036,32 @@ function buildStudentCountMaps(students: StudentClassLookup[]) {
 
   for (const student of students) {
     const branch = normalizeText(student.branch);
-    const className = normalizeText(student.className);
+    const classNames = isUtbkStudent(student)
+      ? getUtbkScheduleClassNames(student)
+      : [normalizeText(student.className)].filter(Boolean);
 
-    if (!className) {
+    if (classNames.length === 0) {
       continue;
     }
 
-    const exactKey = buildStudentCountKey(branch, className);
-    exactCountMap.set(exactKey, (exactCountMap.get(exactKey) ?? 0) + 1);
+    for (const className of classNames) {
+      const exactKey = buildStudentCountKey(branch, className);
+      exactCountMap.set(exactKey, (exactCountMap.get(exactKey) ?? 0) + 1);
 
-    const canonicalClassName = normalizeCanonicalClassName(className);
+      if (isUtbkScheduleClassName(className)) {
+        continue;
+      }
 
-    if (!canonicalClassName) {
-      continue;
+      const canonicalClassName = normalizeCanonicalClassName(className);
+
+      if (!canonicalClassName) {
+        continue;
+      }
+
+      const modifier = extractModifier(className);
+      const canonicalKey = `${buildStudentCountKey(branch, canonicalClassName)}::${modifier}`;
+      canonicalCountMap.set(canonicalKey, (canonicalCountMap.get(canonicalKey) ?? 0) + 1);
     }
-
-    const modifier = extractModifier(className);
-    const canonicalKey = `${buildStudentCountKey(branch, canonicalClassName)}::${modifier}`;
-    canonicalCountMap.set(canonicalKey, (canonicalCountMap.get(canonicalKey) ?? 0) + 1);
   }
 
   return {
@@ -1057,6 +1085,10 @@ function resolveStudentCount(
 
   if (typeof exactCount === "number") {
     return exactCount;
+  }
+
+  if (isUtbkScheduleClassName(normalizedClassName)) {
+    return 0;
   }
 
   const canonicalClassName = normalizeCanonicalClassName(normalizedClassName);
@@ -1211,6 +1243,7 @@ async function getTeacherClassParticipants(
   const normalizedClassName = normalizeText(className);
   const normalizedBranch = normalizeText(branch);
   const canonicalClassName = normalizeCanonicalClassName(normalizedClassName);
+  const isUtbkClass = isUtbkScheduleClassName(normalizedClassName);
 
   if (!normalizedBranch) {
     return [];
@@ -1221,7 +1254,7 @@ async function getTeacherClassParticipants(
     branch: new RegExp(`^${escapeRegex(normalizedBranch)}$`, "i"),
   })
     .select(
-      "studentId phone branch className status academicJoinedAt userId nama name fullName studentName",
+      "studentId phone branch className program utbkTrack status academicJoinedAt userId nama name fullName studentName",
     )
     .populate({
       path: "userId",
@@ -1232,11 +1265,14 @@ async function getTeacherClassParticipants(
     .exec()) as StudentParticipantLookup[];
 
   const matchedByClassName = students.filter((student) =>
-    matchesTeacherClassName(
-      normalizeText(student.className),
-      normalizedClassName,
-      canonicalClassName,
-    ),
+    isUtbkClass
+      ? matchesUtbkScheduleClassName(normalizedClassName, student)
+      : !isUtbkStudent(student) &&
+        matchesTeacherClassName(
+          normalizeText(student.className),
+          normalizedClassName,
+          canonicalClassName,
+        ),
   );
   const resolvedStudents = filterParticipantMatchesByBranch(
     matchedByClassName,
@@ -1324,8 +1360,14 @@ async function getTeacherClassParticipants(
         name: resolveParticipantName(student),
         email: normalizeText(student.userId?.email),
         phone: normalizeText(student.phone),
-        className: normalizeText(student.className) || normalizedClassName,
-        level: getClassLevel(normalizeText(student.className) || normalizedClassName),
+        className: isUtbkClass
+          ? normalizeUtbkScheduleClassName(normalizedClassName) || normalizedClassName
+          : normalizeText(student.className) || normalizedClassName,
+        level: getClassLevel(
+          isUtbkClass
+            ? normalizeUtbkScheduleClassName(normalizedClassName) || normalizedClassName
+            : normalizeText(student.className) || normalizedClassName,
+        ),
         branch: normalizeText(student.branch) || normalizedBranch || "-",
         status: student.status ?? "Aktif",
         academicJoinedAt: academicJoinedAt?.toISOString() ?? null,
@@ -1402,7 +1444,7 @@ export async function resolveTeacherClassDetailContext(
   const [ownedSchedules, students] = await Promise.all([
     getTeacherOwnedSchedules(teacher._id.toString(), filters),
     Student.find({ status: "Aktif" })
-      .select("_id branch className")
+      .select("_id branch className program utbkTrack")
       .lean()
       .exec() as Promise<StudentClassLookup[]>,
   ]);
@@ -1449,18 +1491,21 @@ export async function resolveTeacherClassDetailContext(
       participants,
       filters,
     );
+  const isUtbkClass = isUtbkScheduleClassName(resolvedClassGroup.className);
   const [materials, tasks] = await Promise.all([
     getTeacherClassMaterials(
       teacher._id.toString(),
       resolvedClassGroup.item.id,
       filters,
     ),
-    getTeacherClassTasks(
-      teacher._id.toString(),
-      resolvedClassGroup.item.id,
-      filters,
-      participantSubscriptionIds,
-    ),
+    isUtbkClass
+      ? Promise.resolve([])
+      : getTeacherClassTasks(
+          teacher._id.toString(),
+          resolvedClassGroup.item.id,
+          filters,
+          participantSubscriptionIds,
+        ),
   ]);
   const participantsWithHistory = participants.map((participant) => {
     const academicJoinedAt = parseValidDate(participant.academicJoinedAt);
@@ -1492,7 +1537,7 @@ export async function resolveTeacherClassDetailContext(
     schedules,
     attendanceSessions,
     materials: materials.map(toPublicClassMaterial),
-    tasks: tasks.map(toPublicClassTask),
+    tasks: isUtbkClass ? [] : tasks.map(toPublicClassTask),
   };
 }
 
@@ -1552,7 +1597,7 @@ export const getMyTeacherClasses = asyncHandler(
     const [ownedSchedules, students] = await Promise.all([
       getTeacherOwnedSchedules(teacher._id.toString(), filters),
       Student.find({ status: "Aktif" })
-        .select("_id branch className")
+        .select("_id branch className program utbkTrack")
         .lean()
         .exec() as Promise<StudentClassLookup[]>,
     ]);
@@ -1576,17 +1621,25 @@ export const getMyTeacherClasses = asyncHandler(
       getOverdueTaskCountMap(teacher._id.toString(), classIds, filters),
     ]);
     const classes = classGroups
-      .map((classGroup) => ({
-        ...classGroup.item,
-        targetMeetingCount: resolveTargetMeetingCount(
-          targetMeetingCountMap.get(classGroup.item.id),
-          classGroup.item.scheduleCount,
-        ),
-        completedMeetingCount:
-          completedMeetingCountMap.get(classGroup.item.id) ?? 0,
-        pendingTaskCount: pendingTaskCountMap.get(classGroup.item.id) ?? 0,
-        overdueTaskCount: overdueTaskCountMap.get(classGroup.item.id) ?? 0,
-      }))
+      .map((classGroup) => {
+        const isUtbkClass = isUtbkScheduleClassName(classGroup.className);
+
+        return {
+          ...classGroup.item,
+          targetMeetingCount: resolveTargetMeetingCount(
+            targetMeetingCountMap.get(classGroup.item.id),
+            classGroup.item.scheduleCount,
+          ),
+          completedMeetingCount:
+            completedMeetingCountMap.get(classGroup.item.id) ?? 0,
+          pendingTaskCount: isUtbkClass
+            ? 0
+            : pendingTaskCountMap.get(classGroup.item.id) ?? 0,
+          overdueTaskCount: isUtbkClass
+            ? 0
+            : overdueTaskCountMap.get(classGroup.item.id) ?? 0,
+        };
+      })
       .sort((left, right) => {
         const branchComparison = normalizeText(left.branch).localeCompare(
           normalizeText(right.branch),

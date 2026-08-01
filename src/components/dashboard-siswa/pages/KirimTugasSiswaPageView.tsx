@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Download, FolderOpenDot } from "lucide-react";
 
 import { useStudentLearningData } from "../data/useStudentLearningData";
 import { getStudentAcademicAccessMessage } from "../data/studentAcademicAccess";
+import { isUtbkStudentProfile } from "../data/studentProgram";
 import FlexibleSubmissionPanel from "../learning/FlexibleSubmissionPanel";
 import StudentLearningShell from "../learning/StudentLearningShell";
 
@@ -39,14 +41,17 @@ function toDateOrder(value: string | null | undefined) {
 }
 
 export default function KirimTugasSiswaPageView() {
+  const router = useRouter();
   const {
     tasks,
+    student,
     academicAccess,
     isLoading,
     loadError,
     refreshLearningData,
     updateTaskSubmissionSummary,
   } = useStudentLearningData();
+  const isUtbkStudent = isUtbkStudentProfile(student);
   const academicAccessMessage =
     getStudentAcademicAccessMessage(academicAccess);
   const submitTargets = tasks.filter(
@@ -72,6 +77,29 @@ export default function KirimTugasSiswaPageView() {
     submitTargets.find((task) => task.id === resolvedSelectedTaskId) ??
     submitTargets[0];
 
+  useEffect(() => {
+    if (isUtbkStudent) {
+      router.replace("/dashboard-siswa/materi");
+    }
+  }, [isUtbkStudent, router]);
+
+  if (isUtbkStudent) {
+    return (
+      <StudentLearningShell
+        title="Mengalihkan ke Materi UTBK"
+        description="Program UTBK tidak memakai tab kirim jawaban reguler."
+        summary="Area UTBK"
+        isUtbkStudent
+      >
+        <section className="rounded-[24px] border border-orange-100 bg-white px-5 py-10 text-center shadow-sm">
+          <p className="text-sm font-semibold text-slate-700">
+            Mengalihkan ke kelas UTBK...
+          </p>
+        </section>
+      </StudentLearningShell>
+    );
+  }
+
   return (
     <StudentLearningShell
       title="Kirim Jawaban"
@@ -81,6 +109,7 @@ export default function KirimTugasSiswaPageView() {
           ? "Memuat tugas..."
           : `${submitTargets.length} tugas aktif, ${submittedTaskCount} sudah dikumpulkan`
       }
+      isNavigationLoading={isLoading && !student}
     >
       {isLoading ? (
         <section className="rounded-[26px] border border-orange-100/90 bg-white p-8 text-center shadow-[0_18px_40px_-34px_rgba(15,23,42,0.18)]">

@@ -1,5 +1,6 @@
 import {
   Activity,
+  BookOpen,
   Building2,
   GraduationCap,
   LayoutGrid,
@@ -74,6 +75,7 @@ export const dashboardConfigs: Record<DashboardRole, DashboardConfig> = {
       { label: "Dashboard", href: "/dashboard-admin", icon: LayoutGrid },
       { label: "Siswa", href: "/dashboard-admin/siswa", icon: Users },
       { label: "Guru", href: "/dashboard-admin/guru", icon: GraduationCap },
+      { label: "Akademik", href: "/dashboard-admin/akademik", icon: BookOpen },
       { label: "Pembayaran", href: "/dashboard-admin/pembayaran", icon: WalletCards },
     ],
     insight: {

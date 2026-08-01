@@ -38,6 +38,7 @@ import {
 import {
   buildAcademicRecordSubscriptionFilter,
   getMembershipSnapshotByUserId,
+  type StudentWithUser,
 } from "../utils/subscription";
 import { resolveStudentAcademicContentAccess } from "../utils/studentAcademicAccess";
 import { resolveStudentMembershipContentAccess } from "../utils/studentMembershipAccess";
@@ -46,6 +47,10 @@ import {
   getStudentEffectiveAcademicJoinedAt,
   parseValidDate,
 } from "../utils/studentAcademicStatus";
+import {
+  getUtbkScheduleClassNames,
+  isUtbkStudent,
+} from "../utils/studentProgram";
 
 const OPTION_KEYS = ["A", "B", "C", "D"] as const;
 const SUBMISSION_GRACE_SECONDS = 5;
@@ -78,6 +83,24 @@ type StudentTryoutAcademicContext = {
   subscriptionId: Types.ObjectId | null;
   subscriptionStartAt: Date;
 };
+
+function toPublicStudentTryoutProfile(
+  student: StudentWithUser,
+  accessStatus: string,
+) {
+  return {
+    id: student.studentId,
+    name: student.userId.nama,
+    branch: normalizeText(student.branch),
+    program: normalizeText(student.program),
+    className: normalizeText(student.className),
+    utbkTrack: normalizeText(student.utbkTrack),
+    targetKampus: normalizeText(student.targetKampus),
+    targetJurusan: normalizeText(student.targetJurusan),
+    status: student.status,
+    accessStatus,
+  };
+}
 
 function toRecordId(value: unknown): string {
   if (typeof value === "string") {
@@ -178,6 +201,16 @@ function getStudentCanonicalClassName(student: StudentDocument) {
   );
 }
 
+function getStudentTryoutClassNames(student: StudentDocument) {
+  if (isUtbkStudent(student)) {
+    return getUtbkScheduleClassNames(student);
+  }
+
+  const canonicalClassName = getStudentCanonicalClassName(student);
+
+  return canonicalClassName ? [canonicalClassName] : [];
+}
+
 export async function buildEligibleTryoutFilter(
   student: StudentDocument,
   academicJoinedAt?: Date | null,
@@ -189,9 +222,9 @@ export async function buildEligibleTryoutFilter(
   }
 
   const branch = normalizeText(student.branch);
-  const canonicalClassName = getStudentCanonicalClassName(student);
+  const canonicalClassNames = getStudentTryoutClassNames(student);
 
-  if (!branch || !canonicalClassName) {
+  if (!branch || canonicalClassNames.length === 0) {
     return null;
   }
 
@@ -207,14 +240,16 @@ export async function buildEligibleTryoutFilter(
           teacherBranch.toLowerCase() === normalizedStudentBranch,
       ),
     )
-    .map((teacher) => ({
-      teacherId: teacher._id,
-      classId: buildStableTeacherClassId(
-        teacher.teacherId,
-        branch,
-        canonicalClassName,
-      ),
-    }));
+    .flatMap((teacher) =>
+      canonicalClassNames.map((canonicalClassName) => ({
+        teacherId: teacher._id,
+        classId: buildStableTeacherClassId(
+          teacher.teacherId,
+          branch,
+          canonicalClassName,
+        ),
+      })),
+    );
 
   if (teacherClassScopes.length === 0) {
     return null;
@@ -242,7 +277,9 @@ export async function buildEligibleTryoutFilter(
       },
     ],
     branch,
-    canonicalClassName,
+    canonicalClassName: {
+      $in: canonicalClassNames,
+    },
     questionSource: {
       $in: ["bank", "manual", "file"],
     },
@@ -801,6 +838,10 @@ export const getMyStudentTryouts = asyncHandler(
       sendSuccess(res, {
         message: "Daftar ujian siswa berhasil diambil.",
         data: {
+          student: toPublicStudentTryoutProfile(
+            student,
+            membershipSnapshot.accessStatus,
+          ),
           tryouts: [],
           academicAccess,
           membershipAccess,
@@ -818,6 +859,10 @@ export const getMyStudentTryouts = asyncHandler(
       sendSuccess(res, {
         message: "Daftar ujian siswa berhasil diambil.",
         data: {
+          student: toPublicStudentTryoutProfile(
+            student,
+            membershipSnapshot.accessStatus,
+          ),
           tryouts: [],
           academicAccess,
           membershipAccess,
@@ -838,6 +883,10 @@ export const getMyStudentTryouts = asyncHandler(
       sendSuccess(res, {
         message: "Daftar ujian siswa berhasil diambil.",
         data: {
+          student: toPublicStudentTryoutProfile(
+            student,
+            membershipSnapshot.accessStatus,
+          ),
           tryouts: [],
           academicAccess,
           membershipAccess,
@@ -848,6 +897,7 @@ export const getMyStudentTryouts = asyncHandler(
 
     const tryouts = await TeacherTryout.find({
       ...eligibleFilter,
+      ...(isUtbkStudent(student) ? { assessmentType: "Tryout" } : {}),
     })
       .sort({ startAt: 1, stage: 1, createdAt: -1 })
       .exec();
@@ -867,6 +917,10 @@ export const getMyStudentTryouts = asyncHandler(
     sendSuccess(res, {
       message: "Daftar ujian siswa berhasil diambil.",
       data: {
+        student: toPublicStudentTryoutProfile(
+          student,
+          membershipSnapshot.accessStatus,
+        ),
         tryouts: tryouts.map((tryout) =>
           toPublicStudentTryout(
             tryout,

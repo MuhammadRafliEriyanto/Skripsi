@@ -7,6 +7,7 @@ import { subscribeStudentDashboardRefresh } from "../student-dashboard-refresh-e
 import type { StudentAcademicAccess } from "./studentAcademicAccess";
 import type {
   StudentAcademicSummary,
+  StudentLearningProfile,
   StudentMaterial,
   StudentTaskGradeSummary,
   StudentTask,
@@ -80,6 +81,7 @@ type StudentLearningResponse = {
     materials?: StudentLearningApiMaterialItem[];
     tasks?: StudentLearningApiTaskItem[];
     academicSummaries?: StudentLearningApiAcademicSummaryItem[];
+    student?: StudentLearningProfile | null;
     academicAccess?: StudentAcademicAccess | null;
   };
 };
@@ -390,6 +392,7 @@ function mapApiAcademicSummary(
 }
 
 export function useStudentLearningData() {
+  const [student, setStudent] = useState<StudentLearningProfile | null>(null);
   const [materials, setMaterials] = useState<StudentMaterial[]>([]);
   const [tasks, setTasks] = useState<StudentTask[]>([]);
   const [academicSummaries, setAcademicSummaries] = useState<
@@ -436,6 +439,7 @@ export function useStudentLearningData() {
           setMaterials([]);
           setTasks([]);
           setAcademicSummaries([]);
+          setStudent(null);
           setAcademicAccess(null);
           setLoadError("Sesi login berakhir. Silakan login ulang.");
           return;
@@ -445,6 +449,7 @@ export function useStudentLearningData() {
           setMaterials([]);
           setTasks([]);
           setAcademicSummaries([]);
+          setStudent(null);
           setAcademicAccess(null);
           setLoadError(
             payload?.message || "Materi dan tugas siswa belum bisa dimuat saat ini.",
@@ -459,6 +464,7 @@ export function useStudentLearningData() {
         setAcademicSummaries(
           (payload.data?.academicSummaries ?? []).map(mapApiAcademicSummary),
         );
+        setStudent(payload.data?.student ?? null);
         setAcademicAccess(payload.data?.academicAccess ?? null);
       } catch (error) {
         if (!isMountedRef.current) {
@@ -469,6 +475,7 @@ export function useStudentLearningData() {
         setMaterials([]);
         setTasks([]);
         setAcademicSummaries([]);
+        setStudent(null);
         setAcademicAccess(null);
         setLoadError("Materi dan tugas siswa belum bisa dimuat saat ini.");
       } finally {
@@ -525,6 +532,7 @@ export function useStudentLearningData() {
     materials,
     tasks,
     academicSummaries,
+    student,
     academicAccess,
     isLoading,
     loadError,

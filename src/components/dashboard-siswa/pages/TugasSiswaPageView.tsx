@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   BookOpen,
   CheckCircle2,
@@ -15,14 +16,14 @@ import {
   Globe,
   FileText,
   Clock,
-  X,
   AlertCircle
 } from "lucide-react";
 
 import { useStudentLearningData } from "../data/useStudentLearningData";
 import { getStudentAcademicAccessMessage } from "../data/studentAcademicAccess";
+import { isUtbkStudentProfile } from "../data/studentProgram";
 import StudentLearningShell from "../learning/StudentLearningShell";
-import { Dialog, DialogContent, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 function formatSubmissionTime(value: string | null | undefined) {
   if (!value) {
@@ -82,8 +83,10 @@ function getSubjectStyle(subject: string) {
 }
 
 export default function TugasSiswaPageView() {
-  const { tasks, academicAccess, isLoading, loadError } =
+  const router = useRouter();
+  const { tasks, academicAccess, isLoading, loadError, student } =
     useStudentLearningData();
+  const isUtbkStudent = isUtbkStudentProfile(student);
   const pendingTasks = tasks.filter((task) => task.status !== "Sudah Dinilai");
   const academicAccessMessage =
     getStudentAcademicAccessMessage(academicAccess);
@@ -98,6 +101,29 @@ export default function TugasSiswaPageView() {
     setIsDialogOpen(true);
   };
 
+  useEffect(() => {
+    if (isUtbkStudent) {
+      router.replace("/dashboard-siswa/materi");
+    }
+  }, [isUtbkStudent, router]);
+
+  if (isUtbkStudent) {
+    return (
+      <StudentLearningShell
+        title="Mengalihkan ke Materi UTBK"
+        description="Program UTBK tidak memakai tab tugas reguler."
+        summary="Area UTBK"
+        isUtbkStudent
+      >
+        <section className="rounded-[24px] border border-orange-100 bg-white px-5 py-10 text-center shadow-sm">
+          <p className="text-sm font-semibold text-slate-700">
+            Mengalihkan ke kelas UTBK...
+          </p>
+        </section>
+      </StudentLearningShell>
+    );
+  }
+
   return (
     <StudentLearningShell
       title="Tugas Siswa"
@@ -105,6 +131,7 @@ export default function TugasSiswaPageView() {
       summary={
         isLoading ? "Memuat tugas..." : `${pendingTasks.length} tugas aktif`
       }
+      isNavigationLoading={isLoading && !student}
     >
       {isLoading ? (
         <section className="rounded-[24px] border border-slate-200/60 bg-white p-12 text-center shadow-sm">

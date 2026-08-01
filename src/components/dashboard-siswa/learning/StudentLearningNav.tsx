@@ -27,16 +27,35 @@ const learningMenus = [
   },
 ];
 
-export default function StudentLearningNav() {
+const utbkLearningMenus = [
+  {
+    label: "Materi",
+    href: "/dashboard-siswa/materi",
+    icon: BookOpen,
+  },
+  {
+    label: "Tryout",
+    href: "/dashboard-siswa/ujian",
+    icon: TimerReset,
+  },
+];
+
+type StudentLearningNavProps = {
+  isUtbkStudent?: boolean;
+};
+
+export default function StudentLearningNav({
+  isUtbkStudent = false,
+}: StudentLearningNavProps) {
   const pathname = usePathname();
+  const visibleMenus = isUtbkStudent ? utbkLearningMenus : learningMenus;
 
   return (
     <div className="flex flex-wrap gap-2 rounded-[20px] bg-white/90 p-1.5 shadow-sm ring-1 ring-orange-100/80">
-      {learningMenus.map((menu) => {
+      {visibleMenus.map((menu) => {
         const Icon = menu.icon;
         const isActive =
           pathname === menu.href || pathname.startsWith(`${menu.href}/`);
-
         return (
           <Link
             key={menu.href}

@@ -27,6 +27,7 @@ import { getNextPublicId } from "../utils/publicId";
 import { resolveTeacherClassDetailContext } from "./teacherScheduleController";
 import { resolveAcademicPeriodFromQuery } from "../utils/academicGrade";
 import { ensureTeacherAcademicPeriodEditable } from "../utils/teacherAcademicArchive";
+import { isUtbkScheduleClassName } from "../utils/studentProgram";
 
 type UpsertClassMaterialBody = {
   meetingNumber?: number | string;
@@ -65,6 +66,15 @@ function normalizePositiveInteger(value: number | string | undefined) {
 
 function isIsoDate(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(normalizeText(value));
+}
+
+function isUtbkTeacherClass(
+  classGroup: Awaited<ReturnType<typeof resolveTeacherClassDetailContext>>["classGroup"],
+) {
+  return (
+    isUtbkScheduleClassName(classGroup.className) ||
+    isUtbkScheduleClassName(classGroup.item.className)
+  );
 }
 
 function normalizeBoolean(value: boolean | string | undefined) {
@@ -494,6 +504,12 @@ export const createTeacherClassTask = asyncHandler(
       req.user._id.toString(),
       req.params.classId,
     );
+
+    if (isUtbkTeacherClass(classGroup)) {
+      next(new AppError(400, "Program UTBK menggunakan materi dan tryout, bukan tugas pertemuan."));
+      return;
+    }
+
     const meetingNumber = normalizePositiveInteger(req.body.meetingNumber);
     const title = normalizeText(req.body.title);
     const description = normalizeText(req.body.description);
@@ -603,6 +619,12 @@ export const updateTeacherClassTask = asyncHandler(
       req.user._id.toString(),
       req.params.classId,
     );
+
+    if (isUtbkTeacherClass(classGroup)) {
+      next(new AppError(400, "Program UTBK menggunakan materi dan tryout, bukan tugas pertemuan."));
+      return;
+    }
+
     const taskId = normalizeText(req.params.taskId);
 
     if (!taskId) {

@@ -32,6 +32,7 @@ import {
   type RegisterBranchOption,
   type RegisterOnlinePayload,
   getPriceByClassAndPackage,
+  resolveProgramPricingClassName,
 } from "@/lib/subscription";
 import { useSubscriptionConfig } from "@/lib/use-subscription-config";
 import { cn } from "@/lib/utils";
@@ -68,14 +69,14 @@ function InputError({ message }: { message?: string }) {
   );
 }
 
-function FormSection({ 
-  title, 
-  icon: Icon, 
+function FormSection({
+  title,
+  icon: Icon,
   children,
-  className 
-}: { 
-  title: string; 
-  icon: LucideIcon; 
+  className,
+}: {
+  title: string;
+  icon: LucideIcon;
   children: React.ReactNode;
   className?: string;
 }) {
@@ -85,16 +86,18 @@ function FormSection({
         <div className="flex size-8 items-center justify-center rounded-xl bg-orange-50/80 text-orange-500 shadow-sm shadow-orange-100/50">
           <Icon className="size-4" />
         </div>
-        <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">{title}</h3>
+        <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
+          {title}
+        </h3>
       </div>
-      <div className="grid gap-5">
-        {children}
-      </div>
+      <div className="grid gap-5">{children}</div>
     </div>
   );
 }
 
-export default function RegisterOnlineView({ initialPackageKey }: RegisterOnlineViewProps) {
+export default function RegisterOnlineView({
+  initialPackageKey,
+}: RegisterOnlineViewProps) {
   const router = useRouter();
   const {
     config: subscriptionConfig,
@@ -111,7 +114,9 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [branchOptions, setBranchOptions] = useState<RegisterBranchOption[]>([]);
+  const [branchOptions, setBranchOptions] = useState<RegisterBranchOption[]>(
+    [],
+  );
   const [branchOptionsLoading, setBranchOptionsLoading] = useState(true);
   const [branchOptionsError, setBranchOptionsError] = useState("");
   const [formValues, setFormValues] = useState<RegisterOnlinePayload>(() => ({
@@ -121,6 +126,9 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
     branch: "",
     program: "",
     classLevel: "",
+    utbkTrack: "",
+    targetKampus: "",
+    targetJurusan: "",
     packageKey: resolvedInitialPackageKey,
   }));
 
@@ -128,7 +136,12 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
     () => classOptionsByProgram[formValues.program] ?? [],
     [classOptionsByProgram, formValues.program],
   );
-  
+  const isUtbkProgram = formValues.program.trim().toUpperCase() === "UTBK";
+  const selectedPricingClassName = resolveProgramPricingClassName(
+    formValues.program,
+    formValues.classLevel,
+  );
+
   useEffect(() => {
     if (!packageOptions.length || !programOptions.length) {
       return;
@@ -136,20 +149,24 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
 
     queueMicrotask(() => {
       setFormValues((current) => {
-        const nextProgram = programOptions.some((item) => item.value === current.program)
+        const nextProgram = programOptions.some(
+          (item) => item.value === current.program,
+        )
           ? current.program
-          : programOptions[0]?.value ?? "";
+          : (programOptions[0]?.value ?? "");
         const nextClassOptions = classOptionsByProgram[nextProgram] ?? [];
         const nextClassLevel = nextClassOptions.includes(current.classLevel)
           ? current.classLevel
-          : nextClassOptions[0] ?? "";
+          : (nextClassOptions[0] ?? "");
         const nextPackageKey = packageOptions.some(
           (item) => item.packageKey === current.packageKey,
         )
           ? current.packageKey
-          : packageOptions.some((item) => item.packageKey === resolvedInitialPackageKey)
+          : packageOptions.some(
+                (item) => item.packageKey === resolvedInitialPackageKey,
+              )
             ? resolvedInitialPackageKey
-            : packageOptions[0]?.packageKey ?? "";
+            : (packageOptions[0]?.packageKey ?? "");
 
         return {
           ...current,
@@ -186,7 +203,9 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
         setBranchOptions(nextBranchOptions);
 
         if (!nextBranchOptions.length) {
-          setBranchOptionsError("Cabang aktif belum tersedia. Silakan hubungi admin.");
+          setBranchOptionsError(
+            "Cabang aktif belum tersedia. Silakan hubungi admin.",
+          );
         }
       } catch (error) {
         if (!isMounted) {
@@ -216,8 +235,6 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-
-
     setLoading(true);
     setErrorMessage("");
     setFieldErrors({});
@@ -233,11 +250,17 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
       if (error instanceof MembershipRequestError) {
         setErrorMessage(error.message);
 
-        if (error.errors && typeof error.errors === "object" && !Array.isArray(error.errors)) {
+        if (
+          error.errors &&
+          typeof error.errors === "object" &&
+          !Array.isArray(error.errors)
+        ) {
           setFieldErrors(error.errors as Record<string, string>);
         }
       } else {
-        setErrorMessage("Pendaftaran online belum berhasil diproses. Silakan coba lagi.");
+        setErrorMessage(
+          "Pendaftaran online belum berhasil diproses. Silakan coba lagi.",
+        );
       }
     } finally {
       setLoading(false);
@@ -246,13 +269,20 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
 
   function updateProgram(programValue: ProgramOptionValue) {
     const nextClassOptions = classOptionsByProgram[programValue] ?? [];
+    const nextClassLevel = nextClassOptions.some(
+      (item) => item === formValues.classLevel,
+    )
+      ? formValues.classLevel
+      : (nextClassOptions[0] ?? "");
+    const nextIsUtbkProgram = programValue.trim().toUpperCase() === "UTBK";
 
     setFormValues((current) => ({
       ...current,
       program: programValue,
-      classLevel: nextClassOptions.some((item) => item === current.classLevel)
-        ? current.classLevel
-        : nextClassOptions[0],
+      classLevel: nextClassLevel,
+      utbkTrack: nextIsUtbkProgram ? nextClassLevel : "",
+      targetKampus: nextIsUtbkProgram ? current.targetKampus : "",
+      targetJurusan: nextIsUtbkProgram ? current.targetJurusan : "",
     }));
   }
 
@@ -281,7 +311,7 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
       hideSplitVisualOnMobile
       hideSplitTopBadge
       allowDesktopScroll
-      title="Registrasi Siswa Baru"
+      title="Silahkan isi data diri"
       description="Bergabunglah bersama ratusan siswa lainnya dan raih prestasi impianmu dengan fasilitas belajar terbaik."
       footer={
         <div className="text-sm text-slate-500 text-center space-y-4">
@@ -312,13 +342,14 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
       }
     >
       <div className="space-y-8 pb-10">
-
-
         <form className="space-y-10" onSubmit={handleSubmit}>
           {/* Section 1: Data Diri */}
           <FormSection title="Informasi Siswa" icon={User}>
             <div className="space-y-2">
-              <label htmlFor="nama" className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              <label
+                htmlFor="nama"
+                className="text-xs font-bold text-slate-500 uppercase tracking-wider"
+              >
                 Nama Lengkap
               </label>
               <div className="relative">
@@ -345,7 +376,10 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <label htmlFor="email" className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <label
+                  htmlFor="email"
+                  className="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >
                   Email
                 </label>
                 <Input
@@ -365,8 +399,6 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
                 />
                 <InputError message={fieldErrors.email} />
               </div>
-
-
             </div>
           </FormSection>
 
@@ -374,10 +406,16 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
           <FormSection title="Program & Cabang" icon={GraduationCap}>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <label htmlFor="program" className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <label
+                  htmlFor="program"
+                  className="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >
                   Program Belajar
                 </label>
-                <Select value={formValues.program} onValueChange={updateProgram}>
+                <Select
+                  value={formValues.program}
+                  onValueChange={updateProgram}
+                >
                   <SelectTrigger
                     id="program"
                     className="h-12 rounded-2xl border-slate-200/60 bg-slate-50/50 px-4 transition-all duration-300 focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-500/10 hover:border-slate-300"
@@ -396,8 +434,11 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="classLevel" className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  Tingkat Kelas
+                <label
+                  htmlFor="classLevel"
+                  className="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >
+                  {isUtbkProgram ? "Status Peserta" : "Tingkat Kelas"}
                 </label>
                 <Select
                   value={formValues.classLevel}
@@ -405,6 +446,7 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
                     setFormValues((current) => ({
                       ...current,
                       classLevel: value,
+                      utbkTrack: isUtbkProgram ? value : "",
                     }))
                   }
                 >
@@ -427,7 +469,10 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="branch" className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              <label
+                htmlFor="branch"
+                className="text-xs font-bold text-slate-500 uppercase tracking-wider"
+              >
                 Cabang Pilihan
               </label>
               <Select
@@ -467,6 +512,54 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
               </Select>
               <InputError message={fieldErrors.branch || branchOptionsError} />
             </div>
+
+            {isUtbkProgram ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <label
+                    htmlFor="targetKampus"
+                    className="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                  >
+                    Target Kampus
+                  </label>
+                  <Input
+                    id="targetKampus"
+                    value={formValues.targetKampus ?? ""}
+                    onChange={(event) =>
+                      setFormValues((current) => ({
+                        ...current,
+                        targetKampus: event.target.value,
+                      }))
+                    }
+                    placeholder="Contoh: Universitas Indonesia"
+                    className="h-12 rounded-2xl border-slate-200/60 bg-slate-50/50 px-4 transition-all duration-300 focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-500/10 hover:border-slate-300"
+                  />
+                  <InputError message={fieldErrors.targetKampus} />
+                </div>
+
+                <div className="space-y-2">
+                  <label
+                    htmlFor="targetJurusan"
+                    className="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                  >
+                    Target Jurusan
+                  </label>
+                  <Input
+                    id="targetJurusan"
+                    value={formValues.targetJurusan ?? ""}
+                    onChange={(event) =>
+                      setFormValues((current) => ({
+                        ...current,
+                        targetJurusan: event.target.value,
+                      }))
+                    }
+                    placeholder="Contoh: Kedokteran"
+                    className="h-12 rounded-2xl border-slate-200/60 bg-slate-50/50 px-4 transition-all duration-300 focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-500/10 hover:border-slate-300"
+                  />
+                  <InputError message={fieldErrors.targetJurusan} />
+                </div>
+              </div>
+            ) : null}
           </FormSection>
 
           {/* Section 3: Paket */}
@@ -476,9 +569,14 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
                 <div className="flex size-7 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
                   <Package className="size-4" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-tight">Pilih Paket Belajar</h3>
+                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-tight">
+                  Pilih Paket Belajar
+                </h3>
               </div>
-              <Badge variant="outline" className="border-orange-200 text-orange-600 text-[10px] font-bold">
+              <Badge
+                variant="outline"
+                className="border-orange-200 text-orange-600 text-[10px] font-bold"
+              >
                 RECOMMENDED
               </Badge>
             </div>
@@ -487,7 +585,7 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
               {packageOptions.map((item) => {
                 const isActive = formValues.packageKey === item.packageKey;
                 const displayAmount = getPriceByClassAndPackage(
-                  formValues.classLevel,
+                  selectedPricingClassName,
                   item.packageKey,
                   subscriptionConfig.classPricingMatrix,
                   packageOptions,
@@ -506,33 +604,56 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
                         : "border-slate-200/60 bg-white hover:border-orange-200 hover:bg-orange-50/10 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_25px_-4px_rgba(0,0,0,0.04)] hover:-translate-y-0.5",
                     )}
                   >
-                    <div className={cn(
-                      "flex size-12 shrink-0 items-center justify-center rounded-2xl border transition-all duration-500",
-                      isActive ? "bg-orange-500 border-orange-400 text-white shadow-md shadow-orange-200/50" : "bg-slate-50 border-slate-100 text-slate-400 group-hover:bg-orange-100/50 group-hover:border-orange-200 group-hover:text-orange-500"
-                    )}>
-                      <Check className={cn("size-6 transition-all duration-500", isActive ? "scale-100 opacity-100" : "scale-50 opacity-0")} />
-                      {!isActive && <Package className="size-5 absolute transition-all duration-500 group-hover:scale-110" />}
+                    <div
+                      className={cn(
+                        "flex size-12 shrink-0 items-center justify-center rounded-2xl border transition-all duration-500",
+                        isActive
+                          ? "bg-orange-500 border-orange-400 text-white shadow-md shadow-orange-200/50"
+                          : "bg-slate-50 border-slate-100 text-slate-400 group-hover:bg-orange-100/50 group-hover:border-orange-200 group-hover:text-orange-500",
+                      )}
+                    >
+                      <Check
+                        className={cn(
+                          "size-6 transition-all duration-500",
+                          isActive
+                            ? "scale-100 opacity-100"
+                            : "scale-50 opacity-0",
+                        )}
+                      />
+                      {!isActive && (
+                        <Package className="size-5 absolute transition-all duration-500 group-hover:scale-110" />
+                      )}
                     </div>
-                    
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <span className={cn(
-                          "text-sm font-bold transition-colors duration-300",
-                          isActive ? "text-orange-900" : "text-slate-700 group-hover:text-slate-900"
-                        )}>
+                        <span
+                          className={cn(
+                            "text-sm font-bold transition-colors duration-300",
+                            isActive
+                              ? "text-orange-900"
+                              : "text-slate-700 group-hover:text-slate-900",
+                          )}
+                        >
                           {displayName}
                         </span>
-                        <span className={cn(
-                          "text-base font-black transition-colors duration-300",
-                          isActive ? "text-orange-600" : "text-slate-800"
-                        )}>
+                        <span
+                          className={cn(
+                            "text-base font-black transition-colors duration-300",
+                            isActive ? "text-orange-600" : "text-slate-800",
+                          )}
+                        >
                           {formatRupiah(displayAmount)}
                         </span>
                       </div>
                       <div className="mt-1.5 flex items-center gap-3">
-                        <p className="text-xs text-slate-500 truncate max-w-[200px]">{item.highlight}</p>
+                        <p className="text-xs text-slate-500 truncate max-w-[200px]">
+                          {item.highlight}
+                        </p>
                         <div className="h-1 w-1 rounded-full bg-slate-200" />
-                        <p className="text-[10px] font-bold text-orange-500/80 uppercase tracking-widest">{item.durationMonth} Bulan</p>
+                        <p className="text-[10px] font-bold text-orange-500/80 uppercase tracking-widest">
+                          {item.durationMonth} Bulan
+                        </p>
                       </div>
                     </div>
 
@@ -556,13 +677,16 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
                   : "")
               }
             />
-            
+
             {/* Rincian Harga Card */}
             <div className="mt-4 rounded-3xl border border-slate-200/60 bg-slate-50/50 p-6 shadow-inner">
               <div className="mb-4 flex items-center gap-2">
                 <Info className="size-4 text-slate-400" />
                 <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                  Rincian Harga {packageOptions.find((p) => p.packageKey === formValues.packageKey)?.packageName || "Paket Belajar"}
+                  Rincian Harga{" "}
+                  {packageOptions.find(
+                    (p) => p.packageKey === formValues.packageKey,
+                  )?.packageName || "Paket Belajar"}
                 </h4>
               </div>
               <ul className="grid gap-2.5 sm:grid-cols-2">
@@ -582,9 +706,16 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
                     packageOptions,
                   );
                   return (
-                    <li key={idx} className="flex items-center justify-between text-sm rounded-xl bg-white px-4 py-2 border border-slate-100 shadow-sm">
-                      <span className="font-medium text-slate-500">{tier.label}</span>
-                      <span className="font-bold text-slate-700">{formatRupiah(currentPrice)}</span>
+                    <li
+                      key={idx}
+                      className="flex items-center justify-between text-sm rounded-xl bg-white px-4 py-2 border border-slate-100 shadow-sm"
+                    >
+                      <span className="font-medium text-slate-500">
+                        {tier.label}
+                      </span>
+                      <span className="font-bold text-slate-700">
+                        {formatRupiah(currentPrice)}
+                      </span>
                     </li>
                   );
                 })}
@@ -618,7 +749,15 @@ export default function RegisterOnlineView({ initialPackageKey }: RegisterOnline
               )}
             </Button>
             <p className="mt-4 text-center text-[10px] text-slate-400 leading-relaxed px-4">
-              Dengan mengeklik tombol di atas, Anda menyetujui <span className="text-slate-600 font-medium cursor-pointer hover:underline">Syarat & Ketentuan</span> serta <span className="text-slate-600 font-medium cursor-pointer hover:underline">Kebijakan Privasi</span> Bina Cendekia.
+              Dengan mengeklik tombol di atas, Anda menyetujui{" "}
+              <span className="text-slate-600 font-medium cursor-pointer hover:underline">
+                Syarat & Ketentuan
+              </span>{" "}
+              serta{" "}
+              <span className="text-slate-600 font-medium cursor-pointer hover:underline">
+                Kebijakan Privasi
+              </span>{" "}
+              Bina Cendekia.
             </p>
           </div>
         </form>

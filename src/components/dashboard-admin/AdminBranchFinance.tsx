@@ -37,12 +37,14 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import {
   adminExpenseCategoryOptions,
-  adminExpenseStatusOptions,
+  adminExpenseFormStatusOptions,
   createAdminExpense,
   deleteAdminExpense,
   fetchAdminExpenses,
   fetchAdminFinanceSummary,
+  getAdminExpenseStatusLabel,
   normalizeAdminExpenseFormCategory,
+  normalizeAdminExpenseFormStatus,
   updateAdminExpense,
   type AdminExpense,
   type AdminExpenseCategory,
@@ -109,6 +111,7 @@ const warmPrimaryButtonClassName =
   "bg-orange-600 hover:bg-orange-700 active:bg-orange-800 focus-visible:ring-orange-500/20";
 const warmOverlayPanelClassName =
   "[&>button]:hover:bg-orange-50 [&>button]:hover:text-orange-700 [&>button]:focus-visible:ring-orange-500/10";
+const hiddenExpenseDetailValue = "Tidak dicatat";
 
 function normalizeText(value: string | null | undefined) {
   return value?.trim().replace(/\s+/g, " ") ?? "";
@@ -183,9 +186,9 @@ function createEmptyExpenseForm(): ExpenseFormValues {
   return {
     title: "",
     category: "Listrik",
-    vendorOrRecipient: "",
+    vendorOrRecipient: hiddenExpenseDetailValue,
     amount: "",
-    paymentMethod: "",
+    paymentMethod: hiddenExpenseDetailValue,
     status: "Menunggu",
     paidAt: "",
     dueDate: "",
@@ -204,12 +207,12 @@ function toExpenseFormValues(expense: AdminExpense): ExpenseFormValues {
   return {
     title: expense.title,
     category: normalizeAdminExpenseFormCategory(expense.category),
-    vendorOrRecipient: expense.vendorOrRecipient,
+    vendorOrRecipient: expense.vendorOrRecipient || hiddenExpenseDetailValue,
     amount: String(expense.amount),
-    paymentMethod: expense.paymentMethod,
-    status: expense.status,
+    paymentMethod: expense.paymentMethod || hiddenExpenseDetailValue,
+    status: normalizeAdminExpenseFormStatus(expense.status),
     paidAt: toDateInputValue(expense.paidAt),
-    dueDate: toDateInputValue(expense.dueDate),
+    dueDate: "",
     note: expense.note,
   };
 }
@@ -590,22 +593,10 @@ export function AdminBranchFinance({
     setFeedback(null);
 
     const title = normalizeText(expenseFormValues.title);
-    const vendorOrRecipient = normalizeText(expenseFormValues.vendorOrRecipient);
-    const paymentMethod = normalizeText(expenseFormValues.paymentMethod);
     const amount = parsePositiveAmount(expenseFormValues.amount);
 
     if (!title) {
       setExpenseFormError("Judul pengeluaran wajib diisi.");
-      return;
-    }
-
-    if (!vendorOrRecipient) {
-      setExpenseFormError("Vendor atau penerima wajib diisi.");
-      return;
-    }
-
-    if (!paymentMethod) {
-      setExpenseFormError("Metode pembayaran wajib diisi.");
       return;
     }
 
@@ -618,12 +609,16 @@ export function AdminBranchFinance({
       title,
       branch: selectedBranchQuery || primaryManagedBranch || undefined,
       category: expenseFormValues.category,
-      vendorOrRecipient,
+      vendorOrRecipient:
+        normalizeText(expenseFormValues.vendorOrRecipient) ||
+        hiddenExpenseDetailValue,
       amount,
-      paymentMethod,
+      paymentMethod:
+        normalizeText(expenseFormValues.paymentMethod) ||
+        hiddenExpenseDetailValue,
       status: expenseFormValues.status,
       paidAt: expenseFormValues.paidAt || null,
-      dueDate: expenseFormValues.dueDate || null,
+      dueDate: null,
       note: normalizeText(expenseFormValues.note) || null,
     };
 
@@ -712,21 +707,8 @@ export function AdminBranchFinance({
         <div className="space-y-1">
           <p className="font-semibold text-slate-950">{expense.title}</p>
           <p className="text-xs text-slate-500">
-            {expense.expenseId} | {expense.branch}
+            {expense.category} | {expense.expenseId} | {expense.branch}
           </p>
-        </div>
-      ),
-    },
-    {
-      key: "recipient",
-      header: "Penerima",
-      className: "min-w-[240px]",
-      cell: (expense) => (
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-slate-800">
-            {expense.vendorOrRecipient}
-          </p>
-          <p className="text-xs text-slate-500">{expense.category}</p>
         </div>
       ),
     },
@@ -741,32 +723,23 @@ export function AdminBranchFinance({
       ),
     },
     {
-      key: "method",
-      header: "Metode",
-      className: "min-w-[170px]",
-      cell: (expense) => (
-        <span className="text-sm text-slate-700">{expense.paymentMethod}</span>
-      ),
-    },
-    {
       key: "status",
       header: "Status",
       className: "min-w-[140px]",
       cell: (expense) => (
         <AdminStatusBadge
-          status={expense.status}
+          status={getAdminExpenseStatusLabel(expense.status)}
           tone={getFinanceStatusTone(expense.status)}
         />
       ),
     },
     {
       key: "date",
-      header: "Jadwal / Bayar",
+      header: "Tanggal Catatan",
       className: "min-w-[200px]",
       cell: (expense) => (
         <div className="space-y-1 text-sm text-slate-700">
-          <p>Bayar: {formatDateLabel(expense.paidAt)}</p>
-          <p>Jatuh tempo: {formatDateLabel(expense.dueDate)}</p>
+          <p>Dibayar: {formatDateLabel(expense.paidAt)}</p>
           <p className="text-xs text-slate-500">
             Update {formatDateTimeLabel(expense.updatedAt)}
           </p>
@@ -993,9 +966,9 @@ export function AdminBranchFinance({
                   isLoading={summaryLoading && !financeSummary}
                 />
                 <FinanceMetricCard
-                  title="Pengeluaran Selesai"
+                  title="Pengeluaran Dibayar"
                   value={formatCurrency(expenseSettledAmount)}
-                  helper={`Sudah dibayar ${expenseSettledCount} transaksi cabang.`}
+                  helper={`Sudah dicatat dibayar ${expenseSettledCount} transaksi cabang.`}
                   tone="orange"
                   icon={ArrowDownCircle}
                   isLoading={summaryLoading && !financeSummary}
@@ -1003,7 +976,7 @@ export function AdminBranchFinance({
                 <FinanceMetricCard
                   title="Saldo Operasional"
                   value={formatCurrency(branchBalanceAmount)}
-                  helper={`Membership paid dikurangi pengeluaran selesai. Pengeluaran pending: ${formatCurrency(expensePendingAmount)} dari ${expensePendingCount} transaksi.`}
+                  helper={`Membership paid dikurangi pengeluaran yang sudah dibayar. Belum dibayar: ${formatCurrency(expensePendingAmount)} dari ${expensePendingCount} transaksi.`}
                   tone="slate"
                   icon={Landmark}
                   isLoading={summaryLoading && !financeSummary}
@@ -1017,7 +990,7 @@ export function AdminBranchFinance({
           title="Pengeluaran Cabang"
           description={
             canManageExpenses
-              ? "Tambah, ubah, dan hapus pengeluaran operasional untuk cabang yang dikelola admin."
+              ? "Catat pengeluaran operasional cabang yang dibayar manual di luar LMS."
               : "Owner hanya memantau detail pengeluaran operasional cabang tanpa aksi edit atau hapus."
           }
           action={
@@ -1028,7 +1001,7 @@ export function AdminBranchFinance({
                 onClick={handleOpenCreateExpense}
               >
                 <Plus className="size-4" />
-                Tambah Pengeluaran
+                Catat Pengeluaran
               </Button>
             ) : null
           }
@@ -1104,13 +1077,13 @@ export function AdminBranchFinance({
                       >
                         Semua status
                       </SelectItem>
-                      {adminExpenseStatusOptions.map((status) => (
+                      {adminExpenseFormStatusOptions.map((status) => (
                         <SelectItem
                           key={status}
                           value={status}
                           className={warmSelectItemClassName}
                         >
-                          {status}
+                          {getAdminExpenseStatusLabel(status)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1185,9 +1158,10 @@ export function AdminBranchFinance({
       >
         <DialogContent className={cn("max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] sm:max-w-2xl", warmOverlayPanelClassName)}>
           <DialogHeader>
-            <DialogTitle>Detail Pengeluaran Cabang</DialogTitle>
+            <DialogTitle>Detail Catatan Pengeluaran</DialogTitle>
             <DialogDescription>
-              Owner hanya memantau detail pengeluaran operasional cabang.
+              Pembayaran dilakukan di luar LMS; halaman ini hanya menyimpan
+              catatan pengeluaran cabang.
             </DialogDescription>
           </DialogHeader>
 
@@ -1206,16 +1180,8 @@ export function AdminBranchFinance({
                 value={selectedExpenseDetail.title}
               />
               <FinanceDetailItem
-                label="Penerima"
-                value={selectedExpenseDetail.vendorOrRecipient}
-              />
-              <FinanceDetailItem
                 label="Kategori"
                 value={selectedExpenseDetail.category}
-              />
-              <FinanceDetailItem
-                label="Metode"
-                value={selectedExpenseDetail.paymentMethod}
               />
               <FinanceDetailItem
                 label="Nominal"
@@ -1223,15 +1189,11 @@ export function AdminBranchFinance({
               />
               <FinanceDetailItem
                 label="Status"
-                value={selectedExpenseDetail.status}
+                value={getAdminExpenseStatusLabel(selectedExpenseDetail.status)}
               />
               <FinanceDetailItem
-                label="Tanggal dibayar"
+                label="Tanggal dicatat dibayar"
                 value={formatDateLabel(selectedExpenseDetail.paidAt)}
-              />
-              <FinanceDetailItem
-                label="Jatuh tempo"
-                value={formatDateLabel(selectedExpenseDetail.dueDate)}
               />
               <FinanceDetailItem
                 label="Terakhir diperbarui"
@@ -1282,15 +1244,15 @@ export function AdminBranchFinance({
             <DialogHeader className="shrink-0 border-b border-slate-200/70 px-5 pb-4 pt-5 sm:px-6 sm:pb-5 sm:pt-6">
               <DialogTitle>
                 {isEditingExpense
-                  ? "Perbarui Pengeluaran Operasional"
-                  : "Tambah Pengeluaran Operasional"}
+                  ? "Perbarui Catatan Pengeluaran"
+                  : "Catat Pengeluaran Operasional"}
               </DialogTitle>
               <DialogDescription>
-                Biaya operasional ini akan tercatat pada cabang{" "}
+                Catatan ini disimpan untuk cabang{" "}
                 <span className="font-medium text-slate-700">
                   {selectedBranchLabel}
-                </span>{" "}
-                tanpa mengganggu sistem utama.
+                </span>
+                . Pembayaran biaya operasional dilakukan di luar LMS.
               </DialogDescription>
             </DialogHeader>
 
@@ -1337,20 +1299,6 @@ export function AdminBranchFinance({
                 </Select>
               </FinanceField>
 
-              <FinanceField label="Vendor atau penerima">
-                <Input
-                  value={expenseFormValues.vendorOrRecipient}
-                  onChange={(event) =>
-                    setExpenseFormValues((currentValue) => ({
-                      ...currentValue,
-                      vendorOrRecipient: event.target.value,
-                    }))
-                  }
-                  placeholder="Contoh: PLN, Indihome, pemilik ruko, atau vendor"
-                  className={warmFieldClassName}
-                />
-              </FinanceField>
-
               <FinanceField label="Nominal">
                 <Input
                   type="number"
@@ -1364,20 +1312,6 @@ export function AdminBranchFinance({
                     }))
                   }
                   placeholder="250000"
-                  className={warmFieldClassName}
-                />
-              </FinanceField>
-
-              <FinanceField label="Metode pembayaran">
-                <Input
-                  value={expenseFormValues.paymentMethod}
-                  onChange={(event) =>
-                    setExpenseFormValues((currentValue) => ({
-                      ...currentValue,
-                      paymentMethod: event.target.value,
-                    }))
-                  }
-                  placeholder="Contoh: Transfer BCA, tunai, VA, atau QRIS"
                   className={warmFieldClassName}
                 />
               </FinanceField>
@@ -1396,20 +1330,20 @@ export function AdminBranchFinance({
                     <SelectValue placeholder="Pilih status" />
                   </SelectTrigger>
                   <SelectContent className={warmSelectContentClassName}>
-                    {adminExpenseStatusOptions.map((status) => (
+                    {adminExpenseFormStatusOptions.map((status) => (
                       <SelectItem
                         key={status}
                         value={status}
                         className={warmSelectItemClassName}
                       >
-                        {status}
+                        {getAdminExpenseStatusLabel(status)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </FinanceField>
 
-              <FinanceField label="Tanggal dibayar">
+              <FinanceField label="Tanggal dicatat dibayar">
                 <Input
                   type="date"
                   value={expenseFormValues.paidAt}
@@ -1417,20 +1351,6 @@ export function AdminBranchFinance({
                     setExpenseFormValues((currentValue) => ({
                       ...currentValue,
                       paidAt: event.target.value,
-                    }))
-                  }
-                  className={warmFieldClassName}
-                />
-              </FinanceField>
-
-              <FinanceField label="Jatuh tempo">
-                <Input
-                  type="date"
-                  value={expenseFormValues.dueDate}
-                  onChange={(event) =>
-                    setExpenseFormValues((currentValue) => ({
-                      ...currentValue,
-                      dueDate: event.target.value,
                     }))
                   }
                   className={warmFieldClassName}
@@ -1447,7 +1367,7 @@ export function AdminBranchFinance({
                           note: event.target.value,
                         }))
                       }
-                      placeholder="Tambahkan catatan pengeluaran, nomor bukti, atau konteks cabang jika perlu."
+                      placeholder="Tambahkan nomor bukti, akun kas, atau catatan pembayaran manual bila ada."
                       rows={4}
                       className={warmFieldClassName}
                     />
@@ -1484,7 +1404,7 @@ export function AdminBranchFinance({
                 ) : isEditingExpense ? (
                   "Simpan perubahan"
                 ) : (
-                  "Tambah pengeluaran"
+                  "Simpan catatan"
                 )}
               </Button>
             </DialogFooter>

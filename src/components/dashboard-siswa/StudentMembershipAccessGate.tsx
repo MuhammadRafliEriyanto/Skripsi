@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
@@ -34,6 +34,11 @@ import {
   type MembershipStatusData,
 } from "@/lib/subscription";
 
+import {
+  UTBK_STUDENT_DEFAULT_PATH,
+  isUtbkRestrictedStudentPath,
+  isUtbkStudentProfile,
+} from "./data/studentProgram";
 import { subscribeStudentDashboardRefresh } from "./student-dashboard-refresh-events";
 
 const TAGIHAN_PATH = "/dashboard-siswa/tagihan";
@@ -120,13 +125,15 @@ function getGateCopy(
 ): GateCopy {
   const accessStatus = membershipData?.accessStatus;
   const scheduledAccessDate = getScheduledAccessDate(membershipData);
+  const learningScope = isUtbkStudentProfile(membershipData?.student)
+    ? "materi, jadwal, absensi, dan tryout UTBK"
+    : "materi, tugas, jadwal, absensi, nilai, dan ujian";
 
   if (pendingPayment) {
     return {
       badge: "Menunggu Pembayaran",
       title: "Pembayaran paket belajar belum selesai",
-      description:
-        "Masih ada tagihan perpanjangan yang menunggu pembayaran. Selesaikan tagihan ini agar akses materi, tugas, jadwal, absensi, nilai, dan ujian bisa aktif kembali.",
+      description: `Masih ada tagihan perpanjangan yang menunggu pembayaran. Selesaikan tagihan ini agar akses ${learningScope} bisa aktif kembali.`,
       primaryLabel: pendingPayment?.checkoutUrl
         ? "Lanjut Pembayaran"
         : "Buka Tagihan",
@@ -138,7 +145,7 @@ function getGateCopy(
     return {
       badge: "Akses Terjadwal",
       title: "Akses belajar dibuka mulai periode baru",
-      description: `Paket belajar sudah tercatat dan pembayaran sudah selesai. Materi, tugas, jadwal, absensi, nilai, dan ujian akan dibuka mulai ${formatDateLabel(scheduledAccessDate)}.`,
+      description: `Paket belajar sudah tercatat dan pembayaran sudah selesai. Akses ${learningScope} akan dibuka mulai ${formatDateLabel(scheduledAccessDate)}.`,
       primaryLabel: "Lihat Tagihan",
       secondaryLabel: "Histori Pembayaran",
     };
@@ -357,8 +364,7 @@ function LockedAcademicAccessView({
                 Halaman tagihan dan histori pembayaran tetap aktif.
               </div>
               <div className="rounded-2xl bg-white px-4 py-3">
-                Materi, tugas, jadwal, absensi, nilai, dan ujian dibuka lagi
-                setelah paket belajar aktif.
+                Area pembelajaran dibuka lagi setelah paket belajar aktif.
               </div>
             </div>
 
@@ -451,12 +457,29 @@ function MembershipGateBanner({
   );
 }
 
+function RedirectingUtbkStudentView() {
+  return (
+    <section className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 md:py-8">
+      <div className="rounded-[28px] border border-orange-100 bg-white p-8 text-center shadow-sm">
+        <p className="text-base font-semibold text-slate-800">
+          Mengarahkan ke area UTBK
+        </p>
+        <p className="mt-2 text-sm leading-6 text-slate-500">
+          Akun UTBK difokuskan ke materi, jadwal, absensi, dan tryout, jadi
+          halaman reguler ini dialihkan.
+        </p>
+      </div>
+    </section>
+  );
+}
+
 export default function StudentMembershipAccessGate({
   children,
 }: {
   children: ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [membershipData, setMembershipData] =
     useState<MembershipStatusData | null>(null);
   const [pendingPayment, setPendingPayment] =
@@ -535,13 +558,28 @@ export default function StudentMembershipAccessGate({
 
   const isLocked = isMembershipLocked(membershipData?.accessStatus);
   const isTagihanPath = pathname === TAGIHAN_PATH;
+  const shouldRedirectUtbkRestrictedPath =
+    !isLoading &&
+    isUtbkStudentProfile(membershipData?.student) &&
+    isUtbkRestrictedStudentPath(pathname);
   const shouldShowMembershipNotice = isLocked;
   const shouldBlockChildren =
-    !isLoading && isLocked && isAcademicPath(pathname);
+    !isLoading &&
+    !shouldRedirectUtbkRestrictedPath &&
+    isLocked &&
+    isAcademicPath(pathname);
   const copy = useMemo(
     () => getGateCopy(membershipData, pendingPayment),
     [membershipData, pendingPayment],
   );
+
+  useEffect(() => {
+    if (!shouldRedirectUtbkRestrictedPath) {
+      return;
+    }
+
+    router.replace(UTBK_STUDENT_DEFAULT_PATH);
+  }, [router, shouldRedirectUtbkRestrictedPath]);
 
   function handleDialogOpenChange(open: boolean) {
     setDialogOpen(open);
@@ -571,7 +609,9 @@ export default function StudentMembershipAccessGate({
         />
       ) : null}
 
-      {shouldBlockChildren ? (
+      {shouldRedirectUtbkRestrictedPath ? (
+        <RedirectingUtbkStudentView />
+      ) : shouldBlockChildren ? (
         <LockedAcademicAccessView
           copy={copy}
           pendingPayment={pendingPayment}

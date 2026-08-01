@@ -19,6 +19,9 @@ export type ProgramOption = {
 
 export type ClassPricingMatrix = Record<string, Record<string, number>>;
 
+export const UTBK_PROGRAM_VALUE = "UTBK";
+export const UTBK_PRICING_CLASS_NAME = "SMA 12";
+
 export type SubscriptionConfigData = {
   packages: OnlinePackageDefinition[];
   programs: ProgramOption[];
@@ -50,6 +53,15 @@ function normalizeClassPricingKey(className: string | undefined | null) {
   }
 
   return `SMA ${grade}`;
+}
+
+export function resolveProgramPricingClassName(
+  program: string | undefined | null,
+  className: string | undefined | null,
+) {
+  return program?.trim().toUpperCase() === UTBK_PROGRAM_VALUE
+    ? UTBK_PRICING_CLASS_NAME
+    : className;
 }
 
 export function getPriceByClassAndPackage(
@@ -91,6 +103,9 @@ export type RegisterOnlinePayload = {
   branch: string;
   program: ProgramOptionValue;
   classLevel: string;
+  utbkTrack?: string;
+  targetKampus?: string;
+  targetJurusan?: string;
   packageKey: OnlinePackageKey;
 };
 
@@ -110,6 +125,9 @@ export type MembershipStudent = {
   branch: string;
   program: string;
   className: string;
+  utbkTrack?: string;
+  targetKampus?: string;
+  targetJurusan?: string;
   status: string;
   isEmailVerified: boolean;
 };

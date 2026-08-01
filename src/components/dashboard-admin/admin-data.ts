@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   CalendarDays,
+  ClipboardCheck,
   GraduationCap,
   LayoutGrid,
   Users,
@@ -12,6 +13,7 @@ export type AdminTab =
   | "students"
   | "teachers"
   | "schedule"
+  | "utbkAssessments"
   | "payments"
   | "profile";
 
@@ -107,6 +109,12 @@ export const adminNavigation: AdminNavItem[] = [
     description: "Lihat kelas berjalan dan validasi bentrok.",
     icon: CalendarDays,
     showBadge: true,
+  },
+  {
+    value: "utbkAssessments",
+    label: "Monitoring Akademik",
+    description: "Pantau hasil belajar siswa reguler dan UTBK.",
+    icon: ClipboardCheck,
   },
   {
     value: "payments",

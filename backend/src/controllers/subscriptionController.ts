@@ -45,6 +45,9 @@ type RegisterOnlineRequestBody = {
   branch?: string;
   program?: string;
   classLevel?: string;
+  utbkTrack?: string;
+  targetKampus?: string;
+  targetJurusan?: string;
   packageKey?: string;
 };
 
@@ -58,13 +61,17 @@ const PROGRAM_CLASS_OPTIONS = {
   SD: ["Kelas 2", "Kelas 3", "Kelas 4", "Kelas 5", "Kelas 6"],
   SMP: ["Kelas 7", "Kelas 8", "Kelas 9"],
   SMA: ["Kelas 10", "Kelas 11", "Kelas 12"],
+  UTBK: ["Kelas 12", "Alumni / Gap Year"],
 } as const;
 
 const PROGRAM_LABELS: Record<keyof typeof PROGRAM_CLASS_OPTIONS, string> = {
   SD: "SD / Program Dasar",
   SMP: "SMP / Program Reguler",
   SMA: "SMA / Program Intensif",
+  UTBK: "UTBK / Program SNBT Intensif",
 };
+
+const UTBK_ACADEMIC_CLASS_NAME = "SMA 12";
 
 function normalizeText(value: string | undefined) {
   return value?.trim().replace(/\s+/g, " ") ?? "";
@@ -110,6 +117,10 @@ function generateVerificationToken() {
 }
 
 function buildStudentClassName(program: keyof typeof PROGRAM_CLASS_OPTIONS, classLevel: string) {
+  if (program === "UTBK") {
+    return UTBK_ACADEMIC_CLASS_NAME;
+  }
+
   return `${program} ${classLevel}`.trim();
 }
 
@@ -153,7 +164,13 @@ export const registerOnline = asyncHandler(
     const branchInput = normalizeText(req.body.branch);
     const program = normalizeText(req.body.program) as keyof typeof PROGRAM_CLASS_OPTIONS;
     const classLevel = normalizeText(req.body.classLevel);
-    const selectedPackage = getOnlinePackageByKey(req.body.packageKey);
+    const packageKey = normalizeText(req.body.packageKey);
+    const selectedPackageBase = getOnlinePackageByKey(packageKey);
+    const utbkTrackInput = normalizeText(req.body.utbkTrack);
+    const targetKampus = normalizeText(req.body.targetKampus);
+    const targetJurusan = normalizeText(req.body.targetJurusan);
+    const isUtbkRegistration = program === "UTBK";
+    const utbkTrack = isUtbkRegistration ? utbkTrackInput || classLevel : "";
     const errors: Record<string, string> = {};
 
     if (!nama) {
@@ -188,8 +205,16 @@ export const registerOnline = asyncHandler(
       errors.classLevel = "Kelas tidak sesuai dengan jenjang yang dipilih.";
     }
 
-    if (!selectedPackage) {
+    if (!selectedPackageBase) {
       errors.packageKey = "Paket belajar wajib dipilih.";
+    }
+
+    if (targetKampus.length > 120) {
+      errors.targetKampus = "Target kampus maksimal 120 karakter.";
+    }
+
+    if (targetJurusan.length > 120) {
+      errors.targetJurusan = "Target jurusan maksimal 120 karakter.";
     }
 
     const branch =
@@ -204,7 +229,7 @@ export const registerOnline = asyncHandler(
       return;
     }
 
-    if (!selectedPackage) {
+    if (!selectedPackageBase) {
       next(new AppError(400, "Paket belajar wajib dipilih."));
       return;
     }
@@ -224,8 +249,14 @@ export const registerOnline = asyncHandler(
     const generatedPassword = buildGeneratedPasswordForStudent({ studentId });
     const hashedPassword = await bcrypt.hash(generatedPassword, 12);
     const className = buildStudentClassName(program, classLevel);
+    const selectedPackage = getClassPricedOnlinePackageByKey(packageKey, className);
     const existingLoginCode = await User.exists({ loginCode });
     const studentAcademicPeriod = getCurrentAcademicPeriod(new Date());
+
+    if (!selectedPackage) {
+      next(new AppError(400, "Paket belajar wajib dipilih."));
+      return;
+    }
 
     if (existingLoginCode) {
       next(new AppError(409, "Kode akun siswa sudah digunakan. Silakan coba daftar ulang.", {
@@ -261,6 +292,9 @@ export const registerOnline = asyncHandler(
         branch: branch?.name ?? "",
         program,
         className,
+        utbkTrack,
+        targetKampus: isUtbkRegistration ? targetKampus : "",
+        targetJurusan: isUtbkRegistration ? targetJurusan : "",
         academicYear: studentAcademicPeriod.academicYear,
         birthDate: null,
         status: "Nonaktif",
@@ -463,10 +497,16 @@ export const createMySubscriptionRenewal = asyncHandler(
       return;
     }
 
-    const classSelection = resolveNextAcademicClassSelection({
-      program: student.program,
-      className: student.className,
-    });
+    const isUtbkStudent = normalizeText(student.program).toUpperCase() === "UTBK";
+    const classSelection = isUtbkStudent
+      ? {
+          level: student.program,
+          className: student.className,
+        }
+      : resolveNextAcademicClassSelection({
+          program: student.program,
+          className: student.className,
+        });
 
     if (!classSelection) {
       next(

@@ -14,6 +14,7 @@ import {
   useStudentAttendanceData,
 } from "../data/useStudentAttendanceData";
 import { getStudentAcademicAccessMessage } from "../data/studentAcademicAccess";
+import { formatUtbkSubjectLabel } from "@/lib/utbk-subjects";
 
 type AttendanceSubjectGroup = {
   key: string;
@@ -165,10 +166,11 @@ function buildAttendanceSubjectGroups(
         getMeetingOrderKey(leftRecord).localeCompare(getMeetingOrderKey(rightRecord)),
       );
       const lastMeeting = sortedRecords[sortedRecords.length - 1] ?? records[0];
+      const rawSubject = normalizeText(records[0]?.subject);
 
       return {
         key,
-        subject: normalizeText(records[0]?.subject) || "-",
+        subject: rawSubject ? formatUtbkSubjectLabel(rawSubject) : "-",
         teacherName: normalizeText(records[0]?.teacherName) || "-",
         className: normalizeText(records[0]?.className) || "-",
         branch: normalizeText(records[0]?.branch),

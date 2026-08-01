@@ -28,7 +28,10 @@ import {
 } from "@/components/dashboard-guru/data/guruClassTypes";
 
 type FilterKey = "all" | "weekly" | "pending";
-type GuruClassSummaryWithBranch = GuruClassSummary & { branch: string };
+type GuruClassSummaryWithBranch = GuruClassSummary & {
+  branch: string;
+  isUtbk?: boolean;
+};
 
 const FILTER_ITEMS: Array<{ key: FilterKey; label: string }> = [
   { key: "all", label: "Semua Kelas" },
@@ -71,6 +74,19 @@ type TeacherClassesResponse = {
 
 function normalizeText(value: string | null | undefined) {
   return value?.trim().replace(/\s+/g, " ") ?? "";
+}
+
+function isUtbkClassName(value: string | null | undefined) {
+  const normalizedValue = normalizeText(value).toUpperCase();
+
+  return (
+    normalizedValue === "UTBK" ||
+    normalizedValue === "SNBT" ||
+    normalizedValue.startsWith("UTBK ") ||
+    normalizedValue.startsWith("SNBT ") ||
+    normalizedValue.includes("PROGRAM UTBK") ||
+    normalizedValue.includes("PROGRAM SNBT")
+  );
 }
 
 function toSafeNumber(value: unknown) {
@@ -175,6 +191,7 @@ function mapTeacherClassToSummary(
   const kelasId = normalizeText(item.id) || `class-${index + 1}`;
   const namaKelas = normalizeText(item.className) || `Kelas ${index + 1}`;
   const tingkat = normalizeText(item.level) || inferTingkat(namaKelas);
+  const isUtbk = isUtbkClassName(namaKelas) || isUtbkClassName(tingkat);
   const mapel = normalizeText(item.subject) || "Mapel belum diatur";
   const branch = normalizeText(item.branch);
   const nextSchedule = item.nextSchedule ?? null;
@@ -199,9 +216,12 @@ function mapTeacherClassToSummary(
     totalSiswa: Math.max(toSafeNumber(item.studentCount), 0),
     totalPertemuan,
     pertemuanSelesai,
-    tugasBelumDinilai: Math.max(toSafeNumber(item.pendingTaskCount), 0),
+    tugasBelumDinilai: isUtbk
+      ? 0
+      : Math.max(toSafeNumber(item.pendingTaskCount), 0),
     aktifMingguIni: Boolean(nextSchedule),
     status: toClassStatus(item.status),
+    isUtbk,
   };
 }
 
@@ -707,12 +727,16 @@ export default function SemuaKelasGuruSection() {
                     </span>
                     <span
                       className={`inline-flex items-center border px-2.5 py-1 text-[11px] font-semibold ${
-                        kelas.tugasBelumDinilai > 0
+                        kelas.isUtbk
+                          ? "border-sky-200 bg-sky-50 text-sky-700"
+                          : kelas.tugasBelumDinilai > 0
                           ? "border-orange-200 bg-orange-50 text-orange-700"
                           : "border-emerald-200 bg-emerald-50 text-emerald-700"
                       }`}
                     >
-                      {kelas.tugasBelumDinilai > 0
+                      {kelas.isUtbk
+                        ? "Tryout dari menu Ujian"
+                        : kelas.tugasBelumDinilai > 0
                         ? `${kelas.tugasBelumDinilai} latihan belum dinilai`
                         : "Latihan sudah aman"}
                     </span>

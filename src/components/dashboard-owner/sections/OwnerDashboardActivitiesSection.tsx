@@ -64,6 +64,21 @@ type OwnerDashboardActivitiesSectionProps = {
   initialRouteState?: OwnerActivitiesRouteState;
 };
 
+function matchesOutgoingStatusFilter(
+  status: OwnerOutgoingPaymentRecord["status"],
+  filter: OutgoingPaymentStatusFilter,
+) {
+  if (filter === "Semua") {
+    return true;
+  }
+
+  if (filter === "Menunggu") {
+    return status === "Menunggu" || status === "Dijadwalkan";
+  }
+
+  return status === filter;
+}
+
 export function OwnerDashboardActivitiesSection({
   initialRouteState = defaultOwnerActivitiesRouteState,
 }: OwnerDashboardActivitiesSectionProps) {
@@ -338,12 +353,13 @@ export function OwnerDashboardActivitiesSection({
         ? item.title.toLowerCase().includes(query) ||
           item.branch.toLowerCase().includes(query) ||
           item.category.toLowerCase().includes(query) ||
-          item.vendor.toLowerCase().includes(query) ||
           item.referenceId.toLowerCase().includes(query)
         : true;
       const matchesBranch = branchesMatch(item.branch, outgoingBranchFilter);
-      const matchesStatus =
-        outgoingStatusFilter === "Semua" ? true : item.status === outgoingStatusFilter;
+      const matchesStatus = matchesOutgoingStatusFilter(
+        item.status,
+        outgoingStatusFilter,
+      );
 
       return matchesQuery && matchesBranch && matchesStatus;
     });
@@ -480,18 +496,15 @@ export function OwnerDashboardActivitiesSection({
       referenceId: payment.referenceId,
       cabang: payment.branch,
       kategori: payment.category,
-      vendor: payment.vendor,
       jumlah: payment.amount,
       status: payment.status,
-      metodePembayaran: payment.paymentMethod,
-      tanggalKeluar: payment.disbursedAt ?? "",
-      jatuhTempo: payment.dueDate ?? "",
+      tanggalDicatatDibayar: payment.disbursedAt ?? "",
       catatan: payment.note,
     }));
 
     if (format === "json") {
       triggerDownload(
-        createExportFileName("pembayaran-keluar", "json"),
+        createExportFileName("pengeluaran-cabang", "json"),
         JSON.stringify(exportRows, null, 2),
         "application/json;charset=utf-8",
       );
@@ -499,26 +512,23 @@ export function OwnerDashboardActivitiesSection({
     }
 
     const csvContent = [
-      "judul,reference id,cabang,kategori,vendor,jumlah,status,metode pembayaran,tanggal keluar,jatuh tempo,catatan",
+      "judul,reference id,cabang,kategori,jumlah,status,tanggal dicatat dibayar,catatan",
       ...exportRows.map((payment) =>
         [
           escapeCsvCell(payment.judul),
           escapeCsvCell(payment.referenceId),
           escapeCsvCell(payment.cabang),
           escapeCsvCell(payment.kategori),
-          escapeCsvCell(payment.vendor),
           escapeCsvCell(String(payment.jumlah)),
           escapeCsvCell(payment.status),
-          escapeCsvCell(payment.metodePembayaran),
-          escapeCsvCell(payment.tanggalKeluar),
-          escapeCsvCell(payment.jatuhTempo),
+          escapeCsvCell(payment.tanggalDicatatDibayar),
           escapeCsvCell(payment.catatan),
         ].join(","),
       ),
     ].join("\n");
 
     triggerDownload(
-      createExportFileName("pembayaran-keluar", "csv"),
+      createExportFileName("pengeluaran-cabang", "csv"),
       csvContent,
       "text/csv;charset=utf-8",
     );

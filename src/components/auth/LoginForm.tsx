@@ -169,7 +169,7 @@ export function LoginForm() {
       splitInnerClassName="max-w-[430px]"
       hideSplitVisualOnMobile
       hideSplitTopBadge
-      title="Welcome Back to Bina Cendekia!"
+      title="Silahkan Login ke Bina Cendekia!"
       description="Masuk ke akun Anda untuk membuka dashboard belajar, jadwal, dan progres terbaru."
       footer={
         <div className="text-center text-sm text-slate-500">

@@ -26,6 +26,8 @@
     "data:learning:seed": "tsx src/scripts/seedTeacherLearningMeetings.ts --apply",
     "data:sidang:main:dry-run": "tsx src/scripts/seedSidangMainAccountsData.ts",
     "data:sidang:main": "tsx src/scripts/seedSidangMainAccountsData.ts --apply",
+    "data:sidang:backup:dry-run": "tsx src/scripts/seedSidangBackupCoverageData.ts",
+    "data:sidang:backup": "tsx src/scripts/seedSidangBackupCoverageData.ts --apply",
     "data:teachers:merge-branches:dry-run": "tsx src/scripts/mergeDuplicateBranchTeachers.ts",
     "data:teachers:merge-branches": "tsx src/scripts/mergeDuplicateBranchTeachers.ts --apply",
     "data:schedules:reduce-adiwerna:dry-run": "tsx src/scripts/reduceAdiwernaTeacherSchedules.ts",
@@ -44,7 +46,13 @@
     "data:membership:spread-start-dates:dry-run": "tsx src/scripts/spreadMembershipStartDates.ts",
     "data:membership:spread-start-dates": "tsx src/scripts/spreadMembershipStartDates.ts --apply",
     "data:students:academic-joined-at:dry-run": "tsx src/scripts/backfillStudentAcademicJoinedAt.ts",
-    "data:students:academic-joined-at": "tsx src/scripts/backfillStudentAcademicJoinedAt.ts --apply"
+    "data:students:academic-joined-at": "tsx src/scripts/backfillStudentAcademicJoinedAt.ts --apply",
+    "data:utbk:demo-attendance:dry-run": "tsx src/scripts/seedUtbkDemoAttendanceData.ts",
+    "data:utbk:demo-attendance": "tsx src/scripts/seedUtbkDemoAttendanceData.ts --apply",
+    "data:utbk:live-attendance:dry-run": "tsx src/scripts/seedUtbkLiveAttendanceDemoData.ts",
+    "data:utbk:live-attendance": "tsx src/scripts/seedUtbkLiveAttendanceDemoData.ts --apply",
+    "data:utbk:demo-learning:dry-run": "tsx src/scripts/seedUtbkDemoLearningData.ts",
+    "data:utbk:demo-learning": "tsx src/scripts/seedUtbkDemoLearningData.ts --apply"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

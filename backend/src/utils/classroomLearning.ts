@@ -21,6 +21,7 @@ import {
 import { TaskSubmission } from "../models/TaskSubmission";
 import { buildAcademicRecordSubscriptionFilter } from "./subscription";
 import { normalizeCanonicalClassName } from "./studentClass";
+import { normalizeUtbkScheduleClassName } from "./studentProgram";
 
 type LearningClassScopedDocument = {
   _id?: unknown;
@@ -210,7 +211,13 @@ export function normalizeTaskGradeStatus(
 }
 
 export function buildCanonicalClassName(className: string) {
-  return normalizeCanonicalClassName(normalizeText(className)) ?? "";
+  const normalizedClassName = normalizeText(className);
+
+  return (
+    normalizeUtbkScheduleClassName(normalizedClassName) ||
+    normalizeCanonicalClassName(normalizedClassName) ||
+    ""
+  );
 }
 
 export function buildStudentLearningClassFilter(

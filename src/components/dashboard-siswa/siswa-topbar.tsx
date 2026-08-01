@@ -17,6 +17,7 @@ import {
   useCallback,
   useEffect,
   useEffectEvent,
+  useMemo,
   useState,
   useTransition,
 } from "react";
@@ -56,9 +57,47 @@ import {
   membershipService,
   type MembershipStatusData,
 } from "@/lib/subscription";
+import { isUtbkStudentProfile } from "./data/studentProgram";
 import { subscribeStudentDashboardRefresh } from "./student-dashboard-refresh-events";
 
-const menus = [
+type SiswaTopbarMenu = {
+  name: string;
+  path: string;
+  exact: boolean;
+  activePathPrefixes?: string[];
+};
+
+const regularMenus = [
+  {
+    name: "Beranda",
+    path: "/dashboard-siswa",
+    exact: true,
+  },
+  {
+    name: "Belajar",
+    path: "/dashboard-siswa#header-akademik-siswa",
+    exact: false,
+    activePathPrefixes: [
+      "/dashboard-siswa/absensi",
+      "/dashboard-siswa/jadwal",
+      "/dashboard-siswa/kirim-tugas",
+      "/dashboard-siswa/materi",
+      "/dashboard-siswa/nilai",
+      "/dashboard-siswa/riwayat-akademik",
+      "/dashboard-siswa/scan-absen",
+      "/dashboard-siswa/tugas",
+      "/dashboard-siswa/tryout",
+      "/dashboard-siswa/ujian",
+    ],
+  },
+  {
+    name: "Transaksi",
+    path: "/dashboard-siswa/tagihan",
+    exact: true,
+  },
+] satisfies SiswaTopbarMenu[];
+
+const utbkMenus = [
   {
     name: "Beranda",
     path: "/dashboard-siswa",
@@ -68,38 +107,27 @@ const menus = [
     name: "Absensi",
     path: "/dashboard-siswa/absensi",
     exact: false,
-  },
-  {
-    name: "Jadwal",
-    path: "/dashboard-siswa/jadwal",
-    exact: false,
-  },
-  {
-    name: "Materi",
-    path: "/dashboard-siswa/materi",
-    exact: false,
-  },
-  {
-    name: "Tugas",
-    path: "/dashboard-siswa/tugas",
-    exact: false,
-  },
-  {
-    name: "Ujian",
-    path: "/dashboard-siswa/ujian",
-    exact: false,
+    activePathPrefixes: [
+      "/dashboard-siswa/absensi",
+      "/dashboard-siswa/scan-absen",
+    ],
   },
   {
     name: "Nilai",
     path: "/dashboard-siswa/nilai",
     exact: false,
+    activePathPrefixes: [
+      "/dashboard-siswa/nilai",
+      "/dashboard-siswa/tryout",
+      "/dashboard-siswa/ujian",
+    ],
   },
   {
     name: "Transaksi",
     path: "/dashboard-siswa/tagihan",
     exact: true,
   },
-] as const;
+] satisfies SiswaTopbarMenu[];
 
 type SiswaTopbarProfile = {
   nama: string;
@@ -183,6 +211,11 @@ function buildProfileFromAuthUser(user: AuthUser): SiswaTopbarProfile {
 }
 
 function buildRoleFromStudentProfile(student: MembershipStudentProfile) {
+  if (isUtbkStudentProfile(student)) {
+    const track = student.utbkTrack?.trim();
+    return track ? `UTBK - ${track}` : "Siswa UTBK";
+  }
+
   const className = student.className?.trim();
   const program = student.program?.trim();
 
@@ -377,6 +410,19 @@ function getNotificationHref(notification: StudentNotificationItem) {
   }
 }
 
+function isMenuActive(menu: SiswaTopbarMenu, pathname: string) {
+  if (menu.exact) {
+    return pathname === menu.path;
+  }
+
+  const activePathPrefixes = menu.activePathPrefixes ?? [menu.path];
+
+  return activePathPrefixes.some(
+    (pathPrefix) =>
+      pathname === pathPrefix || pathname.startsWith(`${pathPrefix}/`),
+  );
+}
+
 export default function SiswaTopbar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -384,6 +430,8 @@ export default function SiswaTopbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profile, setProfile] = useState<SiswaTopbarProfile>(fallbackProfile);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [membershipData, setMembershipData] =
+    useState<MembershipStatusData | null>(null);
   const [notifications, setNotifications] = useState<StudentNotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsError, setNotificationsError] = useState<string | null>(null);
@@ -443,6 +491,7 @@ export default function SiswaTopbar() {
   const loadStudentProfile = useEffectEvent(async () => {
     try {
       const response = await membershipService.getMySubscription();
+      setMembershipData(response.data ?? null);
       const studentProfile = buildProfileFromMembershipData(response.data);
 
       if (studentProfile) {
@@ -465,9 +514,11 @@ export default function SiswaTopbar() {
           status: error.status,
           errorCode: error.errorCode,
         });
+        setMembershipData(null);
         return;
       }
 
+      setMembershipData(null);
       console.error("[siswa-topbar] load_membership_profile_failed", error);
     }
   });
@@ -588,6 +639,7 @@ export default function SiswaTopbar() {
     } finally {
       clearAuthClientState();
       setCurrentUser(null);
+      setMembershipData(null);
       setProfile(fallbackProfile);
       setNotifications([]);
       setUnreadCount(0);
@@ -624,10 +676,31 @@ export default function SiswaTopbar() {
   const displayRole = profile.role;
   const avatarFallback = getInitials(displayName || "Siswa");
   const avatarSrc = currentUser?.avatar ?? null;
+  const isUtbkProfile = isUtbkStudentProfile(membershipData?.student);
+  const visibleMenus = useMemo(
+    () => (isUtbkProfile ? utbkMenus : regularMenus),
+    [isUtbkProfile],
+  );
+  const visibleNotifications = useMemo(
+    () =>
+      isUtbkProfile
+        ? notifications.filter(
+            (notification) =>
+              notification.type === "schedule" ||
+              notification.type === "material" ||
+              notification.type === "grade" ||
+              notification.type === "billing",
+          )
+        : notifications,
+    [isUtbkProfile, notifications],
+  );
+  const visibleUnreadCount = isUtbkProfile
+    ? visibleNotifications.filter((notification) => !notification.read).length
+    : unreadCount;
   const notificationBadgeLabel =
-    unreadCount > 99 ? "99+" : unreadCount.toString();
-  const notificationUpdatedLabel = notifications[0]
-    ? formatNotificationTime(notifications[0].createdAt)
+    visibleUnreadCount > 99 ? "99+" : visibleUnreadCount.toString();
+  const notificationUpdatedLabel = visibleNotifications[0]
+    ? formatNotificationTime(visibleNotifications[0].createdAt)
     : null;
 
   return (
@@ -655,10 +728,8 @@ export default function SiswaTopbar() {
             </Link>
 
             <nav className="hidden items-center gap-1 lg:gap-2 md:flex">
-              {menus.map((menu) => {
-                const isActive = menu.exact
-                  ? pathname === menu.path
-                  : pathname.startsWith(menu.path);
+              {visibleMenus.map((menu) => {
+                const isActive = isMenuActive(menu, pathname);
 
                 return (
                   <Link
@@ -690,7 +761,7 @@ export default function SiswaTopbar() {
                   aria-label="Notifikasi siswa"
                 >
                   <Bell className="h-5 w-5" />
-                  {unreadCount > 0 ? (
+                  {visibleUnreadCount > 0 ? (
                     <span className="absolute -right-2 -top-2 min-w-5 rounded-full bg-yellow-300 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-orange-900 ring-2 ring-red-500/30">
                       {notificationBadgeLabel}
                     </span>
@@ -706,10 +777,12 @@ export default function SiswaTopbar() {
                         Notifikasi Siswa
                       </p>
                       <p className="mt-1 text-xs text-slate-500">
-                        Ringkasan jadwal, tugas, materi, nilai, dan transaksimu.
+                        {isUtbkProfile
+                          ? "Ringkasan jadwal, materi UTBK, nilai tryout, dan transaksimu."
+                          : "Ringkasan jadwal, tugas, materi, nilai, dan transaksimu."}
                       </p>
                     </div>
-                    {unreadCount > 0 ? (
+                    {visibleUnreadCount > 0 ? (
                       <span className="rounded-full border border-orange-100 bg-orange-50 px-2.5 py-1 text-[11px] font-semibold text-orange-700">
                         {notificationBadgeLabel}
                       </span>
@@ -732,9 +805,9 @@ export default function SiswaTopbar() {
                     <div className="px-4 py-4 text-sm leading-6 text-red-600">
                       {notificationsError}
                     </div>
-                  ) : notifications.length ? (
+                  ) : visibleNotifications.length ? (
                     <div className="divide-y divide-slate-100">
-                      {notifications.map((notification) => {
+                      {visibleNotifications.map((notification) => {
                         const content = (
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
@@ -863,10 +936,8 @@ export default function SiswaTopbar() {
 
         {mobileOpen && (
           <div className="space-y-2 px-6 pb-4 md:hidden">
-            {menus.map((menu) => {
-              const isActive = menu.exact
-                ? pathname === menu.path
-                : pathname.startsWith(menu.path);
+            {visibleMenus.map((menu) => {
+              const isActive = isMenuActive(menu, pathname);
 
               return (
                 <Link
@@ -894,6 +965,7 @@ export default function SiswaTopbar() {
         user={currentUser}
         isUserLoading={isUserLoading}
         profileLabel={displayRole}
+        isUtbkStudent={isUtbkProfile}
         onProfileUpdated={(updatedUser) => {
           setCurrentUser(updatedUser);
           setProfile((currentProfile) =>

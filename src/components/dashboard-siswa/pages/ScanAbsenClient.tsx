@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -12,6 +13,10 @@ import {
 } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
 
+import { resolveScheduleAttendanceWindow } from "@/lib/schedule-attendance-window";
+import { getUtbkSubjectInfo } from "@/lib/utbk-subjects";
+import { useStudentDashboardData } from "../data/useStudentDashboardData";
+import { isUtbkStudentProfile } from "../data/studentProgram";
 import { publishStudentDashboardRefresh } from "../student-dashboard-refresh-events";
 
 type StudentAttendanceScanResponse = {
@@ -111,10 +116,49 @@ async function readJsonResponse<T>(response: Response) {
   return (await response.json().catch(() => null)) as T | null;
 }
 
+function ScannerGateCard({
+  title,
+  description,
+  isLoading = false,
+}: {
+  title: string;
+  description: string;
+  isLoading?: boolean;
+}) {
+  return (
+    <div className="relative mx-auto w-full overflow-hidden rounded-[32px] border border-slate-200/80 bg-white/80 p-8 text-center shadow-[0_24px_54px_-32px_rgba(15,23,42,0.12)] backdrop-blur-xl">
+      <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-orange-50 text-orange-600 ring-1 ring-orange-100/70">
+        {isLoading ? (
+          <LoaderCircle className="size-6 animate-spin" />
+        ) : (
+          <AlertCircle className="size-6" />
+        )}
+      </div>
+      <h2 className="mt-5 text-lg font-semibold text-slate-900">{title}</h2>
+      <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-500">
+        {description}
+      </p>
+      {!isLoading ? (
+        <Link
+          href="/dashboard-siswa/jadwal"
+          className="mt-6 inline-flex items-center justify-center rounded-full bg-orange-500 px-4 py-2 text-xs font-semibold text-white shadow-[0_14px_28px_-22px_rgba(249,115,22,0.8)] transition hover:bg-orange-600"
+        >
+          Kembali ke Jadwal
+        </Link>
+      ) : null}
+    </div>
+  );
+}
+
 export default function ScanAbsenClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const scheduleId = searchParams.get("scheduleId");
+  const scheduleId = normalizeText(searchParams.get("scheduleId"));
+  const {
+    dashboardData,
+    isLoading: isScheduleLoading,
+    loadError: scheduleLoadError,
+  } = useStudentDashboardData();
 
   const [isSuccess, setIsSuccess] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -122,11 +166,49 @@ export default function ScanAbsenClient() {
   const [isStarting, setIsStarting] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [retryNonce, setRetryNonce] = useState(0);
+  const [attendanceClock, setAttendanceClock] = useState(() => Date.now());
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isProcessingRef = useRef(false);
+  const linkedSchedule = scheduleId
+    ? dashboardData?.schedules.find((schedule) => schedule.id === scheduleId) ?? null
+    : null;
+  const isUtbkStudent = isUtbkStudentProfile(dashboardData?.student);
+  const linkedSubjectInfo =
+    linkedSchedule && isUtbkStudent
+      ? getUtbkSubjectInfo(linkedSchedule.subject)
+      : null;
+  const linkedAttendanceWindow = linkedSchedule
+    ? resolveScheduleAttendanceWindow(linkedSchedule, new Date(attendanceClock))
+    : null;
+  const isScheduleGateLoading = Boolean(scheduleId && isScheduleLoading);
+  const scannerGateError = scheduleId
+    ? isScheduleGateLoading
+      ? null
+      : scheduleLoadError
+        ? scheduleLoadError
+        : !linkedSchedule
+          ? "Jadwal absensi ini tidak ditemukan untuk akun kamu."
+          : linkedAttendanceWindow?.canStartAttendance
+            ? null
+            : linkedAttendanceWindow?.label ??
+              "Absensi baru bisa dibuka saat jadwal berlangsung."
+    : null;
+  const canStartScanner = !isScheduleGateLoading && !scannerGateError;
 
   useEffect(() => {
-    if (isSuccess) return;
+    const timerId = window.setInterval(() => {
+      setAttendanceClock(Date.now());
+    }, 30000);
+
+    return () => {
+      window.clearInterval(timerId);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isSuccess || !canStartScanner) {
+      return;
+    }
 
     let isMounted = true;
     isProcessingRef.current = false;
@@ -253,7 +335,7 @@ export default function ScanAbsenClient() {
       }
       scannerRef.current = null;
     };
-  }, [isSuccess, retryNonce, router]);
+  }, [canStartScanner, isSuccess, retryNonce, router]);
 
   const handleRetryScan = () => {
     isProcessingRef.current = false;
@@ -280,91 +362,116 @@ export default function ScanAbsenClient() {
           <p className="mx-auto mt-2 max-w-[280px] text-sm leading-6 text-slate-500 md:max-w-xs">
             Arahkan kamera ke QR Code absen di kelas untuk mencatat kehadiran.
           </p>
-          {scheduleId && (
-            <div className="mt-4 inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium tracking-wide text-slate-600">
-              ID Jadwal: <span className="ml-1 font-semibold text-slate-900">{scheduleId}</span>
+          {scheduleId ? (
+            <div className="mt-4 inline-flex max-w-full flex-col rounded-2xl bg-slate-100 px-4 py-2 text-xs font-medium text-slate-600">
+              <span>
+                Jadwal absen:{" "}
+                <span className="font-semibold text-slate-900">
+                  {linkedSubjectInfo?.label ??
+                    linkedSchedule?.subject ??
+                    "Sesi kelas aktif"}
+                </span>
+              </span>
+              {linkedSubjectInfo ? (
+                <span className="mt-1 text-[11px] leading-5 text-slate-500">
+                  {linkedSubjectInfo.description}
+                </span>
+              ) : null}
             </div>
-          )}
+          ) : null}
         </div>
       </header>
 
-      <div className="relative mx-auto w-full overflow-hidden rounded-[32px] border border-slate-200/80 bg-white/70 shadow-[0_24px_54px_-32px_rgba(15,23,42,0.12)] backdrop-blur-xl">
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-400 via-rose-400 to-orange-400" />
-        
-        {isSuccess ? (
-          <div className="flex flex-col items-center justify-center p-12 text-center animate-in fade-in zoom-in duration-500">
-            <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-emerald-50 text-emerald-500">
-              <div className="absolute inset-0 animate-ping rounded-full bg-emerald-100/60 duration-1000" />
-              <CheckCircle2 className="relative z-10 h-12 w-12 drop-shadow-sm" />
-            </div>
-            <h2 className="mt-6 text-[1.4rem] font-bold tracking-tight text-slate-800">
-              Absen Berhasil!
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              Kehadiran Anda telah dicatat oleh sistem.
-            </p>
-            <div className="mt-6 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-slate-400">
-              <span className="flex size-1.5 animate-pulse rounded-full bg-emerald-500" />
-              Mengalihkan otomatis...
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col">
-            {visibleError && (
-              <div className="flex items-center justify-center gap-2 border-b border-red-100 bg-red-50/80 px-4 py-3 text-center text-xs font-medium text-red-600">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                <span>{visibleError}</span>
+      {isScheduleGateLoading ? (
+        <ScannerGateCard
+          title="Memeriksa jadwal absensi"
+          description="Sistem sedang memastikan sesi ini sudah masuk jam absensi."
+          isLoading
+        />
+      ) : scannerGateError ? (
+        <ScannerGateCard
+          title="Absensi belum dibuka"
+          description={scannerGateError}
+        />
+      ) : (
+        <div className="relative mx-auto w-full overflow-hidden rounded-[32px] border border-slate-200/80 bg-white/70 shadow-[0_24px_54px_-32px_rgba(15,23,42,0.12)] backdrop-blur-xl">
+          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-400 via-rose-400 to-orange-400" />
+
+          {isSuccess ? (
+            <div className="flex flex-col items-center justify-center p-12 text-center animate-in fade-in zoom-in duration-500">
+              <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-emerald-50 text-emerald-500">
+                <div className="absolute inset-0 animate-ping rounded-full bg-emerald-100/60 duration-1000" />
+                <CheckCircle2 className="relative z-10 h-12 w-12 drop-shadow-sm" />
               </div>
-            )}
-            
-            {/* Pure Scanner Container */}
-            <div className="relative p-4 sm:p-5">
-              <div 
-                id="qr-reader" 
-                className="w-full overflow-hidden rounded-2xl border-0 bg-slate-900 shadow-inner"
-              />
-              
-              {/* Overlay Loading State */}
-              {isStarting && !cameraError && (
-                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-slate-900/90 text-white backdrop-blur-sm m-4 sm:m-5">
-                  <div className="flex size-12 animate-pulse items-center justify-center rounded-full bg-white/10">
-                    <Camera className="size-6 text-white/80" />
-                  </div>
-                  <p className="mt-3 text-sm font-medium tracking-wide">Membuka Kamera...</p>
+              <h2 className="mt-6 text-[1.4rem] font-bold tracking-tight text-slate-800">
+                Absen Berhasil!
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Kehadiran Anda telah dicatat oleh sistem.
+              </p>
+              <div className="mt-6 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+                <span className="flex size-1.5 animate-pulse rounded-full bg-emerald-500" />
+                Mengalihkan otomatis...
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col">
+              {visibleError && (
+                <div className="flex items-center justify-center gap-2 border-b border-red-100 bg-red-50/80 px-4 py-3 text-center text-xs font-medium text-red-600">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{visibleError}</span>
                 </div>
               )}
 
-              {isSubmitting && !cameraError && (
-                <div className="absolute inset-0 z-10 m-4 flex flex-col items-center justify-center rounded-2xl bg-slate-950/85 text-white backdrop-blur-sm sm:m-5">
-                  <div className="flex size-12 items-center justify-center rounded-full bg-white/10">
-                    <LoaderCircle className="size-6 animate-spin text-white/85" />
+              {/* Pure Scanner Container */}
+              <div className="relative p-4 sm:p-5">
+                <div
+                  id="qr-reader"
+                  className="w-full overflow-hidden rounded-2xl border-0 bg-slate-900 shadow-inner"
+                />
+
+                {/* Overlay Loading State */}
+                {isStarting && !cameraError && (
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-slate-900/90 text-white backdrop-blur-sm m-4 sm:m-5">
+                    <div className="flex size-12 animate-pulse items-center justify-center rounded-full bg-white/10">
+                      <Camera className="size-6 text-white/80" />
+                    </div>
+                    <p className="mt-3 text-sm font-medium tracking-wide">Membuka Kamera...</p>
                   </div>
-                  <p className="mt-3 text-sm font-medium tracking-wide">
-                    Memproses Absensi...
-                  </p>
-                </div>
-              )}
-            </div>
-            
-            <div className="flex flex-col items-center justify-center gap-3 border-t border-slate-100 bg-slate-50/50 p-4 text-[13px] font-medium text-slate-500 backdrop-blur">
-              <div className="flex items-center justify-center gap-2">
-                <ScanLine className="h-4 w-4 text-orange-500" />
-                Posisikan QR Code di area kotak
+                )}
+
+                {isSubmitting && !cameraError && (
+                  <div className="absolute inset-0 z-10 m-4 flex flex-col items-center justify-center rounded-2xl bg-slate-950/85 text-white backdrop-blur-sm sm:m-5">
+                    <div className="flex size-12 items-center justify-center rounded-full bg-white/10">
+                      <LoaderCircle className="size-6 animate-spin text-white/85" />
+                    </div>
+                    <p className="mt-3 text-sm font-medium tracking-wide">
+                      Memproses Absensi...
+                    </p>
+                  </div>
+                )}
               </div>
-              {visibleError ? (
-                <button
-                  type="button"
-                  onClick={handleRetryScan}
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-orange-500 px-4 py-2 text-xs font-semibold text-white shadow-[0_14px_28px_-22px_rgba(249,115,22,0.8)] transition hover:bg-orange-600"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  Scan Ulang
-                </button>
-              ) : null}
+
+              <div className="flex flex-col items-center justify-center gap-3 border-t border-slate-100 bg-slate-50/50 p-4 text-[13px] font-medium text-slate-500 backdrop-blur">
+                <div className="flex items-center justify-center gap-2">
+                  <ScanLine className="h-4 w-4 text-orange-500" />
+                  Posisikan QR Code di area kotak
+                </div>
+                {visibleError ? (
+                  <button
+                    type="button"
+                    onClick={handleRetryScan}
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-orange-500 px-4 py-2 text-xs font-semibold text-white shadow-[0_14px_28px_-22px_rgba(249,115,22,0.8)] transition hover:bg-orange-600"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Scan Ulang
+                  </button>
+                ) : null}
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </section>
   );
 }

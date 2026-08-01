@@ -16,6 +16,7 @@ import {
 
 import type { StudentDashboardData } from "../data/useStudentDashboardData";
 import { getStudentAcademicAccessMessage } from "../data/studentAcademicAccess";
+import { getUtbkTrackLabel, isUtbkStudentProfile } from "../data/studentProgram";
 
 type HeaderAkademikSiswaProps = {
   dashboardData: StudentDashboardData | null;
@@ -71,34 +72,105 @@ export default function HeaderAkademikSiswa({
     }
 
     const { student, academicSummary } = dashboardData;
+    const isUtbkStudent = isUtbkStudentProfile(student);
+    const utbkTrackLabel = getUtbkTrackLabel(student);
+    const utbkScheduleScope =
+      utbkTrackLabel === "Program SNBT"
+        ? "program UTBK"
+        : `program UTBK ${utbkTrackLabel}`;
+    const scheduleScopeLabel = isUtbkStudent
+      ? utbkScheduleScope
+      : `kelas ${student.className}`;
     const scheduleDescription =
       academicAccessMessage ??
       (academicSummary.todayScheduleCount > 0
-        ? `${academicSummary.todayScheduleCount} sesi belajar terjadwal hari ini untuk kelas ${student.className}.`
+        ? `${academicSummary.todayScheduleCount} sesi belajar terjadwal hari ini untuk ${scheduleScopeLabel}.`
         : academicSummary.scheduleCount > 0
           ? `Tidak ada jadwal hari ini. Total ${academicSummary.scheduleCount} jadwal mingguan siap dipantau dari dashboard siswa.`
           : "Jadwal pelajaran untuk kelas kamu belum tersedia.");
 
-    return {
-      name: `${student.program || academicSummary.jenjang} - ${academicSummary.kelasLabel}`,
-      tabs: [
-        {
-          name: "Materi",
-          icon: FileText,
-          content: {
-            title: "Materi belajar aktif",
-            desc:
-              academicSummary.materialCount > 0
-                ? `${academicSummary.materialCount} materi sudah dipublikasikan untuk kelas ${student.className}.`
-                : academicAccessMessage ??
-                  `Guru belum mempublikasikan materi untuk kelas ${student.className}.`,
-            stats: `${academicSummary.materialCount} Materi`,
-            primaryLabel: "Buka Materi",
-            primaryHref: "/dashboard-siswa/materi",
-            secondaryLabel: "Lihat Detail",
-            secondaryHref: "/dashboard-siswa/materi",
-          },
-        },
+    const materialTab: TabConfig = {
+      name: "Materi",
+      icon: FileText,
+      content: {
+        title: isUtbkStudent ? "Materi UTBK aktif" : "Materi belajar aktif",
+        desc:
+          academicSummary.materialCount > 0
+            ? isUtbkStudent
+              ? `${academicSummary.materialCount} materi UTBK/SNBT sudah tersedia untuk dipelajari.`
+              : `${academicSummary.materialCount} materi sudah dipublikasikan untuk kelas ${student.className}.`
+            : academicAccessMessage ??
+              (isUtbkStudent
+                ? "Materi UTBK/SNBT belum dipublikasikan untuk akun ini."
+                : `Guru belum mempublikasikan materi untuk kelas ${student.className}.`),
+        stats: `${academicSummary.materialCount} Materi`,
+        primaryLabel: "Buka Materi",
+        primaryHref: "/dashboard-siswa/materi",
+        secondaryLabel: "Lihat Detail",
+        secondaryHref: "/dashboard-siswa/materi",
+      },
+    };
+
+    const tryoutTab: TabConfig = {
+      name: isUtbkStudent ? "Tryout SNBT" : "Sesi Ujian",
+      icon: TimerReset,
+      content: {
+        title: isUtbkStudent ? "Sesi Tryout UTBK/SNBT" : "Sesi Ujian dan Tryout",
+        desc:
+          academicSummary.tryoutCount > 0
+            ? isUtbkStudent
+              ? `${academicSummary.tryoutCount} sesi tryout tersedia untuk program UTBK.`
+              : `${academicSummary.tryoutCount} sesi ujian/tryout tersedia untuk kelas ${student.className}.`
+            : academicAccessMessage ??
+              (isUtbkStudent
+                ? "Belum ada tryout UTBK/SNBT yang tersedia untuk akun ini."
+                : "Belum ada sesi ujian aktif yang tersedia untuk kelas kamu."),
+        stats: `${academicSummary.tryoutCount} ${isUtbkStudent ? "Tryout" : "Ujian"}`,
+        primaryLabel: isUtbkStudent ? "Buka Tryout" : "Mulai Ujian",
+        primaryHref: "/dashboard-siswa/ujian",
+        secondaryLabel: isUtbkStudent ? "Lihat Tryout" : "Lihat Ujian",
+        secondaryHref: "/dashboard-siswa/ujian",
+      },
+    };
+
+    const scheduleTab: TabConfig = {
+      name: "Jadwal",
+      icon: CalendarClock,
+      content: {
+        title: isUtbkStudent
+          ? "Jadwal kelas UTBK"
+          : "Jadwal pelajaran hari ini",
+        desc: scheduleDescription,
+        stats: `${academicSummary.todayScheduleCount} Jadwal`,
+        primaryLabel: "Lihat Jadwal",
+        primaryHref: "/dashboard-siswa/jadwal",
+        secondaryLabel: "Buka Dashboard",
+        secondaryHref: "/dashboard-siswa",
+      },
+    };
+
+    const attendanceTab: TabConfig = {
+      name: "Absensi",
+      icon: CalendarClock,
+      content: {
+        title: isUtbkStudent
+          ? "Kehadiran sesi UTBK"
+          : "Riwayat kehadiran kelas",
+        desc:
+          academicAccessMessage ??
+          (isUtbkStudent
+            ? "Pantau kehadiran dari sesi intensif UTBK yang sudah berjalan."
+            : "Pantau riwayat kehadiran dari sesi kelas yang sudah berjalan."),
+        stats: `${academicSummary.scheduleCount} Sesi`,
+        primaryLabel: "Lihat Absensi",
+        primaryHref: "/dashboard-siswa/absensi",
+        secondaryLabel: "Buka Jadwal",
+        secondaryHref: "/dashboard-siswa/jadwal",
+      },
+    };
+
+    const regularTabs: TabConfig[] = [
+      materialTab,
         {
           name: "Tugas",
           icon: BookOpen,
@@ -116,37 +188,33 @@ export default function HeaderAkademikSiswa({
             secondaryHref: "/dashboard-siswa/kirim-tugas",
           },
         },
+        tryoutTab,
+        scheduleTab,
+        attendanceTab,
         {
-          name: "Sesi Ujian",
-          icon: TimerReset,
+          name: "Nilai",
+          icon: Target,
           content: {
-            title: "Sesi Ujian dan Tryout",
+            title: "Nilai dan evaluasi belajar",
             desc:
-              academicSummary.tryoutCount > 0
-                ? `${academicSummary.tryoutCount} sesi ujian/tryout tersedia untuk kelas ${student.className}.`
-                : academicAccessMessage ??
-                  "Belum ada sesi ujian aktif yang tersedia untuk kelas kamu.",
-            stats: `${academicSummary.tryoutCount} Ujian`,
-            primaryLabel: "Mulai Ujian",
-            primaryHref: "/dashboard-siswa/ujian",
-            secondaryLabel: "Lihat Ujian",
-            secondaryHref: "/dashboard-siswa/ujian",
+              academicAccessMessage ??
+              "Lihat rekap nilai tugas, evaluasi, dan catatan akademik dari guru.",
+            stats: `${academicSummary.taskCount} Tugas`,
+            primaryLabel: "Lihat Nilai",
+            primaryHref: "/dashboard-siswa/nilai",
+            secondaryLabel: "Riwayat Akademik",
+            secondaryHref: "/dashboard-siswa/riwayat-akademik",
           },
         },
-        {
-          name: "Jadwal",
-          icon: CalendarClock,
-          content: {
-            title: "Jadwal pelajaran hari ini",
-            desc: scheduleDescription,
-            stats: `${academicSummary.todayScheduleCount} Jadwal`,
-            primaryLabel: "Lihat Jadwal",
-            primaryHref: "/dashboard-siswa#jadwal-mata-pelajaran",
-            secondaryLabel: "Buka Dashboard",
-            secondaryHref: "/dashboard-siswa",
-          },
-        },
-      ],
+    ];
+
+    return {
+      name: isUtbkStudent
+        ? `UTBK - ${getUtbkTrackLabel(student)}`
+        : `${student.program || academicSummary.jenjang} - ${academicSummary.kelasLabel}`,
+      tabs: isUtbkStudent
+        ? [scheduleTab, materialTab, tryoutTab]
+        : regularTabs,
     };
   }, [academicAccessMessage, dashboardData]);
 
@@ -157,6 +225,10 @@ export default function HeaderAkademikSiswa({
 
     if (!dashboardData) {
       return "Ringkasan belajar belum tersedia";
+    }
+
+    if (isUtbkStudentProfile(dashboardData.student)) {
+      return `Fokus UTBK ${getUtbkTrackLabel(dashboardData.student)}`;
     }
 
     return `Fokus belajar ${dashboardData.academicSummary.jenjang} ${dashboardData.academicSummary.kelasLabel}`;
@@ -178,7 +250,11 @@ export default function HeaderAkademikSiswa({
       return academicAccessMessage;
     }
 
-    const { academicSummary } = dashboardData;
+    const { academicSummary, student } = dashboardData;
+    if (isUtbkStudentProfile(student)) {
+      return `${academicSummary.materialCount} materi, ${academicSummary.tryoutCount} tryout, dan ${academicSummary.todayScheduleCount} jadwal hari ini siap dipantau dari dashboard UTBK.`;
+    }
+
     return `${academicSummary.materialCount} materi, ${academicSummary.taskCount} tugas, ${academicSummary.tryoutCount} ujian, dan ${academicSummary.todayScheduleCount} jadwal hari ini siap dipantau dari dashboard siswa.`;
   }, [academicAccessMessage, dashboardData, dashboardError, dashboardLoading]);
 
@@ -205,7 +281,7 @@ export default function HeaderAkademikSiswa({
       "Data akademik siswa belum tersedia.";
 
   return (
-    <div id="header-akademik-siswa" className="space-y-4">
+    <div id="header-akademik-siswa" className="scroll-mt-24 space-y-4">
       <div className="relative overflow-hidden rounded-2xl border border-orange-100 bg-orange-50/50 shadow-sm">
         <div className="relative flex items-center gap-4 px-4 py-4 md:px-5">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-100 shadow-sm">

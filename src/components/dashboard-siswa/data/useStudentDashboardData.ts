@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { withStoredAuthHeader } from "@/lib/auth";
+import type { ScheduleAttendanceWindow } from "@/lib/schedule-attendance-window";
 import { subscribeStudentDashboardRefresh } from "../student-dashboard-refresh-events";
 import type { StudentAcademicAccess } from "./studentAcademicAccess";
 
@@ -22,6 +23,8 @@ export type StudentDashboardSchedule = {
   room: string;
   branch: string;
   status: string;
+  canStartAttendance?: boolean;
+  attendanceWindow?: ScheduleAttendanceWindow;
 };
 
 export type StudentDashboardData = {
@@ -31,6 +34,9 @@ export type StudentDashboardData = {
     branch: string;
     program: string;
     className: string;
+    utbkTrack?: string;
+    targetKampus?: string;
+    targetJurusan?: string;
     status: string;
     accessStatus: string;
   };

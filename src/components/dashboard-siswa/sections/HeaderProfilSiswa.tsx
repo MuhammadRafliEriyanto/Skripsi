@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { useEffect, useEffectEvent, useState } from "react";
-import { CalendarDays, MapPin, UserRound } from "lucide-react";
+import { Building2, CalendarDays, MapPin, Target, UserRound } from "lucide-react";
 
 import {
   AuthRequestError,
@@ -21,6 +21,7 @@ import {
 
 import type { StudentDashboardData } from "../data/useStudentDashboardData";
 import { getStudentAcademicAccessMessage } from "../data/studentAcademicAccess";
+import { getUtbkTrackLabel, isUtbkStudentProfile } from "../data/studentProgram";
 import { subscribeStudentDashboardRefresh } from "../student-dashboard-refresh-events";
 
 type StudentProfile = {
@@ -31,6 +32,10 @@ type StudentProfile = {
   membershipValue: string;
   program: string;
   paymentValue: string;
+  isUtbkStudent: boolean;
+  utbkTrack: string;
+  targetKampus: string;
+  targetJurusan: string;
 };
 
 type SubjectSchedule = {
@@ -65,6 +70,10 @@ const fallbackStudentProfile: StudentProfile = {
   membershipValue: "Memuat",
   program: "Program belum tersedia",
   paymentValue: "Menunggu data",
+  isUtbkStudent: false,
+  utbkTrack: "",
+  targetKampus: "",
+  targetJurusan: "",
 };
 
 function getInitials(name: string) {
@@ -150,6 +159,10 @@ function buildProfileFromAuthUser(user: AuthUser): StudentProfile {
     membershipValue: "Menunggu data",
     program: "Program belum tersedia",
     paymentValue: "Menunggu data",
+    isUtbkStudent: false,
+    utbkTrack: "",
+    targetKampus: "",
+    targetJurusan: "",
   };
 }
 
@@ -162,14 +175,24 @@ function buildProfileFromMembershipData(data?: MembershipStatusData | null) {
     return null;
   }
 
+  const isUtbkStudent = isUtbkStudentProfile(student);
+
   return {
     name: resolvedName,
     initials: getInitials(resolvedName),
-    className: student?.className?.trim() || "Kelas belum tersedia",
+    className: isUtbkStudent
+      ? getUtbkTrackLabel(student)
+      : student?.className?.trim() || "Kelas belum tersedia",
     studentStatus: student?.status?.trim() || "Siswa",
     membershipValue: formatAccessStatusLabel(data?.accessStatus),
-    program: student?.program?.trim() || "Program belum tersedia",
+    program: isUtbkStudent
+      ? "UTBK / Program SNBT Intensif"
+      : student?.program?.trim() || "Program belum tersedia",
     paymentValue: buildPaymentSummary(data?.payment, data?.accessStatus),
+    isUtbkStudent,
+    utbkTrack: student?.utbkTrack?.trim() || "",
+    targetKampus: student?.targetKampus?.trim() || "",
+    targetJurusan: student?.targetJurusan?.trim() || "",
   } satisfies StudentProfile;
 }
 
@@ -268,6 +291,20 @@ export default function HeaderProfilSiswa({
   const academicAccessMessage = getStudentAcademicAccessMessage(
     dashboardData?.academicAccess,
   );
+  const dashboardStudent = dashboardData?.student;
+  const isUtbkDashboard =
+    isUtbkStudentProfile(dashboardStudent) || profile.isUtbkStudent;
+  const utbkTrackLabel = dashboardStudent
+    ? getUtbkTrackLabel(dashboardStudent)
+    : profile.utbkTrack || "Program SNBT";
+  const targetKampus =
+    dashboardStudent?.targetKampus?.trim() ||
+    profile.targetKampus ||
+    "Target kampus belum diisi";
+  const targetJurusan =
+    dashboardStudent?.targetJurusan?.trim() ||
+    profile.targetJurusan ||
+    "Target jurusan belum diisi";
 
   return (
     <div className="flex h-full flex-col gap-4">
@@ -303,7 +340,7 @@ export default function HeaderProfilSiswa({
             ["Program", profile.program],
             ["Status Siswa", profile.studentStatus],
             ["Akses Membership", profile.membershipValue],
-            ["Kelas", profile.className],
+            [isUtbkDashboard ? "Status Peserta" : "Kelas", profile.className],
             ["Tagihan", profile.paymentValue],
           ].map(([label, value]) => (
             <div
@@ -332,10 +369,69 @@ export default function HeaderProfilSiswa({
         ) : null}
       </section>
 
-      <section
-        id="jadwal-mata-pelajaran"
-        className="overflow-hidden rounded-[24px] border border-slate-100 bg-white shadow-sm"
-      >
+      {isUtbkDashboard ? (
+        <section className="overflow-hidden rounded-[24px] border border-orange-100 bg-white shadow-sm">
+          <div className="h-1 bg-gradient-to-r from-red-600 via-orange-500 to-amber-400" />
+          <div className="p-4 md:p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-start gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-orange-600">
+                  <Target className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-800">
+                    Fokus UTBK/SNBT
+                  </h3>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    {utbkTrackLabel} difokuskan ke jadwal kelas, materi, dan tryout UTBK.
+                  </p>
+                </div>
+              </div>
+
+              <Link
+                href="/dashboard-siswa/jadwal"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-3 py-1.5 text-[11px] font-semibold text-orange-700 transition hover:bg-orange-100"
+              >
+                <CalendarDays className="h-3.5 w-3.5" />
+                Lihat Jadwal
+              </Link>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <div className="rounded-2xl border border-slate-100 bg-slate-50/70 px-4 py-3">
+                <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-orange-600">
+                  <Building2 className="h-3.5 w-3.5" />
+                  Target Kampus
+                </p>
+                <p className="mt-1 text-sm font-semibold text-slate-800">
+                  {targetKampus}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-slate-100 bg-slate-50/70 px-4 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-orange-600">
+                  Target Jurusan
+                </p>
+                <p className="mt-1 text-sm font-semibold text-slate-800">
+                  {targetJurusan}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <Link
+                href="/dashboard-siswa/materi"
+                className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-orange-600 px-4 text-sm font-semibold text-white transition hover:bg-orange-700"
+              >
+                Buka Kelas UTBK
+              </Link>
+            </div>
+          </div>
+        </section>
+      ) : (
+        <section
+          id="jadwal-mata-pelajaran"
+          className="overflow-hidden rounded-[24px] border border-slate-100 bg-white shadow-sm"
+        >
         <div className="h-1 bg-gradient-to-r from-red-600 via-orange-500 to-orange-400" />
 
         <div className="flex h-full flex-col p-4 md:p-5">
@@ -425,7 +521,8 @@ export default function HeaderProfilSiswa({
             Buka halaman jadwal lengkap
           </Link>
         </div>
-      </section>
+        </section>
+      )}
     </div>
   );
 }

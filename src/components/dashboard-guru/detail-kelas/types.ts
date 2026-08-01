@@ -158,6 +158,7 @@ export type TabelNilaiTableProps = {
   readOnlyMessage?: string;
   onEditNilai: (studentId: string) => void;
   scheme: AcademicGradeScheme;
+  includeTaskScore?: boolean;
 };
 
 export type MateriFormDialogProps = {
@@ -208,6 +209,7 @@ export type NilaiFormDialogProps = {
   selectedTask: TugasPertemuan | null;
   tasks: TugasPertemuan[];
   scheme: AcademicGradeScheme;
+  includeTaskScore?: boolean;
 };
 
 export type TaskSubmissionReviewDialogProps = {

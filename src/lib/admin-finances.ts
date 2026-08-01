@@ -40,12 +40,38 @@ export type AdminExpenseStatus = (typeof adminExpenseStatusOptions)[number];
 export type AdminFinanceTransactionKind =
   (typeof adminFinanceTransactionKindOptions)[number];
 
+export const adminExpenseFormStatusOptions = [
+  "Menunggu",
+  "Selesai",
+  "Dibatalkan",
+] as const satisfies readonly AdminExpenseStatus[];
+
 export function normalizeAdminExpenseFormCategory(
   value: string | null | undefined,
 ): AdminUiExpenseCategory {
   return adminExpenseCategoryOptions.includes(value as AdminUiExpenseCategory)
     ? (value as AdminUiExpenseCategory)
     : "Lainnya";
+}
+
+export function normalizeAdminExpenseFormStatus(
+  value: AdminExpenseStatus,
+): AdminExpenseStatus {
+  return value === "Dijadwalkan" ? "Menunggu" : value;
+}
+
+export function getAdminExpenseStatusLabel(status: string) {
+  switch (status) {
+    case "Menunggu":
+    case "Dijadwalkan":
+      return "Belum Dibayar";
+    case "Selesai":
+      return "Sudah Dibayar";
+    case "Dibatalkan":
+      return "Dibatalkan";
+    default:
+      return status;
+  }
 }
 
 export type AdminFinanceScope = {
