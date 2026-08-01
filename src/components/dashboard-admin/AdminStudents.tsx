@@ -446,48 +446,51 @@ function StudentActions({
           className={`w-[92vw] overflow-y-auto sm:max-w-lg ${warmOverlayPanelClassName}`}
         >
           <DialogHeader>
-            <DialogTitle>Detail siswa</DialogTitle>
-            <DialogDescription>
-              Ringkasan profil siswa, kode login, kelas aktif, dan password hasil generate.
+            <DialogTitle className="text-xl font-bold text-slate-800">Detail Profil Siswa</DialogTitle>
+            <DialogDescription className="text-slate-500">
+              Informasi lengkap akun, akademik, dan status siswa.
             </DialogDescription>
           </DialogHeader>
-          <div className="mt-6 space-y-5">
-            <div className="flex items-center gap-4 rounded-[22px] border border-orange-100/70 bg-gradient-to-r from-orange-50/85 to-white p-4 shadow-[0_16px_32px_-24px_rgba(249,115,22,0.22)]">
-              <Avatar className="size-14 rounded-full">
-                <AvatarFallback className={cn(warmAvatarFallbackClassName, "rounded-full")}>
-                  {getInitials(student.name)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0">
-                <p className="text-base font-semibold text-slate-950">
-                  {student.name}
-                </p>
-                <p className="truncate text-sm text-slate-500">
-                  Kode login: {student.loginCode || student.id}
-                </p>
+          <div className="mt-4 space-y-6">
+            {/* Header Profile with Badges */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-orange-100 bg-gradient-to-r from-orange-50/80 to-white p-5 shadow-sm">
+              <div className="flex items-center gap-4">
+                <Avatar className="size-14 rounded-full border-2 border-white shadow-sm">
+                  <AvatarFallback className={cn(warmAvatarFallbackClassName, "rounded-full text-lg")}>
+                    {getInitials(student.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <p className="text-lg font-bold text-slate-900">
+                    {student.name}
+                  </p>
+                  <p className="text-sm font-medium text-orange-600">
+                    ID: {student.loginCode || student.id}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <AdminStatusBadge status={student.status} />
+                <AdminStatusBadge status={label} tone={tone} />
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <DetailItem label="Kode Login" value={student.loginCode || student.id} />
-              <DetailItem label="Email Internal" value={student.email} />
-              <DetailItem
-                label="Cabang"
-                value={
-                  getRegisteredBranchName(student.branch, branchOptions) ||
-                  "Belum diatur"
-                }
-              />
-              <DetailItem label="Program" value={student.program} />
-              <DetailItem label="Jenjang" value={student.level} />
-              <DetailItem label="Kelas" value={student.className} />
-              <DetailItem label="Membership" value={label} />
-              <DetailItem label="Password" value={student.generatedPassword} />
+            {/* Account Details */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-2">Akses & Akun</h4>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <DetailItem label="Email Internal" value={student.email || "-"} />
+                <DetailItem label="Password Default" value={student.generatedPassword} />
+              </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <AdminStatusBadge status={student.status} />
-              <AdminStatusBadge status={label} tone={tone} />
+            {/* Academic Details */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-2">Informasi Akademik</h4>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <DetailItem label="Program" value={student.program} />
+                <DetailItem label="Kelas" value={`${student.level} - ${student.className}`} />
+              </div>
             </div>
           </div>
         </DialogContent>
