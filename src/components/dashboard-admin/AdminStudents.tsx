@@ -428,8 +428,8 @@ function StudentActions({
   }
   return (
     <div className="flex items-center justify-center gap-1.5">
-      <Sheet>
-        <SheetTrigger asChild>
+      <Dialog>
+        <DialogTrigger asChild>
           <Button
             type="button"
             variant="outline"
@@ -440,17 +440,16 @@ function StudentActions({
           >
             <Eye className="size-4" />
           </Button>
-        </SheetTrigger>
-        <SheetContent
-          side="right"
+        </DialogTrigger>
+        <DialogContent
           className={`w-[92vw] overflow-y-auto sm:max-w-lg ${warmOverlayPanelClassName}`}
         >
-          <SheetHeader>
-            <SheetTitle>Detail siswa</SheetTitle>
-            <SheetDescription>
+          <DialogHeader>
+            <DialogTitle>Detail siswa</DialogTitle>
+            <DialogDescription>
               Ringkasan profil siswa, kode login, kelas aktif, dan password hasil generate.
-            </SheetDescription>
-          </SheetHeader>
+            </DialogDescription>
+          </DialogHeader>
           <div className="mt-6 space-y-5">
             <div className="flex items-center gap-4 rounded-[22px] border border-orange-100/70 bg-gradient-to-r from-orange-50/85 to-white p-4 shadow-[0_16px_32px_-24px_rgba(249,115,22,0.22)]">
               <Avatar className="size-14 rounded-full">
@@ -490,8 +489,8 @@ function StudentActions({
               <AdminStatusBadge status={label} tone={tone} />
             </div>
           </div>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
       <Button
         type="button"
@@ -1647,16 +1646,24 @@ export function AdminStudents({
 
                 {isEditing ? (
                   <StudentField label="Password">
-                    <div className="space-y-2">
-                      <Input
-                        className={warmFieldClassName}
-                        type="password"
-                        value={formValues.password || ""}
-                        onChange={(event) => updateFormValue("password", event.target.value)}
-                        placeholder="Kosongkan jika tidak diubah"
-                      />
+                    <div className="space-y-2 pt-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className={`w-full justify-start text-orange-600 hover:text-orange-700 hover:bg-orange-50 border-orange-200 ${warmOutlineButtonClassName}`}
+                        onClick={() => {
+                          const student = students.find((s) => s.id === editingStudentId);
+                          if (student) {
+                            updateFormValue("password", student.generatedPassword);
+                            alert("Password berhasil di-reset menjadi: " + student.generatedPassword + "\\n\\nSilakan klik tombol 'Simpan Perubahan' di bawah untuk menerapkan.");
+                          }
+                        }}
+                      >
+                        <RotateCcw className="mr-2 size-4" />
+                        Reset Password ke Default
+                      </Button>
                       <p className="text-xs leading-5 text-slate-500">
-                        Kosongkan jika password tidak diubah.
+                        Klik tombol di atas untuk mereset password ke bawaan sistem, lalu klik Simpan.
                       </p>
                     </div>
                   </StudentField>
