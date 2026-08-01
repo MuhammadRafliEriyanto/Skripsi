@@ -165,17 +165,17 @@ export function ResetPasswordView({
       splitInnerClassName="max-w-[430px]"
       hideSplitVisualOnMobile
       hideSplitTopBadge
-      title="Reset Password"
-      description="Enter the 6-digit code sent to your email and set your new password."
+      title="Isi Password Baru"
+      description="Masukkan kode 6 digit yang dikirimkan ke email Anda dan atur password baru Anda."
       footer={
         <div className="flex flex-col gap-4">
           <div className="text-sm text-slate-500 text-center">
-            Remember your password?{" "}
+            Ingat password Anda?{" "}
             <Link
               href="/login"
               className="font-semibold text-orange-600 transition hover:text-orange-700 underline-offset-4 hover:underline"
             >
-              Sign in
+              Masuk
             </Link>
           </div>
           {source === "dashboard-admin" ? (
@@ -190,7 +190,7 @@ export function ResetPasswordView({
                 });
               }}
             >
-              Back to admin dashboard
+              Kembali ke dashboard admin
             </Button>
           ) : null}
         </div>
@@ -202,7 +202,7 @@ export function ResetPasswordView({
             <div className="flex gap-3">
               <CheckCircle2 className="size-5 shrink-0 text-emerald-500" />
               <div>
-                <p className="text-sm font-semibold text-emerald-800">Success</p>
+                <p className="text-sm font-semibold text-emerald-800">Berhasil</p>
                 <p className="mt-1 text-sm text-emerald-700">{successMessage}</p>
               </div>
             </div>
@@ -219,7 +219,7 @@ export function ResetPasswordView({
           <div className="space-y-4">
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium text-slate-700">
-                Email address
+                Alamat Email
               </label>
               <Input
                 id="email"
@@ -233,7 +233,7 @@ export function ResetPasswordView({
                     email: event.target.value,
                   }));
                 }}
-                placeholder="name@example.com"
+                placeholder="nama@contoh.com"
                 className="h-11 rounded-lg border-slate-200 bg-white px-4 transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10"
                 autoComplete="email"
                 required
@@ -244,7 +244,7 @@ export function ResetPasswordView({
 
             <div className="space-y-2">
               <label htmlFor="code" className="text-sm font-medium text-slate-700">
-                Reset Code
+                Kode Reset
               </label>
               <Input
                 id="code"
@@ -261,7 +261,7 @@ export function ResetPasswordView({
                     code: digitsOnly,
                   }));
                 }}
-                placeholder="6-digit code"
+                placeholder="Kode 6 digit"
                 className="h-11 rounded-lg border-slate-200 bg-white px-4 tracking-[0.2em] transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10"
                 required
                 disabled={loading}
@@ -271,7 +271,7 @@ export function ResetPasswordView({
 
             <div className="space-y-2">
               <label htmlFor="newPassword" className="text-sm font-medium text-slate-700">
-                New Password
+                Password Baru
               </label>
               <div className="relative">
                 <Input
@@ -286,7 +286,7 @@ export function ResetPasswordView({
                       newPassword: event.target.value,
                     }));
                   }}
-                  placeholder="At least 8 characters"
+                  placeholder="Minimal 8 karakter"
                   className="h-11 rounded-lg border-slate-200 bg-white px-4 pr-11 transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10"
                   autoComplete="new-password"
                   required
@@ -301,7 +301,7 @@ export function ResetPasswordView({
                     }))
                   }
                   className="absolute inset-y-0 right-0 inline-flex w-11 items-center justify-center text-slate-400 transition hover:text-orange-600"
-                  aria-label={passwordVisibility.newPassword ? "Hide" : "Show"}
+                  aria-label={passwordVisibility.newPassword ? "Sembunyikan" : "Tampilkan"}
                   disabled={loading}
                 >
                   {passwordVisibility.newPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -312,7 +312,7 @@ export function ResetPasswordView({
 
             <div className="space-y-2">
               <label htmlFor="confirmNewPassword" className="text-sm font-medium text-slate-700">
-                Confirm New Password
+                Konfirmasi Password Baru
               </label>
               <div className="relative">
                 <Input
@@ -327,7 +327,7 @@ export function ResetPasswordView({
                       confirmNewPassword: event.target.value,
                     }));
                   }}
-                  placeholder="Repeat new password"
+                  placeholder="Ulangi password baru"
                   className="h-11 rounded-lg border-slate-200 bg-white px-4 pr-11 transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10"
                   autoComplete="new-password"
                   required
@@ -342,7 +342,7 @@ export function ResetPasswordView({
                     }))
                   }
                   className="absolute inset-y-0 right-0 inline-flex w-11 items-center justify-center text-slate-400 transition hover:text-orange-700"
-                  aria-label={passwordVisibility.confirmNewPassword ? "Hide" : "Show"}
+                  aria-label={passwordVisibility.confirmNewPassword ? "Sembunyikan" : "Tampilkan"}
                   disabled={loading}
                 >
                   {passwordVisibility.confirmNewPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -360,7 +360,7 @@ export function ResetPasswordView({
             {loading ? (
               <>
                 <LoaderCircle className="mr-2 size-4 animate-spin" />
-                Updating password...
+                Mereset Password...
               </>
             ) : (
               "Reset Password"
@@ -370,7 +370,7 @@ export function ResetPasswordView({
 
         <div className="rounded-lg bg-slate-50 p-4 text-xs leading-5 text-slate-500">
           <p>
-            The reset code is sent to your email and is valid for a limited time. If you haven&apos;t received the email, please check your spam folder.
+            Kode reset telah dikirim ke email Anda dan berlaku untuk waktu yang terbatas. Jika Anda belum menerima email, silakan periksa folder spam Anda.
           </p>
         </div>
       </div>
