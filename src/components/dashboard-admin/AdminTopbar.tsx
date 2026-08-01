@@ -37,6 +37,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   AuthRequestError,
+  AUTH_USER_UPDATED_EVENT,
   authService,
   clearAuthClientState,
   getRedirectPathForRole,
@@ -321,17 +322,19 @@ export function AdminTopbar({
       void loadNotificationSummary();
     });
 
-    const handleAuthUserUpdated = () => {
-      const persistedUser = readPersistedAuthUser();
-      if (persistedUser) {
-        setCurrentUser(persistedUser);
+    function handleAuthUpdate(event: Event) {
+      const customEvent = event as CustomEvent<{ user: AuthUser | null }>;
+      if (customEvent.detail?.user) {
+        setCurrentUser(customEvent.detail.user);
+      } else {
+        setCurrentUser(null);
       }
-    };
+    }
 
-    window.addEventListener("AUTH_USER_UPDATED_EVENT", handleAuthUserUpdated);
+    window.addEventListener(AUTH_USER_UPDATED_EVENT, handleAuthUpdate);
 
     return () => {
-      window.removeEventListener("AUTH_USER_UPDATED_EVENT", handleAuthUserUpdated);
+      window.removeEventListener(AUTH_USER_UPDATED_EVENT, handleAuthUpdate);
     };
   }, [loadNotificationSummary, mounted]);
 
