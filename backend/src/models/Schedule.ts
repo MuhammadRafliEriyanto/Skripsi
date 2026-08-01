@@ -85,7 +85,7 @@ const scheduleSchema = new Schema<ISchedule>(
     status: {
       type: String,
       enum: SCHEDULE_STATUSES,
-      default: "Berjalan",
+      default: "Siap",
     },
     academicYear: {
       type: String,

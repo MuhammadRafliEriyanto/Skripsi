@@ -235,14 +235,6 @@ function normalizeScheduleSubject(value: string | undefined): string {
 function normalizeScheduleStatus(value: string | undefined): ScheduleStatus {
   const normalizedValue = normalizeText(value).toLowerCase();
 
-  if (normalizedValue === "berjalan") {
-    return "Berjalan";
-  }
-
-  if (normalizedValue === "review") {
-    return "Review";
-  }
-
   if (normalizedValue === "bentrok") {
     return "Bentrok";
   }
@@ -569,7 +561,11 @@ async function buildScheduleListPayload(
         schedule.room,
         schedule.status,
       ]);
-      const matchesStatus = normalizedStatus ? schedule.status === normalizedStatus : true;
+      const matchesStatus = normalizedStatus
+        ? normalizedStatus === "Siap"
+          ? schedule.status !== "Bentrok"
+          : schedule.status === normalizedStatus
+        : true;
       const matchesBranch = matchesBranchScope(schedule.branch, scope, branchFilter);
       const matchesClassName = normalizedClassName
         ? normalizeScheduleClassFilter(schedule.className) === normalizedClassName

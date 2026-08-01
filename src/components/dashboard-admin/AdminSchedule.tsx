@@ -106,6 +106,10 @@ const requiredImportColumns = [
 ] as const;
 const scheduleDayAllLabel = "Semua hari";
 const allScheduleStatusFilterLabel = "Semua";
+const selectableScheduleStatuses: AdminScheduleItem["status"][] = [
+  "Siap",
+  "Bentrok",
+];
 const warmFieldClassName =
   "border-slate-200 hover:border-orange-200 focus:border-orange-300 focus:ring-4 focus:ring-orange-500/10 focus-visible:border-orange-300 focus-visible:ring-4 focus-visible:ring-orange-500/10";
 const warmSelectTriggerClassName =
@@ -135,12 +139,7 @@ const defaultScheduleGradeOptionsByLevel: Record<ScheduleLevel, string[]> = {
 };
 const defaultScheduleSubjectOptions = defaultAdminDashboardConfig.schedule.subjects;
 const defaultOrderedScheduleDays = defaultAdminDashboardConfig.schedule.days;
-const fallbackScheduleStatus: AdminScheduleItem["status"] =
-  defaultAdminDashboardConfig.schedule.statuses.find(
-    (status) => status === "Siap",
-  ) ??
-  defaultAdminDashboardConfig.schedule.statuses[0] ??
-  "Siap";
+const fallbackScheduleStatus: AdminScheduleItem["status"] = "Siap";
 
 function normalizeText(value: string) {
   return value.trim().replace(/\s+/g, " ");
@@ -219,6 +218,14 @@ function normalizeScheduleSubject(
       (subject) => subject.toLowerCase() === normalizedValue,
     ) ?? ""
   );
+}
+
+function getSelectableScheduleStatus(status: AdminScheduleItem["status"]) {
+  return selectableScheduleStatuses.includes(status) ? status : "Siap";
+}
+
+function getScheduleDisplayStatus(status: AdminScheduleItem["status"]) {
+  return status === "Bentrok" ? "Bentrok" : "Siap";
 }
 
 function getScheduleRequestErrorMessage(error: unknown, fallback: string) {
@@ -370,7 +377,7 @@ function toScheduleFormValues(
     subject: normalizeScheduleSubject(schedule.subject, subjectOptions),
     teacherId: schedule.teacherId,
     room: schedule.room,
-    status: schedule.status,
+    status: getSelectableScheduleStatus(schedule.status),
   };
 }
 
@@ -454,7 +461,7 @@ function ScheduleActions({
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <AdminStatusBadge status={schedule.status} />
+                <AdminStatusBadge status={getScheduleDisplayStatus(schedule.status)} />
               </div>
             </div>
 
@@ -478,7 +485,10 @@ function ScheduleActions({
                 <DetailItem label="Guru" value={schedule.teacher} />
                 <DetailItem label="Cabang" value={schedule.branch || "-"} />
                 <DetailItem label="Ruangan" value={schedule.room} />
-                <DetailItem label="Status" value={schedule.status} />
+                <DetailItem
+                  label="Status"
+                  value={getScheduleDisplayStatus(schedule.status)}
+                />
               </div>
             </div>
 
@@ -536,7 +546,7 @@ export function AdminSchedule({
   onRefresh,
   globalSearchQuery = "",
 }: AdminScheduleProps) {
-  const scheduleStatusOptions = dashboardConfig.schedule.statuses;
+  const scheduleStatusOptions = selectableScheduleStatuses;
   const scheduleStatusFilterOptions: ScheduleStatusFilterOption[] = [
     allScheduleStatusFilterLabel,
     ...scheduleStatusOptions,
@@ -834,9 +844,8 @@ export function AdminSchedule({
       .filter((schedule) => schedule.day === filteredSchedules[index]?.day).length;
 
   const isEditing = editingScheduleId !== null;
-  const runningCount = summary.runningCount;
-  const reviewCount = summary.reviewCount;
   const conflictCount = summary.conflictCount;
+  const readyCount = Math.max(totalItems - conflictCount, 0);
   const academicYearStatus = getAdminAcademicYearStatus(academicYearFilter);
   const academicYearLockMessage =
     getAdminAcademicYearLockMessage(academicYearFilter);
@@ -1036,7 +1045,7 @@ export function AdminSchedule({
             subject: normalizedSubject,
             teacherId: normalizedTeacherId,
             room: normalizedRoom,
-            status: formValues.status,
+            status: getSelectableScheduleStatus(formValues.status),
             academicYear: academicYearFilter,
           }),
         },
@@ -1227,7 +1236,7 @@ export function AdminSchedule({
       header: "Status",
       cell: (schedule) => (
         <div className="space-y-2">
-          <AdminStatusBadge status={schedule.status} />
+          <AdminStatusBadge status={getScheduleDisplayStatus(schedule.status)} />
           {schedule.conflicts.length ? (
             <p className="max-w-[280px] text-sm leading-6 text-rose-600">
               {schedule.conflicts[0]}
@@ -1301,10 +1310,7 @@ export function AdminSchedule({
             Menampilkan {filteredSchedules.length} dari {totalItems} jadwal.
           </span>
           <Badge variant="secondary" className="bg-slate-100 text-slate-700">
-            Berjalan {runningCount}
-          </Badge>
-          <Badge variant="secondary" className="bg-slate-100 text-slate-700">
-            Review {reviewCount}
+            Siap {readyCount}
           </Badge>
           <Badge variant="secondary" className="bg-slate-100 text-slate-700">
             Bentrok {conflictCount}
