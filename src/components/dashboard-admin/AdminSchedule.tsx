@@ -756,7 +756,6 @@ export function AdminSchedule({
     combinedSearchQuery.toLowerCase(),
     dayFilter,
     statusFilter,
-    academicYearFilter,
     pageLimit,
   ].join("|");
 
@@ -771,7 +770,6 @@ export function AdminSchedule({
           limit: pageLimit,
           q: combinedSearchQuery || undefined,
           day: dayFilter === scheduleDayAllLabel ? undefined : dayFilter,
-          academicYear: academicYearFilter,
           status:
             statusFilter === allScheduleStatusFilterLabel
               ? undefined
@@ -807,7 +805,7 @@ export function AdminSchedule({
         setIsLoading(false);
       }
     },
-    [combinedSearchQuery, dayFilter, page, pageLimit, statusFilter, academicYearFilter],
+    [combinedSearchQuery, dayFilter, page, pageLimit, statusFilter],
   );
 
   const refreshScheduleViews = useCallback(
@@ -1186,7 +1184,6 @@ export function AdminSchedule({
         q: combinedSearchQuery || undefined,
         day: dayFilter === scheduleDayAllLabel ? undefined : dayFilter,
         status: statusFilter === "Semua" ? undefined : statusFilter,
-        academicYear: academicYearFilter,
       });
     } catch (requestError) {
       setFormError(
