@@ -159,8 +159,8 @@ function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function parseBirthDate(value: string | undefined): Date | null {
-  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+function parseBirthDate(value: unknown): Date | null {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return null;
   }
 
@@ -902,6 +902,8 @@ export const createStudent = asyncHandler(
     const program = normalizeText(req.body.program);
     const className = normalizeText(req.body.className);
     const birthDate = parseBirthDate(req.body.birthDate);
+    const hasBirthDateInput =
+      typeof req.body.birthDate === "string" && normalizeText(req.body.birthDate);
     const academicPeriod = assertAdminAcademicPeriodEditable(req.body.academicYear);
     const academicYear = academicPeriod.academicYear;
     const status = normalizeText(req.body.status) as StudentRequestBody["status"];
@@ -940,7 +942,7 @@ export const createStudent = asyncHandler(
       return;
     }
 
-    if (!birthDate || !req.body.birthDate) {
+    if (hasBirthDateInput && !birthDate) {
       next(new AppError(400, "Tanggal lahir siswa belum valid."));
       return;
     }
@@ -1296,11 +1298,14 @@ export const updateStudent = asyncHandler(
     const program = normalizeText(req.body.program);
     const className = normalizeText(req.body.className);
     const birthDate = parseBirthDate(req.body.birthDate);
+    const hasBirthDateInput = Object.prototype.hasOwnProperty.call(req.body, "birthDate");
+    const hasFilledBirthDateInput =
+      typeof req.body.birthDate === "string" && normalizeText(req.body.birthDate);
     const academicYear = normalizeText(req.body.academicYear);
     const status = normalizeText(req.body.status) as StudentRequestBody["status"];
     const targetAcademicPeriod = assertAdminAcademicPeriodEditable(academicYear || student.academicYear);
 
-    if (!name || !email || !phone || !program || !className || !req.body.birthDate || !birthDate || !academicYear) {
+    if (!name || !email || !phone || !program || !className || !academicYear) {
       next(new AppError(400, "Data siswa belum lengkap."));
       return;
     }
@@ -1312,6 +1317,11 @@ export const updateStudent = asyncHandler(
 
     if (!isValidClassName(className)) {
       next(new AppError(400, "Kelas siswa belum valid."));
+      return;
+    }
+
+    if (hasFilledBirthDateInput && !birthDate) {
+      next(new AppError(400, "Tanggal lahir siswa belum valid."));
       return;
     }
 
@@ -1337,7 +1347,9 @@ export const updateStudent = asyncHandler(
     student.branch = branch;
     student.program = program;
     student.className = className;
-    student.birthDate = birthDate;
+    if (hasBirthDateInput) {
+      student.birthDate = birthDate;
+    }
     student.academicYear = targetAcademicPeriod.academicYear;
     student.status = status as StudentStatus;
 

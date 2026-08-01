@@ -959,7 +959,7 @@ export function AdminStudents({
             branch: normalizedBranch,
             program: normalizedProgram,
             className: normalizedClassName,
-            birthDate: normalizedBirthDate,
+            ...(normalizedBirthDate ? { birthDate: normalizedBirthDate } : {}),
             academicYear: formValues.academicYear,
             ...(formValues.password ? { password: formValues.password } : {}),
             status: formValues.status,
