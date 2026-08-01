@@ -1624,19 +1624,22 @@ export function AdminStudents({
                   />
                 </StudentField>
 
-                {isEditing ? (
-                  <StudentField label="Email kontak/internal">
-                    <div className="space-y-2">
-                      <Input
-                        className={warmFieldClassName}
-                        type="email"
-                        value={formValues.email}
-                        onChange={(event) => updateFormValue("email", event.target.value)}
-                        placeholder="nama@email.com"
-                      />
-                    </div>
-                  </StudentField>
-                ) : null}
+                <StudentField label="Email Siswa (Opsional)">
+                  <div className="space-y-2">
+                    <Input
+                      className={warmFieldClassName}
+                      type="email"
+                      value={formValues.email}
+                      onChange={(event) => updateFormValue("email", event.target.value)}
+                      placeholder="contoh: nama@email.com"
+                    />
+                    {!isEditing ? (
+                      <p className="text-xs leading-5 text-slate-500">
+                        Kosongkan jika tidak ada. Sistem akan membuatkan email default.
+                      </p>
+                    ) : null}
+                  </div>
+                </StudentField>
               </div>
             </div>
 
