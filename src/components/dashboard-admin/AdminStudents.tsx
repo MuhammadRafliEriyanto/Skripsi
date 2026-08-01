@@ -482,10 +482,6 @@ function StudentActions({
               <DetailItem label="Jenjang" value={student.level} />
               <DetailItem label="Kelas" value={student.className} />
               <DetailItem label="Membership" value={label} />
-              <DetailItem
-                label="Tanggal lahir"
-                value={formatBirthDateForDisplay(student.birthDate)}
-              />
               <DetailItem label="Password" value={student.generatedPassword} />
             </div>
 
@@ -942,11 +938,6 @@ export function AdminStudents({
       return;
     }
 
-    if (!normalizedBirthDate) {
-      setFormError("Tanggal lahir belum valid.");
-      return;
-    }
-
     if (formValues.academicYear !== academicYearStatus.currentAcademicYear) {
       setFormError("Data siswa hanya bisa disimpan untuk tahun ajaran aktif.");
       return;
@@ -1302,11 +1293,6 @@ export function AdminStudents({
       },
     },
     {
-      key: "birthDate",
-      header: "Tanggal Lahir",
-      cell: (student) => formatBirthDateForDisplay(student.birthDate),
-    },
-    {
       key: "generatedPassword",
       header: "Password Generate",
       cell: (student) => (
@@ -1622,198 +1608,131 @@ export function AdminStudents({
             </DialogDescription>
           </DialogHeader>
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-              <StudentField label="Nama">
-                <Input
-                  className={warmFieldClassName}
-                  value={formValues.name}
-                  onChange={(event) =>
-                    updateFormValue("name", event.target.value)
-                  }
-                  placeholder="Nama lengkap siswa"
-                />
-              </StudentField>
-
-              <StudentField label="Email kontak/internal">
-                <div className="space-y-2">
+          <form className="space-y-8" onSubmit={handleSubmit}>
+            {/* Informasi Pribadi */}
+            <div className="space-y-4">
+              <div className="border-b border-slate-200 pb-2">
+                <h3 className="text-base font-semibold text-slate-800">Informasi Pribadi</h3>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <StudentField label="Nama Lengkap">
                   <Input
                     className={warmFieldClassName}
-                    type="email"
-                    value={formValues.email}
-                    onChange={(event) =>
-                      updateFormValue("email", event.target.value)
-                    }
-                    placeholder={
-                      isEditing
-                        ? "nama@email.com"
-                        : "Kosongkan untuk email internal"
-                    }
+                    value={formValues.name}
+                    onChange={(event) => updateFormValue("name", event.target.value)}
+                    placeholder="Nama lengkap siswa"
                   />
-                  {!isEditing ? (
-                    <p className="text-xs leading-5 text-slate-500">
-                      Login siswa memakai kode akun, misalnya STD-160.
-                    </p>
-                  ) : null}
-                </div>
-              </StudentField>
+                </StudentField>
 
-
-              <StudentField label="Cabang">
-                <Select
-                  value={selectedBranchValue}
-                  onValueChange={(value) =>
-                    updateFormValue(
-                      "branch",
-                      value === unassignedBranchValue ? "" : value,
-                    )
-                  }
-                >
-                  <SelectTrigger className={warmSelectTriggerClassName}>
-                    <SelectValue placeholder="Pilih cabang" />
-                  </SelectTrigger>
-                  <SelectContent className={warmSelectContentClassName}>
-                    <SelectItem
-                      value={unassignedBranchValue}
-                      className={warmSelectItemClassName}
-                    >
-                      Belum diatur
-                    </SelectItem>
-                    {resolvedBranchOptions.map((option) => (
-                      <SelectItem
-                        key={option}
-                        value={option}
-                        className={warmSelectItemClassName}
-                      >
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {branchOptions.length === 0 ? (
-                  <p className="text-xs text-amber-600">
-                    Belum ada cabang yang tersedia untuk dipilih.
-                  </p>
+                {isEditing ? (
+                  <StudentField label="Email kontak/internal">
+                    <div className="space-y-2">
+                      <Input
+                        className={warmFieldClassName}
+                        type="email"
+                        value={formValues.email}
+                        onChange={(event) => updateFormValue("email", event.target.value)}
+                        placeholder="nama@email.com"
+                      />
+                    </div>
+                  </StudentField>
                 ) : null}
-              </StudentField>
+              </div>
+            </div>
 
-              <StudentField label="Kelas">
-                <Select
-                  value={formValues.className}
-                  onValueChange={(value) => updateFormValue("className", value)}
-                >
-                  <SelectTrigger className={warmSelectTriggerClassName}>
-                    <SelectValue placeholder="Pilih kelas" />
-                  </SelectTrigger>
-                  <SelectContent className={warmSelectContentClassName}>
-                    {classValueOptions.map((option) => (
-                      <SelectItem
-                        key={option}
-                        value={option}
-                        className={warmSelectItemClassName}
-                      >
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </StudentField>
-
-              <StudentField label="Tanggal lahir">
-                <Input
-                  className={warmFieldClassName}
-                  type="date"
-                  value={formValues.birthDate}
-                  onChange={(event) =>
-                    updateFormValue("birthDate", event.target.value)
-                  }
-                />
-              </StudentField>
-
-              <StudentField label="Password">
-                <div className="space-y-2">
-                  <Input
-                    className={warmFieldClassName}
-                    type="password"
-                    value={formValues.password || ""}
-                    onChange={(event) =>
-                      updateFormValue("password", event.target.value)
-                    }
-                    placeholder={
-                      isEditing
-                        ? "Kosongkan jika tidak diubah"
-                        : "Kosongkan untuk password otomatis"
-                    }
-                  />
-                  {!formValues.password ? (
-                    <p className="text-xs leading-5 text-slate-500">
-                      {isEditing
-                        ? "Kosongkan jika password tidak diubah."
-                        : "Password bawaan mengikuti kode akun, contoh STD-300 -> siswa300."}
-                    </p>
-                  ) : null}
-                </div>
-              </StudentField>
-
-              <StudentField label="Tahun Ajaran">
-                <Select
-                  value={formValues.academicYear}
-                  onValueChange={(value) => updateFormValue("academicYear", value)}
-                  disabled
-                >
-                  <SelectTrigger className={warmSelectTriggerClassName}>
-                    <SelectValue placeholder="Tahun Ajaran" />
-                  </SelectTrigger>
-                  <SelectContent className={warmSelectContentClassName}>
-                    {academicYearOptions.map((option) => (
-                      <SelectItem
-                        key={option}
-                        value={option}
-                        className={warmSelectItemClassName}
-                      >
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </StudentField>
-
-              <StudentField label="Status">
-                <Select
-                  value={formValues.status}
-                  onValueChange={(value) =>
-                    updateFormValue("status", value as AdminStudent["status"])
-                  }
-                >
-                  <SelectTrigger className={warmSelectTriggerClassName}>
-                    <SelectValue placeholder="Pilih status" />
-                  </SelectTrigger>
-                  <SelectContent className={warmSelectContentClassName}>
-                    {studentStatusOptions
-                      .filter((option) => option !== "Semua")
-                      .map((option) => (
-                        <SelectItem
-                          key={option}
-                          value={option}
-                          className={warmSelectItemClassName}
-                        >
+            {/* Informasi Akademik & Akun */}
+            <div className="space-y-4">
+              <div className="border-b border-slate-200 pb-2">
+                <h3 className="text-base font-semibold text-slate-800">Informasi Akademik & Akun</h3>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+                <StudentField label="Kelas">
+                  <Select
+                    value={formValues.className}
+                    onValueChange={(value) => updateFormValue("className", value)}
+                  >
+                    <SelectTrigger className={warmSelectTriggerClassName}>
+                      <SelectValue placeholder="Pilih kelas" />
+                    </SelectTrigger>
+                    <SelectContent className={warmSelectContentClassName}>
+                      {classValueOptions.map((option) => (
+                        <SelectItem key={option} value={option} className={warmSelectItemClassName}>
                           {option}
                         </SelectItem>
                       ))}
-                  </SelectContent>
-                </Select>
-              </StudentField>
+                    </SelectContent>
+                  </Select>
+                </StudentField>
+
+                <StudentField label="Tahun Ajaran">
+                  <Select
+                    value={formValues.academicYear}
+                    onValueChange={(value) => updateFormValue("academicYear", value)}
+                    disabled
+                  >
+                    <SelectTrigger className={warmSelectTriggerClassName}>
+                      <SelectValue placeholder="Tahun Ajaran" />
+                    </SelectTrigger>
+                    <SelectContent className={warmSelectContentClassName}>
+                      {academicYearOptions.map((option) => (
+                        <SelectItem key={option} value={option} className={warmSelectItemClassName}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </StudentField>
+
+                <StudentField label="Status">
+                  <Select
+                    value={formValues.status}
+                    onValueChange={(value) => updateFormValue("status", value as AdminStudent["status"])}
+                  >
+                    <SelectTrigger className={warmSelectTriggerClassName}>
+                      <SelectValue placeholder="Pilih status" />
+                    </SelectTrigger>
+                    <SelectContent className={warmSelectContentClassName}>
+                      {studentStatusOptions
+                        .filter((option) => option !== "Semua")
+                        .map((option) => (
+                          <SelectItem key={option} value={option} className={warmSelectItemClassName}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </StudentField>
+
+                {isEditing ? (
+                  <StudentField label="Password">
+                    <div className="space-y-2">
+                      <Input
+                        className={warmFieldClassName}
+                        type="password"
+                        value={formValues.password || ""}
+                        onChange={(event) => updateFormValue("password", event.target.value)}
+                        placeholder="Kosongkan jika tidak diubah"
+                      />
+                      <p className="text-xs leading-5 text-slate-500">
+                        Kosongkan jika password tidak diubah.
+                      </p>
+                    </div>
+                  </StudentField>
+                ) : null}
+              </div>
             </div>
 
+            {/* Pembayaran Pendaftaran */}
             {!isEditing ? (
-              <div className="rounded-lg border border-slate-200/80 bg-slate-50/75 p-4">
+              <div className="space-y-4 rounded-xl border border-orange-200/60 bg-orange-50/40 p-5 mt-6">
+                <div className="border-b border-orange-200/60 pb-2">
+                  <h3 className="text-base font-semibold text-orange-800">Pembayaran Pendaftaran (Offline)</h3>
+                </div>
                 <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
                   <StudentField label="Paket membership">
                     <Select
                       value={formValues.membershipPackageKey}
-                      onValueChange={(value) =>
-                        updateFormValue("membershipPackageKey", value)
-                      }
+                      onValueChange={(value) => updateFormValue("membershipPackageKey", value)}
                     >
                       <SelectTrigger className={warmSelectTriggerClassName}>
                         <SelectValue placeholder="Pilih paket" />
@@ -1840,9 +1759,7 @@ export function AdminStudents({
                       </SelectContent>
                     </Select>
                     {isSubscriptionConfigLoading ? (
-                      <p className="text-xs text-slate-500">
-                        Nominal paket sedang dimuat...
-                      </p>
+                      <p className="text-xs text-slate-500">Nominal paket sedang dimuat...</p>
                     ) : null}
                   </StudentField>
 
@@ -1850,27 +1767,18 @@ export function AdminStudents({
                     <Select
                       value={formValues.membershipPaymentMethod}
                       onValueChange={(value) =>
-                        updateFormValue(
-                          "membershipPaymentMethod",
-                          value as StudentMembershipPaymentMethod,
-                        )
+                        updateFormValue("membershipPaymentMethod", value as StudentMembershipPaymentMethod)
                       }
                     >
                       <SelectTrigger className={warmSelectTriggerClassName}>
                         <SelectValue placeholder="Metode" />
                       </SelectTrigger>
                       <SelectContent className={warmSelectContentClassName}>
-                        {Object.entries(offlinePaymentMethodLabels).map(
-                          ([value, label]) => (
-                            <SelectItem
-                              key={value}
-                              value={value}
-                              className={warmSelectItemClassName}
-                            >
-                              {label}
-                            </SelectItem>
-                          ),
-                        )}
+                        {Object.entries(offlinePaymentMethodLabels).map(([value, label]) => (
+                          <SelectItem key={value} value={value} className={warmSelectItemClassName}>
+                            {label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </StudentField>
@@ -1880,17 +1788,17 @@ export function AdminStudents({
                       className={warmFieldClassName}
                       type="date"
                       value={formValues.membershipPaidAt}
-                      onChange={(event) =>
-                        updateFormValue("membershipPaidAt", event.target.value)
-                      }
+                      onChange={(event) => updateFormValue("membershipPaidAt", event.target.value)}
                     />
                   </StudentField>
                 </div>
 
-                <p className="mt-3 text-sm text-slate-600">
-                  {selectedMembershipPackage?.packageName ?? "Paket membership"} -{" "}
-                  {formatCurrency(selectedMembershipAmount)}
-                </p>
+                <div className="mt-5 rounded-lg bg-white/70 p-4 shadow-sm border border-orange-100 flex justify-between items-center">
+                  <p className="text-sm font-medium text-orange-900">Total Tagihan Membership:</p>
+                  <p className="text-xl font-bold text-orange-700">
+                    {formatCurrency(selectedMembershipAmount)}
+                  </p>
+                </div>
               </div>
             ) : null}
 
