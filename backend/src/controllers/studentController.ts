@@ -142,6 +142,7 @@ const MEMBERSHIP_PAYMENT_METHODS = [
 
 type MembershipPaymentMode = "none" | "paid" | "pending";
 type MembershipPaymentMethod = (typeof MEMBERSHIP_PAYMENT_METHODS)[number];
+const jakartaUtcOffset = "+07:00";
 
 function normalizeText(value: string | undefined): string {
   return value?.trim().replace(/\s+/g, " ") ?? "";
@@ -191,7 +192,11 @@ function normalizeMembershipPaymentMethod(value: string | undefined): Membership
 
 function parseMembershipPaidAt(value: string | undefined): Date {
   const normalizedValue = normalizeText(value);
-  const paidAt = normalizedValue ? new Date(normalizedValue) : new Date();
+  const paidAt = normalizedValue
+    ? /^\d{4}-\d{2}-\d{2}$/.test(normalizedValue)
+      ? new Date(`${normalizedValue}T00:00:00${jakartaUtcOffset}`)
+      : new Date(normalizedValue)
+    : new Date();
 
   if (Number.isNaN(paidAt.getTime())) {
     throw new AppError(400, "Tanggal pembayaran offline belum valid.", {
