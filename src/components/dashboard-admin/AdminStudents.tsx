@@ -1664,24 +1664,7 @@ export function AdminStudents({
                   </Select>
                 </StudentField>
 
-                <StudentField label="Tahun Ajaran">
-                  <Select
-                    value={formValues.academicYear}
-                    onValueChange={(value) => updateFormValue("academicYear", value)}
-                    disabled
-                  >
-                    <SelectTrigger className={warmSelectTriggerClassName}>
-                      <SelectValue placeholder="Tahun Ajaran" />
-                    </SelectTrigger>
-                    <SelectContent className={warmSelectContentClassName}>
-                      {academicYearOptions.map((option) => (
-                        <SelectItem key={option} value={option} className={warmSelectItemClassName}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </StudentField>
+
 
                 <StudentField label="Status">
                   <Select
