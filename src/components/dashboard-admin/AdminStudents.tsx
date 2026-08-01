@@ -23,7 +23,6 @@ import {
 import { requestAdminApi } from "@/lib/admin-api";
 import {
   getAdminAcademicYearLockMessage,
-  getAdminAcademicYearOptions,
   getAdminAcademicYearStatus,
   getCurrentAdminAcademicYear,
 } from "@/lib/admin-academic-year";
@@ -749,7 +748,6 @@ export function AdminStudents({
 
   const activeStudents = summary.activeCount;
   const inactiveStudents = summary.inactiveCount;
-  const academicYearOptions = getAdminAcademicYearOptions(academicYearFilter);
   const academicYearStatus = getAdminAcademicYearStatus(academicYearFilter);
   const academicYearLockMessage =
     getAdminAcademicYearLockMessage(academicYearFilter);
@@ -1442,28 +1440,6 @@ export function AdminStudents({
           </div>
 
           <div className="grid w-full grid-cols-2 gap-3 sm:flex sm:w-auto sm:flex-wrap">
-            <div className="w-full sm:w-[160px]">
-              <Select
-                value={academicYearFilter}
-                onValueChange={setAcademicYearFilter}
-              >
-                <SelectTrigger className={warmSelectTriggerClassName}>
-                  <SelectValue placeholder="Tahun Ajaran" />
-                </SelectTrigger>
-                <SelectContent className={warmSelectContentClassName}>
-                  {academicYearOptions.map((option) => (
-                    <SelectItem
-                      key={option}
-                      value={option}
-                      className={warmSelectItemClassName}
-                    >
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
             <div className="w-full sm:w-[180px]">
               <Select
                 value={levelFilter}
