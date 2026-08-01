@@ -1383,43 +1383,11 @@ export const deleteStudent = asyncHandler(
     const financialHistory = await getStudentFinancialHistory(student);
 
     if (financialHistory.hasFinancialHistory) {
-      const wasArchived = student.status === "Nonaktif";
-
-      if (!wasArchived) {
-        student.status = "Nonaktif";
-        await student.save();
-      }
-
-      if (!hasPopulatedUserDocument(student.userId)) {
-        sendSuccess(res, {
-          message: wasArchived
-            ? "Siswa tidak dihapus karena memiliki histori pembayaran atau subscription. Record siswa tetap dipertahankan sebagai Nonaktif."
-            : "Siswa tidak dihapus karena memiliki histori pembayaran atau subscription. Record siswa dipertahankan dan statusnya diubah menjadi Nonaktif.",
-          data: {
-            deletionMode: "archived",
-            hasFinancialHistory: true,
-            paymentCount: financialHistory.paymentCount,
-            subscriptionCount: financialHistory.subscriptionCount,
-            studentId: student.studentId,
-            status: student.status,
-          },
-        });
-        return;
-      }
-
-      sendSuccess(res, {
-        message: wasArchived
-          ? "Siswa tidak bisa dihapus karena memiliki histori pembayaran atau subscription. Status siswa tetap Nonaktif."
-          : "Siswa tidak bisa dihapus karena memiliki histori pembayaran atau subscription. Status siswa diubah menjadi Nonaktif.",
-        data: {
-          deletionMode: "archived",
-          hasFinancialHistory: true,
-          paymentCount: financialHistory.paymentCount,
-          subscriptionCount: financialHistory.subscriptionCount,
-          student: toPublicStudent(student, student.userId),
-        },
-      });
-      return;
+      const query = buildStudentFinancialHistoryQuery(student);
+      await Promise.all([
+        Payment.deleteMany(query),
+        Subscription.deleteMany(query),
+      ]);
     }
 
     if (!hasPopulatedUserDocument(student.userId)) {
