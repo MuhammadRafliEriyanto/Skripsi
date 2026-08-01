@@ -31,6 +31,7 @@ import {
   fetchAdminTeachers,
   type AdminTeachersSummary,
 } from "@/lib/admin-directory";
+import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -395,8 +396,8 @@ function TeacherActions({
           </SheetHeader>
           <div className="mt-6 space-y-5">
             <div className="flex items-center gap-4 rounded-[22px] border border-orange-100/70 bg-gradient-to-r from-orange-50/85 to-white p-4 shadow-[0_16px_32px_-24px_rgba(249,115,22,0.22)]">
-              <Avatar className="size-14">
-                <AvatarFallback className={warmAvatarFallbackClassName}>
+              <Avatar className="size-14 rounded-full">
+                <AvatarFallback className={cn(warmAvatarFallbackClassName, "rounded-full")}>
                   {getInitials(teacher.name)}
                 </AvatarFallback>
               </Avatar>
@@ -1072,8 +1073,8 @@ export function AdminTeachers({
       header: "Nama",
       cell: (teacher) => (
         <div className="flex items-center gap-3">
-          <Avatar>
-            <AvatarFallback className={warmAvatarFallbackClassName}>
+          <Avatar className="rounded-full">
+            <AvatarFallback className={cn(warmAvatarFallbackClassName, "rounded-full")}>
               {getInitials(teacher.name)}
             </AvatarFallback>
           </Avatar>
@@ -1124,7 +1125,9 @@ export function AdminTeachers({
           <p className="truncate text-sm font-semibold text-slate-800">
             {teacher.loginCode || teacher.id}
           </p>
-          <p className="truncate text-xs text-slate-500">{teacher.email}</p>
+          {!teacher.email.endsWith("@bimbel.local") && (
+            <p className="truncate text-xs text-slate-500">{teacher.email}</p>
+          )}
         </div>
       ),
     },

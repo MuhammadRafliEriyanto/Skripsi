@@ -474,7 +474,6 @@ function ScheduleActions({
               <DetailItem label="Cabang" value={schedule.branch || "-"} />
               <DetailItem label="Ruangan" value={schedule.room} />
               <DetailItem label="Status" value={schedule.status} />
-              <DetailItem label="ID Jadwal" value={schedule.id} />
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -1293,7 +1292,6 @@ export function AdminSchedule({
           <p className="text-sm text-slate-500">
             {schedule.subject || "Mapel belum dipilih"}
           </p>
-          <p className="text-xs text-slate-400">{schedule.id}</p>
         </div>
       ),
     },

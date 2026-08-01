@@ -41,7 +41,7 @@ import {
   type OnlinePackageDefinition,
 } from "@/lib/subscription";
 import { useSubscriptionConfig } from "@/lib/use-subscription-config";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -453,8 +453,8 @@ function StudentActions({
           </SheetHeader>
           <div className="mt-6 space-y-5">
             <div className="flex items-center gap-4 rounded-[22px] border border-orange-100/70 bg-gradient-to-r from-orange-50/85 to-white p-4 shadow-[0_16px_32px_-24px_rgba(249,115,22,0.22)]">
-              <Avatar className="size-14">
-                <AvatarFallback className={warmAvatarFallbackClassName}>
+              <Avatar className="size-14 rounded-full">
+                <AvatarFallback className={cn(warmAvatarFallbackClassName, "rounded-full")}>
                   {getInitials(student.name)}
                 </AvatarFallback>
               </Avatar>
@@ -1217,8 +1217,8 @@ export function AdminStudents({
       header: "Nama",
       cell: (student) => (
         <div className="flex items-center gap-3">
-          <Avatar>
-            <AvatarFallback className={warmAvatarFallbackClassName}>
+          <Avatar className="rounded-full">
+            <AvatarFallback className={cn(warmAvatarFallbackClassName, "rounded-full")}>
               {getInitials(student.name)}
             </AvatarFallback>
           </Avatar>
@@ -1239,7 +1239,9 @@ export function AdminStudents({
           <p className="truncate text-sm font-semibold text-slate-800">
             {student.loginCode || student.id}
           </p>
-          <p className="truncate text-xs text-slate-500">{student.email}</p>
+          {!student.email.endsWith("@bimbel.local") && (
+            <p className="truncate text-xs text-slate-500">{student.email}</p>
+          )}
         </div>
       ),
     },
