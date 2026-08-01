@@ -120,7 +120,13 @@ function readOwnerNotificationAcknowledgements(): Acknowledgements {
     const rawValue = window.localStorage.getItem(
       ownerNotificationAcknowledgedStorageKey,
     );
-    return rawValue ? JSON.parse(rawValue) : {};
+    const parsed = rawValue ? JSON.parse(rawValue) : {};
+
+    if (Array.isArray(parsed) || typeof parsed !== "object" || parsed === null) {
+      return {};
+    }
+
+    return parsed;
   } catch {
     return {};
   }
