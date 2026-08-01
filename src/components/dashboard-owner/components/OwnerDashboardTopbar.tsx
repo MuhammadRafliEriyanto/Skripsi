@@ -24,6 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import {
   AuthRequestError,
+  AUTH_USER_UPDATED_EVENT,
   authService,
   clearAuthClientState,
   getRedirectPathForRole,
@@ -274,6 +275,22 @@ export function OwnerDashboardTopbar({
       void loadNotificationSummary();
     });
   }, [loadCurrentUser, loadNotificationSummary]);
+
+  useEffect(() => {
+    function handleAuthUpdate(event: Event) {
+      const customEvent = event as CustomEvent<{ user: AuthUser | null }>;
+      if (customEvent.detail?.user) {
+        setCurrentUser(customEvent.detail.user);
+      } else {
+        setCurrentUser(null);
+      }
+    }
+
+    window.addEventListener(AUTH_USER_UPDATED_EVENT, handleAuthUpdate);
+    return () => {
+      window.removeEventListener(AUTH_USER_UPDATED_EVENT, handleAuthUpdate);
+    };
+  }, []);
 
   async function handleLogout() {
     if (isLoggingOut) {
