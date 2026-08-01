@@ -180,20 +180,6 @@ function SidebarNavItem({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <p className="min-w-0 whitespace-normal leading-5">{item.label}</p>
-
-          {item.badge ? (
-            <Badge
-              variant={active ? "secondary" : "info"}
-              className={cn(
-                "h-5 rounded-full px-2 text-[10px] shadow-none",
-                active
-                  ? "border-orange-100/80 bg-orange-50 text-orange-600"
-                  : "border-white/18 bg-white/12 text-white",
-              )}
-            >
-              {item.badge}
-            </Badge>
-          ) : null}
         </div>
       </div>
     </button>
