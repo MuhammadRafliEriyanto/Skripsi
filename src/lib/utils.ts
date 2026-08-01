@@ -36,10 +36,7 @@ export function getCurrentAcademicPeriod(date = new Date()) {
   }).formatToParts(date);
   const month = Number(parts.find((part) => part.type === "month")?.value ?? 1);
   const year = Number(parts.find((part) => part.type === "year")?.value ?? 2026);
-  
-  // HARDCODED UNTUK DEMO: Mengunci tahun ajaran ke 2025/2026 (data sebelum agustus)
-  // aslinya: const startYear = month >= 8 ? year : year - 1;
-  const startYear = 2025;
+  const startYear = month >= 8 ? year : year - 1;
 
   return {
     academicYear: `${startYear}/${startYear + 1}`,

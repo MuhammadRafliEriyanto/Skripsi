@@ -171,6 +171,7 @@ export default function HeaderGuruSection() {
       ? [
           period.academicYear,
           `${Number(match[1]) + 1}/${Number(match[1]) + 2}`,
+          `${Number(match[1]) - 1}/${Number(match[1])}`,
         ]
       : [period.academicYear];
 
