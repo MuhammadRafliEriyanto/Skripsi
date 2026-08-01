@@ -10,13 +10,14 @@ export const metadata: Metadata = {
 export default async function ResetPasswordPage({
   searchParams,
 }: {
-  searchParams: Promise<{ email?: string; source?: string }>;
+  searchParams: Promise<{ email?: string; source?: string; code?: string }>;
 }) {
   const params = await searchParams;
 
   return (
     <ResetPasswordView
       email={params.email?.trim() ?? null}
+      code={params.code?.trim() ?? null}
       source={params.source?.trim() ?? null}
     />
   );

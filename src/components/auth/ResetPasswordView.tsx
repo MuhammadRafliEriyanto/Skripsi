@@ -17,6 +17,7 @@ import { AuthRequestError, authService } from "@/lib/auth";
 
 type ResetPasswordViewProps = {
   email: string | null;
+  code: string | null;
   source: string | null;
 };
 
@@ -39,6 +40,7 @@ function InputError({ message }: { message?: string }) {
 
 export function ResetPasswordView({
   email,
+  code,
   source,
 }: ResetPasswordViewProps) {
   const router = useRouter();
@@ -53,7 +55,7 @@ export function ResetPasswordView({
     });
   const [formValues, setFormValues] = useState({
     email: email ?? "",
-    code: "",
+    code: code ?? "",
     newPassword: "",
     confirmNewPassword: "",
   });

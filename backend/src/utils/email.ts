@@ -182,11 +182,13 @@ export async function sendPasswordResetEmail({
   expiresAt,
 }: SendPasswordResetEmailParams): Promise<void> {
   const transporter = createTransporter();
-  const { emailUser } = validateEnv();
+  const { emailUser, clientUrl } = validateEnv();
   const expiryLabel = expiresAt.toLocaleString("id-ID", {
     dateStyle: "medium",
     timeStyle: "short",
   });
+
+  const resetLink = `${clientUrl}/reset-password?email=${encodeURIComponent(email)}&code=${encodeURIComponent(resetCode)}`;
 
   // TODO: Sambungkan kode reset ini ke halaman/form reset password final saat flow konfirmasi token dibuat.
   const html = `
@@ -201,10 +203,19 @@ export async function sendPasswordResetEmail({
           <p style="margin:0 0 18px;font-size:15px;line-height:1.8;color:#475569;">
             Kami menerima permintaan untuk mereset password akun Anda. Gunakan kode berikut untuk melanjutkan proses reset password.
           </p>
-          <div style="display:inline-block;padding:16px 20px;border-radius:18px;background:#fff7ed;border:1px solid rgba(251,146,60,0.3);font-size:28px;font-weight:700;letter-spacing:0.24em;color:#ea580c;">
+          <div style="display:inline-block;padding:16px 20px;border-radius:18px;background:#fff7ed;border:1px solid rgba(251,146,60,0.3);font-size:28px;font-weight:700;letter-spacing:0.24em;color:#ea580c;margin-bottom:16px;">
             ${resetCode}
           </div>
-          <p style="margin:20px 0 8px;font-size:14px;line-height:1.8;color:#64748b;">
+          <p style="margin:0 0 16px;font-size:15px;line-height:1.8;color:#475569;">
+            Atau klik tombol di bawah ini untuk langsung mereset password Anda:
+          </p>
+          <a
+            href="${resetLink}"
+            style="display:inline-block;padding:14px 24px;border-radius:18px;background:linear-gradient(135deg,#f97316,#f59e0b);color:#ffffff;text-decoration:none;font-weight:600;margin-bottom:16px;"
+          >
+            Reset Password
+          </a>
+          <p style="margin:0 0 8px;font-size:14px;line-height:1.8;color:#64748b;">
             Kode ini berlaku sampai ${expiryLabel}.
           </p>
           <p style="margin:0;font-size:13px;line-height:1.8;color:#94a3b8;">
@@ -220,6 +231,9 @@ export async function sendPasswordResetEmail({
     "",
     "Gunakan kode berikut untuk reset password akun LMS Bimbel Anda:",
     resetCode,
+    "",
+    "Atau kunjungi link berikut untuk mereset password:",
+    resetLink,
     "",
     `Kode berlaku sampai ${expiryLabel}.`,
     "Jika Anda tidak meminta reset password, abaikan email ini.",
