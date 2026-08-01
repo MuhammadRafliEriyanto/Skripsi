@@ -7,10 +7,9 @@ import {
   LoaderCircle,
   LogOut,
   Menu,
-  Search,
   UserRound,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -34,11 +33,14 @@ import {
 } from "@/lib/auth";
 import { requestAdminApi } from "@/lib/admin-api";
 import { resolveOwnerNotificationHref } from "@/lib/owner-dashboard-routing";
-import {
-  emptyOwnerSearchResults,
-  fetchOwnerGlobalSearch,
-  type OwnerSearchResults,
-} from "@/lib/owner-search";
+
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 11) return "Selamat pagi";
+  if (hour < 15) return "Selamat siang";
+  if (hour < 18) return "Selamat sore";
+  return "Selamat malam";
+}
 
 function getInitials(name: string) {
   return (
@@ -92,8 +94,9 @@ type OwnerNotificationSummaryPayload = {
 
 type OwnerNotificationItem = NonNullable<OwnerNotificationSummaryPayload["items"]>[number];
 
-const ownerNotificationAcknowledgedStorageKey =
-  "owner-notifications-acknowledged";
+const ownerNotificationAcknowledgedStorageKey = "owner-notifications-acknowledged";
+
+type Acknowledgements = Record<string, number>;
 
 function getNotificationSeverityClasses(severity: OwnerNotificationSeverity) {
   switch (severity) {
@@ -108,32 +111,22 @@ function getNotificationSeverityClasses(severity: OwnerNotificationSeverity) {
   }
 }
 
-function getOwnerNotificationAcknowledgementKey(item: OwnerNotificationItem) {
-  return `${item.key}:${item.count}`;
-}
-
-function readOwnerNotificationAcknowledgements() {
+function readOwnerNotificationAcknowledgements(): Acknowledgements {
   if (typeof window === "undefined") {
-    return new Set<string>();
+    return {};
   }
 
   try {
     const rawValue = window.localStorage.getItem(
       ownerNotificationAcknowledgedStorageKey,
     );
-    const parsedValue = rawValue ? (JSON.parse(rawValue) as unknown) : [];
-
-    return new Set(
-      Array.isArray(parsedValue)
-        ? parsedValue.filter((value): value is string => typeof value === "string")
-        : [],
-    );
+    return rawValue ? JSON.parse(rawValue) : {};
   } catch {
-    return new Set<string>();
+    return {};
   }
 }
 
-function writeOwnerNotificationAcknowledgements(values: Set<string>) {
+function writeOwnerNotificationAcknowledgements(values: Acknowledgements) {
   if (typeof window === "undefined") {
     return;
   }
@@ -141,7 +134,7 @@ function writeOwnerNotificationAcknowledgements(values: Set<string>) {
   try {
     window.localStorage.setItem(
       ownerNotificationAcknowledgedStorageKey,
-      JSON.stringify([...values]),
+      JSON.stringify(values),
     );
   } catch {
     // Ignore storage failures; the notification will simply stay visible.
@@ -151,9 +144,10 @@ function writeOwnerNotificationAcknowledgements(values: Set<string>) {
 function filterAcknowledgedOwnerNotifications(items: OwnerNotificationItem[]) {
   const acknowledgements = readOwnerNotificationAcknowledgements();
 
-  return items.filter(
-    (item) => !acknowledgements.has(getOwnerNotificationAcknowledgementKey(item)),
-  );
+  return items.filter((item) => {
+    const ackCount = acknowledgements[item.key] || 0;
+    return item.count > ackCount;
+  });
 }
 
 function formatNotificationGeneratedAt(value: string | null) {
@@ -175,42 +169,6 @@ function formatNotificationGeneratedAt(value: string | null) {
   }).format(date);
 }
 
-type OwnerSearchGroupKey = keyof Pick<
-  OwnerSearchResults,
-  "branches" | "branchAdmins" | "payments" | "expenses" | "activations"
->;
-
-const ownerSearchGroupConfigs: Array<{
-  key: OwnerSearchGroupKey;
-  label: string;
-}> = [
-  { key: "branches", label: "Cabang" },
-  { key: "branchAdmins", label: "Admin Cabang" },
-  { key: "payments", label: "Pembayaran" },
-  { key: "expenses", label: "Pengeluaran" },
-  { key: "activations", label: "Aktivasi Siswa" },
-];
-
-const ownerSearchMinimumLength = 2;
-const ownerSearchDebounceMs = 300;
-
-function resolveOwnerSearchHref(groupKey: OwnerSearchGroupKey) {
-  switch (groupKey) {
-    case "branches":
-      return "/dashboard-owner/cabang";
-    case "branchAdmins":
-      return "/dashboard-owner/admin-cabang";
-    case "payments":
-      return "/dashboard-owner/aktivitas?tab=masuk";
-    case "expenses":
-      return "/dashboard-owner/aktivitas?tab=keluar";
-    case "activations":
-      return "/dashboard-owner/aktivitas?tab=aktivasi";
-    default:
-      return "/dashboard-owner";
-  }
-}
-
 type OwnerDashboardTopbarProps = {
   onOpenNavigation?: () => void;
 };
@@ -220,7 +178,6 @@ export function OwnerDashboardTopbar({
 }: OwnerDashboardTopbarProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
-  const searchContainerRef = useRef<HTMLDivElement | null>(null);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isUserLoading, setIsUserLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -233,12 +190,6 @@ export function OwnerDashboardTopbar({
     null,
   );
   const [isNotificationsLoading, setIsNotificationsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] =
-    useState<OwnerSearchResults>(emptyOwnerSearchResults);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const [isSearchLoading, setIsSearchLoading] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const loadCurrentUser = useCallback(async () => {
     try {
@@ -305,42 +256,6 @@ export function OwnerDashboardTopbar({
     }
   }, []);
 
-  const loadOwnerSearch = useCallback(
-    async (query: string, signal: AbortSignal) => {
-      setIsSearchLoading(true);
-
-      try {
-        const nextResults = await fetchOwnerGlobalSearch(query, signal);
-
-        if (signal.aborted) {
-          return;
-        }
-
-        setSearchResults(nextResults);
-        setSearchError(null);
-      } catch (error) {
-        if (signal.aborted) {
-          return;
-        }
-
-        setSearchResults({
-          ...emptyOwnerSearchResults,
-          query,
-        });
-        setSearchError(
-          error instanceof Error
-            ? error.message
-            : "Pencarian owner belum bisa diproses sekarang.",
-        );
-      } finally {
-        if (!signal.aborted) {
-          setIsSearchLoading(false);
-        }
-      }
-    },
-    [],
-  );
-
   useEffect(() => {
     queueMicrotask(() => {
       const persistedUser = readPersistedAuthUser();
@@ -353,65 +268,6 @@ export function OwnerDashboardTopbar({
       void loadNotificationSummary();
     });
   }, [loadCurrentUser, loadNotificationSummary]);
-
-  useEffect(() => {
-    if (!isSearchOpen) {
-      return;
-    }
-
-    function handlePointerDown(event: MouseEvent) {
-      if (!searchContainerRef.current?.contains(event.target as Node)) {
-        setIsSearchOpen(false);
-      }
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIsSearchOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isSearchOpen]);
-
-  useEffect(() => {
-    if (!isSearchOpen) {
-      return;
-    }
-
-    const normalizedQuery = searchQuery.trim();
-
-    if (normalizedQuery.length < ownerSearchMinimumLength) {
-      const resetTimeoutId = window.setTimeout(() => {
-        setSearchResults({
-          ...emptyOwnerSearchResults,
-          query: normalizedQuery,
-        });
-        setSearchError(null);
-        setIsSearchLoading(false);
-      }, 0);
-
-      return () => {
-        window.clearTimeout(resetTimeoutId);
-      };
-    }
-
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => {
-      void loadOwnerSearch(normalizedQuery, controller.signal);
-    }, ownerSearchDebounceMs);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-      controller.abort();
-    };
-  }, [isSearchOpen, loadOwnerSearch, searchQuery]);
 
   async function handleLogout() {
     if (isLoggingOut) {
@@ -448,41 +304,15 @@ export function OwnerDashboardTopbar({
   const notificationUpdatedLabel = formatNotificationGeneratedAt(
     notificationsGeneratedAt,
   );
-  const normalizedSearchQuery = searchQuery.trim();
-  const shouldShowSearchDropdown =
-    isSearchOpen && normalizedSearchQuery.length >= ownerSearchMinimumLength;
-  const searchGroups = ownerSearchGroupConfigs
-    .map((group) => ({
-      ...group,
-      items: searchResults[group.key],
-    }))
-    .filter((group) => group.items.length > 0);
-  const hasSearchResults = searchGroups.length > 0;
-
-  function handleSearchResultSelect(groupKey: OwnerSearchGroupKey) {
-    setIsSearchOpen(false);
-    setSearchQuery("");
-    setSearchError(null);
-    setSearchResults(emptyOwnerSearchResults);
-
-    startTransition(() => {
-      router.push(resolveOwnerSearchHref(groupKey));
-    });
-  }
 
   function acknowledgeOwnerNotification(item: OwnerNotificationItem) {
-    const acknowledgementKey = getOwnerNotificationAcknowledgementKey(item);
     const acknowledgements = readOwnerNotificationAcknowledgements();
 
-    acknowledgements.add(acknowledgementKey);
+    acknowledgements[item.key] = item.count;
     writeOwnerNotificationAcknowledgements(acknowledgements);
 
     setNotificationItems((currentItems) =>
-      currentItems.filter(
-        (currentItem) =>
-          getOwnerNotificationAcknowledgementKey(currentItem) !==
-          acknowledgementKey,
-      ),
+      currentItems.filter((currentItem) => currentItem.key !== item.key),
     );
     setNotificationTotal((currentTotal) => Math.max(0, currentTotal - item.count));
   }
@@ -503,97 +333,9 @@ export function OwnerDashboardTopbar({
               <Menu className="size-5" />
             </Button>
 
-            <div
-              ref={searchContainerRef}
-              className="relative w-full max-w-[320px] lg:max-w-[380px]"
-            >
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
-            <Input
-              aria-label="Cari data dashboard owner"
-              className="h-10 w-full rounded-full border-slate-200/80 bg-white/95 pl-10 pr-4 text-sm shadow-sm shadow-slate-950/5"
-              placeholder="Cari cabang, admin, pembayaran, pengeluaran..."
-              value={searchQuery}
-              onChange={(event) => {
-                setSearchQuery(event.target.value);
-                setSearchError(null);
-                setIsSearchOpen(true);
-              }}
-              onFocus={() => setIsSearchOpen(true)}
-            />
-              {shouldShowSearchDropdown ? (
-              <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-30 overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-xl shadow-slate-950/10">
-                <div className="border-b border-slate-100 px-4 py-3">
-                  <p className="text-sm font-semibold text-slate-950">
-                    Hasil pencarian owner
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Menampilkan data operasional dan performa cabang secara real-time.
-                    pengeluaran, dan aktivasi siswa.
-                  </p>
-                </div>
-
-                <div className="max-h-[360px] overflow-y-auto">
-                  {isSearchLoading ? (
-                    <div className="flex items-center gap-2 px-4 py-4 text-sm text-slate-500">
-                      <LoaderCircle className="size-4 animate-spin text-orange-500" />
-                      Mencari data owner...
-                    </div>
-                  ) : searchError ? (
-                    <div className="px-4 py-4 text-sm leading-6 text-red-600">
-                      {searchError}
-                    </div>
-                  ) : hasSearchResults ? (
-                    <div>
-                      {searchGroups.map((group) => (
-                        <div
-                          key={group.key}
-                          className="border-t border-slate-100 first:border-t-0"
-                        >
-                          <div className="px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                            {group.label}
-                          </div>
-                          <div className="divide-y divide-slate-100">
-                            {group.items.map((item) => (
-                              <button
-                                key={`${group.key}-${item.id}`}
-                                type="button"
-                                className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:outline-none"
-                                onClick={() => handleSearchResultSelect(group.key)}
-                              >
-                                <div className="min-w-0">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <p className="text-sm font-semibold text-slate-900">
-                                      {item.title}
-                                    </p>
-                                    {item.referenceId ? (
-                                      <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                                        {item.referenceId}
-                                      </span>
-                                    ) : null}
-                                  </div>
-                                  <p className="mt-1 text-sm leading-6 text-slate-600">
-                                    {item.subtitle}
-                                  </p>
-                                </div>
-                                {item.meta ? (
-                                  <span className="max-w-[140px] shrink-0 text-right text-[11px] leading-5 text-slate-500">
-                                    {item.meta}
-                                  </span>
-                                ) : null}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="px-4 py-4 text-sm leading-6 text-slate-500">
-                      Tidak ada hasil untuk &quot;{normalizedSearchQuery}&quot;.
-                    </div>
-                  )}
-                </div>
-              </div>
-              ) : null}
+            <div className="flex flex-col">
+              <p className="text-sm font-semibold text-slate-500">{getGreeting()},</p>
+              <p className="text-lg font-bold text-slate-900">{displayName}</p>
             </div>
           </div>
 
