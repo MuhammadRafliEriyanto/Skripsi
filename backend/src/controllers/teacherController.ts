@@ -301,6 +301,39 @@ async function resolveTeacherBranchName(
   throw new AppError(400, `Cabang "${normalizedBranch}" tidak ditemukan di master cabang.`);
 }
 
+async function resolveTeacherCreateBranchName(
+  value: string,
+  scope: AdminBranchScope,
+) {
+  if (value) {
+    return resolveAccessibleBranchName(
+      await resolveTeacherBranchName(value),
+      scope,
+      {
+        useFirstManagedBranchAsDefault: true,
+      },
+    );
+  }
+
+  if (scope.isScopedToManagedBranches) {
+    return resolveAccessibleBranchName("", scope, {
+      useFirstManagedBranchAsDefault: true,
+    });
+  }
+
+  const fallbackBranch = await Branch.findOne()
+    .select("name")
+    .sort({ name: 1, createdAt: 1, _id: 1 })
+    .exec();
+  const fallbackBranchName = normalizeText(fallbackBranch?.name);
+
+  if (!fallbackBranchName) {
+    throw new AppError(400, "Cabang guru wajib diisi.");
+  }
+
+  return fallbackBranchName;
+}
+
 function getImportDetailMessage(
   error: unknown,
   fallback = "Terjadi kesalahan saat menyimpan data guru hasil import.",
@@ -646,7 +679,7 @@ export const exportTeachers = asyncHandler(
         "Cabang",
         "Jadwal",
         "Kelas Aktif",
-        "Kelas Diampu",
+        "Pendidikan Terakhir",
         "Status",
         "Ketersediaan",
       ],
@@ -711,22 +744,19 @@ export const createTeacher = asyncHandler(
     const autoGenerateCredentials = req.body.autoGenerateCredentials === true;
     const subject = normalizeText(req.body.subject);
     const branch = normalizeText(req.body.branch);
-    const phone = normalizePhone(req.body.phone);
-    const schedule = normalizeText(req.body.schedule);
-    const activeClasses = parseActiveClasses(req.body.activeClasses);
+    const phone = normalizePhone(req.body.phone) || "-";
+    const schedule = normalizeText(req.body.schedule) || "-";
+    const activeClasses = parseActiveClasses(req.body.activeClasses ?? 0);
     const classList = normalizeText(req.body.classList);
     const capableGrades = Array.isArray(req.body.capableGrades) 
       ? req.body.capableGrades.map(String) 
       : [];
     const status = normalizeText(req.body.status);
-    const availability = normalizeText(req.body.availability);
+    const availability = normalizeText(req.body.availability) || "Tersedia";
 
     if (
       !name ||
       !subject ||
-      !branch ||
-      !phone ||
-      !schedule ||
       activeClasses === null ||
       !classList
     ) {
@@ -764,13 +794,7 @@ export const createTeacher = asyncHandler(
       return;
     }
 
-    const resolvedBranch = resolveAccessibleBranchName(
-      await resolveTeacherBranchName(branch),
-      scope,
-      {
-        useFirstManagedBranchAsDefault: true,
-      },
-    );
+    const resolvedBranch = await resolveTeacherCreateBranchName(branch, scope);
     const teacherId = await getNextPublicId(Teacher, "teacherId", "TCH");
     const resolvedEmail = email || buildImportedTeacherEmail(teacherId);
     const loginCode = buildTeacherLoginCode(teacherId);

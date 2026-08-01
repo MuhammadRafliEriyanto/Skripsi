@@ -193,6 +193,10 @@ function normalizePhone(value: string) {
   return value.trim().replace(/\s+/g, "");
 }
 
+function isPlaceholderPhone(value: string) {
+  return !value || value === "-";
+}
+
 function normalizeClassList(value: string) {
   return value
     .split(/\r?\n|,/)
@@ -280,7 +284,7 @@ function createEmptyTeacherForm(
     password: "",
     subject: "",
     branch: defaultBranch,
-    phone: "",
+    phone: "-",
     schedule: "-",
     activeClasses: "0",
     classList: "",
@@ -429,7 +433,7 @@ function TeacherActions({
 
             <div className="rounded-[20px] border border-slate-200/80 bg-white/95 p-4 shadow-[0_12px_26px_-22px_rgba(15,23,42,0.14)]">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                Kelas yang diampu
+                Pendidikan Terakhir
               </p>
               <p className="mt-2 text-sm leading-6 text-slate-700">
                 {teacher.classList}
@@ -778,6 +782,14 @@ export function AdminTeachers({
       formValues.activeClasses,
     );
     const normalizedClassList = normalizeClassList(formValues.classList);
+    const resolvedPhone = isEditing ? normalizedPhone : normalizedPhone || "-";
+    const resolvedSchedule = isEditing ? normalizedSchedule : normalizedSchedule || "-";
+    const resolvedActiveClasses = isEditing
+      ? normalizedActiveClasses
+      : normalizedActiveClasses ?? 0;
+    const resolvedAvailability = isEditing
+      ? formValues.availability
+      : defaultTeacherAvailability;
     const shouldAutoGenerateCredentials =
       !isEditing && (!normalizedEmail || !normalizedPassword);
 
@@ -806,28 +818,23 @@ export function AdminTeachers({
       return;
     }
 
-    if (!normalizedBranch) {
+    if (isEditing && !normalizedBranch) {
       setFormError("Pilih cabang guru yang tersedia terlebih dahulu.");
       return;
     }
 
-    if (!normalizedPhone) {
+    if (isEditing && !normalizedPhone) {
       setFormError("No. HP wajib diisi.");
       return;
     }
 
-    if (!normalizedSchedule) {
+    if (isEditing && !normalizedSchedule) {
       setFormError("Jadwal mengajar wajib diisi.");
       return;
     }
 
-    if (normalizedActiveClasses === null) {
+    if (resolvedActiveClasses === null) {
       setFormError("Kelas aktif harus berupa angka 0 atau lebih.");
-      return;
-    }
-
-    if (!normalizedClassList) {
-      setFormError("Kelas yang diampu wajib diisi.");
       return;
     }
 
@@ -838,7 +845,8 @@ export function AdminTeachers({
 
     const duplicateTeacher = teachers.find(
       (teacher) =>
-        normalizePhone(teacher.phone) === normalizedPhone &&
+        !isPlaceholderPhone(resolvedPhone) &&
+        normalizePhone(teacher.phone) === resolvedPhone &&
         teacher.id !== editingTeacherId,
     );
 
@@ -878,13 +886,13 @@ export function AdminTeachers({
               ? { autoGenerateCredentials: true }
               : {}),
             subject: normalizedSubject,
-            branch: normalizedBranch,
-            phone: normalizedPhone,
-            schedule: normalizedSchedule,
-            activeClasses: normalizedActiveClasses,
+            branch: normalizedBranch ?? "",
+            phone: resolvedPhone,
+            schedule: resolvedSchedule,
+            activeClasses: resolvedActiveClasses,
             classList: normalizedClassList,
             status: formValues.status,
-            availability: formValues.availability,
+            availability: resolvedAvailability,
           }),
         },
       );
@@ -1440,8 +1448,9 @@ export function AdminTeachers({
               {isEditing ? "Edit guru" : "Tambah guru baru"}
             </DialogTitle>
             <DialogDescription>
-              Isi nama, mapel, cabang, no HP, jadwal, distribusi kelas, dan
-              status mengajar guru.
+              {isEditing
+                ? "Perbarui profil, akun, cabang, dan status mengajar guru."
+                : "Isi nama, mapel, status, dan pendidikan terakhir guru."}
             </DialogDescription>
           </DialogHeader>
 
@@ -1458,7 +1467,8 @@ export function AdminTeachers({
                 />
               </TeacherField>
 
-              <TeacherField label="Email kontak/internal">
+              {isEditing ? (
+                <TeacherField label="Email kontak/internal">
                 <div className="space-y-2">
                   <Input
                     className={warmFieldClassName}
@@ -1473,14 +1483,9 @@ export function AdminTeachers({
                         : "Kosongkan untuk generate otomatis"
                     }
                   />
-                  {!isEditing ? (
-                    <p className="text-xs leading-5 text-slate-500">
-                      Login guru memakai kode akun, misalnya TCH-001. Email
-                      boleh dikosongkan agar sistem membuat email internal.
-                    </p>
-                  ) : null}
                 </div>
-              </TeacherField>
+                </TeacherField>
+              ) : null}
 
               <TeacherField label="Mapel">
                 <Select
@@ -1504,7 +1509,8 @@ export function AdminTeachers({
                 </Select>
               </TeacherField>
 
-              <TeacherField label="Password">
+              {isEditing ? (
+                <TeacherField label="Password">
                 <div className="space-y-2">
                   <Input
                     className={warmFieldClassName}
@@ -1519,16 +1525,12 @@ export function AdminTeachers({
                         : "Kosongkan untuk generate otomatis"
                     }
                   />
-                  {!isEditing ? (
-                    <p className="text-xs leading-5 text-slate-500">
-                      Jika dikosongkan, password awal guru dibuat otomatis dan
-                      akan ditampilkan setelah akun berhasil dibuat.
-                    </p>
-                  ) : null}
                 </div>
-              </TeacherField>
+                </TeacherField>
+              ) : null}
 
-              <TeacherField label="Cabang">
+              {isEditing ? (
+                <TeacherField label="Cabang">
                 <Select
                   value={selectedBranchValue}
                   onValueChange={(value) => updateFormValue("branch", value)}
@@ -1558,9 +1560,11 @@ export function AdminTeachers({
                     Belum ada cabang yang tersedia untuk dipilih.
                   </p>
                 ) : null}
-              </TeacherField>
+                </TeacherField>
+              ) : null}
 
-              <TeacherField label="No HP">
+              {isEditing ? (
+                <TeacherField label="No HP">
                 <Input
                   className={warmFieldClassName}
                   value={formValues.phone}
@@ -1569,7 +1573,8 @@ export function AdminTeachers({
                   }
                   placeholder="Nomor telepon aktif"
                 />
-              </TeacherField>
+                </TeacherField>
+              ) : null}
 
               <TeacherField label="Status">
                 <Select
@@ -1597,7 +1602,8 @@ export function AdminTeachers({
                 </Select>
               </TeacherField>
 
-              <TeacherField label="Ketersediaan">
+              {isEditing ? (
+                <TeacherField label="Ketersediaan">
                 <Select
                   value={formValues.availability}
                   onValueChange={(value) =>
@@ -1622,7 +1628,8 @@ export function AdminTeachers({
                     ))}
                   </SelectContent>
                 </Select>
-              </TeacherField>
+                </TeacherField>
+              ) : null}
 
               <div className="sm:col-span-2">
                 <TeacherField label="Pendidikan Terakhir">
