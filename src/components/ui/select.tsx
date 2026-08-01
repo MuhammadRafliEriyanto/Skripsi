@@ -66,12 +66,25 @@ const SelectScrollDownButton = React.forwardRef<
 SelectScrollDownButton.displayName =
   SelectPrimitive.ScrollDownButton.displayName;
 
+type SelectContentProps = React.ComponentPropsWithoutRef<
+  typeof SelectPrimitive.Content
+> & {
+  viewportClassName?: string;
+};
+
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
+  SelectContentProps
 >(
   (
-    { className, children, position = "popper", sideOffset = 8, ...props },
+    {
+      className,
+      children,
+      position = "popper",
+      sideOffset = 8,
+      viewportClassName,
+      ...props
+    },
     ref,
   ) => (
   <SelectPrimitive.Portal>
@@ -93,6 +106,7 @@ const SelectContent = React.forwardRef<
           "p-2",
           position === "popper" &&
             "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]",
+          viewportClassName,
         )}
       >
         {children}
