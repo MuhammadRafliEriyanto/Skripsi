@@ -1050,16 +1050,19 @@ export const updateTeacher = asyncHandler(
     assertTeacherBranchAccess(teacher, scope);
 
     const name = normalizeText(req.body.name);
-    const email = normalizeEmail(req.body.email);
+    const email = normalizeEmail(req.body.email) || normalizeEmail(teacher.userId.email);
     const password = req.body.password?.trim() ?? "";
     const subject = normalizeText(req.body.subject);
-    const branch = normalizeText(req.body.branch);
-    const phone = normalizePhone(req.body.phone);
-    const schedule = normalizeText(req.body.schedule);
-    const activeClasses = parseActiveClasses(req.body.activeClasses);
-    const classList = normalizeText(req.body.classList);
-    const status = normalizeText(req.body.status);
-    const availability = normalizeText(req.body.availability);
+    const branch = normalizeText(req.body.branch) || normalizeText(teacher.branch);
+    const phone = normalizePhone(req.body.phone) || normalizePhone(teacher.phone) || "-";
+    const schedule = normalizeText(req.body.schedule) || normalizeText(teacher.schedule) || "-";
+    const activeClasses = parseActiveClasses(req.body.activeClasses ?? teacher.activeClasses ?? 0);
+    const classList = normalizeText(req.body.classList) || normalizeText(teacher.classList);
+    const status = normalizeText(req.body.status) || normalizeText(teacher.status);
+    const availability =
+      normalizeText(req.body.availability) ||
+      normalizeText(teacher.availability) ||
+      "Tersedia";
 
     if (
       !name ||

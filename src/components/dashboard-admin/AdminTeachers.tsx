@@ -5,8 +5,6 @@ import {
   Eye,
   Pencil,
   Plus,
-  Power,
-  PowerOff,
   RotateCcw,
   Trash2,
   Upload,
@@ -304,9 +302,10 @@ function toTeacherFormValues(
     subject: teacher.subject,
     branch:
       normalizeTeacherBranch(teacher.branch, availableBranches) ??
+      teacher.branch ??
       getDefaultBranch(availableBranches),
-    phone: teacher.phone,
-    schedule: teacher.schedule,
+    phone: teacher.phone || "-",
+    schedule: teacher.schedule || "-",
     activeClasses: String(teacher.activeClasses),
     classList: teacher.classList,
     status: teacher.status,
@@ -364,13 +363,11 @@ function TeacherActions({
   branchOptions,
   onEdit,
   onDelete,
-  onToggleStatus,
 }: {
   teacher: AdminTeacher;
   branchOptions: string[];
   onEdit: (teacher: AdminTeacher) => void;
   onDelete: (teacher: AdminTeacher) => void;
-  onToggleStatus: (teacher: AdminTeacher) => void;
 }) {
   return (
     <div className="flex items-center justify-center gap-1.5">
@@ -458,30 +455,6 @@ function TeacherActions({
         onClick={() => onEdit(teacher)}
       >
         <Pencil className="size-4" />
-      </Button>
-
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        className={
-          teacher.status === "Aktif"
-            ? "size-9 rounded-xl border-amber-200 bg-white p-0 text-amber-600 shadow-sm transition hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700 active:border-amber-300 active:bg-amber-100/80 focus-visible:ring-orange-500/10"
-            : "size-9 rounded-xl border-emerald-200 bg-white p-0 text-emerald-600 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 active:border-emerald-300 active:bg-emerald-100/80 focus-visible:ring-orange-500/10"
-        }
-        aria-label={
-          teacher.status === "Aktif"
-            ? `Nonaktifkan ${teacher.name}`
-            : `Aktifkan ${teacher.name}`
-        }
-        title={teacher.status === "Aktif" ? "Nonaktifkan" : "Aktifkan"}
-        onClick={() => onToggleStatus(teacher)}
-      >
-        {teacher.status === "Aktif" ? (
-          <PowerOff className="size-4" />
-        ) : (
-          <Power className="size-4" />
-        )}
       </Button>
 
       <Button
@@ -782,24 +755,16 @@ export function AdminTeachers({
       formValues.activeClasses,
     );
     const normalizedClassList = normalizeClassList(formValues.classList);
-    const resolvedPhone = isEditing ? normalizedPhone : normalizedPhone || "-";
-    const resolvedSchedule = isEditing ? normalizedSchedule : normalizedSchedule || "-";
-    const resolvedActiveClasses = isEditing
-      ? normalizedActiveClasses
-      : normalizedActiveClasses ?? 0;
-    const resolvedAvailability = isEditing
-      ? formValues.availability
-      : defaultTeacherAvailability;
+    const resolvedPhone = normalizedPhone || "-";
+    const resolvedSchedule = normalizedSchedule || "-";
+    const resolvedActiveClasses = normalizedActiveClasses ?? 0;
+    const resolvedAvailability =
+      formValues.availability || defaultTeacherAvailability;
     const shouldAutoGenerateCredentials =
       !isEditing && (!normalizedEmail || !normalizedPassword);
 
     if (!normalizedName) {
       setFormError("Nama guru wajib diisi.");
-      return;
-    }
-
-    if (isEditing && !normalizedEmail) {
-      setFormError("Email guru wajib diisi.");
       return;
     }
 
@@ -815,21 +780,6 @@ export function AdminTeachers({
 
     if (!normalizedSubject) {
       setFormError("Mapel wajib diisi.");
-      return;
-    }
-
-    if (isEditing && !normalizedBranch) {
-      setFormError("Pilih cabang guru yang tersedia terlebih dahulu.");
-      return;
-    }
-
-    if (isEditing && !normalizedPhone) {
-      setFormError("No. HP wajib diisi.");
-      return;
-    }
-
-    if (isEditing && !normalizedSchedule) {
-      setFormError("Jadwal mengajar wajib diisi.");
       return;
     }
 
@@ -950,44 +900,6 @@ export function AdminTeachers({
       );
     } finally {
       setIsDeleting(false);
-    }
-  };
-
-  const handleToggleStatus = async (teacher: AdminTeacher) => {
-    const nextStatus = teacher.status === "Aktif" ? "Nonaktif" : "Aktif";
-    const nextAvailability =
-      nextStatus === "Aktif"
-        ? teacher.availability === "Cuti"
-          ? "Tersedia"
-          : teacher.availability
-        : "Cuti";
-
-    try {
-      await requestAdminApi<{ teacher: AdminTeacher }>(
-        `/api/teachers/${encodeURIComponent(teacher.id)}`,
-        {
-          method: "PUT",
-          body: JSON.stringify({
-            name: teacher.name,
-            email: teacher.email,
-            subject: teacher.subject,
-            branch: teacher.branch,
-            phone: teacher.phone,
-            schedule: teacher.schedule,
-            activeClasses: teacher.activeClasses,
-            classList: teacher.classList,
-            status: nextStatus,
-            availability: nextAvailability,
-          }),
-        },
-      );
-      await refreshTeacherViews();
-    } catch (requestError) {
-      setFormError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Gagal memperbarui status guru.",
-      );
     }
   };
 
@@ -1181,10 +1093,9 @@ export function AdminTeachers({
           branchOptions={branchOptions}
           onEdit={openEditDialog}
           onDelete={setTeacherToDelete}
-          onToggleStatus={handleToggleStatus}
         />
       ),
-      className: "w-[196px] text-center",
+      className: "w-[148px] text-center",
     },
   ];
 
@@ -1449,7 +1360,7 @@ export function AdminTeachers({
             </DialogTitle>
             <DialogDescription>
               {isEditing
-                ? "Perbarui profil, akun, cabang, dan status mengajar guru."
+                ? "Perbarui nama, mapel, status, dan pendidikan terakhir guru."
                 : "Isi nama, mapel, status, dan pendidikan terakhir guru."}
             </DialogDescription>
           </DialogHeader>
@@ -1466,26 +1377,6 @@ export function AdminTeachers({
                   placeholder="Nama lengkap guru"
                 />
               </TeacherField>
-
-              {isEditing ? (
-                <TeacherField label="Email kontak/internal">
-                <div className="space-y-2">
-                  <Input
-                    className={warmFieldClassName}
-                    type="email"
-                    value={formValues.email}
-                    onChange={(event) =>
-                      updateFormValue("email", event.target.value)
-                    }
-                    placeholder={
-                      isEditing
-                        ? "guru@email.com"
-                        : "Kosongkan untuk generate otomatis"
-                    }
-                  />
-                </div>
-                </TeacherField>
-              ) : null}
 
               <TeacherField label="Mapel">
                 <Select
@@ -1508,73 +1399,6 @@ export function AdminTeachers({
                   </SelectContent>
                 </Select>
               </TeacherField>
-
-              {isEditing ? (
-                <TeacherField label="Password">
-                <div className="space-y-2">
-                  <Input
-                    className={warmFieldClassName}
-                    type="password"
-                    value={formValues.password}
-                    onChange={(event) =>
-                      updateFormValue("password", event.target.value)
-                    }
-                    placeholder={
-                      isEditing
-                        ? "Kosongkan jika tidak diubah"
-                        : "Kosongkan untuk generate otomatis"
-                    }
-                  />
-                </div>
-                </TeacherField>
-              ) : null}
-
-              {isEditing ? (
-                <TeacherField label="Cabang">
-                <Select
-                  value={selectedBranchValue}
-                  onValueChange={(value) => updateFormValue("branch", value)}
-                >
-                  <SelectTrigger className={warmSelectTriggerClassName}>
-                    <SelectValue placeholder="Pilih cabang" />
-                  </SelectTrigger>
-                  <SelectContent className={warmSelectContentClassName}>
-                    {resolvedBranchOptions.map((option) => (
-                      <SelectItem
-                        key={option}
-                        value={option}
-                        className={warmSelectItemClassName}
-                      >
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {isBranchOptionsLoading ? (
-                  <p className="text-xs text-slate-500">
-                    Daftar cabang sedang dimuat...
-                  </p>
-                ) : null}
-                {!isBranchOptionsLoading && branchOptions.length === 0 ? (
-                  <p className="text-xs text-amber-600">
-                    Belum ada cabang yang tersedia untuk dipilih.
-                  </p>
-                ) : null}
-                </TeacherField>
-              ) : null}
-
-              {isEditing ? (
-                <TeacherField label="No HP">
-                <Input
-                  className={warmFieldClassName}
-                  value={formValues.phone}
-                  onChange={(event) =>
-                    updateFormValue("phone", event.target.value)
-                  }
-                  placeholder="Nomor telepon aktif"
-                />
-                </TeacherField>
-              ) : null}
 
               <TeacherField label="Status">
                 <Select
@@ -1601,35 +1425,6 @@ export function AdminTeachers({
                   </SelectContent>
                 </Select>
               </TeacherField>
-
-              {isEditing ? (
-                <TeacherField label="Ketersediaan">
-                <Select
-                  value={formValues.availability}
-                  onValueChange={(value) =>
-                    updateFormValue(
-                      "availability",
-                      value as AdminTeacher["availability"],
-                    )
-                  }
-                >
-                  <SelectTrigger className={warmSelectTriggerClassName}>
-                    <SelectValue placeholder="Pilih ketersediaan" />
-                  </SelectTrigger>
-                  <SelectContent className={warmSelectContentClassName}>
-                    {teacherAvailabilityOptions.map((option) => (
-                      <SelectItem
-                        key={option}
-                        value={option}
-                        className={warmSelectItemClassName}
-                      >
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                </TeacherField>
-              ) : null}
 
               <div className="sm:col-span-2">
                 <TeacherField label="Pendidikan Terakhir">
