@@ -13,6 +13,7 @@ import {
   resendBranchAdminVerification,
   updateBranchAdminAccount,
   updateBranch,
+  restoreBranch,
 } from "../controllers/branchController";
 import apiKeyMiddleware from "../middleware/apiKeyMiddleware";
 import authorizeRole from "../middleware/authorizeRole";
@@ -45,5 +46,7 @@ router
   .get(getBranchById)
   .put(ownerOnly, updateBranch)
   .delete(ownerOnly, deleteBranch);
+
+router.put("/:id/restore", ownerOnly, restoreBranch);
 
 export default router;

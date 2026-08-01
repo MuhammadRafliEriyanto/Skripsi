@@ -700,15 +700,25 @@ export function AdminBranchFinance({
 
   const expenseColumns: AdminColumnDefinition<AdminExpense>[] = [
     {
+      key: "number",
+      header: "No",
+      className: "w-[72px]",
+      cell: (_expense, index) => (
+        <span className="text-sm font-semibold text-slate-500">
+          {(expensePage - 1) * listPageSize + index + 1}
+        </span>
+      ),
+    },
+    {
       key: "expense",
       header: "Pengeluaran",
       className: "min-w-[260px]",
       cell: (expense) => (
         <div className="space-y-1">
           <p className="font-semibold text-slate-950">{expense.title}</p>
-          <p className="text-xs text-slate-500">
-            {expense.category} | {expense.expenseId} | {expense.branch}
-          </p>
+          <span className="inline-flex rounded-full bg-orange-50 px-2.5 py-1 text-[11px] font-semibold text-orange-700">
+            {normalizeAdminExpenseFormCategory(expense.category)}
+          </span>
         </div>
       ),
     },
@@ -1181,7 +1191,9 @@ export function AdminBranchFinance({
               />
               <FinanceDetailItem
                 label="Kategori"
-                value={selectedExpenseDetail.category}
+                value={normalizeAdminExpenseFormCategory(
+                  selectedExpenseDetail.category,
+                )}
               />
               <FinanceDetailItem
                 label="Nominal"
@@ -1233,12 +1245,12 @@ export function AdminBranchFinance({
       >
         <DialogContent
           className={cn(
-            "w-[calc(100%-1rem)] max-w-2xl p-0 sm:w-[calc(100%-2rem)]",
+            "max-h-[calc(100vh-1rem)] w-[calc(100%-1rem)] max-w-2xl overflow-y-auto p-0 sm:max-h-[calc(100vh-2rem)] sm:w-[calc(100%-2rem)]",
             warmOverlayPanelClassName,
           )}
         >
           <form
-            className="flex max-h-[min(88vh,820px)] flex-col overflow-hidden"
+            className="flex flex-col"
             onSubmit={handleExpenseSubmit}
           >
             <DialogHeader className="shrink-0 border-b border-slate-200/70 px-5 pb-4 pt-5 sm:px-6 sm:pb-5 sm:pt-6">
@@ -1256,7 +1268,7 @@ export function AdminBranchFinance({
               </DialogDescription>
             </DialogHeader>
 
-            <div className="flex-1 overflow-y-auto px-5 pb-5 pt-4 sm:px-6 sm:pb-6 sm:pt-5">
+            <div className="px-5 pb-5 pt-4 sm:px-6 sm:pb-6 sm:pt-5">
               <div className="grid gap-4 sm:grid-cols-2">
               <FinanceField label="Judul pengeluaran">
                 <Input

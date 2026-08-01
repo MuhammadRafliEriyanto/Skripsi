@@ -1,29 +1,30 @@
 import { requestAdminApi } from "@/lib/admin-api";
 import { fetchOwnerBranchAdminOptionsFromApi } from "@/lib/owner-branch-admins";
 
-export const ownerExpenseCategoryOptions = [
-  "Listrik",
-  "Internet",
-  "Sewa Gedung",
-  "Lainnya",
-  "Gaji Guru",
-  "Gaji Admin",
-  "Operasional Cabang",
-  "Teknologi",
-] as const;
-
 export const ownerExpenseVisibleCategoryOptions = [
+  "Wifi",
+  "Gedung",
   "Listrik",
-  "Internet",
-  "Sewa Gedung",
-  "Lainnya",
 ] as const;
 
 export const ownerExpenseLegacyCategoryOptions = [
+  "Internet",
+  "Sewa Gedung",
   "Gaji Guru",
   "Gaji Admin",
   "Operasional Cabang",
+  "Perawatan Fasilitas",
+  "Perlengkapan Kelas",
+  "Kebersihan",
+  "Keamanan",
   "Teknologi",
+  "Transportasi Operasional",
+  "Lainnya",
+] as const;
+
+export const ownerExpenseCategoryOptions = [
+  ...ownerExpenseVisibleCategoryOptions,
+  ...ownerExpenseLegacyCategoryOptions,
 ] as const;
 
 export const ownerExpenseStatusOptions = [
@@ -77,9 +78,31 @@ export function isOwnerExpenseLegacyCategory(
 export function normalizeOwnerExpenseFormCategory(
   value: string | null | undefined,
 ): OwnerExpenseUiCategory {
-  return ownerExpenseVisibleCategoryOptions.includes(value as OwnerExpenseUiCategory)
-    ? (value as OwnerExpenseUiCategory)
-    : "Lainnya";
+  const normalizedValue = value?.trim().replace(/\s+/g, " ") ?? "";
+
+  if (
+    ownerExpenseVisibleCategoryOptions.includes(
+      normalizedValue as OwnerExpenseUiCategory,
+    )
+  ) {
+    return normalizedValue as OwnerExpenseUiCategory;
+  }
+
+  switch (normalizedValue) {
+    case "Internet":
+    case "Teknologi":
+      return "Wifi";
+    case "Sewa Gedung":
+    case "Perawatan Fasilitas":
+    case "Perlengkapan Kelas":
+    case "Kebersihan":
+    case "Keamanan":
+    case "Transportasi Operasional":
+    case "Operasional Cabang":
+      return "Gedung";
+    default:
+      return "Listrik";
+  }
 }
 
 export type OwnerExpense = {

@@ -4,10 +4,6 @@ export const LEGACY_EXPENSE_CATEGORIES = [
   "Gaji Guru",
   "Gaji Admin",
   "Operasional Cabang",
-] as const;
-
-export const OPERATIONAL_EXPENSE_CATEGORIES = [
-  "Listrik",
   "Internet",
   "Sewa Gedung",
   "Perawatan Fasilitas",
@@ -17,6 +13,12 @@ export const OPERATIONAL_EXPENSE_CATEGORIES = [
   "Teknologi",
   "Transportasi Operasional",
   "Lainnya",
+] as const;
+
+export const OPERATIONAL_EXPENSE_CATEGORIES = [
+  "Wifi",
+  "Gedung",
+  "Listrik",
 ] as const;
 
 export const EXPENSE_CATEGORIES = [

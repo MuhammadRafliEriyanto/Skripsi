@@ -14,6 +14,7 @@ import {
   Upload,
   UserCog,
   X,
+  RotateCcw,
 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 
@@ -125,6 +126,8 @@ export function OwnerDashboardBranchesSection({
       });
     }
 
+
+
     return options;
   }, [manager.branchAdminOptions, manager.form.adminName]);
   const selectedBranchAdminId =
@@ -168,14 +171,18 @@ export function OwnerDashboardBranchesSection({
     manager.branchStatusFilter !== "Semua";
   const emptyStateTitle = manager.isLoading
     ? "Memuat data cabang..."
-    : hasActiveFilters
-      ? "Belum ada cabang yang cocok dengan filter"
-      : "Belum ada data cabang";
+    : manager.branchStatusFilter === "Terhapus" && !hasActiveFilters
+      ? "Belum ada cabang terhapus"
+      : hasActiveFilters
+        ? "Belum ada cabang yang cocok dengan filter"
+        : "Belum ada data cabang";
   const emptyStateDescription = manager.isLoading
     ? "Data cabang sedang dimuat. Tabel akan terisi otomatis."
-    : hasActiveFilters
-      ? "Coba ubah kata kunci pencarian, reset filter, atau tambahkan cabang baru agar data kembali tampil."
-      : "Tambahkan cabang baru untuk mulai memantau operasionalnya di sini.";
+    : manager.branchStatusFilter === "Terhapus" && !hasActiveFilters
+      ? "Data cabang yang dihapus akan muncul di sini."
+      : hasActiveFilters
+        ? "Coba ubah kata kunci pencarian, reset filter, atau tambahkan cabang baru agar data kembali tampil."
+        : "Anda belum memiliki data cabang sama sekali. Silakan tambah cabang baru melalui tombol di atas untuk memulai manajemen bimbingan.";
 
   return (
     <TooltipProvider>
@@ -425,39 +432,59 @@ export function OwnerDashboardBranchesSection({
                         </TableCell>
                         <TableCell className="px-6">
                           <div className="flex items-center justify-center gap-2">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  type="button"
-                                  size="icon"
-                                  variant="ghost"
-                                  className="size-10 rounded-full"
-                                  onClick={() =>
-                                    manager.openEditDialog(branch.id)
-                                  }
-                                >
-                                  <PencilLine className="size-4" />
-                                  <span className="sr-only">Edit cabang</span>
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Edit cabang</TooltipContent>
-                            </Tooltip>
+                            {manager.branchStatusFilter === "Terhapus" ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    className="size-10 rounded-full text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
+                                    onClick={() => manager.restoreBranch(branch.id)}
+                                  >
+                                    <RotateCcw className="size-4" />
+                                    <span className="sr-only">Pulihkan cabang</span>
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Pulihkan cabang</TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              <>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      size="icon"
+                                      variant="ghost"
+                                      className="size-10 rounded-full"
+                                      onClick={() =>
+                                        manager.openEditDialog(branch.id)
+                                      }
+                                    >
+                                      <PencilLine className="size-4" />
+                                      <span className="sr-only">Edit cabang</span>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Edit cabang</TooltipContent>
+                                </Tooltip>
 
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  type="button"
-                                  size="icon"
-                                  variant="ghost"
-                                  className="size-10 rounded-full text-red-500 hover:bg-red-50 hover:text-red-600"
-                                  onClick={() => handleDeleteBranch(branch)}
-                                >
-                                  <Trash2 className="size-4" />
-                                  <span className="sr-only">Hapus cabang</span>
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Hapus cabang</TooltipContent>
-                            </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      size="icon"
+                                      variant="ghost"
+                                      className="size-10 rounded-full text-red-500 hover:bg-red-50 hover:text-red-600"
+                                      onClick={() => handleDeleteBranch(branch)}
+                                    >
+                                      <Trash2 className="size-4" />
+                                      <span className="sr-only">Hapus cabang</span>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Hapus cabang</TooltipContent>
+                                </Tooltip>
+                              </>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>

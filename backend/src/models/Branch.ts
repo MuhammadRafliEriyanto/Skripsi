@@ -14,6 +14,7 @@ export interface IBranch {
   status: BranchStatus;
   adminName: string;
   adminUserId: Types.ObjectId | null;
+  isDeleted: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -69,6 +70,10 @@ const branchSchema = new Schema<IBranch>(
       ref: "User",
       default: null,
       index: true,
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
     },
   },
   {

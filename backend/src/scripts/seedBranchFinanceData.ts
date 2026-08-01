@@ -174,7 +174,7 @@ const EXPENSE_TEMPLATES: ExpenseTemplate[] = [
   },
   {
     title: "Langganan internet cabang",
-    category: "Internet",
+    category: "Wifi",
     vendorOrRecipient: "Penyedia Internet",
     amount: 650_000,
     paymentMethod: "Autodebet",
@@ -183,7 +183,7 @@ const EXPENSE_TEMPLATES: ExpenseTemplate[] = [
   },
   {
     title: "Sewa gedung bulanan",
-    category: "Sewa Gedung",
+    category: "Gedung",
     vendorOrRecipient: "Pemilik Gedung",
     amount: 6_500_000,
     paymentMethod: "Transfer Bank",
@@ -193,7 +193,7 @@ const EXPENSE_TEMPLATES: ExpenseTemplate[] = [
   {
     title: "Perawatan AC dan fasilitas kelas",
     legacyTitles: ["Honor guru bulan berjalan"],
-    category: "Perawatan Fasilitas",
+    category: "Gedung",
     vendorOrRecipient: "Teknisi Fasilitas",
     amount: 3_250_000,
     paymentMethod: "Transfer Bank",
@@ -203,7 +203,7 @@ const EXPENSE_TEMPLATES: ExpenseTemplate[] = [
   {
     title: "Pengadaan meja dan kursi kelas",
     legacyTitles: ["Gaji admin cabang"],
-    category: "Perlengkapan Kelas",
+    category: "Gedung",
     vendorOrRecipient: "Toko Furnitur Pendidikan",
     amount: 3_500_000,
     paymentMethod: "Transfer Bank",
@@ -212,7 +212,7 @@ const EXPENSE_TEMPLATES: ExpenseTemplate[] = [
   },
   {
     title: "Pembelian alat tulis",
-    category: "Perlengkapan Kelas",
+    category: "Gedung",
     vendorOrRecipient: "Toko ATK",
     amount: 875_000,
     paymentMethod: "Tunai",
@@ -221,7 +221,7 @@ const EXPENSE_TEMPLATES: ExpenseTemplate[] = [
   },
   {
     title: "Perawatan komputer admin",
-    category: "Teknologi",
+    category: "Wifi",
     vendorOrRecipient: "Teknisi Komputer",
     amount: 1_350_000,
     paymentMethod: "QRIS",
@@ -231,7 +231,7 @@ const EXPENSE_TEMPLATES: ExpenseTemplate[] = [
   },
   {
     title: "Kebutuhan kebersihan kelas",
-    category: "Kebersihan",
+    category: "Gedung",
     vendorOrRecipient: "Pemasok Kebersihan",
     amount: 550_000,
     paymentMethod: "Tunai",
@@ -241,7 +241,7 @@ const EXPENSE_TEMPLATES: ExpenseTemplate[] = [
   },
   {
     title: "Perbaikan fasilitas kelas",
-    category: "Perawatan Fasilitas",
+    category: "Gedung",
     vendorOrRecipient: "Penyedia Jasa Bangunan",
     amount: 2_100_000,
     paymentMethod: "Transfer Bank",

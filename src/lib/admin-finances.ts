@@ -7,7 +7,12 @@ export const adminBranchIncomeStatusOptions = [
 ] as const;
 
 export const adminExpenseCategoryOptions = [
+  "Wifi",
+  "Gedung",
   "Listrik",
+] as const;
+
+export const adminLegacyExpenseCategoryOptions = [
   "Internet",
   "Sewa Gedung",
   "Perawatan Fasilitas",
@@ -17,6 +22,9 @@ export const adminExpenseCategoryOptions = [
   "Teknologi",
   "Transportasi Operasional",
   "Lainnya",
+  "Gaji Guru",
+  "Gaji Admin",
+  "Operasional Cabang",
 ] as const;
 
 export const adminExpenseStatusOptions = [
@@ -35,7 +43,9 @@ export const adminFinanceTransactionKindOptions = [
 export type AdminBranchIncomeStatus =
   (typeof adminBranchIncomeStatusOptions)[number];
 export type AdminUiExpenseCategory = (typeof adminExpenseCategoryOptions)[number];
-export type AdminExpenseCategory = AdminUiExpenseCategory;
+export type AdminExpenseCategory =
+  | AdminUiExpenseCategory
+  | (typeof adminLegacyExpenseCategoryOptions)[number];
 export type AdminExpenseStatus = (typeof adminExpenseStatusOptions)[number];
 export type AdminFinanceTransactionKind =
   (typeof adminFinanceTransactionKindOptions)[number];
@@ -49,9 +59,27 @@ export const adminExpenseFormStatusOptions = [
 export function normalizeAdminExpenseFormCategory(
   value: string | null | undefined,
 ): AdminUiExpenseCategory {
-  return adminExpenseCategoryOptions.includes(value as AdminUiExpenseCategory)
-    ? (value as AdminUiExpenseCategory)
-    : "Lainnya";
+  const normalizedValue = value?.trim().replace(/\s+/g, " ") ?? "";
+
+  if (adminExpenseCategoryOptions.includes(normalizedValue as AdminUiExpenseCategory)) {
+    return normalizedValue as AdminUiExpenseCategory;
+  }
+
+  switch (normalizedValue) {
+    case "Internet":
+    case "Teknologi":
+      return "Wifi";
+    case "Sewa Gedung":
+    case "Perawatan Fasilitas":
+    case "Perlengkapan Kelas":
+    case "Kebersihan":
+    case "Keamanan":
+    case "Transportasi Operasional":
+    case "Operasional Cabang":
+      return "Gedung";
+    default:
+      return "Listrik";
+  }
 }
 
 export function normalizeAdminExpenseFormStatus(

@@ -305,6 +305,7 @@ async function findBranchWithSameName(name: string, excludedBranchId?: string) {
 
   return Branch.findOne({
     name: nameRegex,
+    isDeleted: { $ne: true },
     ...(excludedBranchId
       ? {
           branchId: {
@@ -384,7 +385,10 @@ export const getBranches = asyncHandler(async (req: Request, res: Response) => {
   const scope = await resolveAdminBranchScope(req.user, {
     requireManagedBranchesForAdmin: true,
   });
-  const branches = await Branch.find().sort({ createdAt: 1, _id: 1 }).exec();
+  const isDeleted = req.query.deleted === "true";
+  const branches = await Branch.find(
+    isDeleted ? { isDeleted: true } : { isDeleted: { $ne: true } }
+  ).sort({ createdAt: 1, _id: 1 }).exec();
   const scopedBranches = branches.filter((branch) =>
     matchesBranchScope(branch.name, scope),
   );
@@ -408,7 +412,7 @@ export const getBranches = asyncHandler(async (req: Request, res: Response) => {
 
 export const getPublicBranchOptions = asyncHandler(
   async (_req: Request, res: Response) => {
-    const branches = await Branch.find({ status: "Aktif" })
+    const branches = await Branch.find({ status: "Aktif", isDeleted: { $ne: true } })
       .sort({ name: 1, createdAt: 1, _id: 1 })
       .exec();
 
@@ -951,42 +955,36 @@ export const deleteBranch = asyncHandler(
       return;
     }
 
-    const branchNameRegex = new RegExp(`^${escapeRegex(branch.name)}$`, "i");
-    const linkedTeacherCount = await Teacher.countDocuments({
-      branch: branchNameRegex,
-    }).exec();
-    const linkedStudentCount = await Student.countDocuments({
-      branch: branchNameRegex,
-    }).exec();
-
-    if (linkedTeacherCount > 0) {
-      next(
-        new AppError(
-          409,
-          "Cabang tidak bisa dihapus karena masih dipakai oleh data guru.",
-        ),
-      );
-      return;
-    }
-
-    if (linkedStudentCount > 0) {
-      next(
-        new AppError(
-          409,
-          "Cabang tidak bisa dihapus karena masih dipakai oleh data siswa.",
-        ),
-      );
-      return;
-    }
-
-    await Teacher.updateMany(
-      { branches: branchNameRegex },
-      { $pull: { branches: branchNameRegex } },
-    ).exec();
-    await Branch.deleteOne({ _id: branch._id });
+    branch.isDeleted = true;
+    branch.status = "Nonaktif";
+    await branch.save();
 
     sendSuccess(res, {
       message: "Data cabang berhasil dihapus.",
+    });
+  },
+);
+
+export const restoreBranch = asyncHandler(
+  async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
+    const branch = await findBranchByParam(req.params.id);
+
+    if (!branch) {
+      next(new AppError(404, "Data cabang tidak ditemukan."));
+      return;
+    }
+
+    if (!branch.isDeleted) {
+      next(new AppError(400, "Cabang ini tidak sedang dalam status terhapus."));
+      return;
+    }
+
+    branch.isDeleted = false;
+    branch.status = "Persiapan"; // Otomatis ke status persiapan agar dicek dulu
+    await branch.save();
+
+    sendSuccess(res, {
+      message: "Data cabang berhasil dipulihkan.",
     });
   },
 );

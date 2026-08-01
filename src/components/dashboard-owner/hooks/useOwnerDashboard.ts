@@ -17,9 +17,9 @@ import {
 export type OwnerDashboardBranchStatus = "Aktif" | "Persiapan" | "Nonaktif";
 const attentionBranchFilter = "Persiapan & Nonaktif" as const;
 export type OwnerDashboardBranchFilter =
-  | "Semua"
   | OwnerDashboardBranchStatus
-  | typeof attentionBranchFilter;
+  | typeof attentionBranchFilter
+  | "Terhapus";
 
 export type OwnerDashboardBranch = {
   id: string;
@@ -105,6 +105,7 @@ export type OwnerDashboardBranchManager = {
   importBranches: (file: File) => Promise<void>;
   exportBranches: (format: "csv" | "json") => void;
   resetFilters: () => void;
+  restoreBranch: (branchId: string) => void;
 };
 
 const branchFilterOptions = [
@@ -113,6 +114,7 @@ const branchFilterOptions = [
   attentionBranchFilter,
   "Persiapan",
   "Nonaktif",
+  "Terhapus",
 ] as const satisfies readonly OwnerDashboardBranchFilter[];
 
 const branchStatusOptions = [
@@ -258,9 +260,9 @@ function buildBranchMutationPayload(
   };
 }
 
-async function fetchOwnerBranchesFromApi() {
+async function fetchOwnerBranchesFromApi(isDeleted: boolean = false) {
   const payload = await requestAdminApi<{ branches: OwnerBranchApiItem[] }>(
-    "/api/branches",
+    `/api/branches${isDeleted ? "?deleted=true" : ""}`,
     {
       method: "GET",
     },
@@ -478,8 +480,8 @@ export function useOwnerDashboard({
   const [branchFormError, setBranchFormError] = useState<string | null>(null);
   const [branchFlash, setBranchFlash] = useState<OwnerDashboardBranchFlash | null>(null);
 
-  async function refreshBranchesFromApi(options: { notifyListeners?: boolean } = {}) {
-    const nextBranches = await fetchOwnerBranchesFromApi();
+  async function refreshBranchesFromApi(options: { notifyListeners?: boolean; isDeleted?: boolean } = {}) {
+    const nextBranches = await fetchOwnerBranchesFromApi(options.isDeleted ?? branchStatusFilter === "Terhapus");
 
     setBranches(nextBranches);
 
@@ -496,7 +498,7 @@ export function useOwnerDashboard({
     async function loadOwnerBranchResources() {
       setIsLoadingBranches(true);
       const [branchesResult, adminOptionsResult] = await Promise.allSettled([
-        fetchOwnerBranchesFromApi(),
+        fetchOwnerBranchesFromApi(branchStatusFilter === "Terhapus"),
         fetchOwnerBranchAdminOptionsFromApi(),
       ]);
 
@@ -529,7 +531,7 @@ export function useOwnerDashboard({
     return () => {
       isCancelled = true;
     };
-  }, []);
+  }, [branchStatusFilter]);
 
   const branchSummary = useMemo(() => {
     return branches.reduce(
@@ -568,7 +570,7 @@ export function useOwnerDashboard({
           branch.status.toLowerCase().includes(query)
         : true;
       const matchesStatus =
-        branchStatusFilter === "Semua"
+        branchStatusFilter === "Semua" || branchStatusFilter === "Terhapus"
           ? true
           : branchStatusFilter === attentionBranchFilter
             ? branch.status === "Persiapan" || branch.status === "Nonaktif"
@@ -760,6 +762,40 @@ export function useOwnerDashboard({
     void removeBranchFromApi(branchId);
   }
 
+  async function restoreBranchFromApi(branchId: string) {
+    const branch = branches.find((item) => item.id === branchId);
+
+    if (!branch) {
+      return;
+    }
+
+    try {
+      await requestAdminApi<Record<string, never>>(
+        `/api/branches/${encodeURIComponent(extractPersistedBranchId(branchId))}/restore`,
+        {
+          method: "PUT",
+        },
+      );
+      setBranchFlash({
+        tone: "success",
+        message: `Cabang ${branch.name} berhasil dipulihkan dan masuk ke status Persiapan.`,
+      });
+      await refreshBranchesFromApi({ notifyListeners: true, isDeleted: true });
+    } catch (error) {
+      setBranchFlash({
+        tone: "danger",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Cabang gagal dipulihkan. Coba ulangi lagi.",
+      });
+    }
+  }
+
+  function restoreBranch(branchId: string) {
+    void restoreBranchFromApi(branchId);
+  }
+
   async function importBranches(file: File) {
     try {
       const content = await file.text();
@@ -919,6 +955,7 @@ export function useOwnerDashboard({
     updateFormValue,
     submitForm,
     removeBranch,
+    restoreBranch,
     importBranches,
     exportBranches,
     resetFilters,
