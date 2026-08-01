@@ -5,8 +5,6 @@ import {
   Eye,
   Pencil,
   Plus,
-  Power,
-  PowerOff,
   Trash2,
   Upload,
 } from "lucide-react";
@@ -45,6 +43,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -55,14 +54,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import { TableCell, TableRow } from "@/components/ui/table";
 
 import type {
@@ -415,21 +406,17 @@ function ScheduleActions({
   readOnlyMessage = "",
   onEdit,
   onDelete,
-  onToggleStatus,
 }: {
   schedule: AdminScheduleItem;
   readOnly?: boolean;
   readOnlyMessage?: string;
   onEdit: (schedule: AdminScheduleItem) => void;
   onDelete: (schedule: AdminScheduleItem) => void;
-  onToggleStatus: (schedule: AdminScheduleItem) => void;
 }) {
-  const isReview = schedule.status === "Review";
-
   return (
     <div className="flex items-center justify-center gap-1.5">
-      <Sheet>
-        <SheetTrigger asChild>
+      <Dialog>
+        <DialogTrigger asChild>
           <Button
             type="button"
             variant="outline"
@@ -440,60 +427,80 @@ function ScheduleActions({
           >
             <Eye className="size-4" />
           </Button>
-        </SheetTrigger>
-        <SheetContent
-          side="right"
-          className={`w-[92vw] overflow-y-auto sm:max-w-lg ${warmOverlayPanelClassName}`}
+        </DialogTrigger>
+        <DialogContent
+          className={`max-h-[90vh] w-[92vw] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] sm:max-w-lg ${warmOverlayPanelClassName}`}
         >
-          <SheetHeader>
-            <SheetTitle>Detail jadwal</SheetTitle>
-            <SheetDescription>
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-slate-800">
+              Detail Jadwal
+            </DialogTitle>
+            <DialogDescription className="text-slate-500">
               Ringkasan slot kelas, pengajar, ruangan, dan status jadwal.
-            </SheetDescription>
-          </SheetHeader>
+            </DialogDescription>
+          </DialogHeader>
 
-          <div className="mt-6 space-y-5">
-            <div className="rounded-[22px] border border-orange-100/70 bg-gradient-to-r from-orange-50/85 to-white p-4 shadow-[0_16px_32px_-24px_rgba(249,115,22,0.22)]">
-              <p className="text-base font-semibold text-slate-950">
-                {schedule.className}
-              </p>
-              <p className="mt-1 text-sm font-medium text-orange-700">
-                {schedule.subject || "Mapel belum dipilih"}
-              </p>
-              <p className="mt-1 text-sm text-slate-500">
-                {schedule.day}, {schedule.time}
-              </p>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <DetailItem label="Hari" value={schedule.day} />
-              <DetailItem label="Jam" value={schedule.time} />
-              <DetailItem label="Mapel" value={schedule.subject || "-"} />
-              <DetailItem label="Guru" value={schedule.teacher} />
-              <DetailItem label="Cabang" value={schedule.branch || "-"} />
-              <DetailItem label="Ruangan" value={schedule.room} />
-              <DetailItem label="Status" value={schedule.status} />
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <AdminStatusBadge status={schedule.status} />
-            </div>
-
-            {schedule.conflicts.length ? (
-              <div className="rounded-[20px] border border-rose-100/80 bg-rose-50/70 p-4 shadow-[0_12px_26px_-22px_rgba(244,63,94,0.18)]">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-500">
-                  Catatan bentrok
+          <div className="mt-4 space-y-6">
+            <div className="flex flex-col justify-between gap-4 rounded-2xl border border-orange-100 bg-gradient-to-r from-orange-50/80 to-white p-5 shadow-sm sm:flex-row sm:items-center">
+              <div className="min-w-0">
+                <p className="text-lg font-bold text-slate-900">
+                  {schedule.className}
                 </p>
+                <p className="text-sm font-medium text-orange-600">
+                  {schedule.subject || "Mapel belum dipilih"}
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  {schedule.day}, {schedule.time}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <AdminStatusBadge status={schedule.status} />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="border-b border-slate-100 pb-2 text-sm font-semibold text-slate-800">
+                Waktu & Kelas
+              </h4>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <DetailItem label="Hari" value={schedule.day} />
+                <DetailItem label="Jam" value={schedule.time} />
+                <DetailItem label="Kelas" value={schedule.className} />
+                <DetailItem label="Mapel" value={schedule.subject || "-"} />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="border-b border-slate-100 pb-2 text-sm font-semibold text-slate-800">
+                Pengajar & Lokasi
+              </h4>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <DetailItem label="Guru" value={schedule.teacher} />
+                <DetailItem label="Cabang" value={schedule.branch || "-"} />
+                <DetailItem label="Ruangan" value={schedule.room} />
+                <DetailItem label="Status" value={schedule.status} />
+              </div>
+            </div>
+
+            <div className="rounded-[20px] border border-slate-200/80 bg-white/95 p-4 shadow-[0_12px_26px_-22px_rgba(15,23,42,0.14)]">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                Catatan Bentrok
+              </p>
+              {schedule.conflicts.length ? (
                 <div className="mt-2 space-y-2 text-sm leading-6 text-rose-700">
                   {schedule.conflicts.map((conflict) => (
                     <p key={conflict}>{conflict}</p>
                   ))}
                 </div>
-              </div>
-            ) : null}
+              ) : (
+                <p className="mt-2 text-sm font-medium text-slate-800">
+                  Tidak ada catatan bentrok.
+                </p>
+              )}
+            </div>
           </div>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
       <Button
         type="button"
@@ -506,29 +513,6 @@ function ScheduleActions({
         onClick={() => onEdit(schedule)}
       >
         <Pencil className="size-4" />
-      </Button>
-
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        className={
-          isReview
-            ? "size-9 rounded-xl border-emerald-200 bg-white p-0 text-emerald-600 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 active:border-emerald-300 active:bg-emerald-100/80 focus-visible:ring-orange-500/10"
-            : "size-9 rounded-xl border-amber-200 bg-white p-0 text-amber-600 shadow-sm transition hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700 active:border-amber-300 active:bg-amber-100/80 focus-visible:ring-orange-500/10"
-        }
-        aria-label={
-          isReview
-            ? `Tandai siap ${schedule.className}`
-            : `Tandai review ${schedule.className}`
-        }
-        title={
-          readOnly ? readOnlyMessage : isReview ? "Tandai siap" : "Tandai review"
-        }
-        disabled={readOnly}
-        onClick={() => onToggleStatus(schedule)}
-      >
-        {isReview ? <Power className="size-4" /> : <PowerOff className="size-4" />}
       </Button>
 
       <Button
@@ -1077,71 +1061,6 @@ export function AdminSchedule({
     }
   };
 
-  const handleToggleStatus = async (schedule: AdminScheduleItem) => {
-    if (isAcademicYearLocked) {
-      setFormError(academicYearLockMessage);
-      return;
-    }
-
-    const nextStatus: AdminScheduleItem["status"] =
-      schedule.status === "Review" ? "Siap" : "Review";
-    const parsedClassName = parseAcademicClassName(
-      schedule.className,
-      scheduleGradeOptionsByLevel,
-    );
-    const normalizedSubject = normalizeScheduleSubject(
-      schedule.subject,
-      scheduleSubjectOptions,
-    );
-
-    if (!parsedClassName) {
-      openEditDialog(schedule);
-      setFormError(
-        "Jadwal ini masih memakai format kelas lama. Pilih jenjang dan kelas akademik sebelum mengubah status.",
-      );
-      return;
-    }
-
-    if (!normalizedSubject) {
-      openEditDialog(schedule);
-      setFormError(
-        "Jadwal ini belum punya mata pelajaran yang valid. Pilih mapel sebelum mengubah status.",
-      );
-      return;
-    }
-
-    try {
-      await requestAdminApi<{ schedule: AdminScheduleItem }>(
-        `/api/schedules/${encodeURIComponent(schedule.id)}`,
-        {
-          method: "PUT",
-          body: JSON.stringify({
-            day: schedule.day,
-            time: schedule.time,
-            className: buildAcademicClassName(
-              parsedClassName.level,
-              parsedClassName.grade,
-              scheduleGradeOptionsByLevel,
-            ),
-            subject: normalizedSubject,
-            teacherId: schedule.teacherId,
-            room: schedule.room,
-            status: nextStatus,
-            academicYear: academicYearFilter,
-          }),
-        },
-      );
-      await refreshScheduleViews();
-    } catch (requestError) {
-      setFormError(
-        getScheduleRequestErrorMessage(
-          requestError,
-          "Gagal memperbarui status jadwal.",
-        ),
-      );
-    }
-  };
-
   const handleDelete = async () => {
     if (!scheduleToDelete) {
       return;
@@ -1327,10 +1246,9 @@ export function AdminSchedule({
           readOnlyMessage={academicYearLockMessage}
           onEdit={openEditDialog}
           onDelete={setScheduleToDelete}
-          onToggleStatus={handleToggleStatus}
         />
       ),
-      className: "w-[196px] text-center",
+      className: "w-[156px] text-center",
     },
   ];
 
