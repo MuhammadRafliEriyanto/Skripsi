@@ -123,8 +123,9 @@ export function ResetPasswordView({
       });
 
       setSuccessMessage(
-        response.message ||
-          "Password berhasil direset. Silakan login dengan password baru Anda.",
+        (response.message ||
+          "Password berhasil direset. Silakan login dengan password baru Anda.") +
+          " Mengalihkan ke halaman login...",
       );
       setFormValues((current) => ({
         ...current,
@@ -132,6 +133,10 @@ export function ResetPasswordView({
         newPassword: "",
         confirmNewPassword: "",
       }));
+
+      setTimeout(() => {
+        router.push("/login");
+      }, 3000);
     } catch (error) {
       if (
         error instanceof AuthRequestError &&
