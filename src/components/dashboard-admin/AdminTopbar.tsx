@@ -53,10 +53,15 @@ type AdminTopbarProps = {
   activeTab: AdminTab;
   onSelectTab: (value: AdminTab) => void;
   sidebarBadgeCounts?: AdminSidebarBadgeCounts;
-  searchQuery: string;
-  onSearchQueryChange: (value: string) => void;
-  onClearSearchQuery: () => void;
 };
+
+function getGreeting() {
+  const currentHour = new Date().getHours();
+  if (currentHour < 11) return "Selamat Pagi";
+  if (currentHour < 15) return "Selamat Siang";
+  if (currentHour < 18) return "Selamat Sore";
+  return "Selamat Malam";
+}
 
 function getInitials(name: string) {
   return name
@@ -199,31 +204,10 @@ function resolveAdminNotificationTab(key: string): AdminTab {
   }
 }
 
-function getSearchPlaceholder(activeTab: AdminTab) {
-  switch (activeTab) {
-    case "students":
-      return "Cari nama siswa, email, nomor induk, atau kelas...";
-    case "teachers":
-      return "Cari nama guru, email, nomor induk, cabang, atau mapel...";
-    case "schedule":
-      return "Cari kelas, mapel, guru, hari, atau ruangan...";
-    case "utbkAssessments":
-      return "Cari siswa, kode login, kelas, target kampus, jurusan, atau cabang...";
-    case "payments":
-      return "Cari no referensi, siswa, paket, pengeluaran, atau aktivasi...";
-    case "overview":
-    default:
-      return "Cari siswa, guru, jadwal, atau pembayaran...";
-  }
-}
-
 export function AdminTopbar({
   activeTab,
   onSelectTab,
   sidebarBadgeCounts,
-  searchQuery,
-  onSearchQueryChange,
-  onClearSearchQuery,
 }: AdminTopbarProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -336,6 +320,19 @@ export function AdminTopbar({
       void loadCurrentUser();
       void loadNotificationSummary();
     });
+
+    const handleAuthUserUpdated = () => {
+      const persistedUser = readPersistedAuthUser();
+      if (persistedUser) {
+        setCurrentUser(persistedUser);
+      }
+    };
+
+    window.addEventListener("AUTH_USER_UPDATED_EVENT", handleAuthUserUpdated);
+
+    return () => {
+      window.removeEventListener("AUTH_USER_UPDATED_EVENT", handleAuthUserUpdated);
+    };
   }, [loadNotificationSummary, mounted]);
 
   useEffect(() => {
@@ -447,27 +444,11 @@ export function AdminTopbar({
               </SheetContent>
             </Sheet>
 
-            <div className="relative w-full max-w-[320px] lg:max-w-[380px]">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
-              <Input
-                aria-label="Cari data dashboard admin"
-                className="h-10 rounded-full border-slate-200/80 bg-white/95 pl-10 pr-11 text-sm shadow-sm shadow-slate-950/5"
-                placeholder={getSearchPlaceholder(activeTab)}
-                value={searchQuery}
-                onChange={(event) => onSearchQueryChange(event.target.value)}
-              />
-              {searchQuery ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-1 top-1/2 size-8 -translate-y-1/2 rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                  onClick={onClearSearchQuery}
-                >
-                  <X className="size-3.5" />
-                  <span className="sr-only">Hapus pencarian</span>
-                </Button>
-              ) : null}
+            <div className="hidden flex-col justify-center lg:flex">
+              <span className="text-sm font-semibold text-slate-900">
+                {getGreeting()},
+              </span>
+              <span className="text-xs text-slate-500">{displayName}</span>
             </div>
           </div>
 

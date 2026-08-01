@@ -20,7 +20,6 @@ function AdminLayoutClientInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const globalSearchQuery = searchParams.get("q") || "";
   const currentAcademicYear = getCurrentAdminAcademicYear();
   
   const [studentActiveCount, setStudentActiveCount] = useState(0);
@@ -72,16 +71,6 @@ function AdminLayoutClientInner({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const handleSearchQueryChange = (q: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (q) {
-      params.set("q", q);
-    } else {
-      params.delete("q");
-    }
-    router.replace(`${pathname}?${params.toString()}`);
-  };
-
   return (
     <div className={cn("min-h-screen bg-white", adminPoppins.className)}>
       <AdminSidebar
@@ -103,9 +92,6 @@ function AdminLayoutClientInner({ children }: { children: React.ReactNode }) {
           activeTab={activeTab}
           onSelectTab={handleSelectTab}
           sidebarBadgeCounts={sidebarBadgeCounts}
-          searchQuery={globalSearchQuery}
-          onSearchQueryChange={handleSearchQueryChange}
-          onClearSearchQuery={() => handleSearchQueryChange("")}
         />
         <main className="flex-1 p-5 lg:p-6">
           {children}
