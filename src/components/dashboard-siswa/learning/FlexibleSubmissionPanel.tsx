@@ -585,12 +585,6 @@ export default function FlexibleSubmissionPanel({
                   {formatFileSize(currentAttachment.size)}
                 </span>
               ) : null}
-              </a>
-              {currentAttachment ? (
-                <span className="text-xs text-emerald-700/80">
-                  {formatFileSize(currentAttachment.size)}
-                </span>
-              ) : null}
             </div>
           ) : null}
         </div>
