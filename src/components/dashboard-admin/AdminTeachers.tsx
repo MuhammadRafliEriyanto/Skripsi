@@ -668,6 +668,13 @@ export function AdminTeachers({
     };
   }, [page, refreshTeachers, requestKey]);
 
+  useEffect(() => {
+    if (successMessage) {
+      const timer = window.setTimeout(() => setSuccessMessage(null), 4500);
+      return () => window.clearTimeout(timer);
+    }
+  }, [successMessage]);
+
   const resolvedBranchOptions = branchOptions;
 
   const filteredTeachers = teachers;

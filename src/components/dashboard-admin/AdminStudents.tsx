@@ -753,7 +753,12 @@ export function AdminStudents({
     };
   }, [page, refreshStudents, requestKey]);
 
-
+  useEffect(() => {
+    if (actionFeedback) {
+      const timer = window.setTimeout(() => setActionFeedback(null), 4500);
+      return () => window.clearTimeout(timer);
+    }
+  }, [actionFeedback]);
 
   const resolvedBranchOptions = branchOptions;
   const selectedBranchValue =

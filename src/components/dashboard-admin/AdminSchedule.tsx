@@ -833,6 +833,13 @@ export function AdminSchedule({
     };
   }, [page, refreshSchedules, requestKey]);
 
+  useEffect(() => {
+    if (actionNotice) {
+      const timer = window.setTimeout(() => setActionNotice(null), 4500);
+      return () => window.clearTimeout(timer);
+    }
+  }, [actionNotice]);
+
   const orderedSchedules = schedules;
   const filteredSchedules = orderedSchedules;
 
