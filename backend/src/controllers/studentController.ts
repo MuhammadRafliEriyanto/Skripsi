@@ -28,6 +28,7 @@ import {
 import { AppError, sendSuccess } from "../utils/apiResponse";
 import { buildStudentLoginCode } from "../utils/accountCode";
 import { assertAdminAcademicPeriodEditable } from "../utils/adminAcademicArchive";
+import { clearUserLoginLock } from "../utils/authLock";
 import { buildCsvContent } from "../utils/csv";
 import { getNextPublicId } from "../utils/publicId";
 import {
@@ -1365,6 +1366,7 @@ export const updateStudent = asyncHandler(
         return;
       }
       student.userId.password = await bcrypt.hash(password, 12);
+      clearUserLoginLock(student.userId);
     }
 
     student.userId.isEmailVerified = true;
@@ -1377,6 +1379,66 @@ export const updateStudent = asyncHandler(
       message: "Data siswa berhasil diperbarui.",
       data: {
         student: toPublicStudent(student, student.userId),
+      },
+    });
+  },
+);
+
+export const resetStudentPassword = asyncHandler(
+  async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
+    const scope = await resolveAdminBranchScope(req.user, {
+      requireManagedBranchesForAdmin: true,
+    });
+    const student = await findStudentByParam(req.params.id);
+
+    if (!student) {
+      next(new AppError(404, "Data siswa tidak ditemukan."));
+      return;
+    }
+
+    assertBranchAccess(student.branch, scope);
+
+    if (!hasResolvedStudentUser(student)) {
+      next(
+        new AppError(
+          409,
+          "Password siswa tidak dapat direset karena akun user terkait tidak ditemukan.",
+        ),
+      );
+      return;
+    }
+
+    const publicStudent = toPublicStudent(student, student.userId);
+    const { loginCode, generatedPassword } = publicStudent;
+    const duplicateLoginCode = await User.findOne({
+      loginCode,
+      _id: { $ne: student.userId._id },
+    }).exec();
+
+    if (duplicateLoginCode) {
+      next(new AppError(409, "Kode login awal siswa sudah digunakan akun lain."));
+      return;
+    }
+
+    student.userId.loginCode = loginCode;
+    student.userId.password = await bcrypt.hash(generatedPassword, 12);
+    student.userId.passwordResetToken = null;
+    student.userId.passwordResetExpires = null;
+    clearUserLoginLock(student.userId);
+    student.userId.isEmailVerified = true;
+    student.userId.emailVerificationToken = null;
+    student.userId.emailVerificationExpires = null;
+
+    await student.userId.save();
+
+    sendSuccess(res, {
+      message: "Password siswa berhasil direset ke password awal.",
+      data: {
+        student: toPublicStudent(student, student.userId),
+        credentials: {
+          loginCode,
+          password: generatedPassword,
+        },
       },
     });
   },

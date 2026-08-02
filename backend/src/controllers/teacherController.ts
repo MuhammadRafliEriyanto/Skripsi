@@ -23,6 +23,7 @@ import {
 } from "../utils/adminBranchScope";
 import { AppError, sendSuccess } from "../utils/apiResponse";
 import { buildTeacherLoginCode } from "../utils/accountCode";
+import { clearUserLoginLock } from "../utils/authLock";
 import { buildCsvContent } from "../utils/csv";
 import { getNextPublicId } from "../utils/publicId";
 import {
@@ -1138,6 +1139,7 @@ export const updateTeacher = asyncHandler(
       }
 
       teacher.userId.password = await bcrypt.hash(password, 12);
+      clearUserLoginLock(teacher.userId);
     }
 
     teacher.subject = subject;
@@ -1193,6 +1195,7 @@ export const resetTeacherPassword = asyncHandler(
     teacher.userId.password = await bcrypt.hash(generatedPassword, 12);
     teacher.userId.passwordResetToken = null;
     teacher.userId.passwordResetExpires = null;
+    clearUserLoginLock(teacher.userId);
     teacher.userId.isEmailVerified = true;
     teacher.userId.emailVerificationToken = null;
     teacher.userId.emailVerificationExpires = null;

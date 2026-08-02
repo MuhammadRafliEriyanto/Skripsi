@@ -21,12 +21,8 @@ import {
 } from "./owner-activity-types";
 
 export const incomingStatusOptions = [
-  "Semua",
   "paid",
   "pending",
-  combinedIncomingPaymentStatusFilter,
-  "draft_renewal",
-  "failed",
   "expired",
 ] as const satisfies readonly IncomingPaymentStatusFilter[];
 
@@ -234,14 +230,13 @@ export function mapRouteIncomingStatusToFilter(
       return "paid";
     case "pending":
       return "pending";
-    case "failed":
-      return "failed";
     case "expired":
       return "expired";
+    case "failed":
     case "failed-expired":
-      return combinedIncomingPaymentStatusFilter;
+      return "expired";
     default:
-      return "Semua";
+      return "paid";
   }
 }
 
@@ -282,8 +277,12 @@ export function mapRouteActivationStatusToFilter(
 }
 
 export function getIncomingStatusFilterLabel(value: IncomingPaymentStatusFilter) {
-  if (value === "Semua" || value === combinedIncomingPaymentStatusFilter) {
+  if (value === "Semua") {
     return value;
+  }
+
+  if (value === combinedIncomingPaymentStatusFilter) {
+    return "Expired";
   }
 
   return incomingStatusMeta[value].label;

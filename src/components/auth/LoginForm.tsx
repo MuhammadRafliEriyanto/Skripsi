@@ -269,6 +269,10 @@ export function LoginForm() {
             </div>
           ) : null}
 
+          <p className="text-center text-sm text-slate-500">
+            Lupa password? Hubungi admin untuk reset password.
+          </p>
+
           <Button
             type="submit"
             className="h-12 w-full rounded-xl bg-orange-600 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"

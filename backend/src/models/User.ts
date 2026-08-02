@@ -17,6 +17,9 @@ export interface IUser {
   emailVerificationExpires: Date | null;
   passwordResetToken: string | null;
   passwordResetExpires: Date | null;
+  failedLoginAttempts: number;
+  lockedAt: Date | null;
+  lockedReason: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -94,6 +97,20 @@ const userSchema = new Schema<IUser>(
     passwordResetExpires: {
       type: Date,
       default: null,
+    },
+    failedLoginAttempts: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    lockedAt: {
+      type: Date,
+      default: null,
+    },
+    lockedReason: {
+      type: String,
+      default: null,
+      trim: true,
     },
   },
   {

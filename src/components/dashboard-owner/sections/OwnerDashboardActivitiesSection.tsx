@@ -57,8 +57,9 @@ const MONTHS = [
   "Juli", "Agustus", "September", "Oktober", "November", "Desember"
 ];
 
-const currentYear = new Date().getFullYear();
-const YEARS = [currentYear - 2, currentYear - 1, currentYear, currentYear + 1].map(String);
+const currentYear = new Date().getFullYear().toString();
+const YEARS = ["2026", "2027"];
+const defaultSummaryYear = YEARS.includes(currentYear) ? currentYear : YEARS[0];
 
 type OwnerDashboardActivitiesSectionProps = {
   initialRouteState?: OwnerActivitiesRouteState;
@@ -100,7 +101,7 @@ export function OwnerDashboardActivitiesSection({
   const [activeTab, setActiveTab] = useState<PaymentTab>(initialTab);
   const [summaryBranchFilter, setSummaryBranchFilter] = useState<string>("Semua Cabang");
   const [summaryMonthFilter, setSummaryMonthFilter] = useState<string>("Semua Bulan");
-  const [summaryYearFilter, setSummaryYearFilter] = useState<string>(currentYear.toString());
+  const [summaryYearFilter, setSummaryYearFilter] = useState<string>(defaultSummaryYear);
 
   const [incomingSearchQuery, setIncomingSearchQuery] = useState("");
   const [incomingBranchFilter, setIncomingBranchFilter] =
@@ -397,7 +398,7 @@ export function OwnerDashboardActivitiesSection({
   const hasIncomingFilters =
     incomingSearchQuery.trim().length > 0 ||
     incomingBranchFilter !== allBranchFilter ||
-    incomingStatusFilter !== "Semua" ||
+    incomingStatusFilter !== "paid" ||
     incomingPeriodFilter !== "Semua Periode";
 
   const hasActivationFilters =
@@ -420,7 +421,7 @@ export function OwnerDashboardActivitiesSection({
   function resetIncomingFilters() {
     setIncomingSearchQuery("");
     setIncomingBranchFilter(allBranchFilter);
-    setIncomingStatusFilter("Semua");
+    setIncomingStatusFilter("paid");
     setIncomingPeriodFilter("Semua Periode");
   }
 
@@ -633,7 +634,7 @@ export function OwnerDashboardActivitiesSection({
         const d = new Date(dateStr);
         if (Number.isNaN(d.getTime())) return false;
 
-        if (summaryYearFilter !== "Semua Tahun" && d.getFullYear().toString() !== summaryYearFilter) return false;
+        if (d.getFullYear().toString() !== summaryYearFilter) return false;
         if (summaryMonthFilter !== "Semua Bulan" && MONTHS[d.getMonth()] !== summaryMonthFilter) return false;
 
         return true;
@@ -652,7 +653,7 @@ export function OwnerDashboardActivitiesSection({
         const d = new Date(dateStr);
         if (Number.isNaN(d.getTime())) return false;
 
-        if (summaryYearFilter !== "Semua Tahun" && d.getFullYear().toString() !== summaryYearFilter) return false;
+        if (d.getFullYear().toString() !== summaryYearFilter) return false;
         if (summaryMonthFilter !== "Semua Bulan" && MONTHS[d.getMonth()] !== summaryMonthFilter) return false;
 
         return true;
@@ -707,7 +708,6 @@ export function OwnerDashboardActivitiesSection({
                   </div>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Semua Tahun">Semua Tahun</SelectItem>
                   {YEARS.map((y) => (
                     <SelectItem key={y} value={y}>{y}</SelectItem>
                   ))}

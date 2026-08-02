@@ -132,6 +132,14 @@ type DeleteStudentResponse = {
   subscriptionCount?: number;
 };
 
+type StudentPasswordResetResponse = {
+  student?: AdminStudent;
+  credentials?: {
+    loginCode: string;
+    password: string;
+  };
+};
+
 type StudentActionFeedback = {
   tone: "success" | "warning";
   message: string;
@@ -585,6 +593,7 @@ export function AdminStudents({
     useState<StudentImportResponse | null>(null);
   const [importInputVersion, setImportInputVersion] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [branchOptions, setBranchOptions] = useState<string[]>([]);
@@ -992,6 +1001,47 @@ export function AdminStudents({
       );
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleResetStudentPassword = async () => {
+    if (!editingStudentId || isResettingPassword) {
+      return;
+    }
+
+    setIsResettingPassword(true);
+    setFormError(null);
+
+    try {
+      const payload = await requestAdminApi<StudentPasswordResetResponse>(
+        `/api/students/${encodeURIComponent(editingStudentId)}/reset-password`,
+        {
+          method: "POST",
+        },
+      );
+      const credentials = payload.data?.credentials;
+
+      if (!credentials) {
+        setFormError("Kredensial reset password siswa tidak tersedia.");
+        return;
+      }
+
+      const studentName =
+        payload.data?.student?.name || formValues.name.trim() || "Siswa";
+
+      updateFormValue("password", "");
+      await refreshStudentViews();
+      alert(
+        `Password ${studentName} berhasil direset.\n\nKode Login: ${credentials.loginCode}\nPassword: ${credentials.password}`,
+      );
+    } catch (requestError) {
+      setFormError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Gagal mereset password siswa.",
+      );
+    } finally {
+      setIsResettingPassword(false);
     }
   };
 
@@ -1657,19 +1707,14 @@ export function AdminStudents({
                         type="button"
                         variant="outline"
                         className={`w-full justify-start text-orange-600 hover:text-orange-700 hover:bg-orange-50 border-orange-200 ${warmOutlineButtonClassName}`}
-                        onClick={() => {
-                          const student = students.find((s) => s.id === editingStudentId);
-                          if (student) {
-                            updateFormValue("password", student.generatedPassword);
-                            alert("Password berhasil di-reset menjadi: " + student.generatedPassword + "\\n\\nSilakan klik tombol 'Simpan Perubahan' di bawah untuk menerapkan.");
-                          }
-                        }}
+                        onClick={handleResetStudentPassword}
+                        disabled={isResettingPassword || isSubmitting}
                       >
                         <RotateCcw className="mr-2 size-4" />
-                        Reset Password ke Default
+                        {isResettingPassword ? "Mereset..." : "Reset Password ke Default"}
                       </Button>
                       <p className="text-xs leading-5 text-slate-500">
-                        Klik tombol di atas untuk mereset password ke bawaan sistem, lalu klik Simpan.
+                        Klik tombol di atas untuk mereset password ke bawaan sistem dan membuka akun yang terkunci.
                       </p>
                     </div>
                   </StudentField>
@@ -1776,7 +1821,7 @@ export function AdminStudents({
                 type="submit"
                 variant="secondary"
                 className={warmPrimaryButtonClassName}
-                disabled={isSubmitting || isAcademicYearLocked}
+                disabled={isSubmitting || isResettingPassword || isAcademicYearLocked}
               >
                 {isSubmitting
                   ? "Menyimpan..."

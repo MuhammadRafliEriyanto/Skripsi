@@ -16,6 +16,13 @@ import {
   buildTeacherLoginCode,
   getLoginCodeLookupCandidates,
 } from "../utils/accountCode";
+import {
+  MAX_FAILED_LOGIN_ATTEMPTS,
+  clearUserLoginLock,
+  createAccountLockedError,
+  isLoginLockableRole,
+  isUserLoginLocked,
+} from "../utils/authLock";
 
 interface RegisterRequestBody {
   nama?: string;
@@ -394,11 +401,54 @@ export const login = asyncHandler(
       return;
     }
 
+    if (isUserLoginLocked(user)) {
+      next(createAccountLockedError());
+      return;
+    }
+
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
       console.log(`[AUTH FAILED] Password mismatch for ${identifier}.`);
-      next(new AppError(401, "Kode akun/email atau password salah."));
+
+      if (isLoginLockableRole(user.role)) {
+        const failedLoginAttempts = (user.failedLoginAttempts ?? 0) + 1;
+
+        user.failedLoginAttempts = failedLoginAttempts;
+
+        if (failedLoginAttempts >= MAX_FAILED_LOGIN_ATTEMPTS) {
+          user.lockedAt = new Date();
+          user.lockedReason = "failed_login_attempts";
+          await user.save();
+          next(createAccountLockedError());
+          return;
+        }
+
+        await user.save();
+
+        const remainingAttempts = MAX_FAILED_LOGIN_ATTEMPTS - failedLoginAttempts;
+
+        next(
+          new AppError(
+            401,
+            `Kode akun/email atau password salah. Sisa percobaan: ${remainingAttempts}.`,
+            {
+              password: `Password salah. Sisa percobaan sebelum akun terkunci: ${remainingAttempts}.`,
+            },
+            "AUTH_INVALID_CREDENTIALS",
+          ),
+        );
+        return;
+      }
+
+      next(
+        new AppError(
+          401,
+          "Kode akun/email atau password salah.",
+          null,
+          "AUTH_INVALID_CREDENTIALS",
+        ),
+      );
       return;
     }
 
@@ -408,13 +458,19 @@ export const login = asyncHandler(
       return;
     }
 
-
+    const shouldSaveLoginCode =
+      Boolean(loginLookup.loginCodeToPersist) &&
+      user.loginCode !== loginLookup.loginCodeToPersist;
+    const shouldSaveLoginLock = clearUserLoginLock(user);
 
     if (
-      loginLookup.loginCodeToPersist &&
-      user.loginCode !== loginLookup.loginCodeToPersist
+      shouldSaveLoginCode &&
+      loginLookup.loginCodeToPersist
     ) {
       user.loginCode = loginLookup.loginCodeToPersist;
+    }
+
+    if (shouldSaveLoginCode || shouldSaveLoginLock) {
       await user.save();
     }
 
