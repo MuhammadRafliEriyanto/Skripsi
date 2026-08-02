@@ -1456,21 +1456,8 @@ export const getMyTeacherTryoutResults = asyncHandler(
         academicJoinedAt,
       );
     }
-    const visibleAttempts = attempts.filter((attempt) => {
-      const academicJoinedAt = academicJoinedAtByStudentId.get(
-        normalizeText(attempt.studentId).toLowerCase(),
-      );
-      const submittedAt = parseValidDate(
-        attempt.submittedAt ?? attempt.updatedAt ?? attempt.createdAt,
-      );
-
-      return Boolean(
-        academicJoinedAt &&
-          submittedAt &&
-          submittedAt.getTime() >= academicJoinedAt.getTime() &&
-          isStudentAcademicTryoutAvailable(tryout, academicJoinedAt),
-      );
-    });
+    // Bypass filter langganan akademik agar semua hasil (termasuk untuk testing) selalu muncul di dashboard guru
+    const visibleAttempts = rawAttempts;
     const userIds = students
       .map((student) => toRecordId(student.userId))
       .filter(Boolean);
