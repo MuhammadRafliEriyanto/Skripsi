@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import {
   BookOpenCheck,
   Check,
+  ChevronRight,
   Gauge,
   Target,
   TimerReset,
@@ -216,20 +218,20 @@ export default function UtbkProgressWidget({
               return (
                 <div
                   key={item.label}
-                  className="rounded-xl border border-slate-200/80 bg-slate-50/60 p-4"
+                  className="flex flex-col items-center rounded-xl border border-slate-200/80 bg-slate-50/60 p-4 text-center transition hover:border-slate-300"
                 >
                   <div
-                    className={`flex h-9 w-9 items-center justify-center rounded-lg ${item.bg} ${item.color}`}
+                    className={`flex h-10 w-10 items-center justify-center rounded-lg ${item.bg} ${item.color}`}
                   >
-                    <Icon className="h-4 w-4" />
+                    <Icon className="h-5 w-5" />
                   </div>
-                  <p className="mt-3 text-xs font-semibold text-slate-500">
+                  <p className="mt-3 text-[11px] font-semibold text-slate-500">
                     {item.label}
                   </p>
-                  <p className="mt-1 text-2xl font-black text-slate-950">
+                  <p className="mt-1 text-2xl font-black text-slate-900">
                     {item.value}
                   </p>
-                  <p className="mt-1 text-xs font-medium text-slate-400">
+                  <p className="mt-1 text-[10px] font-medium text-slate-400">
                     {item.detail}
                   </p>
                 </div>
@@ -237,41 +239,50 @@ export default function UtbkProgressWidget({
             })}
           </div>
 
-          <div className="mt-5 grid gap-2 md:grid-cols-3">
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
             {stageProgress.map((stage) => {
               const isDone = Boolean(stage.tryout);
 
               return (
                 <div
                   key={stage.stage}
-                  className={`rounded-xl border px-4 py-3 ${
+                  className={`relative flex flex-col justify-between rounded-xl border px-4 py-4 ${
                     isDone
-                      ? "border-emerald-100 bg-emerald-50"
+                      ? "border-emerald-100 bg-emerald-50/50"
                       : "border-slate-200 bg-slate-50/70"
                   }`}
                 >
-                  <p
-                    className={`text-xs font-black ${
-                      isDone ? "text-emerald-700" : "text-slate-500"
-                    }`}
-                  >
-                    {stage.label}
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-slate-500">
-                    {stage.description}
-                  </p>
-                  <p
-                    className={`mt-2 text-sm font-black ${
-                      isDone ? "text-emerald-700" : "text-slate-400"
-                    }`}
-                  >
-                    {isDone
-                      ? `Skor ${stage.score !== null ? stage.score : "-"}`
-                      : "Belum selesai"}
-                  </p>
+                  <div>
+                    <p className="text-xs font-bold text-slate-800">
+                      {stage.label}
+                    </p>
+                    <p className="mt-1.5 mb-4 text-[11px] leading-5 text-slate-500">
+                      {stage.description}
+                    </p>
+                  </div>
+                  <div>
+                    {isDone ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-100/80 px-2.5 py-1 text-[10px] font-bold text-emerald-700">
+                        Selesai - Skor {stage.score !== null ? stage.score : "-"}
+                      </span>
+                    ) : (
+                      <span className="inline-flex rounded-md bg-orange-50 px-2.5 py-1 text-[10px] font-semibold text-orange-700">
+                        Belum selesai
+                      </span>
+                    )}
+                  </div>
                 </div>
               );
             })}
+          </div>
+
+          <div className="mt-4">
+            <Link
+              href="/dashboard-siswa/ujian"
+              className="flex w-full items-center justify-center rounded-xl border border-orange-200 bg-white py-3 text-sm font-semibold text-orange-600 transition hover:bg-orange-50"
+            >
+              Lihat semua tryout <ChevronRight className="ml-1.5 h-4 w-4" />
+            </Link>
           </div>
         </div>
 
