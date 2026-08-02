@@ -18,7 +18,6 @@ import { useStudentLearningData } from "../data/useStudentLearningData";
 import { getStudentAcademicAccessMessage } from "../data/studentAcademicAccess";
 import { isUtbkStudentProfile } from "../data/studentProgram";
 import StudentLearningShell from "../learning/StudentLearningShell";
-import UtbkTargetWidget from "../widgets/UtbkTargetWidget";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { formatUtbkSubjectLabel } from "@/lib/utbk-subjects";
 
@@ -80,12 +79,7 @@ export default function MateriSiswaPageView() {
       isUtbkStudent={isUtbkStudent}
       isNavigationLoading={isLoading && !student}
     >
-      {!isLoading && isUtbkStudent ? (
-        <UtbkTargetWidget
-          student={student}
-          materialCount={materials.length}
-        />
-      ) : null}
+
 
       {isLoading ? (
         <section className="rounded-[24px] border border-slate-200/60 bg-white p-12 text-center shadow-sm">
