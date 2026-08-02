@@ -123,6 +123,11 @@ type PackageFilterOption = {
   label: string;
 };
 
+type ActivationClassFilterOption = {
+  value: string;
+  label: string;
+};
+
 const ALL_PAYMENT_STATUSES = "Semua status";
 const ARCHIVED_PAYMENT_STATUS: AdminPaymentArchivedFilter = "archived";
 const ALL_PACKAGES = "Semua paket";
@@ -507,6 +512,29 @@ function compareClassValue(first: string, second: string) {
   }
 
   return compareTextValue(first, second);
+}
+
+function getActivationClassFilterValue(value: string | null | undefined) {
+  const normalizedValue = normalizeText(value);
+  const match = normalizedValue.match(/\b(4|5|6|7|8|9|10|11|12)\b/);
+
+  return match?.[1] ?? normalizedValue;
+}
+
+function formatActivationClassFilterLabel(
+  value: string,
+  level: StudentLevel | "-" | null | undefined,
+  levelFilter: LevelFilterOption,
+) {
+  if (!/^\d+$/.test(value)) {
+    return value;
+  }
+
+  const normalizedLevel = level && level !== "-" ? level : null;
+
+  return levelFilter === ALL_LEVELS && normalizedLevel
+    ? `${normalizedLevel} ${value}`
+    : `Kelas ${value}`;
 }
 
 function createSelectOptions(
@@ -2756,18 +2784,6 @@ export function AdminPaymentVerification({
     [activationStudents, billingPackages, packageLookupOptions],
   );
 
-  const activationClassOptions = useMemo(() => {
-    if (levelFilter === ALL_LEVELS) {
-      return [ALL_CLASSES];
-    }
-
-    return createSelectOptions(
-      [...(batchClassOptionsByLevel[levelFilter as StudentLevel] ?? [])],
-      ALL_CLASSES,
-      compareClassValue,
-    );
-  }, [batchClassOptionsByLevel, levelFilter]);
-
   const filteredIncomingPayments = incomingPayments;
   const filteredActivationStudents = activationStudents;
   const adminManagedBranchKeys = useMemo(
@@ -2792,10 +2808,88 @@ export function AdminPaymentVerification({
     () => new Set(studentsWithMembershipIds.map((value) => normalizeText(value))),
     [studentsWithMembershipIds],
   );
+  const activationClassOptions = useMemo<ActivationClassFilterOption[]>(() => {
+    const optionMap = new Map<string, ActivationClassFilterOption>();
+    const addOption = (
+      className: string | null | undefined,
+      level: StudentLevel | "-" | null | undefined,
+    ) => {
+      const value = getActivationClassFilterValue(className);
+
+      if (!value) {
+        return;
+      }
+
+      if (levelFilter !== ALL_LEVELS && level !== levelFilter) {
+        return;
+      }
+
+      if (!optionMap.has(value)) {
+        optionMap.set(value, {
+          value,
+          label: formatActivationClassFilterLabel(value, level, levelFilter),
+        });
+      }
+    };
+    const classSourceStudents = scopedStudents.filter((student) => {
+      const hasMembership = studentsWithMembershipIdSet.has(
+        normalizeText(student.id),
+      );
+
+      return activationMembershipView === "without_membership"
+        ? !hasMembership
+        : hasMembership;
+    });
+
+    classSourceStudents.forEach((student) => {
+      addOption(student.className, student.level);
+    });
+
+    if (activationMembershipView === "with_membership") {
+      activationStudents.forEach((student) => {
+        addOption(student.kelas, student.jenjang);
+      });
+    }
+
+    if (optionMap.size === 0) {
+      const fallbackOptions =
+        levelFilter === ALL_LEVELS
+          ? Object.entries(batchClassOptionsByLevel).flatMap(([level, options]) =>
+              options.map((className) => ({
+                className,
+                level: level as StudentLevel,
+              })),
+            )
+          : (batchClassOptionsByLevel[levelFilter as StudentLevel] ?? []).map(
+              (className) => ({
+                className,
+                level: levelFilter as StudentLevel,
+              }),
+            );
+
+      fallbackOptions.forEach((option) => {
+        addOption(option.className, option.level);
+      });
+    }
+
+    return [
+      { value: ALL_CLASSES, label: ALL_CLASSES },
+      ...Array.from(optionMap.values()).sort((first, second) =>
+        compareClassValue(first.value, second.value),
+      ),
+    ];
+  }, [
+    activationMembershipView,
+    activationStudents,
+    batchClassOptionsByLevel,
+    levelFilter,
+    scopedStudents,
+    studentsWithMembershipIdSet,
+  ]);
   const filteredStudentsWithoutMembership = useMemo(() => {
     const normalizedSearch = activationServerSearchQuery.trim().toLowerCase();
     const normalizedClassFilter =
-      classFilter === ALL_CLASSES ? "" : normalizeText(classFilter);
+      classFilter === ALL_CLASSES ? "" : getActivationClassFilterValue(classFilter);
 
     return scopedStudents
       .filter(
@@ -2818,7 +2912,8 @@ export function AdminPaymentVerification({
       )
       .filter((student) =>
         normalizedClassFilter
-          ? normalizeText(student.className) === normalizedClassFilter
+          ? getActivationClassFilterValue(student.className) ===
+            normalizedClassFilter
           : true,
       )
       .sort((first, second) => first.name.localeCompare(second.name, "id-ID"));
@@ -3651,7 +3746,7 @@ export function AdminPaymentVerification({
     },
     {
       key: "student",
-      header: "Siswa",
+      header: "Nama",
       className: "min-w-[250px]",
       cell: (student) => {
         const anomalyReasons = getActivationAnomalyReasons(student);
@@ -3758,22 +3853,6 @@ export function AdminPaymentVerification({
         <span className="text-sm text-slate-700">
           {formatDateTimeLabel(student.activeUntil)}
         </span>
-      ),
-    },
-    {
-      key: "paymentId",
-      header: "No. Referensi",
-      className: "min-w-[150px]",
-      cell: (student) => (
-        <span className="text-sm text-slate-700">{student.paymentId ?? "-"}</span>
-      ),
-    },
-    {
-      key: "subscriptionCode",
-      header: "Kode Layanan",
-      className: "min-w-[160px]",
-      cell: (student) => (
-        <span className="text-sm text-slate-700">{student.subscriptionCode}</span>
       ),
     },
     {
@@ -4214,7 +4293,7 @@ export function AdminPaymentVerification({
                         onChange={(event) =>
                           setActivationSearchQuery(event.target.value)
                         }
-                        placeholder="Cari nama siswa, no referensi, atau kode layanan..."
+                        placeholder="Cari nama siswa, email, cabang, paket, atau kelas..."
                         className={cn("pl-10", warmFieldClassName)}
                       />
                     </div>
@@ -4328,11 +4407,11 @@ export function AdminPaymentVerification({
                       <SelectContent className={warmSelectContentClassName}>
                         {activationClassOptions.map((option) => (
                           <SelectItem
-                            key={option}
-                            value={option}
+                            key={option.value}
+                            value={option.value}
                             className={warmSelectItemClassName}
                           >
-                            {option}
+                            {option.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -4368,7 +4447,7 @@ export function AdminPaymentVerification({
                       columns={activationColumns}
                       data={filteredActivationStudents}
                       keyExtractor={(student) => student.id}
-                      minWidthClassName="min-w-[1880px]"
+                      minWidthClassName="min-w-[1580px]"
                       emptyTitle="Belum ada data aktivasi membership"
                       emptyDescription="Belum ada subscription siswa yang bisa ditampilkan atau semua data tersaring oleh filter."
                       getRowClassName={(student) =>
