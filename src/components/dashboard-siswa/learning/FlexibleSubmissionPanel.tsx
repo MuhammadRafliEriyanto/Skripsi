@@ -840,34 +840,7 @@ export default function FlexibleSubmissionPanel({
           </div>
         ) : null}
 
-        <div className="mt-5">
-          <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-            Catatan Tambahan
-          </label>
-          <textarea
-            rows={4}
-            value={note}
-            onChange={(event) => setNote(event.target.value)}
-            placeholder={notePlaceholder}
-            className="mt-2 w-full rounded-[22px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-orange-300"
-          />
-        </div>
 
-        <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4">
-          <div className="flex items-start gap-3">
-            <ShieldCheck className="mt-0.5 h-5 w-5 text-emerald-600" />
-            <div>
-              <p className="text-sm font-semibold text-emerald-800">
-                Checklist sebelum kirim
-              </p>
-              <ul className="mt-2 space-y-1 text-sm leading-6 text-emerald-700/90">
-                {checklist.map((item) => (
-                  <li key={item}>- {item}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
 
         {submitError ? (
           <div className="mt-5 rounded-2xl border border-rose-100 bg-rose-50/80 px-4 py-3 text-sm text-rose-700">

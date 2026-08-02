@@ -74,10 +74,10 @@ export default function KirimTugasSiswaPageView() {
     (task) => task.id === selectedTaskId,
   )
     ? selectedTaskId
-    : (submitTargets[0]?.id ?? "");
-  const activeTask =
-    submitTargets.find((task) => task.id === resolvedSelectedTaskId) ??
-    submitTargets[0];
+    : null;
+  const activeTask = resolvedSelectedTaskId
+    ? submitTargets.find((task) => task.id === resolvedSelectedTaskId)
+    : null;
 
   useEffect(() => {
     if (isUtbkStudent) {
@@ -261,84 +261,94 @@ export default function KirimTugasSiswaPageView() {
               </section>
 
               <div className="space-y-5">
-                <section className="rounded-[26px] border border-orange-100/90 bg-white p-5 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.18)] md:p-6">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-orange-600">
-                        Detail Tugas
-                      </p>
-                      <h2 className="mt-1 text-lg font-semibold text-slate-800">
-                        {activeTask?.judul ?? "Belum ada tugas aktif"}
-                      </h2>
-                      <p className="mt-2 text-sm leading-6 text-slate-500">
-                        {activeTask?.deskripsi ??
-                          "Pilih salah satu tugas dari daftar di samping untuk mulai mengirim jawaban."}
-                      </p>
-                    </div>
-                    <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
-                      Deadline {activeTask?.deadline ?? "-"}
-                    </span>
+                {activeTask ? (
+                  <>
+                    <section className="rounded-[26px] border border-orange-100/90 bg-white p-5 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.18)] md:p-6">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-orange-600">
+                            Detail Tugas
+                          </p>
+                          <h2 className="mt-1 text-lg font-semibold text-slate-800">
+                            {activeTask.judul}
+                          </h2>
+                          <p className="mt-2 text-sm leading-6 text-slate-500">
+                            {activeTask.deskripsi}
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                          Deadline {activeTask.deadline}
+                        </span>
+                      </div>
+
+                      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                            Estimasi
+                          </p>
+                          <p className="mt-2 text-sm font-semibold text-slate-700">
+                            {activeTask.estimasi}
+                          </p>
+                        </div>
+                        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                            Nilai
+                          </p>
+                          <p className="mt-2 text-sm font-semibold text-slate-700">
+                            {activeTask.poin}
+                          </p>
+                        </div>
+                        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                            Cara Kirim
+                          </p>
+                          <p className="mt-2 text-sm font-semibold text-slate-700">
+                            Teks Jawaban
+                          </p>
+                        </div>
+                      </div>
+
+                      {activeTask.attachmentName && activeTask.attachmentUrl ? (
+                        <div className="mt-4">
+                          <a
+                            href={activeTask.attachmentUrl}
+                            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-orange-200 bg-white px-4 text-xs font-semibold text-orange-700 transition hover:bg-orange-50"
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                            Unduh Lampiran Tugas
+                          </a>
+                        </div>
+                      ) : null}
+                    </section>
+
+                    <FlexibleSubmissionPanel
+                      key={activeTask.id}
+                      taskId={activeTask.id}
+                      taskTitle={activeTask.judul}
+                      title="Jawaban Siswa"
+                      description="Ketik jawaban kamu di kolom bawah ini."
+                      availableModes={["text"]}
+                      checklist={activeTask.instruksiPengumpulan}
+                      submitLabel="Kirim Jawaban"
+                      textPlaceholder="Tulis jawaban..."
+                      drivePlaceholder=""
+                      notePlaceholder=""
+                      initialSubmission={activeTask.mySubmission}
+                      onRefreshLearningData={refreshLearningData}
+                      onSubmissionSaved={(submissionSummary) => {
+                        updateTaskSubmissionSummary(activeTask.id, submissionSummary);
+                      }}
+                    />
+                  </>
+                ) : (
+                  <div className="flex min-h-[400px] flex-col items-center justify-center rounded-[26px] border border-dashed border-slate-200 bg-slate-50/50 p-8 text-center">
+                    <p className="text-base font-semibold text-slate-500">
+                      Pilih Tugas
+                    </p>
+                    <p className="mt-2 max-w-sm text-sm leading-6 text-slate-400">
+                      Silakan pilih salah satu tugas di daftar sebelah kiri untuk melihat detail dan mulai mengirim jawaban.
+                    </p>
                   </div>
-
-                  <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                        Estimasi
-                      </p>
-                      <p className="mt-2 text-sm font-semibold text-slate-700">
-                        {activeTask?.estimasi ?? "-"}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                        Nilai
-                      </p>
-                      <p className="mt-2 text-sm font-semibold text-slate-700">
-                        {activeTask?.poin ?? "-"}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                        Cara Kirim
-                      </p>
-                      <p className="mt-2 text-sm font-semibold text-slate-700">
-                        Teks Jawaban
-                      </p>
-                    </div>
-                  </div>
-
-                  {activeTask?.attachmentName && activeTask.attachmentUrl ? (
-                    <div className="mt-4">
-                      <a
-                        href={activeTask.attachmentUrl}
-                        className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-orange-200 bg-white px-4 text-xs font-semibold text-orange-700 transition hover:bg-orange-50"
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                        Unduh Lampiran Tugas
-                      </a>
-                    </div>
-                  ) : null}
-                </section>
-
-                {activeTask && (
-                  <FlexibleSubmissionPanel
-                    key={activeTask.id}
-                    taskId={activeTask.id}
-                    taskTitle={activeTask.judul}
-                    title="Jawaban Siswa"
-                    description="Ketik jawaban kamu di kolom bawah ini."
-                    availableModes={["text"]}
-                    checklist={activeTask.instruksiPengumpulan}
-                    submitLabel="Kirim Jawaban"
-                    textPlaceholder="Tulis jawaban..."
-                    drivePlaceholder=""
-                    notePlaceholder=""
-                    initialSubmission={activeTask.mySubmission}
-                    onRefreshLearningData={refreshLearningData}
-                    onSubmissionSaved={(submissionSummary) => {
-                      updateTaskSubmissionSummary(activeTask.id, submissionSummary);
-                    }}
-                  />
                 )}
               </div>
             </div>
