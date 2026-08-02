@@ -131,7 +131,7 @@ export default function NilaiFormDialog({
               </label>
             ) : null}
 
-            {hasAcademicScoreFields
+            {hasAcademicScoreFields && scheme !== "tryout"
               ? academicScoreKeys.map((scoreKey) => (
                   <label
                     key={scoreKey}
