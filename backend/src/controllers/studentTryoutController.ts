@@ -746,20 +746,19 @@ async function upsertAcademicGradeFromAssessment(input: {
   let scoreKey: "uts" | "uas" | "uts1" | "uts2" | "uts3" | "tryout1" | "tryout2" | "tryout3";
 
   if (assessmentType === "Tryout") {
-    if (scheme !== "tryout" || (stage !== 1 && stage !== 2 && stage !== 3)) {
-      return null;
+    let resolvedStage = stage;
+    if (resolvedStage !== 1 && resolvedStage !== 2 && resolvedStage !== 3) {
+      // Coba tebak stage dari judul jika tidak di-set (misal "Tryout 1")
+      const match = input.tryout.title.match(/\b([123])\b/);
+      resolvedStage = match ? Number(match[1]) : 1; 
     }
 
-    scoreKey = `tryout${stage}`;
+    scoreKey = `tryout${resolvedStage}` as any;
   } else {
-    if (scheme !== "semester") {
-      return null;
-    }
-
     if (assessmentType.startsWith("UTS ")) {
-      scoreKey = assessmentType.toLowerCase().replace(" ", "") as "uts1" | "uts2" | "uts3";
+      scoreKey = assessmentType.toLowerCase().replace(" ", "") as any;
     } else {
-      scoreKey = assessmentType.toLowerCase() as "uts" | "uas";
+      scoreKey = assessmentType.toLowerCase() as any;
     }
   }
 
