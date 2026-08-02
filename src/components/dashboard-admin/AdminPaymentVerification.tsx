@@ -2,7 +2,9 @@
 import {
   AlertTriangle,
   CheckCircle2,
+  Clipboard,
   Download,
+  ExternalLink,
   Eye,
   LoaderCircle,
   Mail,
@@ -372,7 +374,7 @@ function getEditPaymentBlockReason(
   }
 
   if (record.status !== "pending" && !isFailedLikePaymentStatus(record.status)) {
-    return "Edit transaksi hanya tersedia untuk status Pending atau Gagal.";
+    return "Buat ulang link bayar hanya tersedia untuk status Pending atau Gagal.";
   }
 
   return null;
@@ -741,6 +743,7 @@ function BillingFeedbackBanner({
   feedback: BillingFeedback;
   onDismiss: () => void;
 }) {
+  const [isCopied, setIsCopied] = useState(false);
   const toneClassNames: Record<BillingFeedbackTone, string> = {
     success:
       "border-emerald-100/80 bg-emerald-50/90 text-emerald-700 shadow-[0_14px_24px_-24px_rgba(16,185,129,0.2)]",
@@ -748,6 +751,26 @@ function BillingFeedbackBanner({
       "border-amber-100/80 bg-amber-50/90 text-amber-700 shadow-[0_14px_24px_-24px_rgba(245,158,11,0.2)]",
     info: "border-sky-100/80 bg-sky-50/90 text-sky-700 shadow-[0_14px_24px_-24px_rgba(14,165,233,0.2)]",
   };
+  const normalizedStatusPagePath = normalizeRegistrationPath(feedback.statusPagePath);
+  const shareableLink = feedback.checkoutUrl ?? normalizedStatusPagePath ?? null;
+  const shareableAbsoluteLink =
+    shareableLink && shareableLink.startsWith("/") && typeof window !== "undefined"
+      ? `${window.location.origin}${shareableLink}`
+      : shareableLink;
+
+  async function handleCopyLink() {
+    if (!shareableAbsoluteLink) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareableAbsoluteLink);
+      setIsCopied(true);
+      window.setTimeout(() => setIsCopied(false), 1800);
+    } catch {
+      window.prompt("Salin link bayar:", shareableAbsoluteLink);
+    }
+  }
 
   return (
     <div
@@ -761,8 +784,24 @@ function BillingFeedbackBanner({
           <p className="text-sm font-semibold text-slate-950">{feedback.title}</p>
           <p className="mt-1 text-sm leading-6">{feedback.message}</p>
 
-          {feedback.checkoutUrl || feedback.statusPagePath ? (
+          {feedback.checkoutUrl || normalizedStatusPagePath ? (
             <div className="mt-3 flex flex-wrap gap-2">
+              {shareableAbsoluteLink ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 rounded-full border-white/80 bg-white/80 px-3 text-xs font-semibold text-slate-700 hover:bg-white"
+                  onClick={handleCopyLink}
+                >
+                  {isCopied ? (
+                    <CheckCircle2 className="size-3.5" />
+                  ) : (
+                    <Clipboard className="size-3.5" />
+                  )}
+                  {isCopied ? "Link Tersalin" : "Salin Link Bayar"}
+                </Button>
+              ) : null}
               {feedback.checkoutUrl ? (
                 <a
                   href={feedback.checkoutUrl}
@@ -770,17 +809,19 @@ function BillingFeedbackBanner({
                   rel="noreferrer"
                   className="inline-flex items-center rounded-full border border-white/80 bg-white/80 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-white"
                 >
-                  Buka Checkout Link
+                  <ExternalLink className="mr-1.5 size-3.5" />
+                  Buka Link
                 </a>
               ) : null}
-              {feedback.statusPagePath ? (
+              {normalizedStatusPagePath ? (
                 <a
-                  href={normalizeRegistrationPath(feedback.statusPagePath) ?? "#"}
+                  href={normalizedStatusPagePath}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center rounded-full border border-white/80 bg-white/80 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-white"
                 >
-                  Buka Status Page
+                  <ExternalLink className="mr-1.5 size-3.5" />
+                  Buka Status
                 </a>
               ) : null}
             </div>
@@ -1509,7 +1550,7 @@ function IncomingPaymentEditDialog({
             }}
           >
             <DialogHeader className="gap-2 border-b border-slate-100 px-5 pb-4 pt-5 pr-12 sm:px-6">
-              <DialogTitle className="text-xl">Edit transaksi</DialogTitle>
+              <DialogTitle className="text-xl">Buat ulang link bayar</DialogTitle>
               <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
                 <span>{record.student.name}</span>
                 <span>{record.paymentId}</span>
@@ -1558,7 +1599,7 @@ function IncomingPaymentEditDialog({
                     htmlFor="edit-payment-expires-at"
                     className="text-sm font-semibold text-slate-700"
                   >
-                    Batas pembayaran baru
+                    Link aktif sampai
                   </label>
                   <Input
                     id="edit-payment-expires-at"
@@ -1573,7 +1614,7 @@ function IncomingPaymentEditDialog({
 
               {!canReplaceTransaction ? (
                 <div className="rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
-                  Edit hanya tersedia untuk transaksi Pending atau Gagal.
+                  Link bayar baru hanya bisa dibuat untuk transaksi Pending atau Gagal.
                 </div>
               ) : null}
             </div>
@@ -1607,7 +1648,7 @@ function IncomingPaymentEditDialog({
                 ) : (
                   <Pencil className="size-4" />
                 )}
-                Simpan
+                Buat Link Baru
               </Button>
             </DialogFooter>
           </form>
@@ -3065,7 +3106,7 @@ export function AdminPaymentVerification({
     if (blockReason) {
       setBillingFeedback({
         tone: "warning",
-        title: "Transaksi tidak bisa diedit",
+        title: "Link bayar tidak bisa dibuat",
         message: blockReason,
       });
       window.alert(blockReason);
@@ -3090,13 +3131,13 @@ export function AdminPaymentVerification({
 
       setBillingFeedback({
         tone: "success",
-        title: "Transaksi berhasil diperbarui",
-        message: `Payment ${response.replacedPaymentId} diganti dengan ${response.payment.paymentId}. Bagikan checkout link baru kepada siswa.`,
+        title: "Link bayar baru berhasil dibuat",
+        message: `No referensi baru ${response.payment.paymentId} dibuat dari ${response.replacedPaymentId}. Salin link bayar dan kirim ke siswa/orang tua. Admin tidak perlu membayar.`,
         checkoutUrl: response.payment.checkoutUrl ?? null,
         statusPagePath,
       });
       setPaymentEditRecord(null);
-      window.alert("Transaksi berhasil diperbarui dengan payment baru.");
+      window.alert("Link bayar baru berhasil dibuat. Salin link lalu kirim ke siswa/orang tua.");
       setIncomingPage(1);
       await Promise.allSettled([
         refreshPaymentViews({
@@ -3114,7 +3155,7 @@ export function AdminPaymentVerification({
 
       setBillingFeedback({
         tone: "warning",
-        title: "Edit transaksi gagal",
+        title: "Buat link bayar gagal",
         message,
       });
       window.alert(message);
@@ -3510,11 +3551,11 @@ export function AdminPaymentVerification({
               type="button"
               variant="outline"
               size="icon"
-              aria-label="Edit pembayaran"
+              aria-label="Buat ulang link bayar"
               title={
                 canEditPayment
-                  ? "Edit pembayaran"
-                  : `Edit tidak tersedia: ${editBlockReason}`
+                  ? "Buat ulang link bayar"
+                  : `Link bayar tidak tersedia: ${editBlockReason}`
               }
               className={cn(
                 "size-9 rounded-xl",
