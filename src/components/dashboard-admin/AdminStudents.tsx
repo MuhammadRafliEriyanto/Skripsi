@@ -1301,43 +1301,6 @@ export function AdminStudents({
       cell: (student) => student.className,
     },
     {
-      key: "membershipStatus",
-      header: "Membership",
-      cell: (student) => {
-        const status = student.membership?.status || "none";
-        
-        let label = "Belum Membership";
-        let tone: StudentMembershipTone = "default";
-
-        if (status === "active") {
-          label = "Aktif";
-          tone = "success";
-        } else if (status === "pending") {
-          label = "Menunggu Mulai";
-          tone = "warning";
-        } else if (status === "expired") {
-          label = "Expired";
-          tone = "danger";
-        }
-
-        return (
-          <div className="flex flex-col gap-1">
-            <AdminStatusBadge status={label} tone={tone} />
-            {student.membership?.packageName && (
-              <span className="text-xs text-slate-500 whitespace-nowrap">
-                {student.membership.packageName}
-              </span>
-            )}
-            {student.membership?.endDate && (
-              <span className="text-xs text-slate-400 whitespace-nowrap">
-                s/d {new Date(student.membership.endDate).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
-              </span>
-            )}
-          </div>
-        );
-      },
-    },
-    {
       key: "generatedPassword",
       header: "Password Generate",
       cell: (student) => (
@@ -1611,7 +1574,7 @@ export function AdminStudents({
               ? "bg-slate-50/70 hover:bg-slate-100/70"
               : undefined
           }
-          minWidthClassName="min-w-[1360px]"
+          minWidthClassName="min-w-[1120px]"
         />
         <div className="mt-4">
           <AdminPaginationFooter

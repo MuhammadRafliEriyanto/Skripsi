@@ -1103,20 +1103,6 @@ export function AdminTeachers({
       ),
     },
     {
-      key: "schedule",
-      header: "Jadwal Mengajar",
-      cell: (teacher) => (
-        <p className="max-w-[220px] text-sm leading-6 text-slate-700">
-          {teacher.schedule}
-        </p>
-      ),
-    },
-    {
-      key: "activeClasses",
-      header: "Kelas Aktif",
-      cell: (teacher) => `${teacher.activeClasses} kelas`,
-    },
-    {
       key: "classList",
       header: "Pendidikan Terakhir",
       cell: (teacher) => (
@@ -1335,7 +1321,7 @@ export function AdminTeachers({
               ? "bg-slate-50/70 hover:bg-slate-100/70"
               : undefined
           }
-          minWidthClassName="min-w-[1320px]"
+          minWidthClassName="min-w-[1040px]"
         />
         <div className="mt-4">
           <AdminPaginationFooter
