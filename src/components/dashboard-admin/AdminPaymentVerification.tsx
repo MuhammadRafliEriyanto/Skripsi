@@ -126,13 +126,12 @@ const ARCHIVED_PAYMENT_STATUS: AdminPaymentArchivedFilter = "archived";
 const ALL_PACKAGES = "Semua paket";
 const ALL_LEVELS = "Semua jenjang";
 const ALL_CLASSES = "Semua kelas";
-const ALL_ACTIVATION_STATUSES = "Semua aktivasi";
 
 const incomingPaymentStatusOptions = [
   ALL_PAYMENT_STATUSES,
   "paid",
   "pending",
-  "expired",
+  "failed",
   ARCHIVED_PAYMENT_STATUS,
 ] as const;
 
@@ -140,20 +139,12 @@ const activationPaymentStatusOptions = [
   ALL_PAYMENT_STATUSES,
   "paid",
   "pending",
-  "expired",
+  "failed",
 ] as const;
 
 type IncomingPaymentStatusFilter = (typeof incomingPaymentStatusOptions)[number];
 type ActivationPaymentStatusFilter =
   (typeof activationPaymentStatusOptions)[number];
-
-const activationStatusOptions = [
-  ALL_ACTIVATION_STATUSES,
-  "Aktif",
-  "Menunggu Pembayaran",
-  "Expired",
-  "Pembayaran Gagal",
-] as const;
 
 const warmFieldClassName =
   "border-slate-200 hover:border-orange-200 focus:border-orange-300 focus:ring-4 focus:ring-orange-500/10 focus-visible:border-orange-300 focus-visible:ring-4 focus-visible:ring-orange-500/10";
@@ -237,12 +228,15 @@ function formatPaymentStatusLabel(status: PaymentStatus) {
     case "pending":
       return "Pending";
     case "failed":
-      return "Gagal";
     case "expired":
-      return "Expired";
+      return "Gagal";
     default:
       return status;
   }
+}
+
+function isFailedLikePaymentStatus(status: PaymentStatus | null | undefined) {
+  return status === "failed" || status === "expired";
 }
 
 function formatPaymentStatusFilterLabel(
@@ -326,7 +320,7 @@ function getEditPaymentBlockReason(
     return "Transaksi terhapus harus dipulihkan dulu sebelum diedit.";
   }
 
-  if (record.status !== "pending" && record.status !== "failed") {
+  if (record.status !== "pending" && !isFailedLikePaymentStatus(record.status)) {
     return "Edit transaksi hanya tersedia untuk status Pending atau Gagal.";
   }
 
@@ -1434,7 +1428,7 @@ function IncomingPaymentEditDialog({
   const canReplaceTransaction =
     Boolean(record) &&
     showTransactionEditor &&
-    (record.status === "pending" || record.status === "failed");
+    (record.status === "pending" || isFailedLikePaymentStatus(record.status));
   const canMarkPaid = record?.status === "pending";
   const canSubmit =
     Boolean(record) &&
@@ -2217,8 +2211,6 @@ export function AdminPaymentVerification({
     useState<ActivationPaymentStatusFilter>(ALL_PAYMENT_STATUSES);
   const [activationPackageFilter, setActivationPackageFilter] =
     useState(ALL_PACKAGES);
-  const [activationStatusFilter, setActivationStatusFilter] =
-    useState<(typeof activationStatusOptions)[number]>(ALL_ACTIVATION_STATUSES);
   const [levelFilter, setLevelFilter] = useState<LevelFilterOption>(ALL_LEVELS);
   const [classFilter, setClassFilter] = useState(ALL_CLASSES);
   const [activationMembershipView, setActivationMembershipView] =
@@ -2333,7 +2325,6 @@ export function AdminPaymentVerification({
     activationServerSearchQuery.toLowerCase(),
     activationPaymentStatusFilter,
     activationPackageFilter,
-    activationStatusFilter,
     levelFilter,
     classFilter,
     activationPageLimit,
@@ -2403,10 +2394,6 @@ export function AdminPaymentVerification({
           activationPaymentStatusFilter === ALL_PAYMENT_STATUSES
             ? undefined
             : activationPaymentStatusFilter,
-        activationStatus:
-          activationStatusFilter === ALL_ACTIVATION_STATUSES
-            ? undefined
-            : activationStatusFilter,
         package:
           activationPackageFilter === ALL_PACKAGES
             ? undefined
@@ -2450,7 +2437,6 @@ export function AdminPaymentVerification({
     activationPackageFilter,
     activationPaymentStatusFilter,
     activationServerSearchQuery,
-    activationStatusFilter,
     classFilter,
     levelFilter,
   ]);
@@ -3781,7 +3767,6 @@ export function AdminPaymentVerification({
     setActivationSearchQuery("");
     setActivationPaymentStatusFilter(ALL_PAYMENT_STATUSES);
     setActivationPackageFilter(ALL_PACKAGES);
-    setActivationStatusFilter(ALL_ACTIVATION_STATUSES);
     setLevelFilter(ALL_LEVELS);
     setClassFilter(ALL_CLASSES);
   }
@@ -3816,10 +3801,6 @@ export function AdminPaymentVerification({
           activationPaymentStatusFilter === ALL_PAYMENT_STATUSES
             ? undefined
             : activationPaymentStatusFilter,
-        activationStatus:
-          activationStatusFilter === ALL_ACTIVATION_STATUSES
-            ? undefined
-            : activationStatusFilter,
         package:
           activationPackageFilter === ALL_PACKAGES
             ? undefined
@@ -4198,7 +4179,7 @@ export function AdminPaymentVerification({
                   <div
                     className={`mt-3 grid gap-3 ${
                       activationMembershipView === "with_membership"
-                        ? "sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5"
+                        ? "sm:grid-cols-2 xl:grid-cols-4"
                         : "sm:grid-cols-2"
                     }`}
                   >
@@ -4223,30 +4204,6 @@ export function AdminPaymentVerification({
                                 className={warmSelectItemClassName}
                               >
                                 {formatPaymentStatusFilterLabel(option)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-
-                        <Select
-                          value={activationStatusFilter}
-                          onValueChange={(value) =>
-                            setActivationStatusFilter(
-                              value as (typeof activationStatusOptions)[number],
-                            )
-                          }
-                        >
-                          <SelectTrigger className={warmSelectTriggerClassName}>
-                            <SelectValue placeholder="Status aktivasi" />
-                          </SelectTrigger>
-                          <SelectContent className={warmSelectContentClassName}>
-                            {activationStatusOptions.map((option) => (
-                              <SelectItem
-                                key={option}
-                                value={option}
-                                className={warmSelectItemClassName}
-                              >
-                                {option}
                               </SelectItem>
                             ))}
                           </SelectContent>

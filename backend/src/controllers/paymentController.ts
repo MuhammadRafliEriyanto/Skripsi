@@ -534,6 +534,21 @@ function buildPackageFilterValue(
   return normalizedPackageName ? `name:${normalizedPackageName.toLowerCase()}` : "";
 }
 
+function matchesAdminPaymentStatusFilter(
+  paymentStatus: PaymentDocument["status"] | SubscriptionDocument["paymentStatus"],
+  statusFilter: PaymentDocument["status"],
+) {
+  if (statusFilter === "failed") {
+    return paymentStatus === "failed" || paymentStatus === "expired";
+  }
+
+  return paymentStatus === statusFilter;
+}
+
+function isEditableAdminPaymentStatus(status: PaymentDocument["status"]) {
+  return status === "pending" || status === "failed" || status === "expired";
+}
+
 function buildAdminPaymentsAggregate<
   T extends {
     status: PaymentDocument["status"];
@@ -545,7 +560,9 @@ function buildAdminPaymentsAggregate<
     pendingCount: items.filter((item) => item.status === "pending").length,
     paidCount: items.filter((item) => item.status === "paid").length,
     expiredCount: items.filter((item) => item.status === "expired").length,
-    failedCount: items.filter((item) => item.status === "failed").length,
+    failedCount: items.filter((item) =>
+      matchesAdminPaymentStatusFilter(item.status, "failed"),
+    ).length,
     totalAmount: items.reduce((total, item) => total + item.amount, 0),
   };
 }
@@ -776,7 +793,12 @@ async function buildAdminPaymentItems(
       item.subscription?.subscriptionCode ?? "",
     ]);
     const matchesStatus =
-      statusFilter && !isArchivedFilter ? item.status === statusFilter : true;
+      statusFilter && !isArchivedFilter
+        ? matchesAdminPaymentStatusFilter(
+            item.status,
+            statusFilter as PaymentDocument["status"],
+          )
+        : true;
     const matchesPackage = packageFilter
       ? buildPackageFilterValue(item.packageKey, item.packageName) === packageFilter
       : packageKeyFilter
@@ -1332,7 +1354,10 @@ async function buildAdminActivationsResponse(
       item.activationStatus,
     ]);
     const matchesPaymentStatus = paymentStatusFilter
-      ? item.paymentStatus === paymentStatusFilter
+      ? matchesAdminPaymentStatusFilter(
+          item.paymentStatus,
+          paymentStatusFilter as PaymentDocument["status"],
+        )
       : true;
     const matchesActivationStatus = activationStatusFilter
       ? item.activationStatus === activationStatusFilter
@@ -2564,7 +2589,7 @@ export const replaceAdminPayment = asyncHandler(
       return;
     }
 
-    if (payment.status !== "pending" && payment.status !== "failed") {
+    if (!isEditableAdminPaymentStatus(payment.status)) {
       next(
         new AppError(
           409,
@@ -2595,7 +2620,7 @@ export const replaceAdminPayment = asyncHandler(
       await syncPendingPaymentWithXendit(payment, subscription);
     }
 
-    if (payment.status !== "pending" && payment.status !== "failed") {
+    if (!isEditableAdminPaymentStatus(payment.status)) {
       next(
         new AppError(
           409,
