@@ -1043,11 +1043,26 @@ function mapTeacherDetailToTasks(
 function buildScheduleLabel(
   nextSchedule: TeacherClassApiNextSchedule,
   schedules: TeacherClassApiScheduleItem[],
+  selectedScheduleId = "",
 ) {
-  const fallbackSchedule = schedules[0] ?? null;
-  const day = normalizeText(nextSchedule?.day) || normalizeText(fallbackSchedule?.day);
+  const normalizedSelectedScheduleId = normalizeText(selectedScheduleId);
+  const selectedSchedule =
+    normalizedSelectedScheduleId
+      ? schedules.find(
+          (schedule) =>
+            normalizeText(schedule.scheduleId) === normalizedSelectedScheduleId ||
+            normalizeText(schedule.id) === normalizedSelectedScheduleId,
+        ) ?? null
+      : null;
+  const fallbackSchedule = selectedSchedule ?? schedules[0] ?? null;
+  const day =
+    normalizeText(selectedSchedule?.day) ||
+    normalizeText(nextSchedule?.day) ||
+    normalizeText(fallbackSchedule?.day);
   const time =
-    normalizeText(nextSchedule?.time) || normalizeText(fallbackSchedule?.time);
+    normalizeText(selectedSchedule?.time) ||
+    normalizeText(nextSchedule?.time) ||
+    normalizeText(fallbackSchedule?.time);
 
   if (!day && !time) {
     return "Jadwal belum diatur";
@@ -1094,9 +1109,19 @@ function buildEmptyClassDetail(
 function mapTeacherDetailToClassData(
   payload: NonNullable<TeacherClassDetailResponse["data"]>,
   teacherName: string,
+  selectedScheduleId = "",
 ): ClassDetailData {
   const classItem = payload.class;
   const schedules = payload.schedules ?? [];
+  const normalizedSelectedScheduleId = normalizeText(selectedScheduleId);
+  const selectedSchedule =
+    normalizedSelectedScheduleId
+      ? schedules.find(
+          (schedule) =>
+            normalizeText(schedule.scheduleId) === normalizedSelectedScheduleId ||
+            normalizeText(schedule.id) === normalizedSelectedScheduleId,
+        ) ?? null
+      : null;
   const kelasId = normalizeText(classItem?.id);
   const isUtbkClass =
     isUtbkClassName(classItem?.className) || isUtbkClassName(classItem?.level);
@@ -1210,10 +1235,18 @@ function mapTeacherDetailToClassData(
     guru: teacherName,
     jenjang: inferJenjang(namaKelas, tingkat),
     tingkat,
-    mapel: normalizeText(classItem?.subject) || "Mapel belum diatur",
+    mapel:
+      normalizeText(selectedSchedule?.subject) ||
+      normalizeText(classItem?.subject) ||
+      "Mapel belum diatur",
     program: normalizeText(classItem?.branch) || "Cabang belum diatur",
-    jadwal: buildScheduleLabel(classItem?.nextSchedule ?? null, schedules),
+    jadwal: buildScheduleLabel(
+      classItem?.nextSchedule ?? null,
+      schedules,
+      normalizedSelectedScheduleId,
+    ),
     ruangan:
+      normalizeText(selectedSchedule?.room) ||
       normalizeText(classItem?.room) ||
       normalizeText(classItem?.nextSchedule?.room) ||
       normalizeText(schedules[0]?.room) ||
@@ -1882,6 +1915,7 @@ export default function DetailKelasGuruSection({
     }
 
     try {
+      const selectedScheduleId = normalizeText(searchParams.get("scheduleId"));
       const [detailResponse, gradesResponse] = await Promise.all([
         fetch(buildGuruApiUrl(`/api/teacher/me/classes/${encodeURIComponent(normalizedClassId)}`, searchParams), {
           method: "GET",
@@ -1935,6 +1969,7 @@ export default function DetailKelasGuruSection({
       const nextClassDetail = mapTeacherDetailToClassData(
         detailPayload.data,
         teacherName,
+        selectedScheduleId,
       );
       const nextMaterials = mapTeacherDetailToMaterials(
         detailPayload.data,

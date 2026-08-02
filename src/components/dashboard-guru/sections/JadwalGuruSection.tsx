@@ -682,6 +682,61 @@ function mapScheduleItem(
   } satisfies JadwalGuruItem;
 }
 
+function mapScheduleToClassCardItem(
+  item: TeacherScheduleApiItem,
+  index: number,
+  classLookups: ReturnType<typeof buildClassLookups>,
+) {
+  const day = toGuruDay(item.day);
+
+  if (!day) {
+    return null;
+  }
+
+  const scheduleId = buildItemId("jadwal", item.id, index);
+  const linkedClass = resolveLinkedClassItem(item, classLookups);
+  const className =
+    normalizeText(item.className) || linkedClass?.namaKelas || `Kelas ${index + 1}`;
+  const branch =
+    normalizeText(item.branch) || linkedClass?.branch || "Cabang belum diatur";
+  const kelasId =
+    linkedClass?.kelasId ||
+    normalizeText(item.classId) ||
+    buildStableTeacherClassId(
+      normalizeText(item.teacherId) || scheduleId,
+      branch,
+      className,
+    );
+
+  return {
+    kelasId,
+    scheduleId,
+    namaKelas: className,
+    jenjang: linkedClass?.jenjang || inferJenjang(className),
+    tingkat: linkedClass?.tingkat || inferTingkat(className),
+    mapel:
+      normalizeText(item.subject) ||
+      linkedClass?.mapel ||
+      "Mapel belum diatur",
+    branch,
+    day,
+    time: normalizeText(item.time) || linkedClass?.time || "00:00 - 00:00",
+    ruangan:
+      normalizeText(item.room) ||
+      linkedClass?.ruangan ||
+      "Ruangan belum diatur",
+    totalSiswa: linkedClass?.totalSiswa ?? 0,
+    totalPertemuan: linkedClass?.totalPertemuan ?? DEFAULT_SEMESTER_MEETING_TARGET,
+    status:
+      Array.isArray(item.conflicts) && item.conflicts.length > 0
+        ? "Bentrok"
+        : toGuruStatus(item.status || linkedClass?.status),
+    conflictCount: Array.isArray(item.conflicts) ? item.conflicts.length : 0,
+    pendingTaskCount: linkedClass?.pendingTaskCount ?? 0,
+    overdueTaskCount: linkedClass?.overdueTaskCount ?? 0,
+  } satisfies GuruClassCardItem;
+}
+
 function buildFollowUpItems(kelasItems: GuruClassCardItem[]) {
   return kelasItems
     .filter(
@@ -709,7 +764,7 @@ function buildFollowUpItems(kelasItems: GuruClassCardItem[]) {
     })
     .slice(0, 5)
     .map((item) => ({
-      id: item.kelasId,
+      id: `${item.kelasId}-${item.scheduleId ?? item.day}`,
       judul: item.namaKelas,
       mapel: `${item.mapel} • ${item.branch}`,
       jumlahSiswa: item.totalSiswa,
@@ -728,7 +783,9 @@ function buildFollowUpItems(kelasItems: GuruClassCardItem[]) {
         item.pendingTaskCount > 0 ||
         item.overdueTaskCount > 0 ||
         item.status === "Bentrok",
-      href: `/dashboard-guru/detail-kelas?kelasId=${item.kelasId}`,
+      href: `/dashboard-guru/detail-kelas?kelasId=${item.kelasId}${
+        item.scheduleId ? `&scheduleId=${item.scheduleId}` : ""
+      }`,
     })) satisfies ReviewItem[];
 }
 
@@ -841,7 +898,10 @@ function JadwalCard({
     ? buildGuruUrl(
         "/dashboard-guru/detail-kelas",
         new URLSearchParams({ academicYear }),
-        { kelasId: item.kelasId },
+        {
+          kelasId: item.kelasId,
+          ...(item.scheduleId ? { scheduleId: item.scheduleId } : {}),
+        },
       )
     : "";
 
@@ -1037,7 +1097,14 @@ function GuruClassCard({
 
       <div className="mt-2 flex gap-2">
         <Link
-          href={buildGuruUrl("/dashboard-guru/detail-kelas", new URLSearchParams({ academicYear }), { kelasId: kelas.kelasId })}
+          href={buildGuruUrl(
+            "/dashboard-guru/detail-kelas",
+            new URLSearchParams({ academicYear }),
+            {
+              kelasId: kelas.kelasId,
+              ...(kelas.scheduleId ? { scheduleId: kelas.scheduleId } : {}),
+            },
+          )}
           className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-2 text-xs font-medium text-gray-700 transition-all hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"
         >
           <ExternalLink size={12} />
@@ -1158,6 +1225,32 @@ export default function JadwalGuruSection() {
           nextJadwalItems = scheduleItems
             .map((item, index) => mapScheduleItem(item, index, classLookups))
             .filter(isDefined);
+
+          const scheduleClassCards = scheduleItems
+            .map((item, index) =>
+              mapScheduleToClassCardItem(item, index, classLookups),
+            )
+            .filter(isDefined);
+
+          if (scheduleClassCards.length > 0) {
+            const scheduledClassIds = new Set(
+              scheduleClassCards.map((item) =>
+                normalizeText(item.kelasId).toLowerCase(),
+              ),
+            );
+            const classCardsWithoutSchedule = mergeClassScheduleStats(
+              mergedClassItems,
+              statsByClassId,
+            ).filter(
+              (item) =>
+                !scheduledClassIds.has(normalizeText(item.kelasId).toLowerCase()),
+            );
+
+            nextKelasItems = [
+              ...scheduleClassCards,
+              ...classCardsWithoutSchedule,
+            ];
+          }
         } else {
           console.error("[jadwal-guru-section] schedule_request_failed", {
             status: response.status,
@@ -1473,7 +1566,11 @@ export default function JadwalGuruSection() {
               <LoadingStack count={3} />
             ) : filteredKelas.length > 0 ? (
                 filteredKelas.map((kelas) => (
-                  <GuruClassCard key={kelas.kelasId} kelas={kelas} academicYear={academicYear} />
+                  <GuruClassCard
+                    key={`${kelas.kelasId}-${kelas.scheduleId ?? kelas.day}`}
+                    kelas={kelas}
+                    academicYear={academicYear}
+                  />
                 ))
             ) : (
               <div className="flex flex-col items-center justify-center py-10 text-center text-gray-400">

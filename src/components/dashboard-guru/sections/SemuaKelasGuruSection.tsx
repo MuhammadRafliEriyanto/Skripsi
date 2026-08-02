@@ -94,25 +94,6 @@ type TeacherScheduleResponse = {
   };
 };
 
-type GuruDay =
-  | "Senin"
-  | "Selasa"
-  | "Rabu"
-  | "Kamis"
-  | "Jumat"
-  | "Sabtu"
-  | "Minggu";
-
-const DAY_ORDER: GuruDay[] = [
-  "Senin",
-  "Selasa",
-  "Rabu",
-  "Kamis",
-  "Jumat",
-  "Sabtu",
-  "Minggu",
-];
-
 function normalizeText(value: string | null | undefined) {
   return value?.trim().replace(/\s+/g, " ") ?? "";
 }
@@ -136,82 +117,6 @@ function toSafeNumber(value: unknown) {
 
 function formatTimeLabel(value: string) {
   return normalizeText(value).replace(/:/g, ".");
-}
-
-function getCurrentIndonesianDay(date = new Date()): GuruDay {
-  const dayMap: Record<number, GuruDay> = {
-    0: "Minggu",
-    1: "Senin",
-    2: "Selasa",
-    3: "Rabu",
-    4: "Kamis",
-    5: "Jumat",
-    6: "Sabtu",
-  };
-
-  return dayMap[date.getDay()];
-}
-
-function toGuruDay(value: string | null | undefined): GuruDay | null {
-  const normalizedValue = normalizeText(value).toLowerCase();
-
-  switch (normalizedValue) {
-    case "senin":
-      return "Senin";
-    case "selasa":
-      return "Selasa";
-    case "rabu":
-      return "Rabu";
-    case "kamis":
-      return "Kamis";
-    case "jumat":
-      return "Jumat";
-    case "sabtu":
-      return "Sabtu";
-    case "minggu":
-      return "Minggu";
-    default:
-      return null;
-  }
-}
-
-function getUpcomingDayOffset(dayValue: string | null | undefined) {
-  const day = toGuruDay(dayValue);
-
-  if (!day) {
-    return Number.MAX_SAFE_INTEGER;
-  }
-
-  const currentDayIndex = DAY_ORDER.indexOf(getCurrentIndonesianDay());
-  const targetDayIndex = DAY_ORDER.indexOf(day);
-
-  return (targetDayIndex - currentDayIndex + DAY_ORDER.length) % DAY_ORDER.length;
-}
-
-function toMinuteValue(timeRange: string | null | undefined) {
-  const [startTime = "00:00"] = normalizeText(timeRange)
-    .split("-")
-    .map((value) => value.trim());
-  const [hour = 0, minute = 0] = startTime
-    .replace(".", ":")
-    .split(":")
-    .map((value) => Number(value));
-
-  return hour * 60 + minute;
-}
-
-function compareSchedulesByUpcoming(
-  left: TeacherScheduleApiItem,
-  right: TeacherScheduleApiItem,
-) {
-  const leftOffset = getUpcomingDayOffset(left.day);
-  const rightOffset = getUpcomingDayOffset(right.day);
-
-  if (leftOffset !== rightOffset) {
-    return leftOffset - rightOffset;
-  }
-
-  return toMinuteValue(left.time) - toMinuteValue(right.time);
 }
 
 function extractGrade(value: string) {
@@ -389,71 +294,15 @@ function mapTeacherClassToSummary(
   };
 }
 
-function buildScheduleGroupKey(item: TeacherScheduleApiItem) {
-  const classId = normalizeText(item.classId).toLowerCase();
-
-  if (classId) {
-    return `id::${classId}`;
-  }
-
-  return `name::${buildClassLookupKey(item.branch, item.className)}`;
-}
-
-function mapScheduleGroupToSummary(
-  schedules: TeacherScheduleApiItem[],
-  index: number,
-): GuruClassSummaryWithBranch | null {
-  const sortedSchedules = [...schedules].sort(compareSchedulesByUpcoming);
-  const nextSchedule = sortedSchedules[0] ?? schedules[0];
-  const namaKelas = normalizeText(nextSchedule?.className);
-
-  if (!namaKelas) {
-    return null;
-  }
-
-  const branch = normalizeText(nextSchedule?.branch) || "Cabang belum diatur";
-  const tingkat = inferTingkat(namaKelas);
-  const isUtbk = isUtbkClassName(namaKelas) || isUtbkClassName(tingkat);
-  const classId = normalizeText(nextSchedule?.classId);
-  const scheduleId = normalizeText(nextSchedule?.id);
-  const identitySeed =
-    normalizeText(nextSchedule?.teacherId) ||
-    classId ||
-    scheduleId ||
-    `jadwal-${index + 1}`;
-  const mapel = normalizeText(nextSchedule?.subject) || "Mapel belum diatur";
-
-  return {
-    kelasId: classId || buildStableTeacherClassId(identitySeed, branch, namaKelas),
-    namaKelas,
-    guru: "Guru login",
-    jenjang: inferJenjang(namaKelas, tingkat),
-    tingkat,
-    mapel,
-    branch,
-    program: branch || `${mapel} - ${namaKelas}`,
-    jadwal: buildScheduleItemLabel(nextSchedule),
-    ruangan: normalizeText(nextSchedule?.room) || "Ruangan belum diatur",
-    totalSiswa: 0,
-    totalPertemuan: DEFAULT_SEMESTER_MEETING_TARGET,
-    pertemuanSelesai: 0,
-    tugasBelumDinilai: 0,
-    aktifMingguIni: true,
-    status: toClassStatus(nextSchedule?.status),
-    isUtbk,
-    scheduleId: scheduleId || undefined,
-  };
-}
-
 function mergeClassSummariesWithSchedules(
   classItems: TeacherClassApiItem[],
   scheduleItems: TeacherScheduleApiItem[],
 ) {
-  const nextClasses = classItems.map(mapTeacherClassToSummary);
+  const baseClasses = classItems.map(mapTeacherClassToSummary);
   const classIndexById = new Map<string, number>();
   const classIndexByName = new Map<string, number>();
 
-  nextClasses.forEach((item, index) => {
+  baseClasses.forEach((item, index) => {
     const classId = normalizeText(item.kelasId).toLowerCase();
 
     if (classId) {
@@ -463,66 +312,99 @@ function mergeClassSummariesWithSchedules(
     classIndexByName.set(buildClassLookupKey(item.branch, item.namaKelas), index);
   });
 
-  const schedulesByClass = new Map<string, TeacherScheduleApiItem[]>();
+  const classKeysWithSchedule = new Set<string>();
+  const scheduleClasses = scheduleItems
+    .map((schedule, index): GuruClassSummaryWithBranch | null => {
+      const classId = normalizeText(schedule.classId).toLowerCase();
+      const nameKey = buildClassLookupKey(schedule.branch, schedule.className);
+      const scheduleId = normalizeText(schedule.id);
+      const room = normalizeText(schedule.room);
+      const subject = normalizeText(schedule.subject);
+      const className = normalizeText(schedule.className);
+      const branch = normalizeText(schedule.branch) || "Cabang belum diatur";
+      const tingkat = inferTingkat(className);
+      const existingIndex =
+        (classId ? classIndexById.get(classId) : undefined) ??
+        classIndexByName.get(nameKey);
 
-  for (const schedule of scheduleItems) {
-    const key = buildScheduleGroupKey(schedule);
-    schedulesByClass.set(key, [
-      ...(schedulesByClass.get(key) ?? []),
-      schedule,
-    ]);
-  }
+      if (classId) {
+        classKeysWithSchedule.add(`id::${classId}`);
+      }
 
-  Array.from(schedulesByClass.values()).forEach((schedules, index) => {
-    const sortedSchedules = [...schedules].sort(compareSchedulesByUpcoming);
-    const nextSchedule = sortedSchedules[0] ?? schedules[0];
-    const classId = normalizeText(nextSchedule?.classId).toLowerCase();
-    const nameKey = buildClassLookupKey(nextSchedule?.branch, nextSchedule?.className);
-    const existingIndex =
-      (classId ? classIndexById.get(classId) : undefined) ??
-      classIndexByName.get(nameKey);
+      if (nameKey !== "::") {
+        classKeysWithSchedule.add(`name::${nameKey}`);
+      }
 
-    if (existingIndex !== undefined) {
-      const current = nextClasses[existingIndex];
-      const scheduleId = normalizeText(nextSchedule?.id);
-      const room = normalizeText(nextSchedule?.room);
-      const subject = normalizeText(nextSchedule?.subject);
+      if (existingIndex !== undefined) {
+        const current = baseClasses[existingIndex];
 
-      nextClasses[existingIndex] = {
-        ...current,
-        mapel:
-          current.mapel === "Mapel belum diatur" && subject
-            ? subject
-            : current.mapel,
-        jadwal: buildScheduleItemLabel(nextSchedule),
-        ruangan:
-          current.ruangan === "Ruangan belum diatur" && room
-            ? room
-            : current.ruangan,
+        return {
+          ...current,
+          mapel:
+            current.mapel === "Mapel belum diatur" && subject
+              ? subject
+              : current.mapel,
+          jadwal: buildScheduleItemLabel(schedule),
+          ruangan:
+            current.ruangan === "Ruangan belum diatur" && room
+              ? room
+              : current.ruangan,
+          aktifMingguIni: true,
+          status: toClassStatus(schedule.status || current.status),
+          scheduleId: scheduleId || current.scheduleId,
+        } satisfies GuruClassSummaryWithBranch;
+      }
+
+      if (!className) {
+        return null;
+      }
+
+      const isUtbk = isUtbkClassName(className) || isUtbkClassName(tingkat);
+      const identitySeed =
+        normalizeText(schedule.teacherId) ||
+        classId ||
+        scheduleId ||
+        `jadwal-${index + 1}`;
+      const mapel = subject || "Mapel belum diatur";
+
+      return {
+        kelasId: classId || buildStableTeacherClassId(identitySeed, branch, className),
+        namaKelas: className,
+        guru: "Guru login",
+        jenjang: inferJenjang(className, tingkat),
+        tingkat,
+        mapel,
+        branch,
+        program: branch || `${mapel} - ${className}`,
+        jadwal: buildScheduleItemLabel(schedule),
+        ruangan: room || "Ruangan belum diatur",
+        totalSiswa: 0,
+        totalPertemuan: DEFAULT_SEMESTER_MEETING_TARGET,
+        pertemuanSelesai: 0,
+        tugasBelumDinilai: 0,
         aktifMingguIni: true,
-        status: toClassStatus(nextSchedule?.status || current.status),
-        scheduleId: scheduleId || current.scheduleId,
-      };
-      return;
-    }
+        status: toClassStatus(schedule.status),
+        isUtbk,
+        scheduleId: scheduleId || undefined,
+      } satisfies GuruClassSummaryWithBranch;
+    })
+    .filter((item): item is GuruClassSummaryWithBranch => item !== null);
 
-    const scheduleClass = mapScheduleGroupToSummary(
-      schedules,
-      nextClasses.length + index,
+  const classesWithoutSchedule = baseClasses.filter((item) => {
+    const classId = normalizeText(item.kelasId).toLowerCase();
+    const nameKey = buildClassLookupKey(item.branch, item.namaKelas);
+
+    return (
+      !classKeysWithSchedule.has(`id::${classId}`) &&
+      !classKeysWithSchedule.has(`name::${nameKey}`)
     );
-
-    if (scheduleClass) {
-      const nextIndex = nextClasses.length;
-      nextClasses.push(scheduleClass);
-      classIndexById.set(normalizeText(scheduleClass.kelasId).toLowerCase(), nextIndex);
-      classIndexByName.set(
-        buildClassLookupKey(scheduleClass.branch, scheduleClass.namaKelas),
-        nextIndex,
-      );
-    }
   });
 
-  return nextClasses;
+  if (scheduleClasses.length > 0) {
+    return [...scheduleClasses, ...classesWithoutSchedule];
+  }
+
+  return baseClasses;
 }
 
 async function fetchTeacherJson<T>(url: string) {
@@ -1042,7 +924,7 @@ export default function SemuaKelasGuruSection() {
 
               return (
                 <article
-                  key={kelas.kelasId}
+                  key={`${kelas.kelasId}-${kelas.scheduleId ?? kelas.jadwal}`}
                   className="group relative overflow-hidden rounded-2xl border border-orange-100 bg-[linear-gradient(180deg,#fffdf9_0%,#ffffff_22%,#fffaf5_100%)] p-5 shadow-[0_22px_46px_-36px_rgba(15,23,42,0.26)] transition-all duration-300 hover:-translate-y-1 hover:border-orange-300 hover:shadow-[0_32px_58px_-34px_rgba(249,115,22,0.28)]"
                 >
                   <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-400 via-orange-500 to-amber-400" />
@@ -1135,7 +1017,14 @@ export default function SemuaKelasGuruSection() {
 
                     <div className="mt-5 grid gap-2 sm:grid-cols-2">
                       <Link
-                        href={buildGuruUrl("/dashboard-guru/detail-kelas", searchParams, { kelasId: kelas.kelasId })}
+                        href={buildGuruUrl(
+                          "/dashboard-guru/detail-kelas",
+                          searchParams,
+                          {
+                            kelasId: kelas.kelasId,
+                            ...(kelas.scheduleId ? { scheduleId: kelas.scheduleId } : {}),
+                          },
+                        )}
                         className="inline-flex items-center justify-center gap-1.5 border border-orange-200 bg-orange-50 px-4 py-2.5 text-sm font-semibold text-orange-700 transition hover:-translate-y-px hover:border-orange-300 hover:bg-orange-100"
                       >
                         Detail Kelas
