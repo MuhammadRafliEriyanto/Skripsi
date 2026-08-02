@@ -633,8 +633,16 @@ export function AdminSchedule({
   ];
   const scheduleDayFormOptions = [...orderedScheduleDays];
   const roomOptions = createRoomOptions(roomDirectory ?? []);
+  const filteredResolvedTeachers = formValues.subject
+    ? resolvedTeachers.filter(
+        (t) =>
+          normalizeScheduleSubject(t.subject, scheduleSubjectOptions) ===
+          normalizeScheduleSubject(formValues.subject, scheduleSubjectOptions),
+      )
+    : resolvedTeachers;
+
   const teacherOptions = createTeacherOptions(
-    resolvedTeachers,
+    filteredResolvedTeachers,
     formValues.teacherId,
   );
   const scheduleGradeOptions = getScheduleGradeOptions(
@@ -924,10 +932,40 @@ export function AdminSchedule({
     key: K,
     value: ScheduleFormValues[K],
   ) => {
-    setFormValues((currentValues) => ({
-      ...currentValues,
-      [key]: value,
-    }));
+    setFormValues((currentValues) => {
+      const nextValues = {
+        ...currentValues,
+        [key]: value,
+      };
+
+      if (key === "teacherId") {
+        const selectedTeacher = resolvedTeachers.find((t) => t.id === value);
+        if (selectedTeacher && selectedTeacher.subject) {
+          nextValues.subject =
+            normalizeScheduleSubject(
+              selectedTeacher.subject,
+              scheduleSubjectOptions,
+            ) || selectedTeacher.subject;
+        }
+      }
+
+      if (key === "subject") {
+        const selectedTeacher = resolvedTeachers.find(
+          (t) => t.id === currentValues.teacherId,
+        );
+        if (selectedTeacher && selectedTeacher.subject) {
+          const normalizedTeacherSubject = normalizeScheduleSubject(
+            selectedTeacher.subject,
+            scheduleSubjectOptions,
+          );
+          if (normalizedTeacherSubject !== value) {
+            nextValues.teacherId = "";
+          }
+        }
+      }
+
+      return nextValues;
+    });
   };
 
   const handleLevelChange = (value: string) => {
