@@ -1,10 +1,8 @@
 /*  */"use client";
 import {
   AlertTriangle,
-  Ban,
   CheckCircle2,
   Download,
-  Eye,
   LoaderCircle,
   Mail,
   Pencil,
@@ -51,13 +49,11 @@ import {
 } from "@/lib/admin-dashboard-config";
 import {
   archiveAdminPayment,
-  cancelAdminPayment,
   createAdminBatchPaymentSession,
   exportAdminPaymentActivationsCsv,
   exportAdminPaymentsCsv,
   fetchAdminPaymentActivations,
   fetchAdminPayments,
-  resendAdminPaymentLink,
   replaceAdminPayment,
   updateAdminPaymentStatus,
   type AdminBatchPaymentReasonCode,
@@ -1297,8 +1293,10 @@ function IncomingPaymentEditDialog({
   packageLookupOptions,
   open,
   isSubmitting,
+  isStatusSubmitting,
   onOpenChange,
   onConfirm,
+  onMarkPaid,
 }: {
   record: IncomingPaymentRecord | null;
   billingPackages: AdminBillingPackage[];
@@ -1306,11 +1304,13 @@ function IncomingPaymentEditDialog({
   packageLookupOptions: OnlinePackageDefinition[];
   open: boolean;
   isSubmitting: boolean;
+  isStatusSubmitting: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: (
     record: IncomingPaymentRecord,
     payload: ReplaceAdminPaymentPayload,
   ) => void;
+  onMarkPaid: (record: IncomingPaymentRecord) => void;
 }) {
   const initialPackage =
     billingPackages.find((item) => item.packageKey === record?.packageKey) ??
@@ -1323,9 +1323,12 @@ function IncomingPaymentEditDialog({
     formatDateTimeLocalInput(record?.expiresAt),
   );
 
+  const isBusy = isSubmitting || isStatusSubmitting;
+  const showTransactionEditor = record?.source === "admin";
+  const canMarkPaid = record?.status === "pending";
   const canSubmit =
     Boolean(record) &&
-    record?.source === "admin" &&
+    showTransactionEditor &&
     record.status === "pending" &&
     Boolean(packageKey);
 
@@ -1357,14 +1360,15 @@ function IncomingPaymentEditDialog({
                   tone={formatPaymentStatusTone(record.status)}
                   className="w-fit"
                 />
-                <Badge variant="secondary">Edit transaksi pending</Badge>
+                <Badge variant="secondary">Edit pembayaran</Badge>
               </div>
               <DialogTitle className="text-xl sm:text-2xl">
                 {record.paymentId}
               </DialogTitle>
               <DialogDescription>
-                Perubahan paket atau batas pembayaran akan membuat sesi pembayaran
-                pengganti. Transaksi lama tetap disimpan sebagai riwayat expired.
+                {showTransactionEditor
+                  ? "Edit transaksi admin pending atau tandai statusnya menjadi lunas dari dialog yang sama."
+                  : "Tandai pembayaran pending menjadi lunas tanpa mengubah detail transaksi asal."}
               </DialogDescription>
             </DialogHeader>
 
@@ -1422,6 +1426,11 @@ function IncomingPaymentEditDialog({
                 Tautan lama akan dibatalkan. Sistem membuat no referensi dan
                 tautan pembayaran baru agar data tetap konsisten.
               </div>
+
+              <div className="rounded-[20px] border border-emerald-100/80 bg-emerald-50/90 px-4 py-3 text-sm leading-6 text-emerald-700">
+                Dari dialog ini admin juga bisa menandai transaksi pending
+                menjadi Lunas tanpa membuat sesi pembayaran baru.
+              </div>
             </div>
 
             <DialogFooter className="border-t border-slate-100 px-5 py-4 sm:px-6">
@@ -1429,17 +1438,31 @@ function IncomingPaymentEditDialog({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
+                disabled={isBusy}
               >
                 Batal
               </Button>
-              <Button type="submit" disabled={!canSubmit || isSubmitting}>
+              <Button
+                type="button"
+                variant="outline"
+                className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-700"
+                disabled={!canMarkPaid || isBusy}
+                onClick={() => onMarkPaid(record)}
+              >
+                {isStatusSubmitting ? (
+                  <LoaderCircle className="size-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="size-4" />
+                )}
+                Tandai Lunas
+              </Button>
+              <Button type="submit" disabled={!canSubmit || isBusy}>
                 {isSubmitting ? (
                   <LoaderCircle className="size-4 animate-spin" />
                 ) : (
                   <Pencil className="size-4" />
                 )}
-                Simpan Perubahan
+                Simpan Transaksi
               </Button>
             </DialogFooter>
           </form>
@@ -2700,86 +2723,6 @@ export function AdminPaymentVerification({
     await handleCreateBatchPaymentSession(event);
   }
 
-  async function handleResendPaymentLink(payment: IncomingPaymentRecord) {
-    setActivePaymentActionKey(`${payment.id}:resend`);
-
-    try {
-      const response = await resendAdminPaymentLink(payment.paymentId);
-
-      setBillingFeedback({
-        tone: "info",
-        title: "Checkout link siap dikirim ulang",
-        message: `Link pembayaran untuk ${payment.student.name} tetap memakai sesi yang sama. Admin bisa langsung membagikan ulang link checkout ke siswa.`,
-        checkoutUrl: response.checkoutUrl,
-        statusPagePath: buildPaymentStatusPagePath(response.paymentId),
-      });
-      window.alert("Checkout link berhasil dikirim ulang.");
-      await refreshPaymentViews({
-        includeStudents: false,
-      });
-    } catch (requestError) {
-      const message =
-        requestError instanceof Error
-          ? requestError.message
-          : "Checkout link belum bisa dikirim ulang.";
-
-      setBillingFeedback({
-        tone: "warning",
-        title: "Kirim ulang link gagal",
-        message,
-      });
-      window.alert(message);
-      await refreshPaymentViews({
-        includeStudents: false,
-      });
-    } finally {
-      setActivePaymentActionKey(null);
-    }
-  }
-
-  async function handleCancelPayment(payment: IncomingPaymentRecord) {
-    const confirmed = window.confirm(
-      `Batalkan transaksi ${payment.paymentId} untuk ${payment.student.name}? Status transaksi akan menjadi kedaluwarsa dan tautan pembayaran akan dibatalkan.`,
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    setActivePaymentActionKey(`${payment.id}:cancel`);
-
-    try {
-      const response = await cancelAdminPayment(payment.paymentId);
-
-      setBillingFeedback({
-        tone: "warning",
-        title: "Transaksi berhasil dibatalkan",
-        message: `Payment ${response.paymentId} sudah diubah menjadi expired dengan alasan ${formatCancelReasonLabel(response.cancelReason)}.`,
-      });
-      window.alert("Transaksi berhasil dibatalkan.");
-      await refreshPaymentViews({
-        includeStudents: false,
-      });
-    } catch (requestError) {
-      const message =
-        requestError instanceof Error
-          ? requestError.message
-          : "Transaksi belum bisa dibatalkan.";
-
-      setBillingFeedback({
-        tone: "warning",
-        title: "Pembatalan transaksi gagal",
-        message,
-      });
-      window.alert(message);
-      await refreshPaymentViews({
-        includeStudents: false,
-      });
-    } finally {
-      setActivePaymentActionKey(null);
-    }
-  }
-
   async function handleReplacePayment(
     payment: IncomingPaymentRecord,
     payload: ReplaceAdminPaymentPayload,
@@ -2909,6 +2852,7 @@ export function AdminPaymentVerification({
         message: `Payment ${response.paymentId} sudah Lunas. Subscription ${response.subscriptionCode} sekarang ${response.subscriptionStatus} dengan status pembayaran ${formatPaymentStatusLabel(response.subscriptionPaymentStatus)}.`,
       });
       setPaymentStatusEditRecord(null);
+      setPaymentEditRecord(null);
       window.alert("Pembayaran berhasil ditandai lunas.");
       await refreshPaymentViews({
         includeStudents: false,
@@ -3040,24 +2984,16 @@ export function AdminPaymentVerification({
     {
       key: "actions",
       header: "Aksi",
-      className: "min-w-[380px] text-center",
+      className: "min-w-[112px] text-center",
       cell: (payment) => {
-        const isResending =
-          activePaymentActionKey === `${payment.id}:resend`;
-        const isCanceling =
-          activePaymentActionKey === `${payment.id}:cancel`;
         const isMarkingPaid =
           activePaymentActionKey === `${payment.id}:mark-paid`;
         const isReplacing =
           activePaymentActionKey === `${payment.id}:replace`;
         const isArchiving =
           activePaymentActionKey === `${payment.id}:archive`;
-        const isProcessing =
-          isResending ||
-          isCanceling ||
-          isMarkingPaid ||
-          isReplacing ||
-          isArchiving;
+        const isEditing = isMarkingPaid || isReplacing;
+        const isProcessing = isEditing || isArchiving;
         const canEditPayment =
           payment.source === "admin" && payment.status === "pending";
         const canArchivePayment = canArchivePaymentRecord(payment);
@@ -3067,8 +3003,10 @@ export function AdminPaymentVerification({
             <Button
               type="button"
               variant="outline"
-              size="sm"
-              className="gap-2 border-sky-200 text-sky-700 hover:bg-sky-50 hover:text-sky-700"
+              size="icon"
+              aria-label="Edit pembayaran"
+              title="Edit pembayaran"
+              className="size-9 rounded-xl border-sky-200 text-sky-700 hover:bg-sky-50 hover:text-sky-700"
               disabled={!canEditPayment || isProcessing}
               onClick={() => {
                 if (canEditPayment) {
@@ -3076,75 +3014,19 @@ export function AdminPaymentVerification({
                 }
               }}
             >
-              {isReplacing ? (
+              {isEditing ? (
                 <LoaderCircle className="size-4 animate-spin" />
               ) : (
                 <Pencil className="size-4" />
               )}
-              Edit Transaksi
             </Button>
             <Button
               type="button"
               variant="outline"
-              size="sm"
-              className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-700"
-              disabled={payment.status !== "pending" || isProcessing}
-              onClick={() => {
-                if (payment.status === "pending") {
-                  setPaymentStatusEditRecord(payment);
-                }
-              }}
-            >
-              {isMarkingPaid ? (
-                <LoaderCircle className="size-4 animate-spin" />
-              ) : (
-                <Pencil className="size-4" />
-              )}
-              Edit Status
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-2"
-              disabled={!payment.canResendLink || isProcessing}
-              onClick={() => {
-                if (payment.canResendLink) {
-                  void handleResendPaymentLink(payment);
-                }
-              }}
-            >
-              {isResending ? (
-                <LoaderCircle className="size-4 animate-spin" />
-              ) : (
-                <RefreshCw className="size-4" />
-              )}
-              Kirim Ulang Link
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-2 border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-700"
-              disabled={!payment.canCancel || isProcessing}
-              onClick={() => {
-                if (payment.canCancel) {
-                  void handleCancelPayment(payment);
-                }
-              }}
-            >
-              {isCanceling ? (
-                <LoaderCircle className="size-4 animate-spin" />
-              ) : (
-                <Ban className="size-4" />
-              )}
-              Batalkan Transaksi
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-2 border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-700"
+              size="icon"
+              aria-label="Hapus pembayaran"
+              title="Hapus pembayaran"
+              className="size-9 rounded-xl border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-700"
               disabled={!canArchivePayment || isProcessing}
               onClick={() => {
                 if (canArchivePayment) {
@@ -3157,19 +3039,6 @@ export function AdminPaymentVerification({
               ) : (
                 <Trash2 className="size-4" />
               )}
-              Hapus
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="gap-2 text-slate-600"
-              onClick={() => {
-                setSelectedIncomingPaymentId(payment.id);
-              }}
-            >
-              <Eye className="size-4" />
-              Detail
             </Button>
           </div>
         );
@@ -3326,15 +3195,9 @@ export function AdminPaymentVerification({
     {
       key: "actions",
       header: "Aksi",
-      className: "min-w-[280px] text-center",
+      className: "min-w-[112px] text-center",
       cell: (student) => {
         const payment = buildPaymentRecordFromActivation(student);
-        const isResending = payment
-          ? activePaymentActionKey === `${payment.id}:resend`
-          : false;
-        const isCanceling = payment
-          ? activePaymentActionKey === `${payment.id}:cancel`
-          : false;
         const isMarkingPaid = payment
           ? activePaymentActionKey === `${payment.id}:mark-paid`
           : false;
@@ -3344,12 +3207,8 @@ export function AdminPaymentVerification({
         const isArchiving = payment
           ? activePaymentActionKey === `${payment.id}:archive`
           : false;
-        const isProcessing =
-          isResending ||
-          isCanceling ||
-          isMarkingPaid ||
-          isReplacing ||
-          isArchiving;
+        const isEditing = isMarkingPaid || isReplacing;
+        const isProcessing = isEditing || isArchiving;
         const canEditPayment =
           payment?.source === "admin" && payment.status === "pending";
         const canArchivePayment = canArchivePaymentRecord(payment);
@@ -3361,8 +3220,10 @@ export function AdminPaymentVerification({
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
-                className="gap-2 border-sky-200 text-sky-700 hover:bg-sky-50 hover:text-sky-700"
+                size="icon"
+                aria-label="Edit pembayaran"
+                title="Edit pembayaran"
+                className="size-9 rounded-xl border-sky-200 text-sky-700 hover:bg-sky-50 hover:text-sky-700"
                 disabled={!canEditPayment || isProcessing}
                 onClick={() => {
                   if (canEditPayment) {
@@ -3370,75 +3231,19 @@ export function AdminPaymentVerification({
                   }
                 }}
               >
-                {isReplacing ? (
+                {isEditing ? (
                   <LoaderCircle className="size-4 animate-spin" />
                 ) : (
                   <Pencil className="size-4" />
                 )}
-                Edit Transaksi
               </Button>
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
-                className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-700"
-                disabled={payment.status !== "pending" || isProcessing}
-                onClick={() => {
-                  if (payment.status === "pending") {
-                    setPaymentStatusEditRecord(payment);
-                  }
-                }}
-              >
-                {isMarkingPaid ? (
-                  <LoaderCircle className="size-4 animate-spin" />
-                ) : (
-                  <Pencil className="size-4" />
-                )}
-                Edit Status
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                disabled={!payment.canResendLink || isProcessing}
-                onClick={() => {
-                  if (payment.canResendLink) {
-                    void handleResendPaymentLink(payment);
-                  }
-                }}
-              >
-                {isResending ? (
-                  <LoaderCircle className="size-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="size-4" />
-                )}
-                Kirim Ulang Link
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-2 border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-700"
-                disabled={!payment.canCancel || isProcessing}
-                onClick={() => {
-                  if (payment.canCancel) {
-                    void handleCancelPayment(payment);
-                  }
-                }}
-              >
-                {isCanceling ? (
-                  <LoaderCircle className="size-4 animate-spin" />
-                ) : (
-                  <Ban className="size-4" />
-                )}
-                Batalkan Transaksi
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-2 border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-700"
+                size="icon"
+                aria-label="Hapus pembayaran"
+                title="Hapus pembayaran"
+                className="size-9 rounded-xl border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-700"
                 disabled={!canArchivePayment || isProcessing}
                 onClick={() => {
                   if (canArchivePayment) {
@@ -3451,22 +3256,9 @@ export function AdminPaymentVerification({
                 ) : (
                   <Trash2 className="size-4" />
                 )}
-                Hapus
               </Button>
               </>
             ) : null}
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="gap-2 text-slate-600"
-              onClick={() => {
-                setSelectedActivationId(student.id);
-              }}
-            >
-              <Eye className="size-4" />
-              Detail
-            </Button>
           </div>
         );
       },
@@ -4129,13 +3921,17 @@ export function AdminPaymentVerification({
         packageLookupOptions={packageLookupOptions}
         open={paymentEditRecord !== null}
         isSubmitting={isReplacingPayment}
+        isStatusSubmitting={isUpdatingPaymentStatus}
         onOpenChange={(open) => {
-          if (!open && !isReplacingPayment) {
+          if (!open && !isReplacingPayment && !isUpdatingPaymentStatus) {
             setPaymentEditRecord(null);
           }
         }}
         onConfirm={(record, payload) => {
           void handleReplacePayment(record, payload);
+        }}
+        onMarkPaid={(record) => {
+          void handleMarkPaymentPaid(record);
         }}
       />
 
