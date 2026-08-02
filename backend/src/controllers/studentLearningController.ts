@@ -488,7 +488,7 @@ async function getStudentLearningClassMetadata(
           canonicalClassName,
         );
     const matchesBranch = normalizedBranch
-      ? scheduleBranch === normalizedBranch
+      ? scheduleBranch === normalizedBranch || !scheduleBranch || scheduleBranch === "-"
       : true;
 
     if (!matchesClassName || !matchesBranch) {
@@ -1131,13 +1131,16 @@ export const getMyStudentLearningData = asyncHandler(
         : Promise.resolve([]),
       classIdsForAcademicGrades.length
         ? AcademicGrade.find({
-            studentId: normalizeText(student.studentId),
-            classId: {
-              $in: classIdsForAcademicGrades,
-            },
-            academicYear: period.academicYear,
-            semester: period.semester,
-            ...buildAcademicRecordSubscriptionFilter(subscriptionId),
+            $and: [
+              {
+                studentId: normalizeText(student.studentId),
+                classId: {
+                  $in: classIdsForAcademicGrades,
+                },
+                ...buildAcademicRecordSubscriptionFilter(subscriptionId),
+              },
+              buildClassContentPeriodFilter(period),
+            ],
           })
             .sort({ updatedAt: -1, createdAt: -1 })
             .lean()
