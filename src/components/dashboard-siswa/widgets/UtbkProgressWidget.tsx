@@ -2,6 +2,7 @@
 
 import {
   BookOpenCheck,
+  Check,
   Gauge,
   Target,
   TimerReset,
@@ -274,21 +275,21 @@ export default function UtbkProgressWidget({
           </div>
         </div>
 
-        <div className="border-t border-slate-200/80 bg-slate-950 p-5 text-white lg:border-t-0 lg:border-l">
+        <div className="border-t border-orange-600 bg-orange-500 p-5 text-white lg:border-t-0 lg:border-l">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-cyan-100">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange-100">
                 Status Data
               </p>
               <p className="mt-2 text-3xl font-black">
                 {isLoading ? "Memuat" : "Terhubung"}
               </p>
-              <p className="mt-1 text-xs font-medium leading-5 text-slate-300">
+              <p className="mt-1 text-xs font-medium leading-5 text-orange-100">
                 Rekap mengikuti data target, materi, dan tryout siswa.
               </p>
             </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10">
-              <Gauge className="h-6 w-6 text-cyan-100" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-sm">
+              <Check className="h-6 w-6 text-orange-500" />
             </div>
           </div>
 
@@ -296,12 +297,12 @@ export default function UtbkProgressWidget({
             {summaryItems.map((item) => (
               <div
                 key={item.label}
-                className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/10 px-3 py-2.5"
+                className="flex items-center justify-between gap-3 rounded-2xl bg-white px-3 py-2.5 shadow-sm"
               >
-                <span className="font-medium text-slate-300">
+                <span className="font-medium text-slate-600">
                   {item.label}
                 </span>
-                <span className="text-right font-bold text-white">
+                <span className="text-right font-bold text-slate-800">
                   {item.value}
                 </span>
               </div>
