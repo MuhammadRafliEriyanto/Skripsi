@@ -172,7 +172,7 @@ export function LoginForm() {
       title="Silahkan Login ke Bina Cendekia!"
       description="Masuk ke akun Anda untuk membuka dashboard belajar, jadwal, dan progres terbaru."
       footer={
-        <div className="flex flex-col gap-3 text-center text-sm text-slate-500">
+        <div className="flex flex-col gap-6 text-center text-sm text-slate-500">
           <div>
             Belum punya akun?{" "}
             <Link
@@ -182,7 +182,7 @@ export function LoginForm() {
               Daftar sekarang
             </Link>
           </div>
-          <p>
+          <p className="text-xs text-slate-400">
             Lupa password? Hubungi admin untuk reset password.
           </p>
         </div>
