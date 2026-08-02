@@ -7,7 +7,6 @@ import {
   ExternalLink,
   Eye,
   LoaderCircle,
-  Mail,
   Pencil,
   Plus,
   RefreshCw,
@@ -3294,19 +3293,20 @@ export function AdminPaymentVerification({
     setIsCreatingOfflineRenewal(true);
 
     try {
-      const response = await createAdminOfflineRenewal({
+      await createAdminOfflineRenewal({
         studentId,
         packageKey: payload.packageKey,
         paidAt: payload.paidAt,
       });
+      const studentName = normalizeText(record.studentName) || "siswa";
 
       setBillingFeedback({
         tone: "success",
-        title: "Perpanjangan offline berhasil",
-        message: `Payment ${response.payment.paymentId} sudah Lunas untuk ${record.studentName}. Membership ${response.subscription.subscriptionCode} diperbarui.`,
+        title: "Perpanjangan membership berhasil",
+        message: `Membership ${studentName} berhasil diperpanjang.`,
       });
       setOfflineRenewalRecord(null);
-      window.alert("Perpanjangan offline berhasil dicatat.");
+      window.alert(`Membership ${studentName} berhasil diperpanjang.`);
       setIncomingPage(1);
       await Promise.allSettled([
         refreshPaymentViews({
@@ -3474,18 +3474,19 @@ export function AdminPaymentVerification({
     setActivePaymentActionKey(`${payment.id}:mark-paid`);
 
     try {
-      const response = await updateAdminPaymentStatus(payment.paymentId, {
+      await updateAdminPaymentStatus(payment.paymentId, {
         status: "paid",
       });
+      const studentName = normalizeText(payment.student.name) || "siswa";
 
       setBillingFeedback({
         tone: "success",
         title: "Pembayaran berhasil ditandai lunas",
-        message: `Payment ${response.paymentId} sudah Lunas. Subscription ${response.subscriptionCode} sekarang ${response.subscriptionStatus} dengan status pembayaran ${formatPaymentStatusLabel(response.subscriptionPaymentStatus)}.`,
+        message: `Pembayaran ${studentName} berhasil ditandai lunas.`,
       });
       setPaymentStatusEditRecord(null);
       setPaymentEditRecord(null);
-      window.alert("Pembayaran berhasil ditandai lunas.");
+      window.alert(`Pembayaran ${studentName} berhasil ditandai lunas.`);
       await refreshPaymentViews({
         includeStudents: false,
       });
@@ -3761,10 +3762,6 @@ export function AdminPaymentVerification({
                 </Badge>
               ) : null}
             </div>
-            <p className="flex items-center gap-2 text-sm text-slate-500">
-              <Mail className="size-3.5 text-slate-400" />
-              {student.studentEmail ?? "Email siswa tidak tersedia"}
-            </p>
             {anomalyReasons.length ? (
               <p className="text-xs leading-5 text-rose-600">
                 {anomalyReasons.join(" ")}
@@ -4293,7 +4290,7 @@ export function AdminPaymentVerification({
                         onChange={(event) =>
                           setActivationSearchQuery(event.target.value)
                         }
-                        placeholder="Cari nama siswa, email, cabang, paket, atau kelas..."
+                        placeholder="Cari nama siswa, cabang, paket, atau kelas..."
                         className={cn("pl-10", warmFieldClassName)}
                       />
                     </div>
