@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   BookOpen,
   CheckCircle2,
@@ -84,6 +84,7 @@ function getSubjectStyle(subject: string) {
 
 export default function TugasSiswaPageView() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { tasks, academicAccess, isLoading, loadError, student } =
     useStudentLearningData();
   const isUtbkStudent = isUtbkStudentProfile(student);
@@ -93,6 +94,7 @@ export default function TugasSiswaPageView() {
 
   const [selectedTaskId, setSelectedTaskId] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const requestedTaskId = searchParams.get("taskId")?.trim() ?? "";
 
   const selectedTask = tasks.find((task) => task.id === selectedTaskId);
 
@@ -106,6 +108,17 @@ export default function TugasSiswaPageView() {
       router.replace("/dashboard-siswa/materi");
     }
   }, [isUtbkStudent, router]);
+
+  useEffect(() => {
+    if (!requestedTaskId || tasks.length === 0) {
+      return;
+    }
+
+    if (tasks.some((task) => task.id === requestedTaskId)) {
+      setSelectedTaskId(requestedTaskId);
+      setIsDialogOpen(true);
+    }
+  }, [requestedTaskId, tasks]);
 
   if (isUtbkStudent) {
     return (

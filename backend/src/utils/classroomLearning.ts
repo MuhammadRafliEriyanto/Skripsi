@@ -243,7 +243,13 @@ export function buildStudentLearningClassFilter(
 
   if (normalizedBranch) {
     scopedFilters.push({
-      branch: normalizedBranch,
+      $or: [
+        { branch: normalizedBranch },
+        { branch: "" },
+        { branch: "-" },
+        { branch: null },
+        { branch: { $exists: false } },
+      ],
     });
   }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Download, FolderOpenDot } from "lucide-react";
 
 import { useStudentLearningData } from "../data/useStudentLearningData";
@@ -42,6 +42,7 @@ function toDateOrder(value: string | null | undefined) {
 
 export default function KirimTugasSiswaPageView() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     tasks,
     student,
@@ -68,6 +69,7 @@ export default function KirimTugasSiswaPageView() {
         toDateOrder(leftTask.myGrade?.gradedAt),
     )[0] ?? null;
   const [selectedTaskId, setSelectedTaskId] = useState("");
+  const requestedTaskId = searchParams.get("taskId")?.trim() ?? "";
   const resolvedSelectedTaskId = submitTargets.some(
     (task) => task.id === selectedTaskId,
   )
@@ -82,6 +84,21 @@ export default function KirimTugasSiswaPageView() {
       router.replace("/dashboard-siswa/materi");
     }
   }, [isUtbkStudent, router]);
+
+  useEffect(() => {
+    if (!requestedTaskId) {
+      return;
+    }
+
+    if (
+      tasks.some(
+        (task) =>
+          task.id === requestedTaskId && task.status !== "Sudah Dinilai",
+      )
+    ) {
+      setSelectedTaskId(requestedTaskId);
+    }
+  }, [requestedTaskId, tasks]);
 
   if (isUtbkStudent) {
     return (

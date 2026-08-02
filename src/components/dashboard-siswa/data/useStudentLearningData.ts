@@ -325,6 +325,7 @@ function mapApiTaskToStudentTask(task: StudentLearningApiTaskItem): StudentTask 
     normalizeText(task.taskId) ||
     normalizeText(task.id) ||
     `tugas-${Date.now()}`;
+  const encodedTaskId = encodeURIComponent(taskId);
   const attachmentFileName = normalizeText(task.attachment?.fileName);
   const myGrade = mapTaskGradeSummary(task.myGrade);
 
@@ -350,8 +351,8 @@ function mapApiTaskToStudentTask(task: StudentLearningApiTaskItem): StudentTask 
       task.mySubmission,
     ),
     deskripsi: description,
-    detailHref: "/dashboard-siswa/tugas",
-    submitHref: "/dashboard-siswa/kirim-tugas",
+    detailHref: `/dashboard-siswa/tugas?taskId=${encodedTaskId}`,
+    submitHref: `/dashboard-siswa/kirim-tugas?taskId=${encodedTaskId}`,
     attachmentName: attachmentFileName || undefined,
     attachmentUrl: attachmentFileName
       ? `/api/student/me/learning/tasks/${encodeURIComponent(taskId)}/attachment`

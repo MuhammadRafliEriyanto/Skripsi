@@ -42,6 +42,7 @@ import {
   getAcademicGradeScoreKeys,
   toPublicAcademicGrade,
 } from "../utils/academicGrade";
+import { TEACHER_VISIBLE_ACADEMIC_YEAR } from "../utils/teacherAcademicPeriod";
 import {
   buildAcademicRecordSubscriptionFilter,
   getMembershipSnapshotByUserId,
@@ -73,6 +74,8 @@ type StudentAcademicLearningContext = {
   subscriptionStartAt: Date;
   subscriptionEndAt: Date | null;
 };
+
+const STUDENT_VISIBLE_LEGACY_ACADEMIC_YEAR = "2025/2026";
 
 function toPublicStudentLearningProfile(
   student: StudentWithUser,
@@ -314,6 +317,62 @@ function matchesStudentScheduleClass(
   );
 }
 
+type StudentLearningClassMetadata = {
+  classId: string;
+  className: string;
+  subject: string;
+};
+
+function slugifyStableClassId(value: string) {
+  return normalizeText(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function buildStableLearningClassId(
+  teacherPublicId: string,
+  branch: string,
+  className: string,
+) {
+  const teacherSlug = slugifyStableClassId(teacherPublicId);
+  const classSlug = slugifyStableClassId(className);
+
+  if (!teacherSlug || !classSlug) {
+    return "";
+  }
+
+  const branchSlug = slugifyStableClassId(branch) || "cabang";
+
+  return `class-${teacherSlug}-${branchSlug}-${classSlug}`;
+}
+
+function isScheduleTeacherReference(
+  value: ScheduleWithTeacher["teacherId"],
+): value is { teacherId?: string | null; branch?: string | null } {
+  return Boolean(value) && typeof value === "object";
+}
+
+function getScheduleTeacherPublicId(schedule: ScheduleWithTeacher) {
+  if (!isScheduleTeacherReference(schedule.teacherId)) {
+    return "";
+  }
+
+  return normalizeText(schedule.teacherId.teacherId);
+}
+
+function getScheduleBranch(schedule: ScheduleWithTeacher) {
+  if (normalizeText(schedule.branch)) {
+    return normalizeText(schedule.branch);
+  }
+
+  if (!isScheduleTeacherReference(schedule.teacherId)) {
+    return "";
+  }
+
+  return normalizeText(schedule.teacherId.branch);
+}
+
 function buildStudentMaterialClassFilter(student: StudentWithUser) {
   if (!isUtbkStudent(student)) {
     return buildStudentLearningClassFilter(student.className, student.branch);
@@ -364,12 +423,22 @@ function buildClassContentPeriodFilter(
   period: { academicYear: string; semester: string },
   legacyFilter: Record<string, unknown> = {},
 ) {
+  const periodCandidates: Array<Record<string, string>> = [
+    {
+      academicYear: period.academicYear,
+      semester: period.semester,
+    },
+  ];
+
+  if (period.academicYear === TEACHER_VISIBLE_ACADEMIC_YEAR) {
+    periodCandidates.push({
+      academicYear: STUDENT_VISIBLE_LEGACY_ACADEMIC_YEAR,
+    });
+  }
+
   return {
     $or: [
-      {
-        academicYear: period.academicYear,
-        semester: period.semester,
-      },
+      ...periodCandidates,
       {
         $and: [
           {
@@ -383,6 +452,67 @@ function buildClassContentPeriodFilter(
       },
     ],
   };
+}
+
+async function getStudentLearningClassMetadata(
+  student: StudentWithUser,
+  period: { academicYear: string; semester: string },
+) {
+  const canonicalClassName =
+    normalizeCanonicalClassName(student.className)?.toLowerCase() ?? "";
+  const normalizedBranch = normalizeText(student.branch).toLowerCase();
+  const scheduleDocuments = (await Schedule.find(buildClassContentPeriodFilter(period))
+    .populate<{
+      teacherId: {
+        teacherId: string;
+        branch: string;
+      };
+    }>({
+      path: "teacherId",
+      select: "teacherId branch",
+    })
+    .sort({ createdAt: -1 })
+    .lean()
+    .exec()) as unknown as ScheduleWithTeacher[];
+  const metadataByClassId = new Map<string, StudentLearningClassMetadata>();
+
+  for (const schedule of scheduleDocuments) {
+    const className = normalizeText(schedule.className);
+    const branch = getScheduleBranch(schedule);
+    const scheduleBranch = normalizeText(branch).toLowerCase();
+    const matchesClassName = isUtbkStudent(student)
+      ? matchesUtbkScheduleClassName(className, student)
+      : matchesStudentScheduleClass(
+          className,
+          student.className,
+          canonicalClassName,
+        );
+    const matchesBranch = normalizedBranch
+      ? scheduleBranch === normalizedBranch
+      : true;
+
+    if (!matchesClassName || !matchesBranch) {
+      continue;
+    }
+
+    const classId = buildStableLearningClassId(
+      getScheduleTeacherPublicId(schedule),
+      branch,
+      className,
+    );
+
+    if (!classId || metadataByClassId.has(classId)) {
+      continue;
+    }
+
+    metadataByClassId.set(classId, {
+      classId,
+      className,
+      subject: normalizeText(schedule.subject) || "Mapel belum diatur",
+    });
+  }
+
+  return Array.from(metadataByClassId.values());
 }
 
 async function getStudentDashboardSchedules(
@@ -895,7 +1025,7 @@ export const getMyStudentLearningData = asyncHandler(
     );
     const taskPeriodFilter = buildClassContentPeriodFilter(period);
 
-    const [materials, tasks] = await Promise.all([
+    const [materials, tasks, scheduleClassMetadata] = await Promise.all([
       ClassMaterial.find({
         $and: [
           classFilter,
@@ -918,13 +1048,59 @@ export const getMyStudentLearningData = asyncHandler(
             .sort({ deadline: 1, meetingNumber: 1, updatedAt: -1 })
             .lean()
             .exec(),
+      getStudentLearningClassMetadata(student, period),
     ]);
+    const classMetadataById = new Map<string, StudentLearningClassMetadata>();
+    const upsertClassMetadata = (
+      metadata: Partial<StudentLearningClassMetadata> & { classId?: string },
+    ) => {
+      const classId = normalizeText(metadata.classId);
+
+      if (!classId) {
+        return;
+      }
+
+      const currentMetadata = classMetadataById.get(classId);
+      const className = normalizeText(metadata.className);
+      const subject = normalizeText(metadata.subject);
+      const hasUsefulSubject = Boolean(subject && subject !== "Mapel belum diatur");
+
+      classMetadataById.set(classId, {
+        classId,
+        className: className || currentMetadata?.className || "",
+        subject: hasUsefulSubject
+          ? subject
+          : currentMetadata?.subject || subject || "Mapel belum diatur",
+      });
+    };
+
+    for (const metadata of scheduleClassMetadata) {
+      upsertClassMetadata(metadata);
+    }
+
+    for (const material of materials) {
+      upsertClassMetadata({
+        classId: material.classId,
+        className: material.className,
+        subject: material.subject,
+      });
+    }
+
+    for (const task of tasks) {
+      upsertClassMetadata({
+        classId: task.classId,
+        className: task.className,
+        subject: task.subject,
+      });
+    }
+
     const normalizedTaskIds = tasks
       .map((task) => normalizeText(task.taskId))
       .filter(Boolean);
-    const normalizedClassIds = Array.from(
+    const normalizedTaskClassIds = Array.from(
       new Set(tasks.map((task) => normalizeText(task.classId)).filter(Boolean)),
     );
+    const classIdsForAcademicGrades = Array.from(classMetadataById.keys());
     const submissions = normalizedTaskIds.length
       ? await TaskSubmission.find({
           studentId: normalizeText(student.studentId),
@@ -937,12 +1113,12 @@ export const getMyStudentLearningData = asyncHandler(
           .lean()
           .exec()
       : [];
-    const [grades, rawAcademicGrades] = normalizedTaskIds.length
-      ? await Promise.all([
-          TaskGrade.find({
+    const [grades, rawAcademicGrades] = await Promise.all([
+      normalizedTaskIds.length && normalizedTaskClassIds.length
+        ? TaskGrade.find({
             studentId: normalizeText(student.studentId),
             classId: {
-              $in: normalizedClassIds,
+              $in: normalizedTaskClassIds,
             },
             taskId: {
               $in: normalizedTaskIds,
@@ -951,11 +1127,13 @@ export const getMyStudentLearningData = asyncHandler(
           })
             .sort({ updatedAt: -1, createdAt: -1 })
             .lean()
-            .exec(),
-          AcademicGrade.find({
+            .exec()
+        : Promise.resolve([]),
+      classIdsForAcademicGrades.length
+        ? AcademicGrade.find({
             studentId: normalizeText(student.studentId),
             classId: {
-              $in: normalizedClassIds,
+              $in: classIdsForAcademicGrades,
             },
             academicYear: period.academicYear,
             semester: period.semester,
@@ -963,9 +1141,9 @@ export const getMyStudentLearningData = asyncHandler(
           })
             .sort({ updatedAt: -1, createdAt: -1 })
             .lean()
-            .exec(),
-        ])
-      : [[], []];
+            .exec()
+        : Promise.resolve([]),
+    ]);
     const academicGrades = rawAcademicGrades.filter((grade) => {
       const gradeDate = parseValidDate(
         grade.evaluatedAt ?? grade.updatedAt ?? grade.createdAt,
@@ -987,12 +1165,16 @@ export const getMyStudentLearningData = asyncHandler(
         toPublicStudentTaskGradeSummary(grade),
       ]),
     );
-    const academicGradeByClassId = new Map(
-      academicGrades.map((grade) => [
-        normalizeText(grade.classId),
-        grade,
-      ]),
-    );
+    const academicGradeByClassId = new Map<string, (typeof academicGrades)[number]>();
+
+    for (const grade of academicGrades) {
+      const classId = normalizeText(grade.classId);
+
+      if (classId && !academicGradeByClassId.has(classId)) {
+        academicGradeByClassId.set(classId, grade);
+      }
+    }
+
     const taskGradesByClassId = new Map<string, number[]>();
 
     for (const grade of grades) {
@@ -1006,13 +1188,18 @@ export const getMyStudentLearningData = asyncHandler(
       taskGradesByClassId.set(classId, scores);
     }
 
-    const firstTaskByClassId = new Map(
-      tasks.map((task) => [normalizeText(task.classId), task]),
-    );
-    const academicSummaries = normalizedClassIds.map((classId) => {
-      const task = firstTaskByClassId.get(classId);
+    const summaryClassIds = Array.from(
+      new Set([
+        ...normalizedTaskClassIds,
+        ...academicGrades.map((grade) => normalizeText(grade.classId)),
+      ]),
+    ).filter(Boolean);
+    const academicSummaries = summaryClassIds.map((classId) => {
+      const classMetadata = classMetadataById.get(classId);
       const academicGrade = academicGradeByClassId.get(classId) ?? null;
-      const scheme = getAcademicGradeScheme(normalizeText(task?.className));
+      const scheme =
+        academicGrade?.scheme ??
+        getAcademicGradeScheme(normalizeText(classMetadata?.className));
       const taskScores = taskGradesByClassId.get(classId) ?? [];
       const taskAverage = taskScores.length
         ? Math.round(
@@ -1033,8 +1220,8 @@ export const getMyStudentLearningData = asyncHandler(
 
       return {
         classId,
-        className: normalizeText(task?.className),
-        subject: normalizeText(task?.subject) || "Mapel belum diatur",
+        className: normalizeText(classMetadata?.className),
+        subject: normalizeText(classMetadata?.subject) || "Mapel belum diatur",
         scheme,
         period,
         taskAverage,
@@ -1042,6 +1229,9 @@ export const getMyStudentLearningData = asyncHandler(
         scores: publicAcademicGrade?.scores ?? {
           uts: null,
           uas: null,
+          uts1: null,
+          uts2: null,
+          uts3: null,
           tryout1: null,
           tryout2: null,
           tryout3: null,
