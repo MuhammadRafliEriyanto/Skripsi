@@ -191,14 +191,14 @@ export default function UtbkProgressWidget({
         <div className="p-5 md:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange-600">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-orange-600">
                 Rekap Belajar UTBK
               </p>
-              <h3 className="mt-2 text-lg font-black text-slate-950 md:text-xl">
+              <h3 className="mt-1.5 text-lg font-black text-slate-950 md:text-xl">
                 Ringkasan materi dan tryout
               </h3>
             </div>
-            <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600">
+            <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[10px] font-bold text-slate-600">
               {targetKampus || targetJurusan
                 ? `${targetKampus || "Kampus"} - ${targetJurusan || "Jurusan"}`
                 : "Target belum lengkap"}
@@ -218,20 +218,20 @@ export default function UtbkProgressWidget({
               return (
                 <div
                   key={item.label}
-                  className="flex flex-col items-center rounded-xl border border-slate-200/80 bg-slate-50/60 p-4 text-center transition hover:border-slate-300"
+                  className="flex flex-col items-center rounded-2xl border border-slate-100 bg-white p-3 shadow-sm text-center transition hover:border-slate-200 hover:shadow-md"
                 >
                   <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-lg ${item.bg} ${item.color}`}
+                    className={`flex h-10 w-10 items-center justify-center rounded-xl ${item.bg} ${item.color}`}
                   >
                     <Icon className="h-5 w-5" />
                   </div>
-                  <p className="mt-3 text-[11px] font-semibold text-slate-500">
+                  <p className="mt-3 text-[10px] sm:text-[11px] font-medium text-slate-500 whitespace-nowrap">
                     {item.label}
                   </p>
-                  <p className="mt-1 text-2xl font-black text-slate-900">
+                  <p className="mt-1 text-xl sm:text-2xl font-black text-slate-900">
                     {item.value}
                   </p>
-                  <p className="mt-1 text-[10px] font-medium text-slate-400">
+                  <p className="mt-1 text-[9px] sm:text-[10px] font-medium text-slate-400 whitespace-nowrap">
                     {item.detail}
                   </p>
                 </div>
@@ -246,27 +246,27 @@ export default function UtbkProgressWidget({
               return (
                 <div
                   key={stage.stage}
-                  className={`relative flex flex-col justify-between rounded-xl border px-4 py-4 ${
+                  className={`relative flex flex-col justify-between rounded-2xl border px-3.5 py-3.5 shadow-sm transition hover:shadow-md ${
                     isDone
-                      ? "border-emerald-100 bg-emerald-50/50"
-                      : "border-slate-200 bg-slate-50/70"
+                      ? "border-emerald-100 bg-emerald-50/30"
+                      : "border-slate-100 bg-white"
                   }`}
                 >
                   <div>
-                    <p className="text-xs font-bold text-slate-800">
+                    <p className="text-[11px] sm:text-xs font-bold text-slate-800 line-clamp-1">
                       {stage.label}
                     </p>
-                    <p className="mt-1.5 mb-4 text-[11px] leading-5 text-slate-500">
+                    <p className="mt-1.5 mb-3 text-[10px] sm:text-[11px] leading-relaxed text-slate-500 line-clamp-2">
                       {stage.description}
                     </p>
                   </div>
                   <div>
                     {isDone ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-100/80 px-2.5 py-1 text-[10px] font-bold text-emerald-700">
-                        Selesai - Skor {stage.score !== null ? stage.score : "-"}
+                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2 py-1 text-[9px] sm:text-[10px] font-bold text-emerald-600 border border-emerald-100/50">
+                        Skor {stage.score !== null ? stage.score : "-"}
                       </span>
                     ) : (
-                      <span className="inline-flex rounded-md bg-orange-50 px-2.5 py-1 text-[10px] font-semibold text-orange-700">
+                      <span className="inline-flex rounded-lg bg-orange-50 px-2 py-1 text-[9px] sm:text-[10px] font-bold text-orange-600 border border-orange-100/50">
                         Belum selesai
                       </span>
                     )}
@@ -279,45 +279,47 @@ export default function UtbkProgressWidget({
           <div className="mt-4">
             <Link
               href="/dashboard-siswa/ujian"
-              className="flex w-full items-center justify-center rounded-xl border border-orange-200 bg-white py-3 text-sm font-semibold text-orange-600 transition hover:bg-orange-50"
+              className="flex w-full items-center justify-center rounded-2xl border border-orange-200 bg-white py-3 text-[11px] sm:text-xs font-bold text-orange-600 transition hover:bg-orange-50 hover:border-orange-300"
             >
-              Lihat semua tryout <ChevronRight className="ml-1.5 h-4 w-4" />
+              Lihat semua tryout <ChevronRight className="ml-1.5 h-3.5 w-3.5" />
             </Link>
           </div>
         </div>
 
-        <div className="border-t border-orange-600 bg-orange-500 p-5 text-white lg:border-t-0 lg:border-l">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange-100">
-                Status Data
-              </p>
-              <p className="mt-2 text-3xl font-black">
-                {isLoading ? "Memuat" : "Terhubung"}
-              </p>
-              <p className="mt-1 text-xs font-medium leading-5 text-orange-100">
-                Rekap mengikuti data target, materi, dan tryout siswa.
-              </p>
-            </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-sm">
-              <Check className="h-6 w-6 text-orange-500" />
-            </div>
-          </div>
-
-          <div className="mt-5 space-y-2.5 text-sm">
-            {summaryItems.map((item) => (
-              <div
-                key={item.label}
-                className="flex items-center justify-between gap-3 rounded-2xl bg-white px-3 py-2.5 shadow-sm"
-              >
-                <span className="font-medium text-slate-600">
-                  {item.label}
-                </span>
-                <span className="text-right font-bold text-slate-800">
-                  {item.value}
-                </span>
+        <div className="border-t border-orange-600 bg-orange-500 p-5 md:p-6 text-white lg:border-t-0 lg:border-l relative overflow-hidden">
+          <div className="relative z-10 flex flex-col h-full">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-orange-100">
+                  Status Data
+                </p>
+                <p className="mt-1.5 text-2xl font-black">
+                  {isLoading ? "Memuat" : "Terhubung"}
+                </p>
+                <p className="mt-1.5 text-[11px] font-medium leading-relaxed text-orange-100">
+                  Rekap mengikuti data target, materi, dan tryout siswa.
+                </p>
               </div>
-            ))}
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
+                <Check className="h-5 w-5 text-orange-500" strokeWidth={3} />
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-2.5 text-sm flex-1">
+              {summaryItems.map((item) => (
+                <div
+                  key={item.label}
+                  className="flex items-center justify-between gap-3 rounded-[14px] bg-white px-3.5 py-3 shadow-sm"
+                >
+                  <span className="text-[11px] font-bold text-slate-500">
+                    {item.label}
+                  </span>
+                  <span className="text-right text-[11px] font-black text-slate-900">
+                    {item.value}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
