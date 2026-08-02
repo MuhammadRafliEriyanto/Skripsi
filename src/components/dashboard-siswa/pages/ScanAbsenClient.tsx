@@ -17,7 +17,10 @@ import { resolveScheduleAttendanceWindow } from "@/lib/schedule-attendance-windo
 import { getUtbkSubjectInfo } from "@/lib/utbk-subjects";
 import { useStudentDashboardData } from "../data/useStudentDashboardData";
 import { isUtbkStudentProfile } from "../data/studentProgram";
-import { publishStudentDashboardRefresh } from "../student-dashboard-refresh-events";
+import {
+  publishStudentDashboardRefresh,
+  queueStudentAttendanceSuccessToast,
+} from "../student-dashboard-refresh-events";
 
 type StudentAttendanceScanResponse = {
   success: boolean;
@@ -274,6 +277,7 @@ export default function ScanAbsenClient() {
         }
 
         publishStudentDashboardRefresh();
+        queueStudentAttendanceSuccessToast("Absensi berhasil dicatat.");
         setIsSubmitting(false);
         setIsSuccess(true);
 

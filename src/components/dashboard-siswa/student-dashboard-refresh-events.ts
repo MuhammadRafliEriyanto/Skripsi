@@ -1,6 +1,8 @@
 "use client";
 
 const studentDashboardRefreshEventName = "student-dashboard:refresh";
+const studentAttendanceSuccessToastStorageKey =
+  "student-dashboard:attendance-success-toast";
 const refreshThrottleMs = 700;
 
 export function publishStudentDashboardRefresh() {
@@ -44,4 +46,42 @@ export function subscribeStudentDashboardRefresh(listener: () => void) {
     window.removeEventListener("focus", requestRefresh);
     document.removeEventListener("visibilitychange", refreshWhenVisible);
   };
+}
+
+export function queueStudentAttendanceSuccessToast(
+  message = "Absensi berhasil dicatat.",
+) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(
+      studentAttendanceSuccessToastStorageKey,
+      message,
+    );
+  } catch {
+    // Session storage can be blocked by browser privacy settings.
+  }
+}
+
+export function consumeStudentAttendanceSuccessToast() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const message = window.sessionStorage.getItem(
+      studentAttendanceSuccessToastStorageKey,
+    );
+
+    if (!message) {
+      return null;
+    }
+
+    window.sessionStorage.removeItem(studentAttendanceSuccessToastStorageKey);
+    return message;
+  } catch {
+    return null;
+  }
 }

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 import {
   AlertTriangle,
   Bell,
@@ -58,7 +59,10 @@ import {
   type MembershipStatusData,
 } from "@/lib/subscription";
 import { isUtbkStudentProfile } from "./data/studentProgram";
-import { subscribeStudentDashboardRefresh } from "./student-dashboard-refresh-events";
+import {
+  consumeStudentAttendanceSuccessToast,
+  subscribeStudentDashboardRefresh,
+} from "./student-dashboard-refresh-events";
 
 type SiswaTopbarMenu = {
   name: string;
@@ -624,6 +628,14 @@ export default function SiswaTopbar() {
       void loadNotifications();
     });
   }, [loadNotifications]);
+
+  useEffect(() => {
+    const message = consumeStudentAttendanceSuccessToast();
+
+    if (message) {
+      toast.success(message, { id: "student-attendance-success" });
+    }
+  }, [pathname]);
 
   async function handleLogout() {
     if (isLoggingOut) {
