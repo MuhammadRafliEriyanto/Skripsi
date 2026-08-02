@@ -112,6 +112,7 @@ type TeacherClassesResponse = {
 
 type TeacherScheduleApiItem = {
   id?: string;
+  classId?: string;
   className?: string;
   subject?: string;
   teacherId?: string;
@@ -412,10 +413,17 @@ function mapTeacherClassItem(
 }
 
 function buildClassLookups(classItems: GuruClassLookupItem[]) {
+  const byClassId = new Map<string, GuruClassLookupItem>();
   const byBranchAndClassName = new Map<string, GuruClassLookupItem>();
   const byNextScheduleId = new Map<string, GuruClassLookupItem>();
 
   for (const item of classItems) {
+    const classId = normalizeText(item.kelasId).toLowerCase();
+
+    if (classId) {
+      byClassId.set(classId, item);
+    }
+
     byBranchAndClassName.set(
       buildClassLookupKey(item.branch, item.namaKelas),
       item,
@@ -427,6 +435,7 @@ function buildClassLookups(classItems: GuruClassLookupItem[]) {
   }
 
   return {
+    byClassId,
     byBranchAndClassName,
     byNextScheduleId,
   };
@@ -463,6 +472,11 @@ function buildClassItemsFromSchedules(
   scheduleItems: TeacherScheduleApiItem[],
   existingClassItems: GuruClassLookupItem[],
 ) {
+  const existingClassIds = new Set(
+    existingClassItems
+      .map((item) => normalizeText(item.kelasId).toLowerCase())
+      .filter(Boolean),
+  );
   const existingClassKeys = new Set(
     existingClassItems.map((item) =>
       buildClassLookupKey(item.branch, item.namaKelas),
@@ -472,15 +486,16 @@ function buildClassItemsFromSchedules(
 
   for (const item of scheduleItems) {
     const className = normalizeText(item.className);
-    const branch = normalizeText(item.branch);
+    const branch = normalizeText(item.branch) || "Cabang belum diatur";
 
-    if (!className || !branch) {
+    if (!className) {
       continue;
     }
 
     const classKey = buildClassLookupKey(branch, className);
+    const classId = normalizeText(item.classId).toLowerCase();
 
-    if (existingClassKeys.has(classKey)) {
+    if ((classId && existingClassIds.has(classId)) || existingClassKeys.has(classKey)) {
       continue;
     }
 
@@ -496,13 +511,13 @@ function buildClassItemsFromSchedules(
       const nextSchedule = sortedSchedules[0] ?? classSchedules[0];
       const className = normalizeText(nextSchedule?.className) || `Kelas ${index + 1}`;
       const branch = normalizeText(nextSchedule?.branch) || "Cabang belum diatur";
-      const teacherPublicId = normalizeText(nextSchedule?.teacherId);
-
-      if (!teacherPublicId) {
-        return null;
-      }
-
       const nextScheduleId = normalizeText(nextSchedule?.id);
+      const classId = normalizeText(nextSchedule?.classId);
+      const identitySeed =
+        normalizeText(nextSchedule?.teacherId) ||
+        classId ||
+        nextScheduleId ||
+        `jadwal-${index + 1}`;
       const status = sortedSchedules.reduce<GuruStatus>((currentStatus, schedule) => {
         const scheduleStatus =
           Array.isArray(schedule.conflicts) && schedule.conflicts.length > 0
@@ -513,7 +528,7 @@ function buildClassItemsFromSchedules(
       }, "Siap");
 
       return {
-        kelasId: buildStableTeacherClassId(teacherPublicId, branch, className),
+        kelasId: classId || buildStableTeacherClassId(identitySeed, branch, className),
         scheduleId: nextScheduleId,
         namaKelas: className,
         jenjang: inferJenjang(className),
@@ -547,6 +562,16 @@ function resolveLinkedClassItem(
   item: TeacherScheduleApiItem,
   classLookups: ReturnType<typeof buildClassLookups>,
 ) {
+  const classId = normalizeText(item.classId).toLowerCase();
+
+  if (classId) {
+    const directClass = classLookups.byClassId.get(classId);
+
+    if (directClass) {
+      return directClass;
+    }
+  }
+
   const scheduleId = normalizeText(item.id);
 
   if (scheduleId) {
@@ -630,10 +655,11 @@ function mapScheduleItem(
   const itemId = buildItemId("jadwal", item.id, index);
   const linkedClass = resolveLinkedClassItem(item, classLookups);
   const className = normalizeText(item.className) || linkedClass?.namaKelas || `Kelas ${index + 1}`;
+  const classId = normalizeText(item.classId);
 
   return {
     id: itemId,
-    kelasId: linkedClass?.kelasId,
+    kelasId: linkedClass?.kelasId || classId || undefined,
     scheduleId: itemId,
     className,
     jenjang: linkedClass?.jenjang || inferJenjang(className),

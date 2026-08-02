@@ -1,4 +1,5 @@
 import {
+  ClipboardCheck,
   Download,
   Eye,
   FileText,
@@ -31,6 +32,7 @@ export default function TugasPertemuanTable({
   onAdd,
   onDelete,
   onEdit,
+  onGrade,
   onViewSubmissions,
   readOnly = false,
   readOnlyMessage,
@@ -152,6 +154,24 @@ export default function TugasPertemuanTable({
                           </span>
                         ) : (
                           <>
+                            <button
+                              type="button"
+                              title={
+                                task.jumlahMengumpulkan > 0
+                                  ? "Nilai Latihan"
+                                  : "Belum ada pengumpulan"
+                              }
+                              aria-label="Nilai Latihan"
+                              onClick={() => onGrade(task)}
+                              disabled={task.jumlahMengumpulkan <= 0}
+                              className={`${ACTION_BUTTON_CLASS} ${
+                                task.jumlahMengumpulkan <= 0
+                                  ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                                  : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100"
+                              }`}
+                            >
+                              <ClipboardCheck className={ACTION_ICON_CLASS} />
+                            </button>
                             <button
                               type="button"
                               title="Edit"

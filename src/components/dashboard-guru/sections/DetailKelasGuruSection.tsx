@@ -29,7 +29,6 @@ import {
   DEFAULT_SEMESTER_MEETING_TARGET,
 } from "@/components/dashboard-guru/data/guruClassTypes";
 import AbsensiPertemuanTable from "@/components/dashboard-guru/detail-kelas/AbsensiPertemuanTable";
-import BelumDinilaiTable from "@/components/dashboard-guru/detail-kelas/BelumDinilaiTable";
 import DetailKelasSidebar from "@/components/dashboard-guru/detail-kelas/DetailKelasSidebar";
 import DetailPertemuanTable from "@/components/dashboard-guru/detail-kelas/DetailPertemuanTable";
 import MateriFormDialog from "@/components/dashboard-guru/detail-kelas/MateriFormDialog";
@@ -1378,7 +1377,7 @@ export default function DetailKelasGuruSection({
               item.key !== "belum-dinilai" &&
               item.key !== "nilai",
           )
-        : DETAIL_SECTION_ITEMS,
+        : DETAIL_SECTION_ITEMS.filter((item) => item.key !== "belum-dinilai"),
     [isUtbkClass],
   );
   const defaultStudentId = activeClass.participants[0]?.id ?? "";
@@ -2020,12 +2019,10 @@ export default function DetailKelasGuruSection({
 
   useEffect(() => {
     if (
-      isUtbkClass &&
-      (activeSection === "tugas" ||
-        activeSection === "belum-dinilai" ||
-        activeSection === "nilai")
+      activeSection === "belum-dinilai" ||
+      (isUtbkClass && (activeSection === "tugas" || activeSection === "nilai"))
     ) {
-      setActiveSection("pertemuan");
+      setActiveSection(isUtbkClass ? "pertemuan" : "tugas");
     }
   }, [activeSection, isUtbkClass]);
 
@@ -2773,7 +2770,10 @@ export default function DetailKelasGuruSection({
   }
 
   function renderActiveSection() {
-    switch (activeSection) {
+    const resolvedActiveSection =
+      activeSection === "belum-dinilai" ? "tugas" : activeSection;
+
+    switch (resolvedActiveSection) {
       case "peserta":
         return <PesertaKelasTable activeClass={activeClass} />;
       case "absensi":
@@ -2822,33 +2822,8 @@ export default function DetailKelasGuruSection({
             onAdd={openAddTugasDialog}
             onDelete={handleDeleteTugas}
             onEdit={openEditTugasDialog}
-
+            onGrade={openNilaiDialogForTask}
             onViewSubmissions={openTaskSubmissionDialog}
-          />
-        );
-      case "belum-dinilai":
-        if (isUtbkClass) {
-          return (
-            <DetailPertemuanTable
-              kelasName={activeClass.namaKelas}
-              materials={materials}
-              readOnly={isAcademicArchive}
-              readOnlyMessage={archiveMessage}
-              totalMeetings={activeClass.totalPertemuan}
-              onAdd={openAddMateriDialog}
-              onDelete={handleDeleteMateri}
-              onEdit={openEditMateriDialog}
-            />
-          );
-        }
-
-        return (
-          <BelumDinilaiTable
-            kelasName={activeClass.namaKelas}
-            tasks={tasksWithGradeStatus}
-            readOnly={isAcademicArchive}
-            readOnlyMessage={archiveMessage}
-            onGradeNow={openNilaiDialogForTask}
           />
         );
       case "nilai":

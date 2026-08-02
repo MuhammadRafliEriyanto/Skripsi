@@ -140,6 +140,7 @@ export type TugasPertemuanTableProps = {
   onAdd: () => void;
   onEdit: (task: TugasPertemuan) => void;
   onDelete: (taskId: string) => void;
+  onGrade: (task: TugasPertemuan) => void;
   onViewSubmissions: (task: TugasPertemuan) => void;
 };
 

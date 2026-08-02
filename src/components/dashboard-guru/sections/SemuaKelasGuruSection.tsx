@@ -31,6 +31,7 @@ type FilterKey = "all" | "weekly" | "pending";
 type GuruClassSummaryWithBranch = GuruClassSummary & {
   branch: string;
   isUtbk?: boolean;
+  scheduleId?: string;
 };
 
 const FILTER_ITEMS: Array<{ key: FilterKey; label: string }> = [
@@ -72,6 +73,46 @@ type TeacherClassesResponse = {
   };
 };
 
+type TeacherScheduleApiItem = {
+  id?: string;
+  classId?: string;
+  className?: string;
+  subject?: string;
+  teacherId?: string;
+  branch?: string;
+  day?: string;
+  time?: string;
+  room?: string;
+  status?: string;
+};
+
+type TeacherScheduleResponse = {
+  success: boolean;
+  message?: string;
+  data?: {
+    schedules?: TeacherScheduleApiItem[];
+  };
+};
+
+type GuruDay =
+  | "Senin"
+  | "Selasa"
+  | "Rabu"
+  | "Kamis"
+  | "Jumat"
+  | "Sabtu"
+  | "Minggu";
+
+const DAY_ORDER: GuruDay[] = [
+  "Senin",
+  "Selasa",
+  "Rabu",
+  "Kamis",
+  "Jumat",
+  "Sabtu",
+  "Minggu",
+];
+
 function normalizeText(value: string | null | undefined) {
   return value?.trim().replace(/\s+/g, " ") ?? "";
 }
@@ -95,6 +136,82 @@ function toSafeNumber(value: unknown) {
 
 function formatTimeLabel(value: string) {
   return normalizeText(value).replace(/:/g, ".");
+}
+
+function getCurrentIndonesianDay(date = new Date()): GuruDay {
+  const dayMap: Record<number, GuruDay> = {
+    0: "Minggu",
+    1: "Senin",
+    2: "Selasa",
+    3: "Rabu",
+    4: "Kamis",
+    5: "Jumat",
+    6: "Sabtu",
+  };
+
+  return dayMap[date.getDay()];
+}
+
+function toGuruDay(value: string | null | undefined): GuruDay | null {
+  const normalizedValue = normalizeText(value).toLowerCase();
+
+  switch (normalizedValue) {
+    case "senin":
+      return "Senin";
+    case "selasa":
+      return "Selasa";
+    case "rabu":
+      return "Rabu";
+    case "kamis":
+      return "Kamis";
+    case "jumat":
+      return "Jumat";
+    case "sabtu":
+      return "Sabtu";
+    case "minggu":
+      return "Minggu";
+    default:
+      return null;
+  }
+}
+
+function getUpcomingDayOffset(dayValue: string | null | undefined) {
+  const day = toGuruDay(dayValue);
+
+  if (!day) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+
+  const currentDayIndex = DAY_ORDER.indexOf(getCurrentIndonesianDay());
+  const targetDayIndex = DAY_ORDER.indexOf(day);
+
+  return (targetDayIndex - currentDayIndex + DAY_ORDER.length) % DAY_ORDER.length;
+}
+
+function toMinuteValue(timeRange: string | null | undefined) {
+  const [startTime = "00:00"] = normalizeText(timeRange)
+    .split("-")
+    .map((value) => value.trim());
+  const [hour = 0, minute = 0] = startTime
+    .replace(".", ":")
+    .split(":")
+    .map((value) => Number(value));
+
+  return hour * 60 + minute;
+}
+
+function compareSchedulesByUpcoming(
+  left: TeacherScheduleApiItem,
+  right: TeacherScheduleApiItem,
+) {
+  const leftOffset = getUpcomingDayOffset(left.day);
+  const rightOffset = getUpcomingDayOffset(right.day);
+
+  if (leftOffset !== rightOffset) {
+    return leftOffset - rightOffset;
+  }
+
+  return toMinuteValue(left.time) - toMinuteValue(right.time);
 }
 
 function extractGrade(value: string) {
@@ -165,9 +282,54 @@ function toClassStatus(value: string | null | undefined): ClassStatus {
   return normalizeText(value).toLowerCase() === "berjalan" ? "Berjalan" : "Aktif";
 }
 
+function buildClassLookupKey(
+  branch: string | null | undefined,
+  className: string | null | undefined,
+) {
+  return `${normalizeText(branch).toLowerCase()}::${normalizeText(className).toLowerCase()}`;
+}
+
+function slugifyIdentityPart(value: string) {
+  return normalizeText(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function buildStableTeacherClassId(
+  identity: string,
+  branch: string,
+  className: string,
+) {
+  const teacherSlug = slugifyIdentityPart(identity) || "guru";
+  const branchSlug = slugifyIdentityPart(branch) || "cabang";
+  const classSlug = slugifyIdentityPart(className) || "kelas";
+
+  return `class-${teacherSlug}-${branchSlug}-${classSlug}`;
+}
+
 function buildScheduleLabel(nextSchedule: TeacherClassApiNextSchedule) {
   const day = normalizeText(nextSchedule?.day);
   const time = normalizeText(nextSchedule?.time);
+
+  if (!day && !time) {
+    return "Jadwal belum diatur";
+  }
+
+  if (!day) {
+    return `${formatTimeLabel(time)} WIB`;
+  }
+
+  if (!time) {
+    return day;
+  }
+
+  return `${day}, ${formatTimeLabel(time)} WIB`;
+}
+
+function buildScheduleItemLabel(schedule: TeacherScheduleApiItem) {
+  const day = normalizeText(schedule.day);
+  const time = normalizeText(schedule.time);
 
   if (!day && !time) {
     return "Jadwal belum diatur";
@@ -195,6 +357,7 @@ function mapTeacherClassToSummary(
   const mapel = normalizeText(item.subject) || "Mapel belum diatur";
   const branch = normalizeText(item.branch);
   const nextSchedule = item.nextSchedule ?? null;
+  const scheduleId = normalizeText(nextSchedule?.id);
   const configuredTotalPertemuan = DEFAULT_SEMESTER_MEETING_TARGET;
   const totalPertemuan = configuredTotalPertemuan;
   const pertemuanSelesai = Math.max(toSafeNumber(item.completedMeetingCount), 0);
@@ -222,7 +385,155 @@ function mapTeacherClassToSummary(
     aktifMingguIni: Boolean(nextSchedule),
     status: toClassStatus(item.status),
     isUtbk,
+    scheduleId: scheduleId || undefined,
   };
+}
+
+function buildScheduleGroupKey(item: TeacherScheduleApiItem) {
+  const classId = normalizeText(item.classId).toLowerCase();
+
+  if (classId) {
+    return `id::${classId}`;
+  }
+
+  return `name::${buildClassLookupKey(item.branch, item.className)}`;
+}
+
+function mapScheduleGroupToSummary(
+  schedules: TeacherScheduleApiItem[],
+  index: number,
+): GuruClassSummaryWithBranch | null {
+  const sortedSchedules = [...schedules].sort(compareSchedulesByUpcoming);
+  const nextSchedule = sortedSchedules[0] ?? schedules[0];
+  const namaKelas = normalizeText(nextSchedule?.className);
+
+  if (!namaKelas) {
+    return null;
+  }
+
+  const branch = normalizeText(nextSchedule?.branch) || "Cabang belum diatur";
+  const tingkat = inferTingkat(namaKelas);
+  const isUtbk = isUtbkClassName(namaKelas) || isUtbkClassName(tingkat);
+  const classId = normalizeText(nextSchedule?.classId);
+  const scheduleId = normalizeText(nextSchedule?.id);
+  const identitySeed =
+    normalizeText(nextSchedule?.teacherId) ||
+    classId ||
+    scheduleId ||
+    `jadwal-${index + 1}`;
+  const mapel = normalizeText(nextSchedule?.subject) || "Mapel belum diatur";
+
+  return {
+    kelasId: classId || buildStableTeacherClassId(identitySeed, branch, namaKelas),
+    namaKelas,
+    guru: "Guru login",
+    jenjang: inferJenjang(namaKelas, tingkat),
+    tingkat,
+    mapel,
+    branch,
+    program: branch || `${mapel} - ${namaKelas}`,
+    jadwal: buildScheduleItemLabel(nextSchedule),
+    ruangan: normalizeText(nextSchedule?.room) || "Ruangan belum diatur",
+    totalSiswa: 0,
+    totalPertemuan: DEFAULT_SEMESTER_MEETING_TARGET,
+    pertemuanSelesai: 0,
+    tugasBelumDinilai: 0,
+    aktifMingguIni: true,
+    status: toClassStatus(nextSchedule?.status),
+    isUtbk,
+    scheduleId: scheduleId || undefined,
+  };
+}
+
+function mergeClassSummariesWithSchedules(
+  classItems: TeacherClassApiItem[],
+  scheduleItems: TeacherScheduleApiItem[],
+) {
+  const nextClasses = classItems.map(mapTeacherClassToSummary);
+  const classIndexById = new Map<string, number>();
+  const classIndexByName = new Map<string, number>();
+
+  nextClasses.forEach((item, index) => {
+    const classId = normalizeText(item.kelasId).toLowerCase();
+
+    if (classId) {
+      classIndexById.set(classId, index);
+    }
+
+    classIndexByName.set(buildClassLookupKey(item.branch, item.namaKelas), index);
+  });
+
+  const schedulesByClass = new Map<string, TeacherScheduleApiItem[]>();
+
+  for (const schedule of scheduleItems) {
+    const key = buildScheduleGroupKey(schedule);
+    schedulesByClass.set(key, [
+      ...(schedulesByClass.get(key) ?? []),
+      schedule,
+    ]);
+  }
+
+  Array.from(schedulesByClass.values()).forEach((schedules, index) => {
+    const sortedSchedules = [...schedules].sort(compareSchedulesByUpcoming);
+    const nextSchedule = sortedSchedules[0] ?? schedules[0];
+    const classId = normalizeText(nextSchedule?.classId).toLowerCase();
+    const nameKey = buildClassLookupKey(nextSchedule?.branch, nextSchedule?.className);
+    const existingIndex =
+      (classId ? classIndexById.get(classId) : undefined) ??
+      classIndexByName.get(nameKey);
+
+    if (existingIndex !== undefined) {
+      const current = nextClasses[existingIndex];
+      const scheduleId = normalizeText(nextSchedule?.id);
+      const room = normalizeText(nextSchedule?.room);
+      const subject = normalizeText(nextSchedule?.subject);
+
+      nextClasses[existingIndex] = {
+        ...current,
+        mapel:
+          current.mapel === "Mapel belum diatur" && subject
+            ? subject
+            : current.mapel,
+        jadwal: buildScheduleItemLabel(nextSchedule),
+        ruangan:
+          current.ruangan === "Ruangan belum diatur" && room
+            ? room
+            : current.ruangan,
+        aktifMingguIni: true,
+        status: toClassStatus(nextSchedule?.status || current.status),
+        scheduleId: scheduleId || current.scheduleId,
+      };
+      return;
+    }
+
+    const scheduleClass = mapScheduleGroupToSummary(
+      schedules,
+      nextClasses.length + index,
+    );
+
+    if (scheduleClass) {
+      const nextIndex = nextClasses.length;
+      nextClasses.push(scheduleClass);
+      classIndexById.set(normalizeText(scheduleClass.kelasId).toLowerCase(), nextIndex);
+      classIndexByName.set(
+        buildClassLookupKey(scheduleClass.branch, scheduleClass.namaKelas),
+        nextIndex,
+      );
+    }
+  });
+
+  return nextClasses;
+}
+
+async function fetchTeacherJson<T>(url: string) {
+  const response = await fetch(url, {
+    method: "GET",
+    credentials: "include",
+    cache: "no-store",
+  });
+  const payload = (await response.json().catch(() => null)) as T | null;
+
+  return { response, payload };
 }
 
 function getStatusClass(status: ClassStatus) {
@@ -341,37 +652,80 @@ export default function SemuaKelasGuruSection() {
     setLoadError(null);
 
     try {
-      const response = await fetch(buildGuruApiUrl("/api/teacher/me/classes", searchParams), {
-        method: "GET",
-        credentials: "include",
-        cache: "no-store",
-      });
-      const payload = (await response.json().catch(() => null)) as
-        | TeacherClassesResponse
-        | null;
+      const classesUrl = buildGuruApiUrl("/api/teacher/me/classes", searchParams);
+      const schedulesUrl = buildGuruApiUrl("/api/teacher/me/schedules", searchParams);
 
-      if (response.status === 401) {
+      const [classesResult, schedulesResult] = await Promise.allSettled([
+        fetchTeacherJson<TeacherClassesResponse>(classesUrl),
+        fetchTeacherJson<TeacherScheduleResponse>(schedulesUrl),
+      ]);
+
+      let shouldClearSession = false;
+      let classItems: TeacherClassApiItem[] = [];
+      let scheduleItems: TeacherScheduleApiItem[] = [];
+      let hasRequestError = false;
+
+      if (classesResult.status === "fulfilled") {
+        const { response, payload } = classesResult.value;
+
+        if (response.status === 401) {
+          shouldClearSession = true;
+        } else if (response.ok && payload?.success) {
+          classItems = payload.data?.classes ?? [];
+        } else {
+          hasRequestError = true;
+          console.error("[semua-kelas-guru] classes_request_failed", {
+            status: response.status,
+            message: payload?.message ?? "unknown_error",
+          });
+        }
+      } else {
+        hasRequestError = true;
+        console.error(
+          "[semua-kelas-guru] classes_request_rejected",
+          classesResult.reason,
+        );
+      }
+
+      if (schedulesResult.status === "fulfilled") {
+        const { response, payload } = schedulesResult.value;
+
+        if (response.status === 401) {
+          shouldClearSession = true;
+        } else if (response.ok && payload?.success) {
+          scheduleItems = payload.data?.schedules ?? [];
+        } else {
+          hasRequestError = true;
+          console.error("[semua-kelas-guru] schedules_request_failed", {
+            status: response.status,
+            message: payload?.message ?? "unknown_error",
+          });
+        }
+      } else {
+        hasRequestError = true;
+        console.error(
+          "[semua-kelas-guru] schedules_request_rejected",
+          schedulesResult.reason,
+        );
+      }
+
+      if (shouldClearSession) {
         clearAuthClientState();
         setAllClasses([]);
         setLoadError("Gagal memuat kelas guru. Silakan coba lagi.");
         return;
       }
 
-      if (!response.ok || !payload?.success) {
-        console.error("[semua-kelas-guru] classes_request_failed", {
-          status: response.status,
-          message: payload?.message ?? "unknown_error",
-        });
-        setAllClasses([]);
-        setLoadError("Gagal memuat kelas guru. Silakan coba lagi.");
-        return;
-      }
-
-      const nextClasses = (payload.data?.classes ?? []).map(
-        mapTeacherClassToSummary,
+      const nextClasses = mergeClassSummariesWithSchedules(
+        classItems,
+        scheduleItems,
       );
 
       setAllClasses(nextClasses);
+
+      if (nextClasses.length === 0 && hasRequestError) {
+        setLoadError("Gagal memuat kelas guru. Silakan coba lagi.");
+      }
     } catch (error) {
       console.error("[semua-kelas-guru] load_classes_failed", error);
       setAllClasses([]);
@@ -436,6 +790,7 @@ export default function SemuaKelasGuruSection() {
         !query ||
         item.namaKelas.toLowerCase().includes(query) ||
         item.mapel.toLowerCase().includes(query) ||
+        item.branch.toLowerCase().includes(query) ||
         item.program.toLowerCase().includes(query) ||
         item.jenjang.toLowerCase().includes(query) ||
         item.tingkat.toLowerCase().includes(query);
@@ -489,8 +844,8 @@ export default function SemuaKelasGuruSection() {
                 Semua Kelas Saya
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
-                Kelola kelas Slawi dan Adiwerna dari satu tempat dengan data
-                peserta, jadwal, dan progres yang tetap terpisah per cabang.
+                Kelola semua kelas yang terhubung dengan akun guru dari satu
+                tempat, lengkap dengan peserta, jadwal, dan progres per cabang.
               </p>
             </div>
 
@@ -787,7 +1142,14 @@ export default function SemuaKelasGuruSection() {
                         <ChevronRight className="h-4 w-4" />
                       </Link>
                       <Link
-                        href={buildGuruUrl("/dashboard-guru/absensi-kelas", searchParams, { kelasId: kelas.kelasId })}
+                        href={buildGuruUrl(
+                          "/dashboard-guru/absensi-kelas",
+                          searchParams,
+                          {
+                            kelasId: kelas.kelasId,
+                            ...(kelas.scheduleId ? { scheduleId: kelas.scheduleId } : {}),
+                          },
+                        )}
                         className="inline-flex items-center justify-center gap-1.5 border border-orange-400 bg-gradient-to-r from-orange-400 via-orange-500 to-amber-400 px-4 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-px hover:shadow-[0_20px_34px_-22px_rgba(249,115,22,0.62)]"
                       >
                         <ClipboardCheck className="h-4 w-4" />
