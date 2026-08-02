@@ -2478,11 +2478,11 @@ export const updateAdminPaymentStatus = asyncHandler(
       return;
     }
 
-    if (payment.status !== "pending") {
+    if (!isEditableAdminPaymentStatus(payment.status)) {
       next(
         new AppError(
           409,
-          "Hanya payment pending yang dapat ditandai lunas.",
+          "Hanya payment pending atau gagal yang dapat ditandai lunas.",
           null,
           "PAYMENT_NOT_PENDING",
         ),

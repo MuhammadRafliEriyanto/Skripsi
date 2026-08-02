@@ -324,6 +324,14 @@ function isArchivedPaymentRecord(record: IncomingPaymentRecord | null | undefine
   return Boolean(record?.archivedAt);
 }
 
+function canMarkPaymentPaidRecord(record: IncomingPaymentRecord | null | undefined) {
+  return (
+    Boolean(record) &&
+    !isArchivedPaymentRecord(record) &&
+    (record?.status === "pending" || isFailedLikePaymentStatus(record?.status))
+  );
+}
+
 function formatPaymentRecordStatusLabel(record: IncomingPaymentRecord) {
   return isArchivedPaymentRecord(record)
     ? "Terhapus"
@@ -1524,7 +1532,7 @@ function IncomingPaymentEditDialog({
     Boolean(record) &&
     showTransactionEditor &&
     (record.status === "pending" || isFailedLikePaymentStatus(record.status));
-  const canMarkPaid = record?.status === "pending";
+  const canMarkPaid = canMarkPaymentPaidRecord(record);
   const canSubmit =
     Boolean(record) &&
     canReplaceTransaction &&
@@ -1849,7 +1857,7 @@ function IncomingPaymentStatusEditDialog({
   onOpenChange: (open: boolean) => void;
   onConfirm: (record: IncomingPaymentRecord) => void;
 }) {
-  const canMarkPaid = record?.status === "pending";
+  const canMarkPaid = canMarkPaymentPaidRecord(record);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1869,7 +1877,7 @@ function IncomingPaymentStatusEditDialog({
                 {record.paymentId}
               </DialogTitle>
               <DialogDescription>
-                Tandai pembayaran yang tertunda sebagai lunas.
+                Tandai pembayaran Pending atau Gagal sebagai Lunas.
                 Status layanan siswa akan mengikuti pengaturan sistem otomatis.
               </DialogDescription>
             </DialogHeader>
@@ -3356,8 +3364,8 @@ export function AdminPaymentVerification({
   }
 
   async function handleMarkPaymentPaid(payment: IncomingPaymentRecord) {
-    if (payment.status !== "pending") {
-      const message = "Hanya payment pending yang bisa ditandai lunas.";
+    if (!canMarkPaymentPaidRecord(payment)) {
+      const message = "Hanya payment Pending atau Gagal yang bisa ditandai lunas.";
       setBillingFeedback({
         tone: "warning",
         title: "Status tidak bisa diubah",
