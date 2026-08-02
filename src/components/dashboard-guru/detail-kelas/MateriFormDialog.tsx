@@ -28,19 +28,19 @@ export default function MateriFormDialog({
 }: MateriFormDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl gap-0 rounded-[24px] border border-slate-200 bg-white p-0 shadow-lg">
-        <DialogHeader className="border-b border-slate-200 bg-white px-4 py-4 pr-14 text-left md:px-5">
-          <DialogTitle className="text-lg font-semibold text-slate-800">
+      <DialogContent className="max-w-2xl gap-0 rounded-[28px] border border-slate-200 bg-white p-0 shadow-2xl">
+        <DialogHeader className="border-b border-slate-100 bg-white/80 px-6 py-5 pr-14 text-left backdrop-blur-md md:px-8">
+          <DialogTitle className="text-xl font-semibold text-slate-800">
             {mode === "add" ? "Tambah Materi" : "Edit Materi"}
           </DialogTitle>
-          <DialogDescription className="text-sm text-slate-500">
+          <DialogDescription className="mt-1 text-sm text-slate-500">
             Lengkapi pertemuan, judul, dan bahan belajar.
           </DialogDescription>
         </DialogHeader>
 
-        <div>
-          <div className="grid gap-4 px-4 py-4 md:px-5">
-            <div className="grid gap-4 md:grid-cols-2">
+        <div className="max-h-[60vh] overflow-y-auto px-6 py-6 md:px-8 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200 hover:[&::-webkit-scrollbar-thumb]:bg-slate-300">
+          <div className="grid gap-5">
+            <div className="grid gap-5 md:grid-cols-2">
               <label className="grid gap-2 text-sm font-medium text-slate-700">
                 Pertemuan Ke
                 <input
@@ -50,7 +50,7 @@ export default function MateriFormDialog({
                   onChange={(event) =>
                     onChange("pertemuanKe", Number(event.target.value))
                   }
-                  className="border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition-all hover:border-orange-200 focus:border-orange-300 focus:ring-4 focus:ring-orange-500/10"
                 />
               </label>
 
@@ -60,7 +60,7 @@ export default function MateriFormDialog({
                   type="date"
                   value={draft?.tanggal ?? ""}
                   onChange={(event) => onChange("tanggal", event.target.value)}
-                  className="border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition-all hover:border-orange-200 focus:border-orange-300 focus:ring-4 focus:ring-orange-500/10"
                 />
               </label>
             </div>
@@ -72,7 +72,7 @@ export default function MateriFormDialog({
                 value={draft?.judulMateri ?? ""}
                 onChange={(event) => onChange("judulMateri", event.target.value)}
                 placeholder="Contoh: Persamaan Linear Dasar"
-                className="border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition-all hover:border-orange-200 focus:border-orange-300 focus:ring-4 focus:ring-orange-500/10"
               />
             </label>
 
@@ -83,19 +83,19 @@ export default function MateriFormDialog({
                 value={draft?.deskripsi ?? ""}
                 onChange={(event) => onChange("deskripsi", event.target.value)}
                 placeholder="Ringkasan materi atau catatan pembelajaran..."
-                className="resize-none border border-slate-200 bg-white px-3 py-3 text-sm leading-6 text-slate-700 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                className="w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-700 outline-none transition-all hover:border-orange-200 focus:border-orange-300 focus:ring-4 focus:ring-orange-500/10"
               />
             </label>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-5 md:grid-cols-2">
               <label className="grid gap-2 text-sm font-medium text-slate-700">
-                Link Materi Opsional
+                Link Materi (Opsional)
                 <input
                   type="url"
                   value={draft?.linkMateri ?? ""}
                   onChange={(event) => onChange("linkMateri", event.target.value)}
                   placeholder="https://..."
-                  className="border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition-all hover:border-orange-200 focus:border-orange-300 focus:ring-4 focus:ring-orange-500/10"
                 />
               </label>
 
@@ -104,7 +104,7 @@ export default function MateriFormDialog({
                 <select
                   value={draft?.statusMateri ?? "Draft"}
                   onChange={(event) => onChange("statusMateri", event.target.value)}
-                  className="border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition-all hover:border-orange-200 focus:border-orange-300 focus:ring-4 focus:ring-orange-500/10"
                 >
                   <option value="Draft">Belum Diterbitkan</option>
                   <option value="Dipublikasikan">Dipublikasikan</option>
@@ -112,54 +112,54 @@ export default function MateriFormDialog({
               </label>
             </div>
 
-            <div className="grid gap-3 border border-slate-200 bg-slate-50/40 p-4 text-sm font-medium text-slate-700">
-              <span>Lampiran</span>
+            <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50/50 p-5 text-sm font-medium text-slate-700">
+              <span>Lampiran (Opsional)</span>
               <input
                 type="file"
                 accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png,.webp,.txt,.csv"
                 onChange={(event) =>
                   onAttachmentChange(event.target.files?.[0] ?? null)
                 }
-                className="border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 file:mr-3 file:border-0 file:bg-slate-50 file:px-3 file:py-2 file:font-semibold file:text-slate-700 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition-all hover:border-orange-200 focus:border-orange-300 focus:ring-4 focus:ring-orange-500/10 file:mr-4 file:rounded-xl file:border-0 file:bg-orange-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-orange-700"
               />
               {selectedAttachmentName ? (
-                <div className="flex flex-col gap-2 text-xs text-slate-500 sm:flex-row sm:flex-wrap sm:items-center">
-                  <span className="break-all">File baru: {selectedAttachmentName}</span>
+                <div className="mt-1 flex flex-col gap-2 text-xs text-slate-500 sm:flex-row sm:flex-wrap sm:items-center">
+                  <span className="break-all font-medium">File baru: {selectedAttachmentName}</span>
                   <button
                     type="button"
                     onClick={onClearSelectedAttachment}
-                    className="w-fit font-semibold text-slate-600 hover:underline"
+                    className="w-fit font-semibold text-slate-600 hover:text-slate-800 hover:underline"
                   >
                     Batalkan file baru
                   </button>
                 </div>
               ) : existingAttachmentName && !attachmentMarkedForRemoval ? (
-                <div className="flex flex-col gap-2 text-xs text-slate-500 sm:flex-row sm:flex-wrap sm:items-center">
-                  <span className="break-all">Lampiran tersimpan: {existingAttachmentName}</span>
+                <div className="mt-1 flex flex-col gap-2 text-xs text-slate-500 sm:flex-row sm:flex-wrap sm:items-center">
+                  <span className="break-all font-medium">Lampiran tersimpan: {existingAttachmentName}</span>
                   <button
                     type="button"
                     onClick={onRemoveExistingAttachment}
-                    className="w-fit font-semibold text-rose-600 hover:underline"
+                    className="w-fit font-semibold text-rose-600 hover:text-rose-700 hover:underline"
                   >
                     Hapus lampiran
                   </button>
                 </div>
               ) : attachmentMarkedForRemoval ? (
-                <p className="text-xs text-rose-600">
+                <p className="mt-1 text-xs font-medium text-rose-600">
                   Lampiran lama akan dihapus saat materi disimpan.
                 </p>
               ) : (
-                <p className="text-xs text-slate-400">Opsional, maksimal 10 MB.</p>
+                <p className="mt-1 text-xs text-slate-400">Maksimal ukuran file 10 MB.</p>
               )}
             </div>
           </div>
         </div>
 
-        <DialogFooter className="border-t border-slate-200 px-4 py-4 md:px-5">
+        <DialogFooter className="border-t border-slate-100 bg-slate-50/50 px-6 py-5 md:px-8">
           <DialogClose asChild>
             <button
               type="button"
-              className="w-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-orange-50/40 sm:w-auto"
+              className="w-full rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition-all hover:border-slate-300 hover:bg-slate-50 sm:w-auto"
             >
               Batal
             </button>
@@ -167,7 +167,7 @@ export default function MateriFormDialog({
           <button
             type="button"
             onClick={onSubmit}
-            className="w-full border border-orange-500 bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-700 hover:brightness-[1.02] sm:w-auto"
+            className="w-full rounded-xl border border-transparent bg-orange-600 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-orange-700 focus:ring-4 focus:ring-orange-500/20 sm:w-auto"
           >
             {mode === "add" ? "Simpan Materi" : "Update Materi"}
           </button>
