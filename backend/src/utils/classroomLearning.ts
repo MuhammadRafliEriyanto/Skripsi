@@ -22,6 +22,10 @@ import { TaskSubmission } from "../models/TaskSubmission";
 import { buildAcademicRecordSubscriptionFilter } from "./subscription";
 import { normalizeCanonicalClassName } from "./studentClass";
 import { normalizeUtbkScheduleClassName } from "./studentProgram";
+import {
+  buildTeacherAcademicPeriodOrLegacyFilter,
+  type TeacherAcademicPeriodFilters,
+} from "./teacherAcademicPeriod";
 
 type LearningClassScopedDocument = {
   _id?: unknown;
@@ -248,37 +252,10 @@ export function buildStudentLearningClassFilter(
   };
 }
 
-function buildAcademicPeriodOrLegacyFilter(filters?: {
-  academicYear?: string;
-  semester?: string;
-}) {
-  const periodFilter: Record<string, string> = {};
-
-  if (filters?.academicYear) {
-    periodFilter.academicYear = filters.academicYear;
-  }
-
-  if (filters?.semester) {
-    periodFilter.semester = filters.semester;
-  }
-
-  if (Object.keys(periodFilter).length === 0) {
-    return {};
-  }
-
-  return {
-    $or: [
-      periodFilter,
-      { academicYear: null },
-      { academicYear: { $exists: false } },
-    ],
-  };
-}
-
 export async function getTeacherClassMaterials(
   teacherId: string,
   classId: string,
-  filters?: { academicYear?: string; semester?: string },
+  filters?: TeacherAcademicPeriodFilters,
 ) {
   return ClassMaterial.find({
     $and: [
@@ -286,7 +263,7 @@ export async function getTeacherClassMaterials(
         teacherId,
         classId,
       },
-      buildAcademicPeriodOrLegacyFilter(filters),
+      buildTeacherAcademicPeriodOrLegacyFilter(filters),
     ],
   })
     .sort({ meetingNumber: 1, date: 1, createdAt: 1 })
@@ -297,7 +274,7 @@ export async function getTeacherClassMaterials(
 export async function getTeacherClassTasks(
   teacherId: string,
   classId: string,
-  filters?: { academicYear?: string; semester?: string },
+  filters?: TeacherAcademicPeriodFilters,
   subscriptionIds?: Array<Types.ObjectId | string>,
 ) {
   const query: FilterQuery<IClassTask> = {
@@ -306,7 +283,7 @@ export async function getTeacherClassTasks(
         teacherId,
         classId,
       },
-      buildAcademicPeriodOrLegacyFilter(filters),
+      buildTeacherAcademicPeriodOrLegacyFilter(filters),
     ],
   };
 

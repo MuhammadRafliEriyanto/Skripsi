@@ -1,47 +1,49 @@
 import { type ReadonlyURLSearchParams } from "next/navigation";
-import { getCurrentAcademicPeriod } from "./utils";
+
+export const GURU_ACTIVE_ACADEMIC_YEAR = "2026/2027";
+
+const GURU_ACADEMIC_YEAR_OPTIONS = [GURU_ACTIVE_ACADEMIC_YEAR];
+
+function normalizeGuruAcademicYear(value: string | null | undefined) {
+  const normalizedValue = value?.trim() ?? "";
+
+  return GURU_ACADEMIC_YEAR_OPTIONS.includes(normalizedValue)
+    ? normalizedValue
+    : GURU_ACTIVE_ACADEMIC_YEAR;
+}
+
+export function getGuruAcademicYearOptions() {
+  return [...GURU_ACADEMIC_YEAR_OPTIONS];
+}
 
 /**
  * Returns the academic year and semester to use for fetching data.
- * It strictly reads from the URL searchParams.
- * It ONLY falls back to getCurrentAcademicPeriod() if the URL is completely missing both parameters.
+ * Guru dashboard is temporarily pinned to the 2026/2027 demo period.
  */
 export function getSelectedAcademicPeriod(
   searchParams: ReadonlyURLSearchParams | URLSearchParams,
 ) {
-  const period = getCurrentAcademicPeriod();
-  const urlAcademicYear = searchParams.get("academicYear");
-
-  // If the URL has ANY of the period parameters, use what's in the URL
-  if (urlAcademicYear !== null) {
-    return {
-      academicYear: urlAcademicYear ?? period.academicYear,
-    };
-  }
-
-  // Fallback to current period ONLY when URL is completely empty
   return {
-    academicYear: period.academicYear,
+    academicYear: normalizeGuruAcademicYear(searchParams.get("academicYear")),
   };
 }
 
 export function getGuruAcademicYearStatus(
   searchParams: ReadonlyURLSearchParams | URLSearchParams,
 ) {
-  const currentPeriod = getCurrentAcademicPeriod();
   const selectedPeriod = getSelectedAcademicPeriod(searchParams);
-  const isActive = selectedPeriod.academicYear === currentPeriod.academicYear;
+  const isActive = selectedPeriod.academicYear === GURU_ACTIVE_ACADEMIC_YEAR;
 
   return {
     academicYear: selectedPeriod.academicYear,
-    currentAcademicYear: currentPeriod.academicYear,
+    currentAcademicYear: GURU_ACTIVE_ACADEMIC_YEAR,
     isActive,
     isArchive: !isActive,
   };
 }
 
 /**
- * Appends the academicYear and semester to a given path, preserving the current selection.
+ * Appends the pinned academicYear to a given path.
  */
 export function buildGuruUrl(
   path: string,
@@ -66,7 +68,7 @@ export function buildGuruUrl(
 }
 
 /**
- * Appends the academicYear and semester to a base API URL.
+ * Appends the pinned academicYear to a base API URL.
  */
 export function buildGuruApiUrl(
   baseApiUrl: string,

@@ -27,6 +27,10 @@ import { getNextPublicId } from "../utils/publicId";
 import { resolveTeacherClassDetailContext } from "./teacherScheduleController";
 import { resolveAcademicPeriodFromQuery } from "../utils/academicGrade";
 import { ensureTeacherAcademicPeriodEditable } from "../utils/teacherAcademicArchive";
+import {
+  buildTeacherAcademicPeriodOrLegacyFilter,
+  type TeacherAcademicPeriodFilters,
+} from "../utils/teacherAcademicPeriod";
 import { isUtbkScheduleClassName } from "../utils/studentProgram";
 
 type UpsertClassMaterialBody = {
@@ -144,28 +148,15 @@ async function findTeacherMaterialByParam(
   materialId: string,
   classId: string,
   teacherId: string,
-  filters?: { academicYear?: string; semester?: string },
+  filters?: TeacherAcademicPeriodFilters,
 ) {
-  const periodFilter: Record<string, string> = {};
-
-  if (filters?.academicYear) periodFilter.academicYear = filters.academicYear;
-  if (filters?.semester) periodFilter.semester = filters.semester;
-
   return ClassMaterial.findOne({
     $and: [
       {
         classId,
         teacherId,
       },
-      Object.keys(periodFilter).length > 0
-        ? {
-            $or: [
-              periodFilter,
-              { academicYear: null },
-              { academicYear: { $exists: false } },
-            ],
-          }
-        : {},
+      buildTeacherAcademicPeriodOrLegacyFilter(filters),
       {
         $or: [
           { materialId },
@@ -180,28 +171,15 @@ async function findTeacherTaskByParam(
   taskId: string,
   classId: string,
   teacherId: string,
-  filters?: { academicYear?: string; semester?: string },
+  filters?: TeacherAcademicPeriodFilters,
 ) {
-  const periodFilter: Record<string, string> = {};
-
-  if (filters?.academicYear) periodFilter.academicYear = filters.academicYear;
-  if (filters?.semester) periodFilter.semester = filters.semester;
-
   return ClassTask.findOne({
     $and: [
       {
         classId,
         teacherId,
       },
-      Object.keys(periodFilter).length > 0
-        ? {
-            $or: [
-              periodFilter,
-              { academicYear: null },
-              { academicYear: { $exists: false } },
-            ],
-          }
-        : {},
+      buildTeacherAcademicPeriodOrLegacyFilter(filters),
       {
         $or: [
           { taskId },

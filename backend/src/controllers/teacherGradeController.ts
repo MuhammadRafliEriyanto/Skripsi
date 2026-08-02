@@ -31,6 +31,7 @@ import {
   findActiveSubscriptionIdsForAcademicRecords,
 } from "../utils/subscription";
 import { ensureTeacherAcademicPeriodEditable } from "../utils/teacherAcademicArchive";
+import { buildTeacherAcademicPeriodOrLegacyFilter } from "../utils/teacherAcademicPeriod";
 
 type UpsertTaskGradeBody = {
   taskId?: string;
@@ -142,13 +143,7 @@ async function findTeacherTaskByParam(
     ],
   };
   const periodFilter = period
-    ? {
-        $or: [
-          { academicYear: period.academicYear, semester: period.semester },
-          { academicYear: null },
-          { academicYear: { $exists: false } },
-        ],
-      }
+    ? buildTeacherAcademicPeriodOrLegacyFilter(period)
     : null;
 
   return ClassTask.findOne({
@@ -196,11 +191,14 @@ export const getTeacherClassGrades = asyncHandler(
       });
 
     const academicGradeQuery: FilterQuery<IAcademicGrade> = {
-      teacherId: teacher._id,
-      classId: classGroup.item.id,
-      academicYear,
-      semester,
-      ...buildAcademicRecordSubscriptionFilter(participantSubscriptionIds),
+      $and: [
+        {
+          teacherId: teacher._id,
+          classId: classGroup.item.id,
+          ...buildAcademicRecordSubscriptionFilter(participantSubscriptionIds),
+        },
+        buildTeacherAcademicPeriodOrLegacyFilter({ academicYear, semester }),
+      ],
     };
 
     const [grades, academicGrades, tasks] = await Promise.all([
@@ -219,13 +217,7 @@ export const getTeacherClassGrades = asyncHandler(
             teacherId: teacher._id,
             classId: classGroup.item.id,
           },
-          {
-            $or: [
-              { academicYear, semester },
-              { academicYear: null },
-              { academicYear: { $exists: false } },
-            ],
-          },
+          buildTeacherAcademicPeriodOrLegacyFilter({ academicYear, semester }),
         ],
       })
         .select("taskId publishAt createdAt")

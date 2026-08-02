@@ -47,6 +47,7 @@ import {
   resolveAcademicPeriodFromQuery,
 } from "../utils/academicGrade";
 import { ensureTeacherAcademicPeriodEditable } from "../utils/teacherAcademicArchive";
+import { buildTeacherAcademicPeriodOrLegacyFilter } from "../utils/teacherAcademicPeriod";
 import {
   getStudentEffectiveAcademicJoinedAt,
   isStudentAcademicTryoutAvailable,
@@ -312,13 +313,7 @@ async function findTeacherTryoutByParam(
     ],
   };
   const periodFilter = period
-    ? {
-        $or: [
-          { academicYear: period.academicYear, semester: period.semester },
-          { academicYear: null },
-          { academicYear: { $exists: false } },
-        ],
-      }
+    ? buildTeacherAcademicPeriodOrLegacyFilter(period)
     : null;
 
   return TeacherTryout.findOne({
@@ -958,21 +953,13 @@ export const getMyTeacherTryouts = asyncHandler(
     const filter: FilterQuery<ITeacherTryout> = {
       $and: [
         { teacherId: teacher._id },
-        {
-          $or: [
-            { academicYear, semester },
-            { academicYear: null },
-            { academicYear: { $exists: false } },
-          ],
-        },
+        buildTeacherAcademicPeriodOrLegacyFilter({ academicYear, semester }),
       ],
     };
 
     const tryouts = await TeacherTryout.find(filter)
       .sort({ startAt: 1, createdAt: -1 })
       .exec();
-
-    console.log("[DEBUG getMyTeacherTryouts] query:", _req.query, "filter:", filter, "found:", tryouts.length);
 
     sendSuccess(res, {
       message: "Data tryout guru berhasil diambil.",

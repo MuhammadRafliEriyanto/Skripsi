@@ -26,6 +26,10 @@ import asyncHandler from "../utils/asyncHandler";
 import { AppError, sendSuccess } from "../utils/apiResponse";
 import { resolveAcademicPeriodFromQuery } from "../utils/academicGrade";
 import {
+  buildTeacherAcademicPeriodOrLegacyFilter,
+  type TeacherAcademicPeriodFilters,
+} from "../utils/teacherAcademicPeriod";
+import {
   getTeacherClassMaterials,
   getTeacherClassTasks,
   toPublicClassMaterial,
@@ -217,11 +221,6 @@ const DAY_ORDER = [
 ] as const;
 const DEFAULT_MONTHLY_MEETINGS_PER_SCHEDULE = 4;
 
-type TeacherAcademicPeriodFilters = {
-  academicYear?: string;
-  semester?: string;
-};
-
 function normalizeText(value: string | null | undefined): string {
   return value?.trim().replace(/\s+/g, " ") ?? "";
 }
@@ -239,27 +238,7 @@ function resolveTeacherAcademicPeriodFilters(query?: {
 }
 
 function buildAcademicPeriodOrLegacyFilter(filters?: TeacherAcademicPeriodFilters) {
-  const periodFilter: Record<string, string> = {};
-
-  if (filters?.academicYear) {
-    periodFilter.academicYear = filters.academicYear;
-  }
-
-  if (filters?.semester) {
-    periodFilter.semester = filters.semester;
-  }
-
-  if (Object.keys(periodFilter).length === 0) {
-    return {};
-  }
-
-  return {
-    $or: [
-      periodFilter,
-      { academicYear: null },
-      { academicYear: { $exists: false } },
-    ],
-  };
+  return buildTeacherAcademicPeriodOrLegacyFilter(filters);
 }
 
 function escapeRegex(value: string) {

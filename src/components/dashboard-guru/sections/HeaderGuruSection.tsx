@@ -18,8 +18,12 @@ import {
   Target,
 } from "lucide-react";
 
-import { buildGuruApiUrl, buildGuruUrl, getSelectedAcademicPeriod } from "@/lib/guru-helpers";
-import { getCurrentAcademicPeriod } from "@/lib/utils";
+import {
+  buildGuruApiUrl,
+  buildGuruUrl,
+  getGuruAcademicYearOptions,
+  getSelectedAcademicPeriod,
+} from "@/lib/guru-helpers";
 
 import {
   AUTH_USER_UPDATED_EVENT,
@@ -148,12 +152,9 @@ export default function HeaderGuruSection() {
   const [profile, setProfile] = useState<HeaderGuruProfileState>(
     fallbackHeaderProfile,
   );
-  const period = useMemo(() => getCurrentAcademicPeriod(), []);
 
-  const { academicYear: defaultAcademicYear } =
+  const { academicYear: selectedAcademicYear } =
     getSelectedAcademicPeriod(searchParams);
-  const rawAcademicYear = searchParams.get("academicYear") || "";
-  const selectedAcademicYear = rawAcademicYear || defaultAcademicYear;
 
   const handlePeriodChange = (key: "academicYear", value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -166,20 +167,11 @@ export default function HeaderGuruSection() {
   };
 
   const academicYearOptions = useMemo(() => {
-    const match = period.academicYear.match(/^(\d{4})\/(\d{4})$/);
-    const options = match?.[1]
-      ? [
-          period.academicYear,
-          `${Number(match[1]) + 1}/${Number(match[1]) + 2}`,
-          `${Number(match[1]) - 1}/${Number(match[1])}`,
-        ]
-      : [period.academicYear];
-
-    return Array.from(new Set([...options, selectedAcademicYear].filter(Boolean)));
-  }, [period.academicYear, selectedAcademicYear]);
+    return getGuruAcademicYearOptions();
+  }, []);
 
   const isCurrentPeriod =
-    selectedAcademicYear === period.academicYear;
+    academicYearOptions.includes(selectedAcademicYear);
 
   const guruConfig = useMemo<GuruProgram[]>(
     () => [
@@ -364,7 +356,7 @@ export default function HeaderGuruSection() {
 
       void loadTeacherProfile();
     });
-  }, [defaultAcademicYear]);
+  }, [selectedAcademicYear]);
 
   useEffect(() => {
     function handleAuthUserUpdated() {

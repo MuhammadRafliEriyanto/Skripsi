@@ -17,6 +17,10 @@ import {
   type ScheduleWithTeacher,
 } from "../utils/scheduleConflicts";
 import { resolveAcademicPeriodFromQuery } from "../utils/academicGrade";
+import {
+  buildTeacherAcademicPeriodOrLegacyFilter,
+  type TeacherAcademicPeriodFilters,
+} from "../utils/teacherAcademicPeriod";
 
 type StudentWithUser = StudentDocument & {
   userId: UserDocument | null;
@@ -127,25 +131,12 @@ function getAcademicInfo(className: string) {
 
 async function getTeacherSchedules(
   teacherId: string,
-  filters?: { academicYear?: string; semester?: string },
+  filters?: TeacherAcademicPeriodFilters,
 ) {
-  const periodFilter: Record<string, string> = {};
-
-  if (filters?.academicYear) periodFilter.academicYear = filters.academicYear;
-  if (filters?.semester) periodFilter.semester = filters.semester;
-
   const query: FilterQuery<ISchedule> = {
     $and: [
       { teacherId },
-      Object.keys(periodFilter).length > 0
-        ? {
-            $or: [
-              periodFilter,
-              { academicYear: null },
-              { academicYear: { $exists: false } },
-            ],
-          }
-        : {},
+      buildTeacherAcademicPeriodOrLegacyFilter(filters),
     ],
   };
 
@@ -271,8 +262,6 @@ export const getMyTeacherDashboard = asyncHandler(
     }
 
     const { academicYear, semester } = resolveAcademicPeriodFromQuery(req.query);
-    console.log("[DEBUG getMyTeacherDashboard] req.query:", req.query);
-
     const [scheduleDocuments, studentsByClassKey] = await Promise.all([
       getTeacherSchedules(teacher._id.toString(), {
         academicYear,
@@ -280,7 +269,6 @@ export const getMyTeacherDashboard = asyncHandler(
       }),
       getStudentsByClassKey(),
     ]);
-    console.log("[DEBUG getMyTeacherDashboard] scheduleDocuments.length:", scheduleDocuments.length);
     const schedules = buildSchedulePresentation(scheduleDocuments);
     const dashboardClasses: DashboardClass[] = schedules.map((schedule) => {
       const academicInfo = getAcademicInfo(schedule.className);

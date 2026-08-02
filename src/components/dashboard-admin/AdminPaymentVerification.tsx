@@ -536,18 +536,6 @@ function formatActivationClassFilterLabel(
     : `Kelas ${value}`;
 }
 
-function createSelectOptions(
-  values: Array<string | null | undefined>,
-  allLabel: string,
-  compare: (first: string, second: string) => number = compareTextValue,
-) {
-  const uniqueValues = Array.from(
-    new Set(values.map((value) => normalizeText(value)).filter(Boolean)),
-  ).sort(compare);
-
-  return [allLabel, ...uniqueValues];
-}
-
 function buildPackageFilterValue(packageKey?: string | null, packageName?: string | null) {
   const normalizedPackageKey = normalizeText(packageKey);
 
@@ -1549,9 +1537,6 @@ function IncomingPaymentEditDialog({
   const [expiresAtValue, setExpiresAtValue] = useState(
     formatFutureDateTimeLocalInput(record?.expiresAt),
   );
-  const minimumExpiresAtValue = formatDateTimeLocalInput(
-    new Date(Date.now() + 60 * 1000).toISOString(),
-  );
 
   const isBusy = isSubmitting || isStatusSubmitting;
   const showTransactionEditor = record?.source === "admin";
@@ -1640,7 +1625,6 @@ function IncomingPaymentEditDialog({
                     id="edit-payment-expires-at"
                     type="datetime-local"
                     value={expiresAtValue}
-                    min={minimumExpiresAtValue}
                     disabled={!canReplaceTransaction || isBusy}
                     onChange={(event) => setExpiresAtValue(event.target.value)}
                   />
@@ -3051,80 +3035,6 @@ export function AdminPaymentVerification({
         : null,
     [activationStudents, selectedActivationId],
   );
-
-  function buildPaymentRecordFromActivation(
-    student: ActivationRecord,
-  ): IncomingPaymentRecord | null {
-    if (!student.paymentId) {
-      return null;
-    }
-
-    const matchingPayment =
-      incomingPayments.find((payment) => payment.paymentId === student.paymentId) ??
-      null;
-
-    if (matchingPayment) {
-      return matchingPayment;
-    }
-
-    const paymentSource = student.paymentSource ?? null;
-
-    if (!paymentSource) {
-      return null;
-    }
-
-    const paymentCreatedAt = student.paymentCreatedAt ?? student.registeredAt;
-    const paymentUpdatedAt = student.paymentUpdatedAt ?? paymentCreatedAt;
-
-    return {
-      id: student.paymentId,
-      paymentId: student.paymentId,
-      source: paymentSource,
-      packageKey: student.packageKey,
-      packageName: student.membershipPackage,
-      durationMonth: student.durationMonth,
-      amount: student.paymentAmount ?? 0,
-      provider: student.paymentProvider ?? "-",
-      method: student.paymentMethod ?? "-",
-      status: student.paymentStatus,
-      paidAt: student.paymentPaidAt ?? null,
-      checkoutUrl: student.paymentCheckoutUrl ?? null,
-      expiresAt: student.paymentExpiresAt ?? null,
-      checkoutLastSentAt: student.paymentCheckoutLastSentAt ?? null,
-      checkoutSendCount: student.paymentCheckoutSendCount ?? 0,
-      cancelReason: student.paymentCancelReason ?? null,
-      canceledAt: student.paymentCanceledAt ?? null,
-      archivedAt: null,
-      archiveReason: null,
-      createdAt: paymentCreatedAt,
-      updatedAt: paymentUpdatedAt,
-      displayDate: student.paymentPaidAt ?? paymentCreatedAt,
-      canResendLink: student.paymentCanResendLink === true,
-      canCancel: student.paymentCanCancel === true,
-      anomalyReasons: [],
-      student: {
-        id: null,
-        studentId: student.studentId,
-        userId: null,
-        name: student.studentName,
-        email: student.studentEmail,
-        role: "siswa",
-        branch: student.branch,
-        program: student.jenjang,
-        className: student.kelas,
-      },
-      subscription: {
-        id: student.id,
-        subscriptionCode: student.subscriptionCode,
-        status: student.activationStatus === "Aktif" ? "active" : "pending",
-        paymentStatus: student.paymentStatus,
-        startDate: null,
-        endDate: student.activeUntil,
-        source: paymentSource,
-        renewalOfSubscriptionId: null,
-      },
-    };
-  }
 
   async function handleCreateBatchPaymentSession(
     event: FormEvent<HTMLFormElement>,
