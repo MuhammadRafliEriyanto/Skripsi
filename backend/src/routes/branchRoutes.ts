@@ -11,6 +11,7 @@ import {
   getBranches,
   getPublicBranchOptions,
   resendBranchAdminVerification,
+  resetBranchAdminPassword,
   updateBranchAdminAccount,
   updateBranch,
   restoreBranch,
@@ -39,6 +40,11 @@ router.post(
   "/admin-accounts/:id/resend-verification",
   ownerOnly,
   resendBranchAdminVerification,
+);
+router.post(
+  "/admin-accounts/:id/reset-password",
+  ownerOnly,
+  resetBranchAdminPassword,
 );
 router.route("/").get(getBranches).post(ownerOnly, createBranch);
 router

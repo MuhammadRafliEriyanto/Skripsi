@@ -9,6 +9,7 @@ import {
   fetchOwnerBranchAdminAccountsFromApi,
   normalizeOwnerBranchAdminName,
   resendOwnerBranchAdminVerification,
+  resetOwnerBranchAdminPassword,
   updateOwnerBranchAdminAccount,
   type OwnerBranchAdminAccount,
 } from "@/lib/owner-branch-admins";
@@ -52,12 +53,20 @@ export type OwnerDashboardBranchAdminFlash = {
   message: string;
 };
 
+export type OwnerDashboardBranchAdminPasswordResetNotice = {
+  adminId: string;
+  adminName: string;
+  email: string;
+  password: string;
+};
+
 export type OwnerDashboardBranchAdminManager = {
   admins: OwnerBranchAdminAccount[];
   totalAdmins: number;
   filteredAdminCount: number;
   isLoading: boolean;
   isSubmitting: boolean;
+  isResettingPassword: boolean;
   resendingAdminId: string | null;
   searchQuery: string;
   setSearchQuery: (value: string) => void;
@@ -68,6 +77,7 @@ export type OwnerDashboardBranchAdminManager = {
   verificationFilterOptions: readonly OwnerDashboardBranchAdminVerificationFilter[];
   flash: OwnerDashboardBranchAdminFlash | null;
   dismissFlash: () => void;
+  passwordResetNotice: OwnerDashboardBranchAdminPasswordResetNotice | null;
   dialog: OwnerDashboardBranchAdminDialogState;
   form: OwnerDashboardBranchAdminForm;
   openCreateDialog: () => void;
@@ -75,6 +85,7 @@ export type OwnerDashboardBranchAdminManager = {
   closeDialog: () => void;
   updateFormValue: (field: keyof OwnerDashboardBranchAdminForm, value: string) => void;
   submitForm: () => void;
+  resetPassword: () => void;
   removeAdmin: (adminId: string) => void;
   resendVerification: (adminId: string) => void;
   resetFilters: () => void;
@@ -100,6 +111,7 @@ export function useOwnerBranchAdmins() {
   const [admins, setAdmins] = useState<OwnerBranchAdminAccount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [resendingAdminId, setResendingAdminId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [verificationFilter, setVerificationFilter] =
@@ -117,6 +129,8 @@ export function useOwnerBranchAdmins() {
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<OwnerDashboardBranchAdminFieldErrors>({});
   const [flash, setFlash] = useState<OwnerDashboardBranchAdminFlash | null>(null);
+  const [passwordResetNotice, setPasswordResetNotice] =
+    useState<OwnerDashboardBranchAdminPasswordResetNotice | null>(null);
 
   async function refreshAdminAccounts() {
     const nextAdmins = await fetchOwnerBranchAdminAccountsFromApi();
@@ -214,6 +228,7 @@ export function useOwnerBranchAdmins() {
     setFieldErrors({});
     setEditingAdminId(null);
     setDialogMode("create");
+    setPasswordResetNotice(null);
   }
 
   function openCreateDialog() {
@@ -238,6 +253,7 @@ export function useOwnerBranchAdmins() {
     });
     setDialogError(null);
     setFieldErrors({});
+    setPasswordResetNotice(null);
     setIsDialogOpen(true);
   }
 
@@ -340,6 +356,68 @@ export function useOwnerBranchAdmins() {
     void submitAdminForm();
   }
 
+  async function resetBranchAdminPasswordFromApi() {
+    if (!editingAdminId) {
+      return;
+    }
+
+    const currentAdmin = admins.find((item) => item.id === editingAdminId);
+
+    if (!currentAdmin) {
+      setDialogError("Akun admin cabang tidak ditemukan di daftar saat ini.");
+      return;
+    }
+
+    setIsResettingPassword(true);
+    setDialogError(null);
+    setFieldErrors({});
+
+    try {
+      const response = await resetOwnerBranchAdminPassword(editingAdminId);
+      const credentials = response.data?.credentials;
+      const responseAdmin = response.data?.admin;
+
+      if (!credentials) {
+        setDialogError("Kredensial reset password admin cabang tidak tersedia.");
+        return;
+      }
+
+      const adminName =
+        normalizeOwnerBranchAdminName(String(responseAdmin?.name ?? currentAdmin.name)) ||
+        currentAdmin.name;
+      const email = String(credentials.email || responseAdmin?.email || currentAdmin.email);
+
+      setPasswordResetNotice({
+        adminId: String(responseAdmin?.id ?? currentAdmin.id),
+        adminName,
+        email,
+        password: credentials.password,
+      });
+      setForm((current) => ({
+        ...current,
+        password: "",
+        confirmPassword: "",
+      }));
+      setFlash({
+        tone: "success",
+        message: response.message,
+      });
+      await refreshAdminAccounts();
+    } catch (error) {
+      setDialogError(
+        error instanceof Error
+          ? error.message
+          : "Password admin cabang gagal direset. Coba ulangi lagi.",
+      );
+    } finally {
+      setIsResettingPassword(false);
+    }
+  }
+
+  function resetPassword() {
+    void resetBranchAdminPasswordFromApi();
+  }
+
   async function removeAdminFromApi(adminId: string) {
     const admin = admins.find((item) => item.id === adminId);
 
@@ -415,7 +493,7 @@ export function useOwnerBranchAdmins() {
     description:
       dialogMode === "create"
         ? "Buat akun admin cabang baru. Setelah dibuat, akun ini bisa langsung dipilih pada form cabang."
-        : "Perbarui nama atau email admin cabang. Password tidak diubah dari form ini.",
+        : "Perbarui nama, email, atau password admin cabang.",
     submitLabel:
       dialogMode === "create" ? "Buat akun admin" : "Simpan perubahan",
     error: dialogError,
@@ -428,6 +506,7 @@ export function useOwnerBranchAdmins() {
     filteredAdminCount: filteredAdmins.length,
     isLoading,
     isSubmitting,
+    isResettingPassword,
     resendingAdminId,
     searchQuery,
     setSearchQuery,
@@ -436,6 +515,7 @@ export function useOwnerBranchAdmins() {
     verificationFilterOptions,
     flash,
     dismissFlash,
+    passwordResetNotice,
     dialog,
     form,
     openCreateDialog,
@@ -443,6 +523,7 @@ export function useOwnerBranchAdmins() {
     closeDialog,
     updateFormValue,
     submitForm,
+    resetPassword,
     removeAdmin,
     resendVerification,
     resetFilters,

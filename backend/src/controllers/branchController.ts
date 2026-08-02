@@ -22,6 +22,7 @@ import {
   resolveAdminBranchScope,
 } from "../utils/adminBranchScope";
 import { AppError, sendSuccess } from "../utils/apiResponse";
+import { clearUserLoginLock } from "../utils/authLock";
 import { sendVerificationEmail } from "../utils/email";
 import { getNextPublicId } from "../utils/publicId";
 
@@ -89,6 +90,10 @@ function generateVerificationToken() {
 function buildVerificationLink(plainToken: string) {
   const { clientUrl } = validateEnv();
   return `${clientUrl}/verify-email?token=${plainToken}`;
+}
+
+function generateBranchAdminTemporaryPassword() {
+  return `Admin${crypto.randomInt(100000, 1000000)}!`;
 }
 
 async function prepareBranchAdminVerification(admin: UserDocument) {
@@ -628,6 +633,9 @@ export const updateBranchAdminAccount = asyncHandler(
     admin.email = email;
     if (password) {
       admin.password = await bcrypt.hash(password, 12);
+      admin.passwordResetToken = null;
+      admin.passwordResetExpires = null;
+      clearUserLoginLock(admin);
     }
     await admin.save();
 
@@ -665,6 +673,37 @@ export const updateBranchAdminAccount = asyncHandler(
       message: "Akun admin cabang berhasil diperbarui.",
       data: {
         admin: toPublicBranchAdminAccount(admin),
+      },
+    });
+  },
+);
+
+export const resetBranchAdminPassword = asyncHandler(
+  async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
+    const admin = await findAdminUserByParam(req.params.id);
+
+    if (!admin) {
+      next(new AppError(404, "Akun admin cabang tidak ditemukan."));
+      return;
+    }
+
+    const temporaryPassword = generateBranchAdminTemporaryPassword();
+
+    admin.password = await bcrypt.hash(temporaryPassword, 12);
+    admin.passwordResetToken = null;
+    admin.passwordResetExpires = null;
+    clearUserLoginLock(admin);
+
+    await admin.save();
+
+    sendSuccess(res, {
+      message: "Password admin cabang berhasil direset.",
+      data: {
+        admin: toPublicBranchAdminAccount(admin),
+        credentials: {
+          email: admin.email,
+          password: temporaryPassword,
+        },
       },
     });
   },

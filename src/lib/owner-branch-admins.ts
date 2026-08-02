@@ -50,6 +50,16 @@ export type OwnerBranchAdminAccountMutationResult = {
   verificationEmailSent?: boolean;
 };
 
+export type OwnerBranchAdminPasswordResetCredentials = {
+  email: string;
+  password: string;
+};
+
+export type OwnerBranchAdminPasswordResetResult = {
+  admin?: OwnerBranchAdminApiItem;
+  credentials?: OwnerBranchAdminPasswordResetCredentials;
+};
+
 export function normalizeOwnerBranchAdminName(value: string) {
   return value.trim().replace(/\s+/g, " ");
 }
@@ -177,6 +187,15 @@ export async function deleteOwnerBranchAdminAccount(adminId: string) {
 export async function resendOwnerBranchAdminVerification(adminId: string) {
   return requestAdminApi<OwnerBranchAdminAccountMutationResult>(
     `/api/branches/admin-accounts/${encodeURIComponent(adminId)}/resend-verification`,
+    {
+      method: "POST",
+    },
+  );
+}
+
+export async function resetOwnerBranchAdminPassword(adminId: string) {
+  return requestAdminApi<OwnerBranchAdminPasswordResetResult>(
+    `/api/branches/admin-accounts/${encodeURIComponent(adminId)}/reset-password`,
     {
       method: "POST",
     },

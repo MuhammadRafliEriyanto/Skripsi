@@ -714,92 +714,135 @@ export function OwnerDashboardBranchAdminsSection({
                   <InputError message={manager.dialog.fieldErrors.email} />
                 </div>
 
-                    <div className="space-y-2">
-                      <label
-                        className="text-sm font-medium text-slate-700"
-                        htmlFor="owner-branch-admin-password"
+                <div className="space-y-2">
+                  <label
+                    className="text-sm font-medium text-slate-700"
+                    htmlFor="owner-branch-admin-password"
+                  >
+                    {manager.dialog.mode === "create"
+                      ? "Password sementara"
+                      : "Password baru (Opsional)"}
+                  </label>
+                  <div className="relative">
+                    <KeyRound className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      id="owner-branch-admin-password"
+                      type={isPasswordVisible ? "text" : "password"}
+                      value={manager.form.password}
+                      onChange={(event) =>
+                        manager.updateFormValue("password", event.target.value)
+                      }
+                      placeholder={
+                        manager.dialog.mode === "create"
+                          ? "Minimal 8 karakter"
+                          : "Kosongkan jika tidak diubah"
+                      }
+                      className="pl-10 pr-12"
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 inline-flex w-12 items-center justify-center text-slate-400 transition hover:text-orange-600"
+                      onClick={() => setIsPasswordVisible((current) => !current)}
+                      aria-label={
+                        isPasswordVisible
+                          ? "Sembunyikan password"
+                          : "Tampilkan password"
+                      }
+                    >
+                      {isPasswordVisible ? (
+                        <EyeOff className="size-4" />
+                      ) : (
+                        <Eye className="size-4" />
+                      )}
+                    </button>
+                  </div>
+                  <InputError message={manager.dialog.fieldErrors.password} />
+                </div>
+
+                <div className="space-y-2">
+                  <label
+                    className="text-sm font-medium text-slate-700"
+                    htmlFor="owner-branch-admin-confirm-password"
+                  >
+                    Konfirmasi password
+                  </label>
+                  <div className="relative">
+                    <KeyRound className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      id="owner-branch-admin-confirm-password"
+                      type={isConfirmPasswordVisible ? "text" : "password"}
+                      value={manager.form.confirmPassword}
+                      onChange={(event) =>
+                        manager.updateFormValue(
+                          "confirmPassword",
+                          event.target.value,
+                        )
+                      }
+                      placeholder="Ulangi password admin"
+                      className="pl-10 pr-12"
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 inline-flex w-12 items-center justify-center text-slate-400 transition hover:text-orange-600"
+                      onClick={() =>
+                        setIsConfirmPasswordVisible((current) => !current)
+                      }
+                      aria-label={
+                        isConfirmPasswordVisible
+                          ? "Sembunyikan konfirmasi password"
+                          : "Tampilkan konfirmasi password"
+                      }
+                    >
+                      {isConfirmPasswordVisible ? (
+                        <EyeOff className="size-4" />
+                      ) : (
+                        <Eye className="size-4" />
+                      )}
+                    </button>
+                  </div>
+                  <InputError message={manager.dialog.fieldErrors.confirmPassword} />
+                </div>
+
+                {manager.dialog.mode === "edit" ? (
+                  <div className="rounded-xl border border-amber-100 bg-amber-50/70 px-4 py-3 text-sm text-amber-800">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="font-medium text-amber-900">
+                        Reset password admin cabang
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full shrink-0 rounded-full border-amber-200 bg-white text-amber-700 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-800 sm:w-auto"
+                        disabled={
+                          manager.isResettingPassword || manager.isSubmitting
+                        }
+                        onClick={manager.resetPassword}
                       >
-                        {manager.dialog.mode === "create" ? "Password sementara" : "Password baru (Opsional)"}
-                      </label>
-                      <div className="relative">
-                        <KeyRound className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                        <Input
-                          id="owner-branch-admin-password"
-                          type={isPasswordVisible ? "text" : "password"}
-                          value={manager.form.password}
-                          onChange={(event) =>
-                            manager.updateFormValue("password", event.target.value)
-                          }
-                          placeholder={manager.dialog.mode === "create" ? "Minimal 8 karakter" : "Kosongkan jika tidak diubah"}
-                          className="pl-10 pr-12"
-                        />
-                        <button
-                          type="button"
-                          className="absolute inset-y-0 right-0 inline-flex w-12 items-center justify-center text-slate-400 transition hover:text-orange-600"
-                          onClick={() =>
-                            setIsPasswordVisible((current) => !current)
-                          }
-                          aria-label={
-                            isPasswordVisible
-                              ? "Sembunyikan password"
-                              : "Tampilkan password"
-                          }
-                        >
-                          {isPasswordVisible ? (
-                            <EyeOff className="size-4" />
-                          ) : (
-                            <Eye className="size-4" />
-                          )}
-                        </button>
-                      </div>
-                      <InputError message={manager.dialog.fieldErrors.password} />
+                        {manager.isResettingPassword ? (
+                          <LoaderCircle className="size-4 animate-spin" />
+                        ) : (
+                          <KeyRound className="size-4" />
+                        )}
+                        {manager.isResettingPassword
+                          ? "Mereset..."
+                          : "Reset Password"}
+                      </Button>
                     </div>
 
-                    <div className="space-y-2">
-                      <label
-                        className="text-sm font-medium text-slate-700"
-                        htmlFor="owner-branch-admin-confirm-password"
-                      >
-                        Konfirmasi password
-                      </label>
-                      <div className="relative">
-                        <KeyRound className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                        <Input
-                          id="owner-branch-admin-confirm-password"
-                          type={isConfirmPasswordVisible ? "text" : "password"}
-                          value={manager.form.confirmPassword}
-                          onChange={(event) =>
-                            manager.updateFormValue(
-                              "confirmPassword",
-                              event.target.value,
-                            )
-                          }
-                          placeholder="Ulangi password admin"
-                          className="pl-10 pr-12"
-                        />
-                        <button
-                          type="button"
-                          className="absolute inset-y-0 right-0 inline-flex w-12 items-center justify-center text-slate-400 transition hover:text-orange-600"
-                          onClick={() =>
-                            setIsConfirmPasswordVisible((current) => !current)
-                          }
-                          aria-label={
-                            isConfirmPasswordVisible
-                              ? "Sembunyikan konfirmasi password"
-                              : "Tampilkan konfirmasi password"
-                          }
-                        >
-                          {isConfirmPasswordVisible ? (
-                            <EyeOff className="size-4" />
-                          ) : (
-                            <Eye className="size-4" />
-                          )}
-                        </button>
+                    {manager.passwordResetNotice ? (
+                      <div className="mt-3 rounded-lg border border-emerald-100 bg-white px-3 py-2 text-emerald-700">
+                        <p className="font-medium">
+                          Password {manager.passwordResetNotice.adminName} berhasil
+                          direset.
+                        </p>
+                        <p className="mt-1 text-xs leading-6">
+                          Email: {manager.passwordResetNotice.email} | Password:{" "}
+                          {manager.passwordResetNotice.password}
+                        </p>
                       </div>
-                      <InputError
-                        message={manager.dialog.fieldErrors.confirmPassword}
-                      />
-                    </div>
+                    ) : null}
+                  </div>
+                ) : null}
 
                 {manager.dialog.error ? (
                   <div className="rounded-2xl border border-red-200 bg-red-50/85 px-4 py-3 text-sm text-red-600">
@@ -825,7 +868,7 @@ export function OwnerDashboardBranchAdminsSection({
                   type="submit"
                   variant="secondary"
                   className="rounded-full"
-                  disabled={manager.isSubmitting}
+                  disabled={manager.isSubmitting || manager.isResettingPassword}
                 >
                   {manager.isSubmitting ? (
                     <>
