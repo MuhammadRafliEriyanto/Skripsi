@@ -61,30 +61,8 @@ export function getStudentEffectiveAcademicJoinedAt(
 }
 
 export function buildStudentAcademicTaskFilter(academicJoinedAt: Date) {
-  return {
-    $or: [
-      {
-        publishAt: {
-          $gte: academicJoinedAt,
-        },
-      },
-      {
-        $and: [
-          {
-            $or: [
-              { publishAt: null },
-              { publishAt: { $exists: false } },
-            ],
-          },
-          {
-            createdAt: {
-              $gte: academicJoinedAt,
-            },
-          },
-        ],
-      },
-    ],
-  };
+  // BYPASS: Tampilkan semua tugas untuk keperluan testing/skripsi
+  return {};
 }
 
 export function isStudentAcademicTaskAvailable(
