@@ -43,7 +43,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { requestAdminApi } from "@/lib/admin-api";
+import { AdminApiRequestError, requestAdminApi } from "@/lib/admin-api";
 import {
   defaultAdminDashboardConfig,
   type AdminBillingPackage,
@@ -190,6 +190,57 @@ function formatDateTimeLocalInput(value: string | null | undefined) {
   return new Date(date.getTime() - offsetMilliseconds)
     .toISOString()
     .slice(0, 16);
+}
+
+function formatFutureDateTimeLocalInput(value: string | null | undefined) {
+  const normalizedValue = normalizeText(value);
+
+  if (!normalizedValue) {
+    return "";
+  }
+
+  const date = new Date(normalizedValue);
+
+  if (Number.isNaN(date.getTime()) || date.getTime() <= Date.now()) {
+    return "";
+  }
+
+  return formatDateTimeLocalInput(date.toISOString());
+}
+
+function toFutureIsoDateTime(value: string) {
+  const normalizedValue = normalizeText(value);
+
+  if (!normalizedValue) {
+    return undefined;
+  }
+
+  const date = new Date(normalizedValue);
+
+  if (Number.isNaN(date.getTime()) || date.getTime() <= Date.now()) {
+    return undefined;
+  }
+
+  return date.toISOString();
+}
+
+function getAdminRequestErrorMessage(error: unknown, fallbackMessage: string) {
+  if (error instanceof AdminApiRequestError) {
+    const details = Array.isArray(error.errors)
+      ? error.errors
+      : Object.values(error.errors ?? {});
+    const detailMessage = details.filter(Boolean).join(" ");
+
+    return detailMessage
+      ? `${error.message}: ${detailMessage}`
+      : error.message || fallbackMessage;
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallbackMessage;
 }
 
 function formatDateInputValue(value: Date | string | null | undefined) {
@@ -1420,7 +1471,10 @@ function IncomingPaymentEditDialog({
     initialPackage?.packageKey ?? "",
   );
   const [expiresAtValue, setExpiresAtValue] = useState(
-    formatDateTimeLocalInput(record?.expiresAt),
+    formatFutureDateTimeLocalInput(record?.expiresAt),
+  );
+  const minimumExpiresAtValue = formatDateTimeLocalInput(
+    new Date(Date.now() + 60 * 1000).toISOString(),
   );
 
   const isBusy = isSubmitting || isStatusSubmitting;
@@ -1450,35 +1504,26 @@ function IncomingPaymentEditDialog({
 
               onConfirm(record, {
                 packageKey,
-                expiresAt: expiresAtValue
-                  ? new Date(expiresAtValue).toISOString()
-                  : undefined,
+                expiresAt: toFutureIsoDateTime(expiresAtValue),
               });
             }}
           >
-            <DialogHeader className="gap-3 border-b border-slate-100 px-5 pb-4 pt-5 pr-12 sm:px-6">
-              <div className="flex flex-wrap items-center gap-2">
+            <DialogHeader className="gap-2 border-b border-slate-100 px-5 pb-4 pt-5 pr-12 sm:px-6">
+              <DialogTitle className="text-xl">Edit transaksi</DialogTitle>
+              <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                <span>{record.student.name}</span>
+                <span>{record.paymentId}</span>
                 <AdminStatusBadge
                   status={formatPaymentRecordStatusLabel(record)}
                   tone={formatPaymentRecordStatusTone(record)}
                   className="w-fit"
                 />
-                <Badge variant="secondary">Edit pembayaran</Badge>
               </div>
-              <DialogTitle className="text-xl sm:text-2xl">
-                {record.paymentId}
-              </DialogTitle>
-              <DialogDescription>
-                Edit transaksi admin dengan status Pending atau Gagal.
-              </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] px-5 py-4 sm:px-6">
-              <div className="grid gap-4 md:grid-cols-2">
-                <InfoField label="Nama siswa" value={record.student.name} />
-                <InfoField label="Transaksi lama" value={record.paymentId} />
-
-                <div className="space-y-2 md:col-span-2">
+              <div className="grid gap-4">
+                <div className="space-y-2">
                   <label className="text-sm font-semibold text-slate-700">
                     Paket membership
                   </label>
@@ -1500,7 +1545,7 @@ function IncomingPaymentEditDialog({
                         );
                         return (
                           <SelectItem key={item.packageKey} value={item.packageKey}>
-                            {item.packageName} · {formatCurrency(dynamicAmount)}
+                            {item.packageName} - {formatCurrency(dynamicAmount)}
                           </SelectItem>
                         );
                       })}
@@ -1508,7 +1553,7 @@ function IncomingPaymentEditDialog({
                   </Select>
                 </div>
 
-                <div className="space-y-2 md:col-span-2">
+                <div className="space-y-2">
                   <label
                     htmlFor="edit-payment-expires-at"
                     className="text-sm font-semibold text-slate-700"
@@ -1519,31 +1564,18 @@ function IncomingPaymentEditDialog({
                     id="edit-payment-expires-at"
                     type="datetime-local"
                     value={expiresAtValue}
+                    min={minimumExpiresAtValue}
                     disabled={!canReplaceTransaction || isBusy}
                     onChange={(event) => setExpiresAtValue(event.target.value)}
                   />
-                  <p className="text-xs leading-5 text-slate-500">
-                    Kosongkan bila ingin memakai masa berlaku default dari provider.
-                  </p>
                 </div>
               </div>
 
-              {canReplaceTransaction ? (
-                <div className="rounded-[20px] border border-amber-100/80 bg-amber-50/90 px-4 py-3 text-sm leading-6 text-amber-700">
-                  Tautan lama akan dibatalkan. Sistem membuat no referensi dan
-                  tautan pembayaran baru agar data tetap konsisten.
-                </div>
-              ) : (
+              {!canReplaceTransaction ? (
                 <div className="rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
-                  Edit paket dan batas pembayaran hanya aktif untuk transaksi
-                  Pending atau Gagal.
+                  Edit hanya tersedia untuk transaksi Pending atau Gagal.
                 </div>
-              )}
-
-              <div className="rounded-[20px] border border-emerald-100/80 bg-emerald-50/90 px-4 py-3 text-sm leading-6 text-emerald-700">
-                Dari dialog ini admin juga bisa menandai transaksi Pending
-                menjadi Lunas tanpa membuat sesi pembayaran baru.
-              </div>
+              ) : null}
             </div>
 
             <DialogFooter className="border-t border-slate-100 px-5 py-4 sm:px-6">
@@ -1575,7 +1607,7 @@ function IncomingPaymentEditDialog({
                 ) : (
                   <Pencil className="size-4" />
                 )}
-                Simpan Transaksi
+                Simpan
               </Button>
             </DialogFooter>
           </form>
@@ -3075,10 +3107,10 @@ export function AdminPaymentVerification({
       ]);
       setFinanceRefreshKey((value) => value + 1);
     } catch (requestError) {
-      const message =
-        requestError instanceof Error
-          ? requestError.message
-          : "Transaksi belum bisa diperbarui.";
+      const message = getAdminRequestErrorMessage(
+        requestError,
+        "Transaksi belum bisa diperbarui.",
+      );
 
       setBillingFeedback({
         tone: "warning",
@@ -3349,32 +3381,18 @@ export function AdminPaymentVerification({
 
     {
       key: "student",
-      header: "Siswa",
-      className: "min-w-[250px]",
+      header: "Nama",
+      className: "min-w-[180px]",
       cell: (payment) => {
         const anomalyReasons = getIncomingAnomalyReasons(payment);
 
         return (
-          <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="font-semibold text-slate-950">{payment.student.name}</p>
-              {anomalyReasons.length ? (
-                <Badge variant="danger" className="px-2.5 py-1 text-[11px]">
-                  Anomali data
-                </Badge>
-              ) : null}
-            </div>
-            <p className="flex items-center gap-2 text-sm text-slate-500">
-              <Mail className="size-3.5 text-slate-400" />
-              {payment.student.email ?? "Email siswa tidak tersedia"}
-            </p>
-            <p className="text-xs text-slate-400">
-              {payment.student.program || "-"} | {payment.student.className || "-"}
-            </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-semibold text-slate-950">{payment.student.name}</p>
             {anomalyReasons.length ? (
-              <p className="text-xs leading-5 text-rose-600">
-                {anomalyReasons.join(" ")}
-              </p>
+              <Badge variant="danger" className="px-2.5 py-1 text-[11px]">
+                Anomali
+              </Badge>
             ) : null}
           </div>
         );
