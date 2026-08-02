@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Download,
+  Eye,
   LoaderCircle,
   Mail,
   Pencil,
@@ -224,11 +225,26 @@ function formatPaymentStatusTone(status: PaymentStatus) {
   }
 }
 
+function getArchivePaymentBlockReason(
+  record: IncomingPaymentRecord | null | undefined,
+) {
+  if (!record) {
+    return "Data pembayaran tidak tersedia.";
+  }
+
+  if (record.source !== "admin") {
+    return "Hanya transaksi yang dibuat admin yang dapat dihapus dari daftar.";
+  }
+
+  if (record.status === "paid") {
+    return "Pembayaran lunas tidak dapat dihapus karena menjadi riwayat keuangan.";
+  }
+
+  return null;
+}
+
 function canArchivePaymentRecord(record: IncomingPaymentRecord | null | undefined) {
-  return (
-    record?.source === "admin" &&
-    (record.status === "pending" || record.status === "expired")
-  );
+  return getArchivePaymentBlockReason(record) === null;
 }
 
 function formatActivationStatusTone(status: ActivationStatus) {
@@ -2776,6 +2792,18 @@ export function AdminPaymentVerification({
   }
 
   async function handleArchivePayment(payment: IncomingPaymentRecord) {
+    const blockReason = getArchivePaymentBlockReason(payment);
+
+    if (blockReason) {
+      setBillingFeedback({
+        tone: "warning",
+        title: "Transaksi tidak bisa dihapus",
+        message: blockReason,
+      });
+      window.alert(blockReason);
+      return;
+    }
+
     const confirmed = window.confirm(
       `Hapus transaksi ${payment.paymentId} dari daftar? Data tidak dihapus permanen dan tetap tersimpan sebagai arsip audit.`,
     );
@@ -2984,7 +3012,7 @@ export function AdminPaymentVerification({
     {
       key: "actions",
       header: "Aksi",
-      className: "min-w-[112px] text-center",
+      className: "min-w-[156px] text-center",
       cell: (payment) => {
         const isMarkingPaid =
           activePaymentActionKey === `${payment.id}:mark-paid`;
@@ -2997,6 +3025,7 @@ export function AdminPaymentVerification({
         const canEditPayment =
           payment.source === "admin" && payment.status === "pending";
         const canArchivePayment = canArchivePaymentRecord(payment);
+        const archiveBlockReason = getArchivePaymentBlockReason(payment);
 
         return (
           <div className="flex flex-wrap items-center justify-center gap-2">
@@ -3025,13 +3054,20 @@ export function AdminPaymentVerification({
               variant="outline"
               size="icon"
               aria-label="Hapus pembayaran"
-              title="Hapus pembayaran"
-              className="size-9 rounded-xl border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-700"
-              disabled={!canArchivePayment || isProcessing}
+              title={
+                canArchivePayment
+                  ? "Hapus pembayaran"
+                  : `Hapus tidak tersedia: ${archiveBlockReason}`
+              }
+              className={cn(
+                "size-9 rounded-xl",
+                canArchivePayment
+                  ? "border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-700"
+                  : "border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-500",
+              )}
+              disabled={isProcessing}
               onClick={() => {
-                if (canArchivePayment) {
-                  void handleArchivePayment(payment);
-                }
+                void handleArchivePayment(payment);
               }}
             >
               {isArchiving ? (
@@ -3039,6 +3075,19 @@ export function AdminPaymentVerification({
               ) : (
                 <Trash2 className="size-4" />
               )}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Detail pembayaran"
+              title="Detail pembayaran"
+              className="size-9 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              onClick={() => {
+                setSelectedIncomingPaymentId(payment.id);
+              }}
+            >
+              <Eye className="size-4" />
             </Button>
           </div>
         );
@@ -3195,7 +3244,7 @@ export function AdminPaymentVerification({
     {
       key: "actions",
       header: "Aksi",
-      className: "min-w-[112px] text-center",
+      className: "min-w-[156px] text-center",
       cell: (student) => {
         const payment = buildPaymentRecordFromActivation(student);
         const isMarkingPaid = payment
@@ -3212,6 +3261,7 @@ export function AdminPaymentVerification({
         const canEditPayment =
           payment?.source === "admin" && payment.status === "pending";
         const canArchivePayment = canArchivePaymentRecord(payment);
+        const archiveBlockReason = getArchivePaymentBlockReason(payment);
 
         return (
           <div className="flex flex-wrap items-center justify-center gap-2">
@@ -3242,13 +3292,20 @@ export function AdminPaymentVerification({
                 variant="outline"
                 size="icon"
                 aria-label="Hapus pembayaran"
-                title="Hapus pembayaran"
-                className="size-9 rounded-xl border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-700"
-                disabled={!canArchivePayment || isProcessing}
+                title={
+                  canArchivePayment
+                    ? "Hapus pembayaran"
+                    : `Hapus tidak tersedia: ${archiveBlockReason}`
+                }
+                className={cn(
+                  "size-9 rounded-xl",
+                  canArchivePayment
+                    ? "border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-700"
+                    : "border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-500",
+                )}
+                disabled={isProcessing}
                 onClick={() => {
-                  if (canArchivePayment) {
-                    void handleArchivePayment(payment);
-                  }
+                  void handleArchivePayment(payment);
                 }}
               >
                 {isArchiving ? (
@@ -3259,6 +3316,19 @@ export function AdminPaymentVerification({
               </Button>
               </>
             ) : null}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Detail pembayaran"
+              title="Detail pembayaran"
+              className="size-9 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              onClick={() => {
+                setSelectedActivationId(student.id);
+              }}
+            >
+              <Eye className="size-4" />
+            </Button>
           </div>
         );
       },
