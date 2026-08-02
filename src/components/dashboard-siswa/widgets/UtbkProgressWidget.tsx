@@ -191,14 +191,14 @@ export default function UtbkProgressWidget({
         <div className="p-5 md:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-orange-600">
+              <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-orange-600">
                 Rekap Belajar UTBK
               </p>
-              <h3 className="mt-1.5 text-lg font-black text-slate-950 md:text-xl">
+              <h3 className="mt-1.5 text-lg font-semibold text-slate-900 md:text-xl">
                 Ringkasan materi dan tryout
               </h3>
             </div>
-            <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[10px] font-bold text-slate-600">
+            <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[10px] font-medium text-slate-600">
               {targetKampus || targetJurusan
                 ? `${targetKampus || "Kampus"} - ${targetJurusan || "Jurusan"}`
                 : "Target belum lengkap"}
@@ -228,7 +228,7 @@ export default function UtbkProgressWidget({
                   <p className="mt-3 text-[10px] sm:text-[11px] font-medium text-slate-500 whitespace-nowrap">
                     {item.label}
                   </p>
-                  <p className="mt-1 text-xl sm:text-2xl font-black text-slate-900">
+                  <p className="mt-1 text-xl sm:text-2xl font-semibold text-slate-800">
                     {item.value}
                   </p>
                   <p className="mt-1 text-[9px] sm:text-[10px] font-medium text-slate-400 whitespace-nowrap">
@@ -253,20 +253,20 @@ export default function UtbkProgressWidget({
                   }`}
                 >
                   <div>
-                    <p className="text-[11px] sm:text-xs font-bold text-slate-800 line-clamp-1">
+                    <p className="text-[11px] sm:text-xs font-semibold text-slate-800 line-clamp-1">
                       {stage.label}
                     </p>
-                    <p className="mt-1.5 mb-3 text-[10px] sm:text-[11px] leading-relaxed text-slate-500 line-clamp-2">
+                    <p className="mt-1.5 mb-3 text-[10px] sm:text-[11px] font-medium leading-relaxed text-slate-500 line-clamp-2">
                       {stage.description}
                     </p>
                   </div>
                   <div>
                     {isDone ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2 py-1 text-[9px] sm:text-[10px] font-bold text-emerald-600 border border-emerald-100/50">
+                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2 py-1 text-[9px] sm:text-[10px] font-medium text-emerald-600 border border-emerald-100/50">
                         Skor {stage.score !== null ? stage.score : "-"}
                       </span>
                     ) : (
-                      <span className="inline-flex rounded-lg bg-orange-50 px-2 py-1 text-[9px] sm:text-[10px] font-bold text-orange-600 border border-orange-100/50">
+                      <span className="inline-flex rounded-lg bg-orange-50 px-2 py-1 text-[9px] sm:text-[10px] font-medium text-orange-600 border border-orange-100/50">
                         Belum selesai
                       </span>
                     )}
@@ -279,7 +279,7 @@ export default function UtbkProgressWidget({
           <div className="mt-4">
             <Link
               href="/dashboard-siswa/ujian"
-              className="flex w-full items-center justify-center rounded-2xl border border-orange-200 bg-white py-3 text-[11px] sm:text-xs font-bold text-orange-600 transition hover:bg-orange-50 hover:border-orange-300"
+              className="flex w-full items-center justify-center rounded-2xl border border-orange-200 bg-white py-3 text-[11px] sm:text-xs font-semibold text-orange-600 transition hover:bg-orange-50 hover:border-orange-300"
             >
               Lihat semua tryout <ChevronRight className="ml-1.5 h-3.5 w-3.5" />
             </Link>
@@ -290,10 +290,10 @@ export default function UtbkProgressWidget({
           <div className="relative z-10 flex flex-col h-full">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-orange-100">
+                <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-orange-100">
                   Status Data
                 </p>
-                <p className="mt-1.5 text-2xl font-black">
+                <p className="mt-1.5 text-2xl font-semibold">
                   {isLoading ? "Memuat" : "Terhubung"}
                 </p>
                 <p className="mt-1.5 text-[11px] font-medium leading-relaxed text-orange-100">
@@ -311,10 +311,10 @@ export default function UtbkProgressWidget({
                   key={item.label}
                   className="flex items-center justify-between gap-3 rounded-[14px] bg-white px-3.5 py-3 shadow-sm"
                 >
-                  <span className="text-[11px] font-bold text-slate-500">
+                  <span className="text-[11px] font-medium text-slate-500">
                     {item.label}
                   </span>
-                  <span className="text-right text-[11px] font-black text-slate-900">
+                  <span className="text-right text-[11px] font-semibold text-slate-800">
                     {item.value}
                   </span>
                 </div>
