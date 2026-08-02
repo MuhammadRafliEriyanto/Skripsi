@@ -150,35 +150,7 @@ export default function KirimTugasSiswaPageView() {
         </section>
       ) : (
         <div className="space-y-5">
-          {latestGradedTask?.myGrade ? (
-            <section className="rounded-[26px] border border-emerald-100 bg-emerald-50/75 p-5 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.18)] md:p-6">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-700">
-                    Hasil Penilaian Guru
-                  </p>
-                  <h2 className="mt-1 text-lg font-semibold text-slate-800">
-                    {latestGradedTask.judul}
-                  </h2>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">
-                    {latestGradedTask.myGrade.note ||
-                      "Guru sudah memberikan nilai. Catatan tambahan belum dituliskan."}
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-white px-4 py-3 text-left shadow-sm">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-700">
-                    Nilai
-                  </p>
-                  <p className="mt-1 text-xl font-semibold text-slate-800">
-                    {latestGradedTask.myGrade.score ?? "-"}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Dinilai {formatDateTimeLabel(latestGradedTask.myGrade.gradedAt)}
-                  </p>
-                </div>
-              </div>
-            </section>
-          ) : null}
+
 
           {submitTargets.length === 0 ? (
             <section className="rounded-[26px] border border-orange-100/90 bg-white p-8 text-center shadow-[0_18px_40px_-34px_rgba(15,23,42,0.18)]">

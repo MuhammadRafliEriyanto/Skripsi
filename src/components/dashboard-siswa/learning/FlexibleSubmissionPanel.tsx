@@ -866,7 +866,7 @@ export default function FlexibleSubmissionPanel({
           onClick={() => {
             void handleSubmit();
           }}
-          className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-red-800 via-orange-600 to-amber-500 px-5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-70"
+          className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-orange-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {isSubmitting || isLoadingSubmission ? (
             <LoaderCircle className="h-4 w-4 animate-spin" />
