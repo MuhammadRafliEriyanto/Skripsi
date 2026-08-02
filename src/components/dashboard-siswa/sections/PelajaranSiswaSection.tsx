@@ -10,6 +10,12 @@ import {
   FileText,
   Send,
   TimerReset,
+  Target,
+  Calendar,
+  Building,
+  ChevronRight,
+  Check,
+  TrendingUp,
 } from "lucide-react";
 import { useStudentDashboardData } from "../data/useStudentDashboardData";
 import { useStudentLearningData } from "../data/useStudentLearningData";
@@ -374,6 +380,162 @@ export default function PelajaranSection() {
       </div>
     );
   };
+
+  if (isUtbkStudent) {
+    const targetKampus = dashboardData?.student?.targetKampus || "Universitas Gajah Mada";
+    const targetJurusan = dashboardData?.student?.targetJurusan || "Teknik Sipil";
+    const tryoutCount = tryouts.length > 0 ? tryouts.length : 3;
+    const completedTryoutCount = 0; 
+
+    return (
+      <div className="flex flex-col xl:flex-row gap-6">
+        {/* Left Column */}
+        <div className="w-full xl:w-[360px] shrink-0 space-y-4">
+          <div className="rounded-[24px] border border-slate-100 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-50">
+                  <Target className="h-5 w-5 text-orange-500" />
+                </div>
+                <h3 className="font-semibold text-slate-800 text-sm">Fokus UTBK/SNBT</h3>
+              </div>
+              <Link href="/dashboard-siswa/jadwal" className="flex items-center gap-1.5 rounded-full border border-orange-100 bg-orange-50 px-3 py-1.5 text-[11px] font-semibold text-orange-600 transition hover:bg-orange-100">
+                <Calendar className="h-3.5 w-3.5" />
+                Lihat Jadwal
+              </Link>
+            </div>
+            <p className="text-xs text-slate-500 leading-relaxed mb-6">
+              Kelas 12 difokuskan ke jadwal kelas, materi, dan tryout UTBK.
+            </p>
+
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-orange-600 flex items-center gap-1.5 mb-1.5">
+                  <Building className="h-3.5 w-3.5" /> TARGET KAMPUS
+                </p>
+                <p className="text-sm font-semibold text-slate-800">{targetKampus}</p>
+              </div>
+              <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-orange-600 mb-1.5">
+                  TARGET JURUSAN
+                </p>
+                <p className="text-sm font-semibold text-slate-800">{targetJurusan}</p>
+              </div>
+            </div>
+
+            <Link href="/dashboard-siswa/materi" className="mt-6 flex w-full items-center justify-center rounded-xl bg-orange-600 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700">
+              Buka Kelas UTBK
+            </Link>
+          </div>
+        </div>
+
+        {/* Right Column */}
+        <div className="flex-1">
+          <div className="rounded-[24px] border border-slate-100 bg-white p-5 shadow-sm h-full flex flex-col md:flex-row gap-6">
+            <div className="flex-1 space-y-6">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-orange-600 mb-1.5">REKAP BELAJAR UTBK</p>
+                <h3 className="text-2xl font-extrabold text-slate-900 mb-3">Ringkasan materi dan tryout</h3>
+                <div className="inline-flex items-center rounded-full bg-slate-50 px-3 py-1.5 text-[11px] font-medium text-slate-600 border border-slate-100">
+                  {targetKampus} - {targetJurusan}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="rounded-2xl border border-slate-100 p-4 text-center transition hover:border-slate-200 hover:bg-slate-50">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-50 mb-3">
+                    <BookOpen className="h-6 w-6 text-cyan-500" />
+                  </div>
+                  <p className="text-[11px] font-semibold text-slate-500 mb-1">Materi aktif</p>
+                  <p className="text-2xl font-bold text-slate-800">{materials.length || 1}</p>
+                  <p className="text-[10px] text-slate-400 mt-1">Konten UTBK</p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 p-4 text-center transition hover:border-slate-200 hover:bg-slate-50">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 mb-3">
+                    <TimerReset className="h-6 w-6 text-orange-500" />
+                  </div>
+                  <p className="text-[11px] font-semibold text-slate-500 mb-1">Tahap UTBK</p>
+                  <p className="text-2xl font-bold text-slate-800">{completedTryoutCount}/{tryoutCount}</p>
+                  <p className="text-[10px] text-slate-400 mt-1">Tryout utama</p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 p-4 text-center transition hover:border-slate-200 hover:bg-slate-50">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 mb-3">
+                    <TrendingUp className="h-6 w-6 text-emerald-500" />
+                  </div>
+                  <p className="text-[11px] font-semibold text-slate-500 mb-1">Skor terbaru</p>
+                  <p className="text-2xl font-bold text-slate-800">-</p>
+                  <p className="text-[10px] text-slate-400 mt-1">Dari tryout terkirim</p>
+                </div>
+                <div className="rounded-2xl border border-slate-100 p-4 text-center transition hover:border-slate-200 hover:bg-slate-50">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 mb-3">
+                    <Target className="h-6 w-6 text-purple-500" />
+                  </div>
+                  <p className="text-[11px] font-semibold text-slate-500 mb-1">Skor terbaik</p>
+                  <p className="text-2xl font-bold text-slate-800">-</p>
+                  <p className="text-[10px] text-slate-400 mt-1">Capaian tertinggi</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[1, 2, 3].map((num) => (
+                  <div key={num} className="rounded-2xl border border-slate-100 p-4 relative flex flex-col justify-between items-start transition hover:border-slate-200 hover:bg-slate-50">
+                    <div>
+                      <p className="text-sm font-bold text-slate-800 mb-1">Tryout UTBK {num}</p>
+                      <p className="text-[11px] text-slate-500 mb-4 line-clamp-2">Simulasi soal UTBK tahap</p>
+                    </div>
+                    <span className="inline-flex rounded-md bg-orange-50 px-2.5 py-1 text-[10px] font-semibold text-orange-700">Belum mulai</span>
+                  </div>
+                ))}
+              </div>
+
+              <Link href="/dashboard-siswa/ujian" className="flex w-full items-center justify-center rounded-xl border border-orange-200 bg-white py-3.5 text-sm font-semibold text-orange-600 transition hover:bg-orange-50">
+                Lihat semua tryout <ChevronRight className="ml-1.5 h-4 w-4" />
+              </Link>
+            </div>
+
+            <div className="w-full md:w-[280px] shrink-0 rounded-[20px] bg-orange-500 p-6 text-white flex flex-col relative overflow-hidden shadow-sm">
+              <div className="relative z-10 flex-1">
+                <div className="flex items-start justify-between mb-3">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-orange-100">STATUS DATA</p>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-orange-500 shadow-sm">
+                    <Check className="h-5 w-5" />
+                  </div>
+                </div>
+                <h3 className="text-3xl font-extrabold mb-3">Terhubung</h3>
+                <p className="text-[13px] text-orange-100/90 leading-relaxed mb-6">Rekap mengikuti data target, materi, dan tryout siswa.</p>
+
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between rounded-xl bg-white px-4 py-3 shadow-sm">
+                    <span className="text-[13px] font-medium text-slate-600">Target</span>
+                    <span className="text-[13px] font-bold text-slate-900">Lengkap</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-xl bg-white px-4 py-3 shadow-sm">
+                    <span className="text-[13px] font-medium text-slate-600">Materi</span>
+                    <span className="text-[13px] font-bold text-slate-900">{materials.length || 1} aktif</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-xl bg-white px-4 py-3 shadow-sm">
+                    <span className="text-[13px] font-medium text-slate-600">Tryout</span>
+                    <span className="text-[13px] font-bold text-slate-900">{completedTryoutCount}/{tryoutCount} selesai</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-xl bg-white px-4 py-3 shadow-sm">
+                    <span className="text-[13px] font-medium text-slate-600">Skor terbaik</span>
+                    <span className="text-[13px] font-bold text-slate-900">-</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Optional Decoration */}
+              <div className="absolute -bottom-10 -right-10 h-48 w-48 opacity-10 pointer-events-none">
+                 <svg viewBox="0 0 100 100" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="50" r="50" />
+                 </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <section className="rounded-[24px] border border-slate-100 bg-white p-4 shadow-sm md:p-5">
