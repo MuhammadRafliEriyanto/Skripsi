@@ -1710,6 +1710,71 @@ export const updateMyStudentTaskSubmission = asyncHandler(
   },
 );
 
+export const deleteMyStudentTaskSubmission = asyncHandler(
+  async (
+    req: Request<{ taskId: string }>,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    if (!req.user) {
+      next(new AppError(401, "User belum terautentikasi."));
+      return;
+    }
+
+    const taskId = normalizeText(req.params.taskId);
+
+    if (!taskId) {
+      next(new AppError(404, "Tugas siswa tidak ditemukan."));
+      return;
+    }
+
+    const { student, subscriptionStartAt, subscriptionId } =
+      await getAuthenticatedStudentAcademicLearningContextOrThrow(
+        req.user._id.toString(),
+      );
+    const task = await findStudentTaskByParam(taskId, student, subscriptionStartAt);
+
+    if (!task) {
+      next(new AppError(404, "Tugas siswa tidak ditemukan."));
+      return;
+    }
+
+    const normalizedTaskId = normalizeText(task.taskId);
+    const normalizedStudentId = normalizeText(student.studentId);
+    const submission = await findStudentTaskSubmission(
+      normalizedTaskId,
+      normalizedStudentId,
+      normalizeText(task.classId),
+      task.teacherId.toString(),
+      subscriptionId,
+    );
+
+    if (!submission) {
+      next(new AppError(404, "Submission tugas belum ditemukan."));
+      return;
+    }
+
+    if (submission.attachment?.storagePath) {
+      await deleteLearningAttachment(submission.attachment.storagePath);
+    }
+
+    await submission.deleteOne();
+    await syncTeacherTaskMetrics(
+      task.teacherId.toString(),
+      normalizeText(task.classId),
+      normalizedTaskId,
+    );
+
+    sendSuccess(res, {
+      message: "Submission tugas berhasil dihapus.",
+      data: {
+        submitted: false,
+        submission: null,
+      },
+    });
+  },
+);
+
 export const downloadMyStudentTaskSubmissionAttachment = asyncHandler(
   async (
     req: Request<{ taskId: string }>,

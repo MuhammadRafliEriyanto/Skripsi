@@ -9,6 +9,7 @@ import {
   getMyStudentDashboardData,
   getMyStudentLearningData,
   updateMyStudentTaskSubmission,
+  deleteMyStudentTaskSubmission,
 } from "../controllers/studentLearningController";
 import {
   getMyStudentAcademicHistory,
@@ -52,7 +53,8 @@ router
   .route("/me/learning/tasks/:taskId/submission")
   .get(getMyStudentTaskSubmission)
   .post(createMyStudentTaskSubmission)
-  .patch(updateMyStudentTaskSubmission);
+  .patch(updateMyStudentTaskSubmission)
+  .delete(deleteMyStudentTaskSubmission);
 router.get(
   "/me/learning/tasks/:taskId/submission/attachment",
   downloadMyStudentTaskSubmissionAttachment,

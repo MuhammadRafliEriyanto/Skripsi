@@ -203,6 +203,7 @@ export default function FlexibleSubmissionPanel({
     Boolean(initialSubmission?.submitted),
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const resolvedActiveMode = availableModes.includes(activeMode)
     ? activeMode
@@ -342,6 +343,61 @@ export default function FlexibleSubmissionPanel({
     setFileError(null);
     setSubmitError(null);
     setSubmitSuccess(null);
+  }
+
+  async function handleDeleteSubmission() {
+    if (!window.confirm("Apakah kamu yakin ingin menghapus jawaban tugas ini?")) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setSubmitError(null);
+    setSubmitSuccess(null);
+
+    try {
+      const authInit = withStoredAuthHeader({
+        method: "DELETE",
+        credentials: "include",
+      });
+      const response = await fetch(
+        `/api/student/me/learning/tasks/${encodeURIComponent(taskId)}/submission`,
+        authInit
+      );
+
+      if (response.status === 401 || response.status === 403) {
+        clearAuthClientState();
+        window.location.href = "/masuk";
+        return;
+      }
+
+      const payload = (await response.json()) as StudentTaskSubmissionResponse;
+
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.message || "Gagal menghapus tugas.");
+      }
+
+      setSubmissionDetail(null);
+      setTextAnswer("");
+      setDriveUrl("");
+      setNote("");
+      setSelectedFile(null);
+      setSubmitSuccess("Tugas berhasil dihapus.");
+      onSubmissionSaved({
+        submitted: false,
+        submissionId: null,
+        submissionMode: null,
+        submittedAt: null,
+        hasAttachment: false,
+        driveUrl: "",
+        answerTextPreview: ""
+      });
+      await onRefreshLearningData?.();
+    } catch (error) {
+      console.error("[dashboard-siswa] delete_task_submission_failed", error);
+      setSubmitError(error instanceof Error ? error.message : "Gagal menghapus tugas.");
+    } finally {
+      setIsDeleting(false);
+    }
   }
 
   async function handleSubmit() {
@@ -499,27 +555,15 @@ export default function FlexibleSubmissionPanel({
       </div>
 
       {hasExistingSubmission ? (
-        <div className="rounded-[24px] border border-emerald-100 bg-emerald-50/70 p-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-start gap-3">
-              <div className="rounded-2xl bg-white p-2.5 text-emerald-600 shadow-sm">
-                <CheckCircle2 className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-emerald-800">
-                  Tugas sudah dikumpulkan
-                </p>
-                <p className="mt-1 text-sm leading-6 text-emerald-700/90">
-                  {taskTitle} terakhir dikirim pada{" "}
-                  {formatSubmissionTime(
-                    currentSubmission?.submittedAt ??
-                      initialSubmission?.submittedAt,
-                  )}
-                  .
-                </p>
-              </div>
+        <div className="overflow-hidden rounded-[24px] border border-emerald-100 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-emerald-100 bg-emerald-50/70 px-5 py-4">
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              <h4 className="text-sm font-semibold text-emerald-800">
+                Tugas sudah dikumpulkan
+              </h4>
             </div>
-            <span className="inline-flex h-fit items-center rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-semibold text-emerald-700">
+            <span className="inline-flex items-center rounded-full border border-emerald-200 bg-white px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-emerald-700">
               {getSubmissionModeLabel(
                 currentSubmission?.submissionMode ??
                   initialSubmission?.submissionMode ??
@@ -527,66 +571,98 @@ export default function FlexibleSubmissionPanel({
               )}
             </span>
           </div>
-
-          {isLoadingSubmission ? (
-            <div className="mt-4 inline-flex items-center gap-2 text-sm text-emerald-700/90">
-              <LoaderCircle className="h-4 w-4 animate-spin" />
-              Memuat jawaban terbaru...
-            </div>
-          ) : null}
-
-          {detailError ? (
-            <div className="mt-4 rounded-2xl border border-amber-200 bg-white/80 px-4 py-3 text-sm text-amber-700">
-              {detailError}
-            </div>
-          ) : null}
-
-          {submissionDriveUrl ? (
-            <div className="mt-4 rounded-2xl border border-emerald-100 bg-white/80 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-600">
-                Tautan Google Drive Tersimpan
-              </p>
-              <Link
-                href={submissionDriveUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 underline-offset-2 hover:underline"
-              >
-                <Link2 className="h-4 w-4" />
-                {submissionDriveUrl}
-              </Link>
-            </div>
-          ) : null}
-
-          {answerPreview ? (
-            <div className="mt-4 rounded-2xl border border-emerald-100 bg-white/80 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-600">
-                Pratinjau Jawaban
-              </p>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                {answerPreview}
-              </p>
-            </div>
-          ) : null}
-
-          {Boolean(
-            currentAttachment?.fileName || initialSubmission?.hasAttachment,
-          ) ? (
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <a
-                href={submissionAttachmentUrl}
-                className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50"
-              >
-                <Download className="h-4 w-4" />
-                {currentAttachment?.originalName || "Unduh lampiran jawaban"}
-              </a>
-              {currentAttachment ? (
-                <span className="text-xs text-emerald-700/80">
-                  {formatFileSize(currentAttachment.size)}
-                </span>
-              ) : null}
-            </div>
-          ) : null}
+          <div className="p-0">
+            <table className="w-full text-left text-sm text-slate-600">
+              <tbody className="divide-y divide-emerald-50">
+                <tr>
+                  <th className="w-1/3 bg-slate-50/30 px-5 py-4 font-medium text-slate-700">
+                    Waktu Kirim
+                  </th>
+                  <td className="px-5 py-4">
+                    {formatSubmissionTime(
+                      currentSubmission?.submittedAt ??
+                        initialSubmission?.submittedAt,
+                    )}
+                  </td>
+                </tr>
+                {answerPreview ? (
+                  <tr>
+                    <th className="w-1/3 bg-slate-50/30 px-5 py-4 font-medium text-slate-700">
+                      Teks Jawaban
+                    </th>
+                    <td className="whitespace-pre-wrap px-5 py-4">
+                      {answerPreview}
+                    </td>
+                  </tr>
+                ) : null}
+                {submissionDriveUrl ? (
+                  <tr>
+                    <th className="w-1/3 bg-slate-50/30 px-5 py-4 font-medium text-slate-700">
+                      Link Drive
+                    </th>
+                    <td className="px-5 py-4">
+                      <Link
+                        href={submissionDriveUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 font-semibold text-emerald-700 hover:underline"
+                      >
+                        <Link2 className="h-4 w-4" />
+                        Buka Tautan
+                      </Link>
+                    </td>
+                  </tr>
+                ) : null}
+                {Boolean(
+                  currentAttachment?.fileName || initialSubmission?.hasAttachment,
+                ) ? (
+                  <tr>
+                    <th className="w-1/3 bg-slate-50/30 px-5 py-4 font-medium text-slate-700">
+                      File Lampiran
+                    </th>
+                    <td className="px-5 py-4">
+                      <a
+                        href={submissionAttachmentUrl}
+                        className="inline-flex items-center gap-2 font-semibold text-emerald-700 hover:underline"
+                      >
+                        <Download className="h-4 w-4" />
+                        Unduh File
+                      </a>
+                    </td>
+                  </tr>
+                ) : null}
+                <tr>
+                  <th className="w-1/3 bg-slate-50/30 px-5 py-4 font-medium text-slate-700">
+                    Aksi
+                  </th>
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-4">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const el = document.getElementById("edit-form-section");
+                          el?.scrollIntoView({ behavior: "smooth" });
+                          const textarea = el?.querySelector("textarea");
+                          if (textarea) setTimeout(() => textarea.focus(), 300);
+                        }}
+                        className="font-semibold text-emerald-600 transition hover:text-emerald-700"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDeleteSubmission}
+                        disabled={isDeleting}
+                        className="font-semibold text-rose-500 transition hover:text-rose-700 disabled:opacity-50"
+                      >
+                        {isDeleting ? "Menghapus..." : "Hapus"}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : null}
 
@@ -616,7 +692,7 @@ export default function FlexibleSubmissionPanel({
         </div>
       )}
 
-      <div className="rounded-[24px] border border-orange-100/90 bg-white p-5 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.18)]">
+      <div id="edit-form-section" className="rounded-[24px] border border-orange-100/90 bg-white p-5 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.18)]">
         {availableModes.length > 1 && (
           <div className="flex items-start gap-3">
             <div className="rounded-2xl bg-orange-50 p-3 text-orange-600">

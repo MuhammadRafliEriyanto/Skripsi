@@ -47,3 +47,15 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     },
   );
 }
+
+export async function DELETE(request: NextRequest, { params }: RouteContext) {
+  const { taskId } = await params;
+
+  return proxyProtectedBackend(
+    request,
+    `/api/student/me/learning/tasks/${encodeURIComponent(taskId)}/submission`,
+    {
+      method: "DELETE",
+    },
+  );
+}
