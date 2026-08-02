@@ -28,18 +28,18 @@ export default function MateriFormDialog({
 }: MateriFormDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-3xl grid-rows-[auto_minmax(0,1fr)_auto] gap-0 rounded-[24px] border border-slate-200 bg-white p-0 shadow-lg">
-        <DialogHeader className="border-b border-slate-200 bg-gradient-to-r from-orange-50/60 via-white to-amber-50/30 px-4 py-4 pr-14 text-left md:px-5">
+      <DialogContent className="max-w-3xl gap-0 rounded-[24px] border border-slate-200 bg-white p-0 shadow-lg">
+        <DialogHeader className="border-b border-slate-200 bg-white px-4 py-4 pr-14 text-left md:px-5">
           <DialogTitle className="text-lg font-semibold text-slate-800">
-            {mode === "add" ? "Tambah Materi Pertemuan" : "Edit Materi Pertemuan"}
+            {mode === "add" ? "Tambah Materi" : "Edit Materi"}
           </DialogTitle>
           <DialogDescription className="text-sm text-slate-500">
-            Kelola materi kelas per pertemuan beserta link dan lampiran opsional.
+            Lengkapi pertemuan, judul, dan bahan belajar.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="min-h-0 overflow-y-auto overscroll-y-contain [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          <div className="grid gap-5 px-4 py-4 md:px-5 md:py-5">
+        <div>
+          <div className="grid gap-4 px-4 py-4 md:px-5">
             <div className="grid gap-4 md:grid-cols-2">
               <label className="grid gap-2 text-sm font-medium text-slate-700">
                 Pertemuan Ke
@@ -79,10 +79,10 @@ export default function MateriFormDialog({
             <label className="grid gap-2 text-sm font-medium text-slate-700">
               Deskripsi
               <textarea
-                rows={5}
+                rows={3}
                 value={draft?.deskripsi ?? ""}
                 onChange={(event) => onChange("deskripsi", event.target.value)}
-                placeholder="Tuliskan ringkasan materi atau catatan pembelajaran..."
+                placeholder="Ringkasan materi atau catatan pembelajaran..."
                 className="resize-none border border-slate-200 bg-white px-3 py-3 text-sm leading-6 text-slate-700 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
               />
             </label>
@@ -112,8 +112,8 @@ export default function MateriFormDialog({
               </label>
             </div>
 
-            <div className="grid gap-3 border border-slate-200 bg-slate-50/30 p-4 text-sm font-medium text-slate-700">
-              <span>Lampiran File Opsional</span>
+            <div className="grid gap-3 border border-slate-200 bg-slate-50/40 p-4 text-sm font-medium text-slate-700">
+              <span>Lampiran</span>
               <input
                 type="file"
                 accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png,.webp,.txt,.csv"
@@ -149,9 +149,7 @@ export default function MateriFormDialog({
                   Lampiran lama akan dihapus saat materi disimpan.
                 </p>
               ) : (
-                <p className="text-xs leading-5 text-slate-400">
-                  Guru bisa simpan hanya link, hanya file, atau keduanya.
-                </p>
+                <p className="text-xs text-slate-400">Opsional, maksimal 10 MB.</p>
               )}
             </div>
           </div>

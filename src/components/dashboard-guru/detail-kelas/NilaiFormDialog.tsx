@@ -33,7 +33,9 @@ export default function NilaiFormDialog({
   tasks,
   scheme,
 }: NilaiFormDialogProps) {
-  const academicScoreKeys = getAcademicScoreKeys(scheme);
+  const academicScoreKeys =
+    scheme === "tryout" ? [] : getAcademicScoreKeys(scheme);
+  const hasAcademicScoreFields = academicScoreKeys.length > 0;
   const activeStudent =
     participants.find((student) => student.id === selectedStudentId) ?? null;
 
@@ -45,11 +47,11 @@ export default function NilaiFormDialog({
             {mode === "add" ? "Input Nilai Siswa" : "Edit Nilai Siswa"}
           </DialogTitle>
           <DialogDescription className="text-sm text-slate-500">
-            {scheme === "tryout"
-              ? includeTaskScore
-                ? "Simpan nilai tugas dan hasil Tryout 1 sampai Tryout 3."
-                : "Simpan hasil Tryout 1 sampai Tryout 3."
-              : "Simpan nilai tugas dan tiga tahap UTS siswa."}
+            {includeTaskScore
+              ? "Simpan nilai latihan siswa."
+              : hasAcademicScoreFields
+                ? "Simpan nilai evaluasi siswa."
+                : "Nilai tryout dikelola otomatis dari menu Ujian."}
           </DialogDescription>
         </DialogHeader>
 
@@ -130,31 +132,35 @@ export default function NilaiFormDialog({
               </label>
             ) : null}
 
-            {academicScoreKeys.map((scoreKey) => (
-              <label
-                key={scoreKey}
-                className="grid gap-2 text-sm font-medium text-slate-700"
-              >
-                Nilai {ACADEMIC_SCORE_LABELS[scoreKey]}
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={draft?.scores[scoreKey] ?? ""}
-                  onChange={(event) =>
-                    onAcademicScoreChange(scoreKey, event.target.value)
-                  }
-                  placeholder="Belum dinilai"
-                  className="border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
-                />
-              </label>
-            ))}
+            {hasAcademicScoreFields
+              ? academicScoreKeys.map((scoreKey) => (
+                  <label
+                    key={scoreKey}
+                    className="grid gap-2 text-sm font-medium text-slate-700"
+                  >
+                    Nilai {ACADEMIC_SCORE_LABELS[scoreKey]}
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={draft?.scores[scoreKey] ?? ""}
+                      onChange={(event) =>
+                        onAcademicScoreChange(scoreKey, event.target.value)
+                      }
+                      placeholder="Belum dinilai"
+                      className="border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                    />
+                  </label>
+                ))
+              : null}
           </div>
 
-          <p className="text-xs leading-5 text-slate-400">
-            Kosongkan kolom yang belum dinilai. Sistem tidak akan mengubahnya
-            menjadi nilai nol.
-          </p>
+          {hasAcademicScoreFields ? (
+            <p className="text-xs leading-5 text-slate-400">
+              Kosongkan kolom yang belum dinilai. Sistem tidak akan mengubahnya
+              menjadi nilai nol.
+            </p>
+          ) : null}
 
           <label className="grid gap-2 text-sm font-medium text-slate-700">
             Catatan Penilaian

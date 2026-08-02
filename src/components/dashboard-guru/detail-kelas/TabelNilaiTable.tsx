@@ -53,7 +53,7 @@ export default function TabelNilaiTable({
   readOnlyMessage,
   scheme,
 }: TabelNilaiTableProps) {
-  const scoreKeys = getAcademicScoreKeys(scheme);
+  const scoreKeys = scheme === "tryout" ? [] : getAcademicScoreKeys(scheme);
   const rows = participants.map((student) => {
     const currentScore =
       nilaiRows.find((nilai) => nilai.studentId === student.id) ?? {
@@ -115,11 +115,11 @@ export default function TabelNilaiTable({
           <p className="mt-1 text-sm text-slate-500">
             {readOnly
               ? readOnlyMessage ?? "Tahun ajaran ini sudah menjadi arsip. Nilai hanya bisa dilihat."
-              : scheme === "tryout"
-                ? includeTaskScore
-                  ? "Rekap tugas dan tiga tahap tryout untuk kelas akhir jenjang."
-                  : "Rekap tiga tahap tryout untuk program UTBK."
-                : "Rekap tugas dan tiga tahap UTS untuk kelas reguler."}
+              : scoreKeys.length > 0
+                ? "Rekap nilai latihan dan evaluasi kelas."
+                : includeTaskScore
+                  ? "Rekap nilai latihan siswa."
+                  : "Nilai tryout dikelola otomatis dari menu Ujian."}
           </p>
         </div>
         <span className="inline-flex items-center border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700">

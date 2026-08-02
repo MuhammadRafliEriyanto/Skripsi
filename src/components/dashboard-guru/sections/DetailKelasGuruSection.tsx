@@ -1373,7 +1373,10 @@ export default function DetailKelasGuruSection({
     () =>
       isUtbkClass
         ? DETAIL_SECTION_ITEMS.filter(
-            (item) => item.key !== "tugas" && item.key !== "belum-dinilai",
+            (item) =>
+              item.key !== "tugas" &&
+              item.key !== "belum-dinilai" &&
+              item.key !== "nilai",
           )
         : DETAIL_SECTION_ITEMS,
     [isUtbkClass],
@@ -2018,7 +2021,9 @@ export default function DetailKelasGuruSection({
   useEffect(() => {
     if (
       isUtbkClass &&
-      (activeSection === "tugas" || activeSection === "belum-dinilai")
+      (activeSection === "tugas" ||
+        activeSection === "belum-dinilai" ||
+        activeSection === "nilai")
     ) {
       setActiveSection("pertemuan");
     }
@@ -2716,12 +2721,24 @@ export default function DetailKelasGuruSection({
       return;
     }
 
+    const shouldSaveAcademicGrade = academicScheme !== "tryout";
+    const shouldSaveTaskGrade = Boolean(
+      selectedTaskForScore && nilaiDraft.tugas !== null,
+    );
+
+    if (!shouldSaveTaskGrade && !shouldSaveAcademicGrade) {
+      toast.error("Isi nilai latihan terlebih dahulu.");
+      return;
+    }
+
     try {
       const [savedGrade, savedAcademicGrade] = await Promise.all([
-        selectedTaskForScore && nilaiDraft.tugas !== null
+        shouldSaveTaskGrade && selectedTaskForScore
           ? saveGradeRequest(nilaiDraft, selectedTaskForScore)
           : Promise.resolve(null),
-        saveAcademicGradeRequest(nilaiDraft),
+        shouldSaveAcademicGrade
+          ? saveAcademicGradeRequest(nilaiDraft)
+          : Promise.resolve(null),
       ]);
       const nextGradeEntries = savedGrade
         ? [

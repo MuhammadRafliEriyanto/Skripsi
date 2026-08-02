@@ -19,12 +19,12 @@ export default function BelumDinilaiTable({
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 bg-gradient-to-r from-orange-50/60 via-white to-amber-50/30 px-5 py-4 md:px-6">
         <div>
           <h2 className="text-lg font-semibold text-slate-800 md:text-xl">
-            Peringatan Belum Dinilai
+            Nilai Latihan
           </h2>
           <p className="mt-1 text-sm text-slate-500">
             {readOnly
               ? readOnlyMessage ?? "Tahun ajaran ini sudah menjadi arsip. Latihan belum dinilai hanya bisa ditinjau."
-              : "Tugas dan soal latihan yang memerlukan penilaian manual. Anda dapat melihat jumlah tugas yang tertunda berdasarkan data terbaru di sistem."}
+              : "Latihan yang sudah dikumpulkan siswa dan masih perlu diberi nilai."}
           </p>
         </div>
         <span

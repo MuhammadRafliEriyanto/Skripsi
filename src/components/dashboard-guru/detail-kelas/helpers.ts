@@ -47,9 +47,9 @@ export const DETAIL_SECTION_ITEMS: DetailSectionItem[] = [
   },
   {
     key: "belum-dinilai",
-    label: "Peringatan Belum Dinilai",
-    shortLabel: "Belum Dinilai",
-    description: "Prioritas tugas yang belum selesai ditinjau.",
+    label: "Nilai Latihan",
+    shortLabel: "Nilai Latihan",
+    description: "Latihan yang perlu diberi nilai.",
     icon: AlertCircle,
   },
   {
