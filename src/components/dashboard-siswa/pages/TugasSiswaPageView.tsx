@@ -174,52 +174,7 @@ export default function TugasSiswaPageView() {
         </section>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <section className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-500">
-                  <Clock3 className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-800">Deadline Dekat</p>
-                  <p className="text-xs font-medium text-slate-500">Tugas yang perlu didahulukan</p>
-                </div>
-              </div>
-              <p className="mt-4 text-2xl font-semibold text-slate-800">
-                {pendingTasks.length}
-              </p>
-            </section>
-
-            <section className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-500">
-                  <CheckCircle2 className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-800">Sudah Dinilai</p>
-                  <p className="text-xs font-medium text-slate-500">Masukan yang bisa kamu lihat</p>
-                </div>
-              </div>
-              <p className="mt-4 text-2xl font-semibold text-slate-800">
-                {tasks.filter((task) => task.status === "Sudah Dinilai").length}
-              </p>
-            </section>
-
-            <section className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-500">
-                  <TimerReset className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-800">Estimasi Waktu</p>
-                  <p className="text-xs font-medium text-slate-500">Pengerjaan tugas aktif minggu ini</p>
-                </div>
-              </div>
-              <p className="mt-4 text-2xl font-semibold text-slate-800">1,5 Jam</p>
-            </section>
-          </div>
-
-          <section className="mt-2">
+          <section>
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center">
                 <div className="w-1.5 h-6 bg-orange-500 rounded-full mr-3"></div>
