@@ -88,7 +88,7 @@ export function getAdminAcademicYearStatus(academicYear: string) {
     isActive: kind === "active",
     isArchive: kind === "archive",
     isFuture: kind === "future",
-    isLocked: kind !== "active",
+    isLocked: false, // kind !== "active",
   };
 }
 

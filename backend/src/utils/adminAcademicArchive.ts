@@ -24,9 +24,9 @@ export function assertAdminAcademicPeriodEditable(
   const period = resolveAdminAcademicPeriod(academicYear);
   const currentPeriod = getCurrentAcademicPeriod();
 
-  if (period.academicYear !== currentPeriod.academicYear) {
-    throw new AppError(403, ADMIN_ACADEMIC_ARCHIVE_MESSAGE);
-  }
+  // if (period.academicYear !== currentPeriod.academicYear) {
+  //   throw new AppError(403, ADMIN_ACADEMIC_ARCHIVE_MESSAGE);
+  // }
 
   return period;
 }
