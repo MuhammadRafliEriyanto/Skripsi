@@ -3726,24 +3726,10 @@ export function AdminPaymentVerification({
     {
       key: "actions",
       header: "Aksi",
-      className: "min-w-[200px] text-center",
+      className: "min-w-[116px] text-center",
       cell: (student) => {
-        const payment = buildPaymentRecordFromActivation(student);
-        const isMarkingPaid = payment
-          ? activePaymentActionKey === `${payment.id}:mark-paid`
-          : false;
-        const isReplacing = payment
-          ? activePaymentActionKey === `${payment.id}:replace`
-          : false;
-        const isArchiving = payment
-          ? activePaymentActionKey === `${payment.id}:archive`
-          : false;
-        const isEditing = isMarkingPaid || isReplacing;
-        const isProcessing = isEditing || isArchiving;
-        const canEditPayment = canEditPaymentRecord(payment);
-        const editBlockReason = getEditPaymentBlockReason(payment);
-        const canArchivePayment = canArchivePaymentRecord(payment);
-        const archiveBlockReason = getArchivePaymentBlockReason(payment);
+        const isRenewingThisStudent =
+          isCreatingOfflineRenewal && offlineRenewalRecord?.id === student.id;
 
         return (
           <div className="flex flex-wrap items-center justify-center gap-2">
@@ -3751,74 +3737,20 @@ export function AdminPaymentVerification({
               type="button"
               variant="outline"
               size="icon"
-              aria-label="Perpanjang offline"
-              title="Perpanjang offline"
-              className="size-9 rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-700"
+              aria-label="Edit membership"
+              title="Edit/perpanjang membership offline"
+              className="size-9 rounded-xl border-sky-200 text-sky-700 hover:bg-sky-50 hover:text-sky-700"
               disabled={isCreatingOfflineRenewal || !student.studentId}
               onClick={() => {
                 setOfflineRenewalRecord(student);
               }}
             >
-              <Plus className="size-4" />
+              {isRenewingThisStudent ? (
+                <LoaderCircle className="size-4 animate-spin" />
+              ) : (
+                <Pencil className="size-4" />
+              )}
             </Button>
-            {payment ? (
-              <>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                aria-label="Edit pembayaran"
-                title={
-                  canEditPayment
-                    ? "Edit pembayaran"
-                    : `Edit tidak tersedia: ${editBlockReason}`
-                }
-                className={cn(
-                  "size-9 rounded-xl",
-                  canEditPayment
-                    ? "border-sky-200 text-sky-700 hover:bg-sky-50 hover:text-sky-700"
-                    : "border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-500",
-                )}
-                disabled={isProcessing}
-                onClick={() => {
-                  handleOpenPaymentEdit(payment);
-                }}
-              >
-                {isEditing ? (
-                  <LoaderCircle className="size-4 animate-spin" />
-                ) : (
-                  <Pencil className="size-4" />
-                )}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                aria-label="Hapus pembayaran"
-                title={
-                  canArchivePayment
-                    ? "Hapus pembayaran"
-                    : `Hapus tidak tersedia: ${archiveBlockReason}`
-                }
-                className={cn(
-                  "size-9 rounded-xl",
-                  canArchivePayment
-                    ? "border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-700"
-                    : "border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-500",
-                )}
-                disabled={isProcessing}
-                onClick={() => {
-                  void handleArchivePayment(payment);
-                }}
-              >
-                {isArchiving ? (
-                  <LoaderCircle className="size-4 animate-spin" />
-                ) : (
-                  <Trash2 className="size-4" />
-                )}
-              </Button>
-              </>
-            ) : null}
             <Button
               type="button"
               variant="ghost"
