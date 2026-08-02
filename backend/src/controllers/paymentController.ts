@@ -2569,18 +2569,6 @@ export const archiveAdminPayment = asyncHandler(
       return;
     }
 
-    if (payment.status === "paid") {
-      next(
-        new AppError(
-          409,
-          "Pembayaran lunas tidak dapat dihapus karena merupakan riwayat keuangan.",
-          null,
-          "PAID_PAYMENT_CANNOT_BE_ARCHIVED",
-        ),
-      );
-      return;
-    }
-
     const subscription = await Subscription.findById(payment.subscriptionId).exec();
 
     if (!subscription) {
@@ -2590,20 +2578,6 @@ export const archiveAdminPayment = asyncHandler(
 
     if (payment.status === "pending" && payment.xenditPaymentSessionId) {
       await syncPendingPaymentWithXendit(payment, subscription);
-    }
-
-    const archiveCandidateStatus = payment.status as PaymentDocument["status"];
-
-    if (archiveCandidateStatus === "paid") {
-      next(
-        new AppError(
-          409,
-          "Pembayaran lunas tidak dapat dihapus karena merupakan riwayat keuangan.",
-          null,
-          "PAID_PAYMENT_CANNOT_BE_ARCHIVED",
-        ),
-      );
-      return;
     }
 
     if (payment.status === "pending") {

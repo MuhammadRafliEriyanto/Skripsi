@@ -236,15 +236,29 @@ function getArchivePaymentBlockReason(
     return "Hanya transaksi yang dibuat admin yang dapat dihapus dari daftar.";
   }
 
-  if (record.status === "paid") {
-    return "Pembayaran lunas tidak dapat dihapus karena menjadi riwayat keuangan.";
-  }
-
   return null;
 }
 
 function canArchivePaymentRecord(record: IncomingPaymentRecord | null | undefined) {
   return getArchivePaymentBlockReason(record) === null;
+}
+
+function getEditPaymentBlockReason(
+  record: IncomingPaymentRecord | null | undefined,
+) {
+  if (!record) {
+    return "Data pembayaran tidak tersedia.";
+  }
+
+  if (record.source !== "admin") {
+    return "Hanya transaksi yang dibuat admin yang dapat diedit dari halaman ini.";
+  }
+
+  return null;
+}
+
+function canEditPaymentRecord(record: IncomingPaymentRecord | null | undefined) {
+  return getEditPaymentBlockReason(record) === null;
 }
 
 function formatActivationStatusTone(status: ActivationStatus) {
@@ -1341,11 +1355,14 @@ function IncomingPaymentEditDialog({
 
   const isBusy = isSubmitting || isStatusSubmitting;
   const showTransactionEditor = record?.source === "admin";
-  const canMarkPaid = record?.status === "pending";
+  const canReplaceTransaction =
+    Boolean(record) && showTransactionEditor && record.status === "pending";
+  const canMarkPaid = record?.status === "pending" || record?.status === "paid";
+  const markPaidButtonLabel =
+    record?.status === "paid" ? "Sinkronkan Lunas" : "Tandai Lunas";
   const canSubmit =
     Boolean(record) &&
-    showTransactionEditor &&
-    record.status === "pending" &&
+    canReplaceTransaction &&
     Boolean(packageKey);
 
   return (
@@ -1382,9 +1399,9 @@ function IncomingPaymentEditDialog({
                 {record.paymentId}
               </DialogTitle>
               <DialogDescription>
-                {showTransactionEditor
+                {canReplaceTransaction
                   ? "Edit transaksi admin pending atau tandai statusnya menjadi lunas dari dialog yang sama."
-                  : "Tandai pembayaran pending menjadi lunas tanpa mengubah detail transaksi asal."}
+                  : "Transaksi ini sudah tidak pending. Admin masih bisa mengecek dan menyinkronkan status, sedangkan perubahan paket hanya tersedia untuk transaksi pending."}
               </DialogDescription>
             </DialogHeader>
 
@@ -1397,7 +1414,11 @@ function IncomingPaymentEditDialog({
                   <label className="text-sm font-semibold text-slate-700">
                     Paket membership
                   </label>
-                  <Select value={packageKey} onValueChange={setPackageKey}>
+                  <Select
+                    value={packageKey}
+                    onValueChange={setPackageKey}
+                    disabled={!canReplaceTransaction || isBusy}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih paket" />
                     </SelectTrigger>
@@ -1430,6 +1451,7 @@ function IncomingPaymentEditDialog({
                     id="edit-payment-expires-at"
                     type="datetime-local"
                     value={expiresAtValue}
+                    disabled={!canReplaceTransaction || isBusy}
                     onChange={(event) => setExpiresAtValue(event.target.value)}
                   />
                   <p className="text-xs leading-5 text-slate-500">
@@ -1438,14 +1460,23 @@ function IncomingPaymentEditDialog({
                 </div>
               </div>
 
-              <div className="rounded-[20px] border border-amber-100/80 bg-amber-50/90 px-4 py-3 text-sm leading-6 text-amber-700">
-                Tautan lama akan dibatalkan. Sistem membuat no referensi dan
-                tautan pembayaran baru agar data tetap konsisten.
-              </div>
+              {canReplaceTransaction ? (
+                <div className="rounded-[20px] border border-amber-100/80 bg-amber-50/90 px-4 py-3 text-sm leading-6 text-amber-700">
+                  Tautan lama akan dibatalkan. Sistem membuat no referensi dan
+                  tautan pembayaran baru agar data tetap konsisten.
+                </div>
+              ) : (
+                <div className="rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
+                  Edit paket dan batas pembayaran hanya aktif saat status masih
+                  Pending. Untuk transaksi lunas, data keuangan tetap dijaga
+                  konsisten.
+                </div>
+              )}
 
               <div className="rounded-[20px] border border-emerald-100/80 bg-emerald-50/90 px-4 py-3 text-sm leading-6 text-emerald-700">
-                Dari dialog ini admin juga bisa menandai transaksi pending
-                menjadi Lunas tanpa membuat sesi pembayaran baru.
+                {record.status === "paid"
+                  ? "Transaksi ini sudah Lunas. Gunakan Sinkronkan Lunas jika perlu memastikan status layanan siswa ikut terbaru."
+                  : "Dari dialog ini admin juga bisa menandai transaksi pending menjadi Lunas tanpa membuat sesi pembayaran baru."}
               </div>
             </div>
 
@@ -1470,7 +1501,7 @@ function IncomingPaymentEditDialog({
                 ) : (
                   <CheckCircle2 className="size-4" />
                 )}
-                Tandai Lunas
+                {markPaidButtonLabel}
               </Button>
               <Button type="submit" disabled={!canSubmit || isBusy}>
                 {isSubmitting ? (
@@ -2739,6 +2770,22 @@ export function AdminPaymentVerification({
     await handleCreateBatchPaymentSession(event);
   }
 
+  function handleOpenPaymentEdit(payment: IncomingPaymentRecord) {
+    const blockReason = getEditPaymentBlockReason(payment);
+
+    if (blockReason) {
+      setBillingFeedback({
+        tone: "warning",
+        title: "Transaksi tidak bisa diedit",
+        message: blockReason,
+      });
+      window.alert(blockReason);
+      return;
+    }
+
+    setPaymentEditRecord(payment);
+  }
+
   async function handleReplacePayment(
     payment: IncomingPaymentRecord,
     payload: ReplaceAdminPaymentPayload,
@@ -3022,8 +3069,8 @@ export function AdminPaymentVerification({
           activePaymentActionKey === `${payment.id}:archive`;
         const isEditing = isMarkingPaid || isReplacing;
         const isProcessing = isEditing || isArchiving;
-        const canEditPayment =
-          payment.source === "admin" && payment.status === "pending";
+        const canEditPayment = canEditPaymentRecord(payment);
+        const editBlockReason = getEditPaymentBlockReason(payment);
         const canArchivePayment = canArchivePaymentRecord(payment);
         const archiveBlockReason = getArchivePaymentBlockReason(payment);
 
@@ -3034,13 +3081,20 @@ export function AdminPaymentVerification({
               variant="outline"
               size="icon"
               aria-label="Edit pembayaran"
-              title="Edit pembayaran"
-              className="size-9 rounded-xl border-sky-200 text-sky-700 hover:bg-sky-50 hover:text-sky-700"
-              disabled={!canEditPayment || isProcessing}
+              title={
+                canEditPayment
+                  ? "Edit pembayaran"
+                  : `Edit tidak tersedia: ${editBlockReason}`
+              }
+              className={cn(
+                "size-9 rounded-xl",
+                canEditPayment
+                  ? "border-sky-200 text-sky-700 hover:bg-sky-50 hover:text-sky-700"
+                  : "border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-500",
+              )}
+              disabled={isProcessing}
               onClick={() => {
-                if (canEditPayment) {
-                  setPaymentEditRecord(payment);
-                }
+                handleOpenPaymentEdit(payment);
               }}
             >
               {isEditing ? (
@@ -3258,8 +3312,8 @@ export function AdminPaymentVerification({
           : false;
         const isEditing = isMarkingPaid || isReplacing;
         const isProcessing = isEditing || isArchiving;
-        const canEditPayment =
-          payment?.source === "admin" && payment.status === "pending";
+        const canEditPayment = canEditPaymentRecord(payment);
+        const editBlockReason = getEditPaymentBlockReason(payment);
         const canArchivePayment = canArchivePaymentRecord(payment);
         const archiveBlockReason = getArchivePaymentBlockReason(payment);
 
@@ -3272,13 +3326,20 @@ export function AdminPaymentVerification({
                 variant="outline"
                 size="icon"
                 aria-label="Edit pembayaran"
-                title="Edit pembayaran"
-                className="size-9 rounded-xl border-sky-200 text-sky-700 hover:bg-sky-50 hover:text-sky-700"
-                disabled={!canEditPayment || isProcessing}
+                title={
+                  canEditPayment
+                    ? "Edit pembayaran"
+                    : `Edit tidak tersedia: ${editBlockReason}`
+                }
+                className={cn(
+                  "size-9 rounded-xl",
+                  canEditPayment
+                    ? "border-sky-200 text-sky-700 hover:bg-sky-50 hover:text-sky-700"
+                    : "border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-500",
+                )}
+                disabled={isProcessing}
                 onClick={() => {
-                  if (canEditPayment) {
-                    setPaymentEditRecord(payment);
-                  }
+                  handleOpenPaymentEdit(payment);
                 }}
               >
                 {isEditing ? (
