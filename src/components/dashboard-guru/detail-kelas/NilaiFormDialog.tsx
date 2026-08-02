@@ -33,8 +33,7 @@ export default function NilaiFormDialog({
   tasks,
   scheme,
 }: NilaiFormDialogProps) {
-  const academicScoreKeys =
-    scheme === "tryout" ? [] : getAcademicScoreKeys(scheme);
+  const academicScoreKeys = getAcademicScoreKeys(scheme);
   const hasAcademicScoreFields = academicScoreKeys.length > 0;
   const activeStudent =
     participants.find((student) => student.id === selectedStudentId) ?? null;
@@ -51,7 +50,7 @@ export default function NilaiFormDialog({
               ? "Simpan nilai latihan siswa."
               : hasAcademicScoreFields
                 ? "Simpan nilai evaluasi siswa."
-                : "Nilai tryout dikelola otomatis dari menu Ujian."}
+                : "Simpan nilai evaluasi siswa."}
           </DialogDescription>
         </DialogHeader>
 

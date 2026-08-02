@@ -53,7 +53,7 @@ export default function TabelNilaiTable({
   readOnlyMessage,
   scheme,
 }: TabelNilaiTableProps) {
-  const scoreKeys = scheme === "tryout" ? [] : getAcademicScoreKeys(scheme);
+  const scoreKeys = getAcademicScoreKeys(scheme);
   const rows = participants.map((student) => {
     const currentScore =
       nilaiRows.find((nilai) => nilai.studentId === student.id) ?? {
@@ -119,7 +119,7 @@ export default function TabelNilaiTable({
                 ? "Rekap nilai latihan dan evaluasi kelas."
                 : includeTaskScore
                   ? "Rekap nilai latihan siswa."
-                  : "Nilai tryout dikelola otomatis dari menu Ujian."}
+                  : "Rekap nilai evaluasi siswa."}
           </p>
         </div>
         <span className="inline-flex items-center border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700">
