@@ -9,6 +9,7 @@ import type {
 import type { MembershipPayment, MembershipStudent, MembershipSubscription, PaymentStatus } from "@/lib/subscription";
 
 export type AdminPaymentSource = "register_online" | "admin";
+export type AdminPaymentArchivedFilter = "archived";
 export type AdminPaymentCancelReason =
   | "admin_cancelled"
   | "replaced_by_new_session"
@@ -38,6 +39,8 @@ export type AdminPaymentListItem = {
   checkoutSendCount: number;
   cancelReason: AdminPaymentCancelReason | null;
   canceledAt: string | null;
+  archivedAt: string | null;
+  archiveReason: string | null;
   createdAt: string;
   updatedAt: string;
   displayDate: string;
@@ -90,7 +93,7 @@ export type FetchAdminPaymentsParams = {
   page?: number;
   limit?: number;
   q?: string;
-  status?: PaymentStatus;
+  status?: PaymentStatus | AdminPaymentArchivedFilter;
   package?: string;
   packageKey?: string;
   source?: AdminPaymentSource;
@@ -238,6 +241,13 @@ export type ArchiveAdminPaymentData = {
   paymentId: string;
   archivedAt: string;
   archiveReason: string;
+};
+
+export type RestoreAdminPaymentData = {
+  paymentId: string;
+  status: PaymentStatus;
+  archivedAt: string | null;
+  archiveReason: string | null;
 };
 
 export type AdminBatchPaymentReasonCode =
@@ -501,4 +511,15 @@ export async function archiveAdminPayment(paymentId: string, reason?: string) {
   );
 
   return response.data as ArchiveAdminPaymentData;
+}
+
+export async function restoreAdminPayment(paymentId: string) {
+  const response = await requestAdminApi<RestoreAdminPaymentData>(
+    `/api/payments/admin/${encodeURIComponent(paymentId)}/restore`,
+    {
+      method: "POST",
+    },
+  );
+
+  return response.data as RestoreAdminPaymentData;
 }

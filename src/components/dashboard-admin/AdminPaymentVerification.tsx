@@ -10,6 +10,7 @@ import {
   Plus,
   RefreshCw,
   Search,
+  RotateCcw,
   Trash2,
 } from "lucide-react";
 import type { FormEvent } from "react";
@@ -56,7 +57,9 @@ import {
   fetchAdminPaymentActivations,
   fetchAdminPayments,
   replaceAdminPayment,
+  restoreAdminPayment,
   updateAdminPaymentStatus,
+  type AdminPaymentArchivedFilter,
   type AdminBatchPaymentReasonCode,
   type AdminPaymentActivationsData,
   type AdminPaymentListItem,
@@ -118,18 +121,30 @@ type PackageFilterOption = {
 };
 
 const ALL_PAYMENT_STATUSES = "Semua status";
+const ARCHIVED_PAYMENT_STATUS: AdminPaymentArchivedFilter = "archived";
 const ALL_PACKAGES = "Semua paket";
 const ALL_LEVELS = "Semua jenjang";
 const ALL_CLASSES = "Semua kelas";
 const ALL_ACTIVATION_STATUSES = "Semua aktivasi";
 
-const paymentStatusOptions = [
+const incomingPaymentStatusOptions = [
   ALL_PAYMENT_STATUSES,
   "paid",
   "pending",
-  "failed",
+  "expired",
+  ARCHIVED_PAYMENT_STATUS,
+] as const;
+
+const activationPaymentStatusOptions = [
+  ALL_PAYMENT_STATUSES,
+  "paid",
+  "pending",
   "expired",
 ] as const;
+
+type IncomingPaymentStatusFilter = (typeof incomingPaymentStatusOptions)[number];
+type ActivationPaymentStatusFilter =
+  (typeof activationPaymentStatusOptions)[number];
 
 const activationStatusOptions = [
   ALL_ACTIVATION_STATUSES,
@@ -211,6 +226,20 @@ function formatPaymentStatusLabel(status: PaymentStatus) {
   }
 }
 
+function formatPaymentStatusFilterLabel(
+  status: IncomingPaymentStatusFilter | ActivationPaymentStatusFilter,
+) {
+  if (status === ALL_PAYMENT_STATUSES) {
+    return status;
+  }
+
+  if (status === ARCHIVED_PAYMENT_STATUS) {
+    return "Terhapus";
+  }
+
+  return formatPaymentStatusLabel(status);
+}
+
 function formatPaymentStatusTone(status: PaymentStatus) {
   switch (status) {
     case "paid":
@@ -225,6 +254,22 @@ function formatPaymentStatusTone(status: PaymentStatus) {
   }
 }
 
+function isArchivedPaymentRecord(record: IncomingPaymentRecord | null | undefined) {
+  return Boolean(record?.archivedAt);
+}
+
+function formatPaymentRecordStatusLabel(record: IncomingPaymentRecord) {
+  return isArchivedPaymentRecord(record)
+    ? "Terhapus"
+    : formatPaymentStatusLabel(record.status);
+}
+
+function formatPaymentRecordStatusTone(record: IncomingPaymentRecord) {
+  return isArchivedPaymentRecord(record)
+    ? ("danger" as const)
+    : formatPaymentStatusTone(record.status);
+}
+
 function getArchivePaymentBlockReason(
   record: IncomingPaymentRecord | null | undefined,
 ) {
@@ -234,6 +279,10 @@ function getArchivePaymentBlockReason(
 
   if (record.source !== "admin") {
     return "Hanya transaksi yang dibuat admin yang dapat dihapus dari daftar.";
+  }
+
+  if (isArchivedPaymentRecord(record)) {
+    return "Transaksi sudah masuk daftar Terhapus. Gunakan tombol pulihkan.";
   }
 
   return null;
@@ -252,6 +301,14 @@ function getEditPaymentBlockReason(
 
   if (record.source !== "admin") {
     return "Hanya transaksi yang dibuat admin yang dapat diedit dari halaman ini.";
+  }
+
+  if (isArchivedPaymentRecord(record)) {
+    return "Transaksi terhapus harus dipulihkan dulu sebelum diedit.";
+  }
+
+  if (record.status !== "pending" && record.status !== "failed") {
+    return "Edit transaksi hanya tersedia untuk status Pending atau Gagal.";
   }
 
   return null;
@@ -1356,10 +1413,10 @@ function IncomingPaymentEditDialog({
   const isBusy = isSubmitting || isStatusSubmitting;
   const showTransactionEditor = record?.source === "admin";
   const canReplaceTransaction =
-    Boolean(record) && showTransactionEditor && record.status === "pending";
-  const canMarkPaid = record?.status === "pending" || record?.status === "paid";
-  const markPaidButtonLabel =
-    record?.status === "paid" ? "Sinkronkan Lunas" : "Tandai Lunas";
+    Boolean(record) &&
+    showTransactionEditor &&
+    (record.status === "pending" || record.status === "failed");
+  const canMarkPaid = record?.status === "pending";
   const canSubmit =
     Boolean(record) &&
     canReplaceTransaction &&
@@ -1389,8 +1446,8 @@ function IncomingPaymentEditDialog({
             <DialogHeader className="gap-3 border-b border-slate-100 px-5 pb-4 pt-5 pr-12 sm:px-6">
               <div className="flex flex-wrap items-center gap-2">
                 <AdminStatusBadge
-                  status={formatPaymentStatusLabel(record.status)}
-                  tone={formatPaymentStatusTone(record.status)}
+                  status={formatPaymentRecordStatusLabel(record)}
+                  tone={formatPaymentRecordStatusTone(record)}
                   className="w-fit"
                 />
                 <Badge variant="secondary">Edit pembayaran</Badge>
@@ -1399,9 +1456,7 @@ function IncomingPaymentEditDialog({
                 {record.paymentId}
               </DialogTitle>
               <DialogDescription>
-                {canReplaceTransaction
-                  ? "Edit transaksi admin pending atau tandai statusnya menjadi lunas dari dialog yang sama."
-                  : "Transaksi ini sudah tidak pending. Admin masih bisa mengecek dan menyinkronkan status, sedangkan perubahan paket hanya tersedia untuk transaksi pending."}
+                Edit transaksi admin dengan status Pending atau Gagal.
               </DialogDescription>
             </DialogHeader>
 
@@ -1467,16 +1522,14 @@ function IncomingPaymentEditDialog({
                 </div>
               ) : (
                 <div className="rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
-                  Edit paket dan batas pembayaran hanya aktif saat status masih
-                  Pending. Untuk transaksi lunas, data keuangan tetap dijaga
-                  konsisten.
+                  Edit paket dan batas pembayaran hanya aktif untuk transaksi
+                  Pending atau Gagal.
                 </div>
               )}
 
               <div className="rounded-[20px] border border-emerald-100/80 bg-emerald-50/90 px-4 py-3 text-sm leading-6 text-emerald-700">
-                {record.status === "paid"
-                  ? "Transaksi ini sudah Lunas. Gunakan Sinkronkan Lunas jika perlu memastikan status layanan siswa ikut terbaru."
-                  : "Dari dialog ini admin juga bisa menandai transaksi pending menjadi Lunas tanpa membuat sesi pembayaran baru."}
+                Dari dialog ini admin juga bisa menandai transaksi Pending
+                menjadi Lunas tanpa membuat sesi pembayaran baru.
               </div>
             </div>
 
@@ -1501,7 +1554,7 @@ function IncomingPaymentEditDialog({
                 ) : (
                   <CheckCircle2 className="size-4" />
                 )}
-                {markPaidButtonLabel}
+                Tandai Lunas
               </Button>
               <Button type="submit" disabled={!canSubmit || isBusy}>
                 {isSubmitting ? (
@@ -1699,8 +1752,24 @@ function IncomingPaymentDetailDialog({
                 />
                 <InfoField
                   label="Status"
-                  value={formatPaymentStatusLabel(record.status)}
+                  value={
+                    isArchivedPaymentRecord(record)
+                      ? `Terhapus (status asli: ${formatPaymentStatusLabel(record.status)})`
+                      : formatPaymentStatusLabel(record.status)
+                  }
                 />
+                {isArchivedPaymentRecord(record) ? (
+                  <>
+                    <InfoField
+                      label="Dihapus pada"
+                      value={formatDateTimeLabel(record.archivedAt)}
+                    />
+                    <InfoField
+                      label="Alasan hapus"
+                      value={record.archiveReason ?? "-"}
+                    />
+                  </>
+                ) : null}
                 <InfoField
                   label={getIncomingDisplayDateLabel(record)}
                   value={formatDateTimeLabel(getIncomingDisplayDate(record))}
@@ -1943,12 +2012,12 @@ export function AdminPaymentVerification({
 
   const [incomingSearchQuery, setIncomingSearchQuery] = useState("");
   const [incomingStatusFilter, setIncomingStatusFilter] =
-    useState<(typeof paymentStatusOptions)[number]>(ALL_PAYMENT_STATUSES);
+    useState<IncomingPaymentStatusFilter>(ALL_PAYMENT_STATUSES);
   const [incomingPackageFilter, setIncomingPackageFilter] = useState(ALL_PACKAGES);
 
   const [activationSearchQuery, setActivationSearchQuery] = useState("");
   const [activationPaymentStatusFilter, setActivationPaymentStatusFilter] =
-    useState<(typeof paymentStatusOptions)[number]>(ALL_PAYMENT_STATUSES);
+    useState<ActivationPaymentStatusFilter>(ALL_PAYMENT_STATUSES);
   const [activationPackageFilter, setActivationPackageFilter] =
     useState(ALL_PACKAGES);
   const [activationStatusFilter, setActivationStatusFilter] =
@@ -2664,6 +2733,8 @@ export function AdminPaymentVerification({
       checkoutSendCount: student.paymentCheckoutSendCount ?? 0,
       cancelReason: student.paymentCancelReason ?? null,
       canceledAt: student.paymentCanceledAt ?? null,
+      archivedAt: null,
+      archiveReason: null,
       createdAt: paymentCreatedAt,
       updatedAt: paymentUpdatedAt,
       displayDate: student.paymentPaidAt ?? paymentCreatedAt,
@@ -2901,6 +2972,65 @@ export function AdminPaymentVerification({
     }
   }
 
+  async function handleRestorePayment(payment: IncomingPaymentRecord) {
+    if (!isArchivedPaymentRecord(payment)) {
+      const message = "Transaksi ini belum masuk daftar Terhapus.";
+      setBillingFeedback({
+        tone: "warning",
+        title: "Transaksi tidak perlu dipulihkan",
+        message,
+      });
+      window.alert(message);
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Pulihkan transaksi ${payment.paymentId} ke daftar pembayaran aktif?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setActivePaymentActionKey(`${payment.id}:restore`);
+
+    try {
+      const response = await restoreAdminPayment(payment.paymentId);
+
+      setBillingFeedback({
+        tone: "success",
+        title: "Transaksi berhasil dipulihkan",
+        message: `Payment ${response.paymentId} kembali ke daftar pembayaran dengan status ${formatPaymentStatusLabel(response.status)}.`,
+      });
+      setSelectedIncomingPaymentId(null);
+      window.alert("Transaksi berhasil dipulihkan.");
+      await Promise.allSettled([
+        refreshPaymentViews({
+          includeStudents: false,
+        }),
+        loadMembershipCoverage(),
+      ]);
+      setFinanceRefreshKey((value) => value + 1);
+    } catch (requestError) {
+      const message =
+        requestError instanceof Error
+          ? requestError.message
+          : "Transaksi belum bisa dipulihkan.";
+
+      setBillingFeedback({
+        tone: "warning",
+        title: "Pulihkan transaksi gagal",
+        message,
+      });
+      window.alert(message);
+      await refreshPaymentViews({
+        includeStudents: false,
+      });
+    } finally {
+      setActivePaymentActionKey(null);
+    }
+  }
+
   async function handleMarkPaymentPaid(payment: IncomingPaymentRecord) {
     if (payment.status !== "pending") {
       const message = "Hanya payment pending yang bisa ditandai lunas.";
@@ -3033,11 +3163,18 @@ export function AdminPaymentVerification({
       header: "Status",
       className: "min-w-[120px]",
       cell: (payment) => (
-        <AdminStatusBadge
-          status={formatPaymentStatusLabel(payment.status)}
-          tone={formatPaymentStatusTone(payment.status)}
-          className="w-fit"
-        />
+        <div className="space-y-1">
+          <AdminStatusBadge
+            status={formatPaymentRecordStatusLabel(payment)}
+            tone={formatPaymentRecordStatusTone(payment)}
+            className="w-fit"
+          />
+          {isArchivedPaymentRecord(payment) ? (
+            <p className="text-xs text-slate-400">
+              Asli: {formatPaymentStatusLabel(payment.status)}
+            </p>
+          ) : null}
+        </div>
       ),
     },
     {
@@ -3067,8 +3204,11 @@ export function AdminPaymentVerification({
           activePaymentActionKey === `${payment.id}:replace`;
         const isArchiving =
           activePaymentActionKey === `${payment.id}:archive`;
+        const isRestoring =
+          activePaymentActionKey === `${payment.id}:restore`;
         const isEditing = isMarkingPaid || isReplacing;
-        const isProcessing = isEditing || isArchiving;
+        const isProcessing = isEditing || isArchiving || isRestoring;
+        const isArchived = isArchivedPaymentRecord(payment);
         const canEditPayment = canEditPaymentRecord(payment);
         const editBlockReason = getEditPaymentBlockReason(payment);
         const canArchivePayment = canArchivePaymentRecord(payment);
@@ -3076,6 +3216,27 @@ export function AdminPaymentVerification({
 
         return (
           <div className="flex flex-wrap items-center justify-center gap-2">
+            {isArchived ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                aria-label="Pulihkan pembayaran"
+                title="Pulihkan pembayaran"
+                className="size-9 rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-700"
+                disabled={isProcessing}
+                onClick={() => {
+                  void handleRestorePayment(payment);
+                }}
+              >
+                {isRestoring ? (
+                  <LoaderCircle className="size-4 animate-spin" />
+                ) : (
+                  <RotateCcw className="size-4" />
+                )}
+              </Button>
+            ) : (
+              <>
             <Button
               type="button"
               variant="outline"
@@ -3130,6 +3291,8 @@ export function AdminPaymentVerification({
                 <Trash2 className="size-4" />
               )}
             </Button>
+              </>
+            )}
             <Button
               type="button"
               variant="ghost"
@@ -3584,7 +3747,7 @@ export function AdminPaymentVerification({
                       value={incomingStatusFilter}
                       onValueChange={(value) =>
                         setIncomingStatusFilter(
-                          value as (typeof paymentStatusOptions)[number],
+                          value as IncomingPaymentStatusFilter,
                         )
                       }
                     >
@@ -3592,15 +3755,13 @@ export function AdminPaymentVerification({
                         <SelectValue placeholder="Filter status" />
                       </SelectTrigger>
                       <SelectContent className={warmSelectContentClassName}>
-                        {paymentStatusOptions.map((option) => (
+                        {incomingPaymentStatusOptions.map((option) => (
                           <SelectItem
                             key={option}
                             value={option}
                             className={warmSelectItemClassName}
                           >
-                            {option === ALL_PAYMENT_STATUSES
-                              ? option
-                              : formatPaymentStatusLabel(option)}
+                            {formatPaymentStatusFilterLabel(option)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -3836,7 +3997,7 @@ export function AdminPaymentVerification({
                           value={activationPaymentStatusFilter}
                           onValueChange={(value) =>
                             setActivationPaymentStatusFilter(
-                              value as (typeof paymentStatusOptions)[number],
+                              value as ActivationPaymentStatusFilter,
                             )
                           }
                         >
@@ -3844,15 +4005,13 @@ export function AdminPaymentVerification({
                             <SelectValue placeholder="Status pembayaran" />
                           </SelectTrigger>
                           <SelectContent className={warmSelectContentClassName}>
-                            {paymentStatusOptions.map((option) => (
+                            {activationPaymentStatusOptions.map((option) => (
                               <SelectItem
                                 key={option}
                                 value={option}
                                 className={warmSelectItemClassName}
                               >
-                                {option === ALL_PAYMENT_STATUSES
-                                  ? option
-                                  : formatPaymentStatusLabel(option)}
+                                {formatPaymentStatusFilterLabel(option)}
                               </SelectItem>
                             ))}
                           </SelectContent>

@@ -17,6 +17,7 @@ import {
   handleXenditPaymentWebhook,
   resendAdminPaymentLink,
   replaceAdminPayment,
+  restoreAdminPayment,
   updateAdminPaymentStatus,
 } from "../controllers/paymentController";
 import apiKeyMiddleware from "../middleware/apiKeyMiddleware";
@@ -66,6 +67,12 @@ router
   .route("/admin/:paymentId")
   .patch(protect, authorizeRole("admin"), replaceAdminPayment)
   .delete(protect, authorizeRole("admin"), archiveAdminPayment);
+router.post(
+  "/admin/:paymentId/restore",
+  protect,
+  authorizeRole("admin"),
+  restoreAdminPayment,
+);
 router.patch(
   "/admin/:paymentId/status",
   protect,

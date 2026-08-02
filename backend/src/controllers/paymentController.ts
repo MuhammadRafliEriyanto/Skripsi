@@ -105,6 +105,8 @@ type AdminArchivePaymentRequestBody = {
   reason?: string;
 };
 
+const ARCHIVED_PAYMENT_STATUS_FILTER = "archived";
+
 type AdminBatchPackageMode = "follow_latest_package" | "fixed_package";
 
 type AdminBatchReasonCode =
@@ -556,7 +558,13 @@ async function buildAdminPaymentItems(
   const dateFrom = parseOptionalDate(query.dateFrom, "dateFrom");
   const dateTo = parseOptionalDate(query.dateTo, "dateTo");
 
-  if (statusFilter && !PAYMENT_STATUSES.includes(statusFilter as PaymentDocument["status"])) {
+  const isArchivedFilter = statusFilter === ARCHIVED_PAYMENT_STATUS_FILTER;
+
+  if (
+    statusFilter &&
+    !isArchivedFilter &&
+    !PAYMENT_STATUSES.includes(statusFilter as PaymentDocument["status"])
+  ) {
     throw new AppError(400, "status payment filter tidak valid.");
   }
 
@@ -571,7 +579,11 @@ async function buildAdminPaymentItems(
     throw new AppError(400, "dateFrom tidak boleh lebih besar dari dateTo.");
   }
 
-  const payments = await Payment.find({ archivedAt: null, status: { $ne: "draft_renewal" } })
+  const paymentQuery: Record<string, unknown> = {
+    archivedAt: isArchivedFilter ? { $ne: null } : null,
+    status: { $ne: "draft_renewal" },
+  };
+  const payments = await Payment.find(paymentQuery)
     .sort({ createdAt: -1, _id: -1 })
     .exec();
   const subscriptionIds = [
@@ -710,6 +722,8 @@ async function buildAdminPaymentItems(
       checkoutSendCount: payment.checkoutSendCount,
       cancelReason: payment.cancelReason,
       canceledAt: payment.canceledAt,
+      archivedAt: payment.archivedAt,
+      archiveReason: payment.archiveReason,
       createdAt: payment.createdAt,
       updatedAt: payment.updatedAt,
       displayDate,
@@ -754,7 +768,8 @@ async function buildAdminPaymentItems(
       item.packageName,
       item.subscription?.subscriptionCode ?? "",
     ]);
-    const matchesStatus = statusFilter ? item.status === statusFilter : true;
+    const matchesStatus =
+      statusFilter && !isArchivedFilter ? item.status === statusFilter : true;
     const matchesPackage = packageFilter
       ? buildPackageFilterValue(item.packageKey, item.packageName) === packageFilter
       : packageKeyFilter
@@ -2457,11 +2472,11 @@ export const replaceAdminPayment = asyncHandler(
       return;
     }
 
-    if (payment.status !== "pending") {
+    if (payment.status !== "pending" && payment.status !== "failed") {
       next(
         new AppError(
           409,
-          "Hanya tagihan pending yang dapat diedit.",
+          "Hanya tagihan pending atau gagal yang dapat diedit.",
           null,
           "PAYMENT_NOT_PENDING",
         ),
@@ -2488,7 +2503,7 @@ export const replaceAdminPayment = asyncHandler(
       await syncPendingPaymentWithXendit(payment, subscription);
     }
 
-    if (payment.status !== "pending") {
+    if (payment.status !== "pending" && payment.status !== "failed") {
       next(
         new AppError(
           409,
@@ -2606,6 +2621,68 @@ export const archiveAdminPayment = asyncHandler(
       message: "Tagihan berhasil dihapus dari daftar dan disimpan sebagai arsip audit.",
       data: {
         paymentId: payment.paymentId,
+        archivedAt: payment.archivedAt,
+        archiveReason: payment.archiveReason,
+      },
+    });
+  },
+);
+
+export const restoreAdminPayment = asyncHandler(
+  async (
+    req: Request<{ paymentId: string }>,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    if (!req.user || req.user.role !== "admin") {
+      next(new AppError(403, "Hanya admin yang dapat memulihkan tagihan."));
+      return;
+    }
+
+    const paymentId = normalizeText(req.params.paymentId);
+
+    if (!paymentId) {
+      next(new AppError(400, "paymentId wajib dikirim."));
+      return;
+    }
+
+    const payment = await Payment.findOne({
+      paymentId,
+      archivedAt: { $ne: null },
+    }).exec();
+
+    if (!payment) {
+      next(new AppError(404, "Data pembayaran terhapus tidak ditemukan.", null, "PAYMENT_NOT_FOUND"));
+      return;
+    }
+
+    const scope = await resolveFinanceBranchScope(req.user, {
+      requireManagedBranchesForAdmin: true,
+    });
+    await assertPaymentBranchAccess(payment, scope);
+
+    if (payment.source !== "admin") {
+      next(
+        new AppError(
+          400,
+          "Hanya tagihan yang dibuat admin yang dapat dipulihkan.",
+          null,
+          "ADMIN_PAYMENT_ONLY",
+        ),
+      );
+      return;
+    }
+
+    payment.archivedAt = null;
+    payment.archivedByAdminId = null;
+    payment.archiveReason = null;
+    await payment.save();
+
+    sendSuccess(res, {
+      message: "Tagihan berhasil dipulihkan ke daftar pembayaran.",
+      data: {
+        paymentId: payment.paymentId,
+        status: payment.status,
         archivedAt: payment.archivedAt,
         archiveReason: payment.archiveReason,
       },
