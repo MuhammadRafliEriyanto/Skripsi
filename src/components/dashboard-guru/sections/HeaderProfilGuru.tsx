@@ -39,6 +39,7 @@ type HeaderProfilGuruState = {
 type TodayScheduleItem = {
   id: string;
   kelasId: string;
+  scheduleId: string;
   waktu: string;
   kelas: string;
   mapel: string;
@@ -184,6 +185,7 @@ function buildTodaySchedules(
     .map((item, index) => ({
       id: item?.id?.trim() || `today-schedule-${index}`,
       kelasId: item?.classId?.trim() || "",
+      scheduleId: item?.id?.trim() || "",
       waktu: item?.time?.trim() ? `${item.time.trim()} WIB` : "Jadwal belum diatur",
       kelas: item?.className?.trim() || "Kelas belum diatur",
       mapel: item?.mapel?.trim() || "Mapel belum diatur",
@@ -416,7 +418,12 @@ export default function HeaderProfilGuru() {
                   href={buildGuruUrl(
                     item.kelasId ? "/dashboard-guru/absensi-kelas" : "/dashboard-guru/jadwal",
                     searchParams,
-                    item.kelasId ? { kelasId: item.kelasId } : undefined,
+                    item.kelasId
+                      ? {
+                          kelasId: item.kelasId,
+                          ...(item.scheduleId ? { scheduleId: item.scheduleId } : {}),
+                        }
+                      : undefined,
                   )}
                   className="group block rounded-xl border border-slate-100 bg-white p-3 transition hover:-translate-y-0.5 hover:border-orange-200 hover:bg-orange-50/40 hover:shadow-sm"
                 >

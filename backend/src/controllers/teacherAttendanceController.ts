@@ -34,12 +34,18 @@ import {
   isAttendanceSessionOnOrAfterAcademicJoin,
   parseValidDate,
 } from "../utils/studentAcademicStatus";
-import { getCurrentAcademicPeriod } from "../utils/academicGrade";
+import {
+  getCurrentAcademicPeriod,
+  resolveAcademicPeriodFromQuery,
+} from "../utils/academicGrade";
 import {
   ensureTeacherAcademicPeriodEditable,
   TEACHER_ACADEMIC_ARCHIVE_MESSAGE,
 } from "../utils/teacherAcademicArchive";
-import { resolveTeacherClassDetailContext } from "./teacherScheduleController";
+import {
+  resolveTeacherClassDetailContext,
+  type TeacherClassDetailContext,
+} from "./teacherScheduleController";
 
 type UpdateAttendanceRecordRequestBody = {
   status?: string;
@@ -47,10 +53,16 @@ type UpdateAttendanceRecordRequestBody = {
   markedBy?: string;
 };
 
+type TeacherAttendanceSessionRequestBody = {
+  scheduleId?: string;
+};
+
 type StudentAttendanceQrScanRequestBody = {
   sessionId?: string;
   token?: string;
 };
+
+type TeacherClassScheduleItem = TeacherClassDetailContext["schedules"][number];
 
 type AttendanceSummary = {
   hadir: number;
@@ -62,6 +74,114 @@ type AttendanceSummary = {
 
 function normalizeText(value: string | null | undefined): string {
   return value?.trim().replace(/\s+/g, " ") ?? "";
+}
+
+function getRequestedScheduleId(req: Request) {
+  const queryScheduleId =
+    typeof req.query.scheduleId === "string" ? req.query.scheduleId : "";
+  const body = req.body as TeacherAttendanceSessionRequestBody | undefined;
+
+  return normalizeText(queryScheduleId) || normalizeText(body?.scheduleId);
+}
+
+function getSchedulePublicId(schedule: TeacherClassScheduleItem | null | undefined) {
+  return normalizeText(schedule?.scheduleId) || normalizeText(schedule?.id);
+}
+
+function resolveAttendanceSchedule(
+  schedules: TeacherClassScheduleItem[],
+  requestedScheduleId: string,
+  fallbackScheduleId: string,
+) {
+  if (requestedScheduleId) {
+    const matchedSchedule = schedules.find(
+      (schedule) => getSchedulePublicId(schedule) === requestedScheduleId,
+    );
+
+    if (matchedSchedule) {
+      return matchedSchedule;
+    }
+  }
+
+  if (fallbackScheduleId) {
+    const matchedSchedule = schedules.find(
+      (schedule) => getSchedulePublicId(schedule) === fallbackScheduleId,
+    );
+
+    if (matchedSchedule) {
+      return matchedSchedule;
+    }
+  }
+
+  return schedules[0] ?? null;
+}
+
+function buildAttendanceSessionLookup(input: {
+  teacherId: unknown;
+  classId: string;
+  date: string;
+  scheduleId: string;
+}) {
+  const baseQuery = {
+    teacherId: input.teacherId,
+    classId: input.classId,
+    date: input.date,
+  };
+
+  if (!input.scheduleId) {
+    return baseQuery;
+  }
+
+  return {
+    ...baseQuery,
+    $or: [
+      { scheduleId: input.scheduleId },
+      { scheduleId: null },
+      { scheduleId: "" },
+      { scheduleId: { $exists: false } },
+    ],
+  };
+}
+
+async function findAttendanceSessionForSchedule(input: {
+  teacherId: unknown;
+  classId: string;
+  date: string;
+  scheduleId: string;
+}) {
+  return AttendanceSession.findOne(buildAttendanceSessionLookup(input))
+    .sort({ scheduleId: -1, createdAt: -1 })
+    .exec();
+}
+
+async function findAnyAttendanceSessionForClassDate(input: {
+  teacherId: unknown;
+  classId: string;
+  date: string;
+}) {
+  return AttendanceSession.findOne({
+    teacherId: input.teacherId,
+    classId: input.classId,
+    date: input.date,
+  })
+    .sort({ createdAt: -1 })
+    .exec();
+}
+
+async function alignAttendanceSessionWithSchedule(
+  session: AttendanceSessionDocument,
+  schedule: TeacherClassScheduleItem | null,
+) {
+  const scheduleId = getSchedulePublicId(schedule);
+
+  if (!schedule || !scheduleId || normalizeText(session.scheduleId) === scheduleId) {
+    return;
+  }
+
+  session.scheduleId = scheduleId;
+  session.subject = normalizeText(schedule.subject) || session.subject;
+  session.room = normalizeText(schedule.room) || session.room;
+  await session.save();
 }
 
 function getCurrentJakartaDate() {
@@ -393,7 +513,15 @@ async function ensureAttendanceRecordsForSession(
 }
 
 export const createOrGetTeacherAttendanceSession = asyncHandler(
-  async (req: Request<{ classId: string }>, res: Response, next: NextFunction) => {
+  async (
+    req: Request<
+      { classId: string },
+      Record<string, never>,
+      TeacherAttendanceSessionRequestBody
+    >,
+    res: Response,
+    next: NextFunction,
+  ) => {
     if (!req.user) {
       next(new AppError(401, "User belum terautentikasi."));
       return;
@@ -403,19 +531,28 @@ export const createOrGetTeacherAttendanceSession = asyncHandler(
       return;
     }
 
-    const { teacher, classGroup, participants } =
+    const period = resolveAcademicPeriodFromQuery(req.query);
+    const { teacher, classGroup, participants, schedules } =
       await resolveTeacherClassDetailContext(
         req.user._id.toString(),
         req.params.classId,
+        period,
       );
+    const selectedSchedule = resolveAttendanceSchedule(
+      schedules,
+      getRequestedScheduleId(req),
+      normalizeText(classGroup.item.nextSchedule?.id),
+    );
+    const selectedScheduleId = getSchedulePublicId(selectedSchedule);
     const date = getCurrentJakartaDate();
     const startTime = getCurrentJakartaTime();
 
-    let session = await AttendanceSession.findOne({
+    let session = await findAttendanceSessionForSchedule({
       teacherId: teacher._id,
       classId: classGroup.item.id,
       date,
-    }).exec();
+      scheduleId: selectedScheduleId,
+    });
     let isCreated = false;
 
     if (!session) {
@@ -430,13 +567,15 @@ export const createOrGetTeacherAttendanceSession = asyncHandler(
           sessionId,
           classId: classGroup.item.id,
           teacherId: teacher._id,
-          scheduleId: null,
+          scheduleId: selectedScheduleId || null,
           className: classGroup.item.className,
-          subject: classGroup.item.subject,
+          subject: normalizeText(selectedSchedule?.subject) || classGroup.item.subject,
           branch: classGroup.item.branch,
-          room: classGroup.item.room,
+          room: normalizeText(selectedSchedule?.room) || classGroup.item.room,
           date,
           startTime,
+          academicYear: period.academicYear,
+          semester: period.semester,
           status: "open",
           qrToken: null,
         });
@@ -448,11 +587,18 @@ export const createOrGetTeacherAttendanceSession = asyncHandler(
           "code" in error &&
           error.code === 11000
         ) {
-          session = await AttendanceSession.findOne({
-            teacherId: teacher._id,
-            classId: classGroup.item.id,
-            date,
-          }).exec();
+          session =
+            (await findAttendanceSessionForSchedule({
+              teacherId: teacher._id,
+              classId: classGroup.item.id,
+              date,
+              scheduleId: selectedScheduleId,
+            })) ??
+            (await findAnyAttendanceSessionForClassDate({
+              teacherId: teacher._id,
+              classId: classGroup.item.id,
+              date,
+            }));
         } else {
           throw error;
         }
@@ -464,6 +610,7 @@ export const createOrGetTeacherAttendanceSession = asyncHandler(
       return;
     }
 
+    await alignAttendanceSessionWithSchedule(session, selectedSchedule);
     await ensureAttendanceSessionQrToken(session);
     const records = await ensureAttendanceRecordsForSession(session, participants);
 
@@ -481,7 +628,15 @@ export const createOrGetTeacherAttendanceSession = asyncHandler(
 );
 
 export const getTeacherAttendanceSession = asyncHandler(
-  async (req: Request<{ classId: string }>, res: Response, next: NextFunction) => {
+  async (
+    req: Request<
+      { classId: string },
+      Record<string, never>,
+      TeacherAttendanceSessionRequestBody
+    >,
+    res: Response,
+    next: NextFunction,
+  ) => {
     if (!req.user) {
       next(new AppError(401, "User belum terautentikasi."));
       return;
@@ -491,21 +646,32 @@ export const getTeacherAttendanceSession = asyncHandler(
       return;
     }
 
-    const { teacher, classGroup, participants } = await resolveTeacherClassDetailContext(
+    const period = resolveAcademicPeriodFromQuery(req.query);
+    const { teacher, classGroup, participants, schedules } = await resolveTeacherClassDetailContext(
       req.user._id.toString(),
       req.params.classId,
+      period,
     );
+    const selectedSchedule = resolveAttendanceSchedule(
+      schedules,
+      getRequestedScheduleId(req),
+      normalizeText(classGroup.item.nextSchedule?.id),
+    );
+    const selectedScheduleId = getSchedulePublicId(selectedSchedule);
     const date = getCurrentJakartaDate();
-    const session = await AttendanceSession.findOne({
+    const session = await findAttendanceSessionForSchedule({
       teacherId: teacher._id,
       classId: classGroup.item.id,
       date,
-    }).exec();
+      scheduleId: selectedScheduleId,
+    });
 
     if (!session) {
       next(new AppError(404, "Sesi absensi kelas belum dibuat untuk hari ini."));
       return;
     }
+
+    await alignAttendanceSessionWithSchedule(session, selectedSchedule);
 
     if (req.query.rotateQr === "true") {
       if (!ensureTeacherAcademicPeriodEditable(req, next)) {

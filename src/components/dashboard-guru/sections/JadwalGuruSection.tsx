@@ -36,6 +36,7 @@ type GuruStatus = "Berjalan" | "Siap" | "Selesai" | "Bentrok" | "Review";
 type JadwalGuruItem = {
   id: string;
   kelasId?: string;
+  scheduleId?: string;
   className: string;
   jenjang: string;
   tingkat: string;
@@ -59,6 +60,7 @@ type ReviewItem = {
 
 type GuruClassCardItem = {
   kelasId: string;
+  scheduleId?: string;
   namaKelas: string;
   jenjang: string;
   tingkat: string;
@@ -314,6 +316,7 @@ function mapKelasToJadwalItem(item: GuruClassCardItem): JadwalGuruItem {
   return {
     id: item.kelasId,
     kelasId: item.kelasId,
+    scheduleId: item.scheduleId,
     className: item.namaKelas,
     jenjang: item.jenjang,
     tingkat: item.tingkat,
@@ -357,11 +360,13 @@ function mapTeacherClassItem(
   const namaKelas = normalizeText(item.className) || `Kelas ${index + 1}`;
   const tingkat = normalizeText(item.level) || inferTingkat(namaKelas);
   const nextSchedule = item.nextSchedule ?? null;
+  const nextScheduleId = normalizeText(nextSchedule?.id);
   const configuredTotalPertemuan = DEFAULT_SEMESTER_MEETING_TARGET;
   const totalPertemuan = configuredTotalPertemuan;
 
   return {
     kelasId: buildItemId("kelas", item.id, index),
+    scheduleId: nextScheduleId,
     namaKelas,
     jenjang: inferJenjang(namaKelas, tingkat),
     tingkat,
@@ -382,7 +387,7 @@ function mapTeacherClassItem(
     conflictCount: 0,
     pendingTaskCount: Math.max(toSafeNumber(item.pendingTaskCount), 0),
     overdueTaskCount: Math.max(toSafeNumber(item.overdueTaskCount), 0),
-    nextScheduleId: normalizeText(nextSchedule?.id),
+    nextScheduleId,
   };
 }
 
@@ -498,6 +503,7 @@ function mapScheduleItem(
   return {
     id: itemId,
     kelasId: linkedClass?.kelasId,
+    scheduleId: itemId,
     className,
     jenjang: linkedClass?.jenjang || inferJenjang(className),
     tingkat: linkedClass?.tingkat || inferTingkat(className),
@@ -730,7 +736,10 @@ function JadwalCard({
       href={buildGuruUrl(
         "/dashboard-guru/absensi-kelas",
         new URLSearchParams({ academicYear }),
-        { kelasId: item.kelasId },
+        {
+          kelasId: item.kelasId,
+          ...(item.scheduleId ? { scheduleId: item.scheduleId } : {}),
+        },
       )}
       className={cardClassName}
     >
@@ -869,7 +878,14 @@ function GuruClassCard({
         </Link>
 
         <Link
-          href={buildGuruUrl("/dashboard-guru/absensi-kelas", new URLSearchParams({ academicYear }), { kelasId: kelas.kelasId })}
+          href={buildGuruUrl(
+            "/dashboard-guru/absensi-kelas",
+            new URLSearchParams({ academicYear }),
+            {
+              kelasId: kelas.kelasId,
+              ...(kelas.scheduleId ? { scheduleId: kelas.scheduleId } : {}),
+            },
+          )}
           className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-medium text-white shadow-sm shadow-orange-200/80 transition-all hover:brightness-[1.03] hover:shadow-md hover:shadow-orange-200/80 ${gradClass}`}
         >
           <ClipboardCheck size={12} />

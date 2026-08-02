@@ -77,6 +77,7 @@ type AttendanceClassParticipant = {
 
 type AttendanceClassData = {
   kelasId: string;
+  scheduleId: string | null;
   namaKelas: string;
   tingkat: string;
   mapel: string;
@@ -127,6 +128,11 @@ type TeacherClassApiScheduleItem = {
   subject?: string;
   status?: string;
 };
+
+type TeacherScheduleIdSource = {
+  id?: string;
+  scheduleId?: string;
+} | null | undefined;
 
 type TeacherClassApiParticipantItem = {
   id?: string;
@@ -479,15 +485,27 @@ function resolveLocalAttendanceWindow(
   );
 }
 
-function buildScheduleLabel(
+function getScheduleId(schedule: TeacherScheduleIdSource) {
+  return normalizeText(schedule?.scheduleId) || normalizeText(schedule?.id);
+}
+
+function resolveSelectedSchedule(
   nextSchedule: TeacherClassApiNextSchedule,
   schedules: TeacherClassApiScheduleItem[],
+  selectedScheduleId: string,
 ) {
-  const fallbackSchedule = schedules[0] ?? null;
-  const day =
-    normalizeText(nextSchedule?.day) || normalizeText(fallbackSchedule?.day);
-  const time =
-    normalizeText(nextSchedule?.time) || normalizeText(fallbackSchedule?.time);
+  const matchedSchedule = selectedScheduleId
+    ? schedules.find((schedule) => getScheduleId(schedule) === selectedScheduleId) ?? null
+    : null;
+
+  return matchedSchedule ?? nextSchedule ?? schedules[0] ?? null;
+}
+
+function buildScheduleLabel(
+  schedule: TeacherClassApiScheduleItem | TeacherClassApiNextSchedule,
+) {
+  const day = normalizeText(schedule?.day);
+  const time = normalizeText(schedule?.time);
 
   if (!day && !time) {
     return "Jadwal belum diatur";
@@ -505,21 +523,24 @@ function buildScheduleLabel(
 }
 
 function buildScheduleDayLabel(
-  nextSchedule: TeacherClassApiNextSchedule,
-  schedules: TeacherClassApiScheduleItem[],
+  schedule: TeacherClassApiScheduleItem | TeacherClassApiNextSchedule,
 ) {
   return (
-    normalizeText(nextSchedule?.day) ||
-    normalizeText(schedules[0]?.day) ||
-    "Jadwal berjalan"
+    normalizeText(schedule?.day) || "Jadwal berjalan"
   );
 }
 
 function mapTeacherDetailToAttendanceData(
   payload: NonNullable<TeacherClassDetailResponse["data"]>,
+  selectedScheduleId: string,
 ): AttendanceClassData {
   const classItem = payload.class;
   const schedules = payload.schedules ?? [];
+  const selectedSchedule = resolveSelectedSchedule(
+    classItem?.nextSchedule ?? null,
+    schedules,
+    selectedScheduleId,
+  );
   const participants = (payload.participants ?? []).map((participant, index) => {
     const participantId =
       normalizeText(participant.id) ||
@@ -538,19 +559,19 @@ function mapTeacherDetailToAttendanceData(
 
   return {
     kelasId: normalizeText(classItem?.id),
+    scheduleId: getScheduleId(selectedSchedule) || null,
     namaKelas,
     tingkat: normalizeText(classItem?.level) || "Kelas belum diatur",
-    mapel: normalizeText(classItem?.subject) || "Mapel belum diatur",
+    mapel:
+      normalizeText(selectedSchedule?.subject) ||
+      normalizeText(classItem?.subject) ||
+      "Mapel belum diatur",
     program: normalizeText(classItem?.branch) || "Cabang belum diatur",
-    jadwal: buildScheduleLabel(classItem?.nextSchedule ?? null, schedules),
-    jadwalHari: buildScheduleDayLabel(
-      classItem?.nextSchedule ?? null,
-      schedules,
-    ),
+    jadwal: buildScheduleLabel(selectedSchedule),
+    jadwalHari: buildScheduleDayLabel(selectedSchedule),
     ruangan:
+      normalizeText(selectedSchedule?.room) ||
       normalizeText(classItem?.room) ||
-      normalizeText(classItem?.nextSchedule?.room) ||
-      normalizeText(schedules[0]?.room) ||
       "Ruangan belum diatur",
     totalSiswa: Math.max(
       toSafeNumber(classItem?.studentCount),
@@ -867,6 +888,7 @@ export default function AbsensiKelasSection({
   kelasId,
 }: AbsensiKelasSectionProps) {
   const searchParams = useSearchParams();
+  const selectedScheduleId = normalizeText(searchParams.get("scheduleId"));
   const academicYearStatus = getGuruAcademicYearStatus(searchParams);
   const isAcademicArchive = academicYearStatus.isArchive;
   const archiveMessage = `Tahun ajaran ${academicYearStatus.academicYear} sudah menjadi arsip. Data absensi hanya bisa dilihat.`;
@@ -930,6 +952,9 @@ export default function AbsensiKelasSection({
     );
     if (rotateQr) {
       url.searchParams.set("rotateQr", "true");
+    }
+    if (selectedScheduleId) {
+      url.searchParams.set("scheduleId", selectedScheduleId);
     }
     const response = await fetch(url.toString(), {
       method: "GET",
@@ -1023,7 +1048,10 @@ export default function AbsensiKelasSection({
         return;
       }
 
-      const nextClass = mapTeacherDetailToAttendanceData(classPayload.data);
+      const nextClass = mapTeacherDetailToAttendanceData(
+        classPayload.data,
+        selectedScheduleId,
+      );
 
       setActiveClass(nextClass);
 
@@ -1098,8 +1126,18 @@ export default function AbsensiKelasSection({
     setActionError(null);
 
     try {
+      const url = new URL(
+        buildGuruApiUrl(
+          `/api/teacher/me/classes/${encodeURIComponent(activeClass.kelasId)}/attendance/session`,
+          searchParams,
+        ),
+        window.location.origin,
+      );
+      if (activeClass.scheduleId) {
+        url.searchParams.set("scheduleId", activeClass.scheduleId);
+      }
       const response = await fetch(
-        buildGuruApiUrl(`/api/teacher/me/classes/${encodeURIComponent(activeClass.kelasId)}/attendance/session`, searchParams),
+        url.toString(),
         {
           method: "POST",
           headers: {
@@ -1107,7 +1145,9 @@ export default function AbsensiKelasSection({
           },
           credentials: "include",
           cache: "no-store",
-          body: JSON.stringify({}),
+          body: JSON.stringify({
+            scheduleId: activeClass.scheduleId,
+          }),
         },
       );
       const payload = await readJsonResponse<TeacherAttendanceSessionResponse>(
@@ -1350,7 +1390,7 @@ export default function AbsensiKelasSection({
     queueMicrotask(() => {
       void loadAttendanceClass();
     });
-  }, [academicYearStatus.academicYear, kelasId]);
+  }, [academicYearStatus.academicYear, kelasId, selectedScheduleId]);
 
   const refreshAttendanceSessionWhileOpen = useEffectEvent(async (rotateQr: boolean = false) => {
     if (isAcademicArchive || !attendanceSession || attendanceSession.status !== "open") {

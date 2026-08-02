@@ -10,13 +10,13 @@ export const metadata: Metadata = {
 export default async function DashboardGuruAbsensiKelasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ kelasId?: string }>;
+  searchParams: Promise<{ kelasId?: string; scheduleId?: string }>;
 }) {
   const params = await searchParams;
 
   return (
     <AbsensiKelasSection
-      key={params.kelasId ?? "default"}
+      key={`${params.kelasId ?? "default"}-${params.scheduleId ?? "default"}`}
       kelasId={params.kelasId ?? null}
     />
   );

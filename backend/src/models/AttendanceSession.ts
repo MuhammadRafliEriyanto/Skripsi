@@ -112,6 +112,7 @@ attendanceSessionSchema.index(
   {
     teacherId: 1,
     classId: 1,
+    scheduleId: 1,
     date: 1,
   },
   {
