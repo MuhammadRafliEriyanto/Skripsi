@@ -3227,6 +3227,7 @@ export function AdminPaymentVerification({
 
     try {
       const response = await replaceAdminPayment(payment.paymentId, payload);
+      const studentName = normalizeText(payment.student.name) || "siswa";
       const statusPagePath =
         normalizeRegistrationPath(response.statusPagePath) ??
         buildPaymentStatusPagePath(response.payment.paymentId);
@@ -3234,12 +3235,14 @@ export function AdminPaymentVerification({
       setBillingFeedback({
         tone: "success",
         title: "Link bayar baru berhasil dibuat",
-        message: `No referensi baru ${response.payment.paymentId} dibuat dari ${response.replacedPaymentId}. Salin link bayar dan kirim ke siswa/orang tua. Admin tidak perlu membayar.`,
+        message: `Link bayar baru untuk ${studentName} berhasil dibuat. Salin link bayar dan kirim ke siswa/orang tua.`,
         checkoutUrl: response.payment.checkoutUrl ?? null,
         statusPagePath,
       });
       setPaymentEditRecord(null);
-      window.alert("Link bayar baru berhasil dibuat. Salin link lalu kirim ke siswa/orang tua.");
+      window.alert(
+        `Link bayar baru untuk ${studentName} berhasil dibuat. Salin link lalu kirim ke siswa/orang tua.`,
+      );
       setIncomingPage(1);
       await Promise.allSettled([
         refreshPaymentViews({
@@ -3349,8 +3352,9 @@ export function AdminPaymentVerification({
       return;
     }
 
+    const studentName = normalizeText(payment.student.name) || "siswa";
     const confirmed = window.confirm(
-      `Hapus transaksi ${payment.paymentId} dari daftar? Data tidak dihapus permanen dan tetap tersimpan sebagai arsip audit.`,
+      `Hapus transaksi ${studentName} dari daftar? Data tidak dihapus permanen.`,
     );
 
     if (!confirmed) {
@@ -3360,7 +3364,7 @@ export function AdminPaymentVerification({
     setActivePaymentActionKey(`${payment.id}:archive`);
 
     try {
-      const response = await archiveAdminPayment(
+      await archiveAdminPayment(
         payment.paymentId,
         "Dihapus melalui kolom aksi Informasi Pembayaran.",
       );
@@ -3368,10 +3372,10 @@ export function AdminPaymentVerification({
       setBillingFeedback({
         tone: "warning",
         title: "Transaksi dihapus dari daftar",
-        message: `Payment ${response.paymentId} tetap tersimpan sebagai arsip audit.`,
+        message: `Pembayaran ${studentName} berhasil dihapus dari daftar.`,
       });
       setSelectedIncomingPaymentId(null);
-      window.alert("Transaksi berhasil dihapus dari daftar pembayaran.");
+      window.alert(`Pembayaran ${studentName} berhasil dihapus dari daftar.`);
       await Promise.allSettled([
         refreshPaymentViews({
           includeStudents: false,
@@ -3411,8 +3415,9 @@ export function AdminPaymentVerification({
       return;
     }
 
+    const studentName = normalizeText(payment.student.name) || "siswa";
     const confirmed = window.confirm(
-      `Pulihkan transaksi ${payment.paymentId} ke daftar pembayaran aktif?`,
+      `Pulihkan transaksi ${studentName} ke daftar pembayaran aktif?`,
     );
 
     if (!confirmed) {
@@ -3422,15 +3427,15 @@ export function AdminPaymentVerification({
     setActivePaymentActionKey(`${payment.id}:restore`);
 
     try {
-      const response = await restoreAdminPayment(payment.paymentId);
+      await restoreAdminPayment(payment.paymentId);
 
       setBillingFeedback({
         tone: "success",
         title: "Transaksi berhasil dipulihkan",
-        message: `Payment ${response.paymentId} kembali ke daftar pembayaran dengan status ${formatPaymentStatusLabel(response.status)}.`,
+        message: `Pembayaran ${studentName} berhasil dipulihkan.`,
       });
       setSelectedIncomingPaymentId(null);
-      window.alert("Transaksi berhasil dipulihkan.");
+      window.alert(`Pembayaran ${studentName} berhasil dipulihkan.`);
       await Promise.allSettled([
         refreshPaymentViews({
           includeStudents: false,
@@ -3460,7 +3465,7 @@ export function AdminPaymentVerification({
 
   async function handleMarkPaymentPaid(payment: IncomingPaymentRecord) {
     if (!canMarkPaymentPaidRecord(payment)) {
-      const message = "Hanya payment Pending atau Gagal yang bisa ditandai lunas.";
+      const message = "Hanya pembayaran Pending atau Gagal yang bisa ditandai lunas.";
       setBillingFeedback({
         tone: "warning",
         title: "Status tidak bisa diubah",
