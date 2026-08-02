@@ -92,7 +92,7 @@ export default function MateriSiswaPageView() {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-50 text-slate-400 mb-4">
             <BookOpen className="h-8 w-8 animate-pulse" />
           </div>
-          <p className="text-lg font-bold text-slate-800">
+          <p className="text-lg font-semibold text-slate-800">
             Sedang Memuat Materi
           </p>
           <p className="mt-2 text-sm font-medium text-slate-500">
@@ -104,7 +104,7 @@ export default function MateriSiswaPageView() {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-orange-50 text-orange-500 mb-4">
             <BookOpen className="h-8 w-8" />
           </div>
-          <p className="text-lg font-bold text-slate-800">
+          <p className="text-lg font-semibold text-slate-800">
             Belum Ada Materi Tersedia
           </p>
           <p className="mt-2 text-sm font-medium text-slate-500 max-w-md mx-auto">
@@ -117,7 +117,7 @@ export default function MateriSiswaPageView() {
         <section className="mt-2">
           <div className="flex items-center mb-6">
             <div className="w-1.5 h-6 bg-orange-500 rounded-full mr-3"></div>
-            <h3 className="text-xl font-bold text-slate-800">
+            <h3 className="text-xl font-semibold text-slate-800">
               Daftar Materi Kelas
             </h3>
           </div>
@@ -144,14 +144,14 @@ export default function MateriSiswaPageView() {
 
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <span className="rounded-full bg-orange-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-orange-600">
+                        <span className="rounded-full bg-orange-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-orange-600">
                           {subjectLabel}
                         </span>
-                        <span className="rounded-full bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-500">
+                        <span className="rounded-full bg-blue-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-blue-500">
                           Pertemuan {material.pertemuan}
                         </span>
                         <span
-                          className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${getMaterialStatusClass(
+                          className={`rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider ${getMaterialStatusClass(
                             material.status,
                           )}`}
                         >
@@ -159,7 +159,7 @@ export default function MateriSiswaPageView() {
                         </span>
                       </div>
 
-                      <h4 className="text-[17px] font-bold text-slate-800 group-hover:text-orange-600 transition-colors">
+                      <h4 className="text-[17px] font-semibold text-slate-800 group-hover:text-orange-600 transition-colors">
                         {material.judul}
                       </h4>
                       <p className="mt-1 text-sm font-medium leading-relaxed text-slate-500 line-clamp-2 pr-4">
@@ -170,7 +170,7 @@ export default function MateriSiswaPageView() {
 
                   <div className="flex items-center gap-4 mt-4 md:mt-0 ml-[88px] md:ml-0">
                     <div className="hidden flex-col items-center justify-center sm:flex w-24">
-                      <p className="text-sm font-bold text-slate-800">{material.format}</p>
+                      <p className="text-sm font-semibold text-slate-800">{material.format}</p>
                       <p className="text-xs font-semibold text-blue-500 mt-1">{material.durasi}</p>
                     </div>
                     
@@ -183,7 +183,7 @@ export default function MateriSiswaPageView() {
                           e.stopPropagation();
                           handleOpenMaterial(material.id);
                         }}
-                        className="inline-flex h-11 flex-1 md:w-[100px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-[13px] font-bold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
+                        className="inline-flex h-11 flex-1 md:w-[100px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
                       >
                         <Eye className="h-[18px] w-[18px] text-slate-500" />
                         Lihat
@@ -192,7 +192,7 @@ export default function MateriSiswaPageView() {
                         href={material.downloadUrl}
                         download={material.downloadName}
                         onClick={(e) => e.stopPropagation()}
-                        className="inline-flex h-11 flex-1 md:w-[110px] items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 text-[13px] font-bold text-white shadow-sm transition-all hover:bg-orange-600"
+                        className="inline-flex h-11 flex-1 md:w-[110px] items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 text-[13px] font-semibold text-white shadow-sm transition-all hover:bg-orange-600"
                       >
                         <Download className="h-[18px] w-[18px]" />
                         Unduh
@@ -210,7 +210,7 @@ export default function MateriSiswaPageView() {
                 <Lightbulb className="h-6 w-6" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-orange-700">Tips Belajar</h4>
+                <h4 className="text-sm font-semibold text-orange-700">Tips Belajar</h4>
                 <p className="text-sm font-medium text-slate-600 mt-0.5">
                   {isUtbkStudent
                     ? "Pelajari materi secara bertahap dan gunakan sesi ujian/tryout untuk melihat capaian belajar UTBK."
@@ -230,16 +230,16 @@ export default function MateriSiswaPageView() {
               {/* Header */}
               <div className="bg-slate-50 px-6 py-6 border-b border-slate-100 pr-12">
                 <div className="flex flex-wrap items-center gap-2 mb-3">
-                    <span className="rounded-full bg-orange-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-orange-600">
+                    <span className="rounded-full bg-orange-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-orange-600">
                       {isUtbkStudent
                         ? formatUtbkSubjectLabel(selectedMaterial.mapel)
                         : selectedMaterial.mapel}
                     </span>
-                    <span className="rounded-full bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-500">
+                    <span className="rounded-full bg-blue-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-blue-500">
                       Pertemuan {selectedMaterial.pertemuan}
                     </span>
                   </div>
-                  <DialogTitle className="text-xl font-bold text-slate-800 leading-tight">
+                  <DialogTitle className="text-xl font-semibold text-slate-800 leading-tight">
                     {selectedMaterial.judul}
                   </DialogTitle>
               </div>
@@ -251,19 +251,19 @@ export default function MateriSiswaPageView() {
                 </p>
 
                 <div className="flex flex-wrap items-center gap-3 mb-8">
-                  <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-700 shadow-sm">
+                  <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
                     <Clock className="h-4 w-4 text-blue-500" /> {selectedMaterial.durasi}
                   </div>
-                  <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-700 shadow-sm">
+                  <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
                     <FileText className="h-4 w-4 text-emerald-500" /> {selectedMaterial.format}
                   </div>
-                  <div className={`flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-bold shadow-sm ${getMaterialStatusClass(selectedMaterial.status)}`}>
+                  <div className={`flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold shadow-sm ${getMaterialStatusClass(selectedMaterial.status)}`}>
                     Status: {selectedMaterial.status}
                   </div>
                 </div>
 
                 <div className="rounded-[20px] bg-slate-50 border border-slate-100 p-6">
-                  <h4 className="font-bold text-slate-800 mb-3 text-base">
+                  <h4 className="font-semibold text-slate-800 mb-3 text-base">
                     {selectedMaterial.previewHeading}
                   </h4>
                   <p className="text-sm font-medium leading-relaxed text-slate-500 mb-6">
@@ -291,7 +291,7 @@ export default function MateriSiswaPageView() {
                 <a
                   href={selectedMaterial.downloadUrl}
                   download={selectedMaterial.downloadName}
-                  className="flex-1 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-[15px] font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-md"
+                  className="flex-1 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-[15px] font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-md"
                 >
                   <Download className="h-5 w-5" />
                   Unduh Materi

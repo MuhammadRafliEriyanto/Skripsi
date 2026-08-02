@@ -151,7 +151,7 @@ export default function TugasSiswaPageView() {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-50 text-slate-400 mb-4">
             <FileText className="h-8 w-8 animate-pulse" />
           </div>
-          <p className="text-lg font-bold text-slate-800">
+          <p className="text-lg font-semibold text-slate-800">
             Sedang Memuat Tugas
           </p>
           <p className="mt-2 text-sm font-medium text-slate-500">
@@ -163,7 +163,7 @@ export default function TugasSiswaPageView() {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-orange-50 text-orange-500 mb-4">
             <FileText className="h-8 w-8" />
           </div>
-          <p className="text-lg font-bold text-slate-800">
+          <p className="text-lg font-semibold text-slate-800">
             Belum Ada Tugas Tersedia
           </p>
           <p className="mt-2 text-sm font-medium text-slate-500 max-w-md mx-auto">
@@ -181,11 +181,11 @@ export default function TugasSiswaPageView() {
                   <Clock3 className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-slate-800">Deadline Dekat</p>
+                  <p className="text-sm font-semibold text-slate-800">Deadline Dekat</p>
                   <p className="text-xs font-medium text-slate-500">Tugas yang perlu didahulukan</p>
                 </div>
               </div>
-              <p className="mt-4 text-2xl font-bold text-slate-800">
+              <p className="mt-4 text-2xl font-semibold text-slate-800">
                 {pendingTasks.length}
               </p>
             </section>
@@ -196,11 +196,11 @@ export default function TugasSiswaPageView() {
                   <CheckCircle2 className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-slate-800">Sudah Dinilai</p>
+                  <p className="text-sm font-semibold text-slate-800">Sudah Dinilai</p>
                   <p className="text-xs font-medium text-slate-500">Masukan yang bisa kamu lihat</p>
                 </div>
               </div>
-              <p className="mt-4 text-2xl font-bold text-slate-800">
+              <p className="mt-4 text-2xl font-semibold text-slate-800">
                 {tasks.filter((task) => task.status === "Sudah Dinilai").length}
               </p>
             </section>
@@ -211,11 +211,11 @@ export default function TugasSiswaPageView() {
                   <TimerReset className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-slate-800">Estimasi Waktu</p>
+                  <p className="text-sm font-semibold text-slate-800">Estimasi Waktu</p>
                   <p className="text-xs font-medium text-slate-500">Pengerjaan tugas aktif minggu ini</p>
                 </div>
               </div>
-              <p className="mt-4 text-2xl font-bold text-slate-800">1,5 Jam</p>
+              <p className="mt-4 text-2xl font-semibold text-slate-800">1,5 Jam</p>
             </section>
           </div>
 
@@ -223,7 +223,7 @@ export default function TugasSiswaPageView() {
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center">
                 <div className="w-1.5 h-6 bg-orange-500 rounded-full mr-3"></div>
-                <h3 className="text-xl font-bold text-slate-800">
+                <h3 className="text-xl font-semibold text-slate-800">
                   Tugas aktif dan riwayat penilaian
                 </h3>
               </div>
@@ -251,14 +251,14 @@ export default function TugasSiswaPageView() {
 
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2 mb-2">
-                          <span className="rounded-full bg-orange-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-orange-600">
+                          <span className="rounded-full bg-orange-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-orange-600">
                             {task.mapel}
                           </span>
-                          <span className="rounded-full bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-500">
+                          <span className="rounded-full bg-blue-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-blue-500">
                             Pertemuan {task.pertemuan}
                           </span>
                           <span
-                            className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${getTaskStatusClass(
+                            className={`rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider ${getTaskStatusClass(
                               task.status,
                             )}`}
                           >
@@ -266,7 +266,7 @@ export default function TugasSiswaPageView() {
                           </span>
                         </div>
 
-                        <h4 className="text-[17px] font-bold text-slate-800 group-hover:text-orange-600 transition-colors">
+                        <h4 className="text-[17px] font-semibold text-slate-800 group-hover:text-orange-600 transition-colors">
                           {task.judul}
                         </h4>
                         <p className="mt-1 text-sm font-medium leading-relaxed text-slate-500 line-clamp-2 pr-4">
@@ -286,14 +286,14 @@ export default function TugasSiswaPageView() {
                         {task.myGrade?.graded ? (
                           <div className="mt-3 rounded-[16px] border border-emerald-100 bg-emerald-50/50 p-3 max-w-xl">
                             <div className="flex flex-wrap items-center gap-2 text-xs mb-2">
-                              <span className="rounded-full bg-emerald-100 px-2.5 py-1 font-bold text-emerald-800">
+                              <span className="rounded-full bg-emerald-100 px-2.5 py-1 font-semibold text-emerald-800">
                                 Nilai {task.myGrade.score ?? "-"}
                               </span>
                               <span className="font-semibold text-emerald-600">
                                 Dinilai pada {formatSubmissionTime(task.myGrade.gradedAt)}
                               </span>
                             </div>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600">
                               Catatan Guru
                             </p>
                             <p className="mt-1 text-sm font-medium text-slate-600 leading-relaxed">
@@ -316,7 +316,7 @@ export default function TugasSiswaPageView() {
                           e.stopPropagation();
                           handleOpenTask(task.id);
                         }}
-                        className="inline-flex h-11 flex-1 md:w-[120px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-[13px] font-bold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
+                        className="inline-flex h-11 flex-1 md:w-[120px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
                       >
                         <Eye className="h-[18px] w-[18px] text-slate-500" />
                         Lihat Tugas
@@ -324,7 +324,7 @@ export default function TugasSiswaPageView() {
                       <Link
                         href={task.submitHref}
                         onClick={(e) => e.stopPropagation()}
-                        className="inline-flex h-11 flex-1 md:w-[130px] items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 text-[13px] font-bold text-white shadow-sm transition-all hover:-translate-y-px hover:bg-orange-600 hover:shadow-md"
+                        className="inline-flex h-11 flex-1 md:w-[130px] items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 text-[13px] font-semibold text-white shadow-sm transition-all hover:-translate-y-px hover:bg-orange-600 hover:shadow-md"
                       >
                         <Send className="h-[18px] w-[18px]" />
                         Kirim Jawaban
@@ -346,21 +346,21 @@ export default function TugasSiswaPageView() {
               {/* Header */}
               <div className="bg-slate-50 px-6 py-6 border-b border-slate-100 pr-12">
                 <div className="flex flex-wrap items-center gap-2 mb-3">
-                    <span className="rounded-full bg-orange-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-orange-600">
+                    <span className="rounded-full bg-orange-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-orange-600">
                       {selectedTask.mapel}
                     </span>
-                    <span className="rounded-full bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-500">
+                    <span className="rounded-full bg-blue-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-blue-500">
                       Pertemuan {selectedTask.pertemuan}
                     </span>
                     <span
-                      className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${getTaskStatusClass(
+                      className={`rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider ${getTaskStatusClass(
                         selectedTask.status,
                       )}`}
                     >
                       {selectedTask.status}
                     </span>
                   </div>
-                  <DialogTitle className="text-xl font-bold text-slate-800 leading-tight">
+                  <DialogTitle className="text-xl font-semibold text-slate-800 leading-tight">
                     {selectedTask.judul}
                   </DialogTitle>
               </div>
@@ -406,8 +406,8 @@ export default function TugasSiswaPageView() {
                 {selectedTask.myGrade?.graded ? (
                   <div className="mt-6 rounded-[20px] border border-emerald-100 bg-emerald-50 p-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-bold text-emerald-800">Hasil Penilaian</h4>
-                      <span className="rounded-full bg-emerald-200 px-3 py-1 font-bold text-emerald-900 text-sm">
+                      <h4 className="font-semibold text-emerald-800">Hasil Penilaian</h4>
+                      <span className="rounded-full bg-emerald-200 px-3 py-1 font-semibold text-emerald-900 text-sm">
                         Nilai {selectedTask.myGrade.score ?? "-"}
                       </span>
                     </div>
@@ -424,7 +424,7 @@ export default function TugasSiswaPageView() {
                       <AlertCircle className="h-5 w-5" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-amber-800">Menunggu Penilaian</h4>
+                      <h4 className="font-semibold text-amber-800">Menunggu Penilaian</h4>
                       <p className="text-sm leading-6 text-amber-700 mt-1">
                         Tugas sudah dikumpulkan pada {formatSubmissionTime(selectedTask.mySubmission.submittedAt)} dan sedang menunggu untuk dinilai oleh guru.
                       </p>
@@ -439,7 +439,7 @@ export default function TugasSiswaPageView() {
                   <a
                     href={selectedTask.attachmentUrl}
                     download={selectedTask.attachmentName}
-                    className="flex-1 inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 text-[15px] font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                    className="flex-1 inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 text-[15px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
                   >
                     <Download className="h-5 w-5 text-slate-400" />
                     Lampiran Soal
@@ -447,7 +447,7 @@ export default function TugasSiswaPageView() {
                 ) : null}
                 <Link
                   href={selectedTask.submitHref}
-                  className="flex-1 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-[15px] font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-md"
+                  className="flex-1 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-[15px] font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-md"
                 >
                   <Send className="h-5 w-5" />
                   Kirim Jawaban
