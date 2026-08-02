@@ -357,11 +357,11 @@ function mapApiTaskToStudentTask(task: StudentLearningApiTaskItem): StudentTask 
     attachmentUrl: attachmentFileName
       ? `/api/student/me/learning/tasks/${encodeURIComponent(taskId)}/attachment`
       : undefined,
-    submissionModes: ["file", "text", "drive"] satisfies SubmissionMode[],
+    submissionModes: ["text"] satisfies SubmissionMode[],
     instruksiPengumpulan: [
       "Baca instruksi tugas dengan teliti sebelum mengirim jawaban.",
-      "Kamu bisa mengirim lewat file, teks langsung, atau link Drive.",
-      "Pastikan jawaban final sudah siap sebelum dikirim ke guru.",
+      "Tulis jawaban langsung di kolom yang tersedia.",
+      "Jika jawaban berupa foto atau dokumen, tempel link Google Drive yang bisa dibuka guru.",
     ],
     mySubmission: mapTaskSubmissionSummary(task.mySubmission),
     myGrade,

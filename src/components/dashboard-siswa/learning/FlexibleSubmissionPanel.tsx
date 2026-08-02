@@ -585,52 +585,62 @@ export default function FlexibleSubmissionPanel({
                   {formatFileSize(currentAttachment.size)}
                 </span>
               ) : null}
+              </a>
+              {currentAttachment ? (
+                <span className="text-xs text-emerald-700/80">
+                  {formatFileSize(currentAttachment.size)}
+                </span>
+              ) : null}
             </div>
           ) : null}
         </div>
       ) : null}
 
-      <div className="flex flex-wrap gap-2 rounded-[20px] bg-white/90 p-1.5 shadow-sm ring-1 ring-orange-100/80">
-        {availableModes.map((mode) => {
-          const meta = modeMeta[mode];
-          const Icon = meta.icon;
-          const isActive = resolvedActiveMode === mode;
+      {availableModes.length > 1 && (
+        <div className="flex flex-wrap gap-2 rounded-[20px] bg-white/90 p-1.5 shadow-sm ring-1 ring-orange-100/80">
+          {availableModes.map((mode) => {
+            const meta = modeMeta[mode];
+            const Icon = meta.icon;
+            const isActive = resolvedActiveMode === mode;
 
-          return (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => handleModeChange(mode)}
-              className={`inline-flex items-center gap-2 rounded-2xl px-3.5 py-2.5 text-sm font-medium transition ${
-                isActive
-                  ? "bg-gradient-to-r from-red-800 via-orange-600 to-amber-500 text-white shadow-sm"
-                  : "text-slate-600 hover:bg-orange-50 hover:text-orange-700"
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              {meta.label}
-            </button>
-          );
-        })}
-      </div>
+            return (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => handleModeChange(mode)}
+                className={`inline-flex items-center gap-2 rounded-2xl px-3.5 py-2.5 text-sm font-medium transition ${
+                  isActive
+                    ? "bg-gradient-to-r from-red-800 via-orange-600 to-amber-500 text-white shadow-sm"
+                    : "text-slate-600 hover:bg-orange-50 hover:text-orange-700"
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {meta.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div className="rounded-[24px] border border-orange-100/90 bg-white p-5 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.18)]">
-        <div className="flex items-start gap-3">
-          <div className="rounded-2xl bg-orange-50 p-3 text-orange-600">
-            <ActiveModeIcon className="h-5 w-5" />
+        {availableModes.length > 1 && (
+          <div className="flex items-start gap-3">
+            <div className="rounded-2xl bg-orange-50 p-3 text-orange-600">
+              <ActiveModeIcon className="h-5 w-5" />
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold text-slate-800">
+                {activeMeta.label}
+              </h4>
+              <p className="mt-1 text-sm leading-6 text-slate-500">
+                {activeMeta.helper}
+              </p>
+            </div>
           </div>
-          <div>
-            <h4 className="text-sm font-semibold text-slate-800">
-              {activeMeta.label}
-            </h4>
-            <p className="mt-1 text-sm leading-6 text-slate-500">
-              {activeMeta.helper}
-            </p>
-          </div>
-        </div>
+        )}
 
         {resolvedActiveMode === "file" ? (
-          <div className="mt-5 rounded-[24px] border border-dashed border-orange-200 bg-[linear-gradient(180deg,rgba(255,247,237,0.7),rgba(255,255,255,1))] px-5 py-8 text-center">
+          <div className={`${availableModes.length > 1 ? "mt-5 " : ""}rounded-[24px] border border-dashed border-orange-200 bg-[linear-gradient(180deg,rgba(255,247,237,0.7),rgba(255,255,255,1))] px-5 py-8 text-center`}>
             <input
               ref={fileInputRef}
               type="file"
@@ -720,7 +730,7 @@ export default function FlexibleSubmissionPanel({
         ) : null}
 
         {resolvedActiveMode === "text" ? (
-          <div className="mt-5">
+          <div className={availableModes.length > 1 ? "mt-5" : ""}>
             <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
               Jawaban Teks
             </label>
@@ -735,7 +745,7 @@ export default function FlexibleSubmissionPanel({
         ) : null}
 
         {resolvedActiveMode === "drive" ? (
-          <div className="mt-5 space-y-4">
+          <div className={`${availableModes.length > 1 ? "mt-5 " : ""}space-y-4`}>
             <div>
               <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                 Link Google Drive
