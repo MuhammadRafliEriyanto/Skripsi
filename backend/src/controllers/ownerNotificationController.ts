@@ -84,9 +84,9 @@ async function getLatestSubscriptions() {
 export const getOwnerNotificationSummary = asyncHandler(
   async (_req: Request, res: Response) => {
     const [payments, latestSubscriptions, expenses, branches] = await Promise.all([
-      Payment.find().sort({ createdAt: -1, _id: -1 }).exec(),
+      Payment.find({ archivedAt: null }).sort({ createdAt: -1, _id: -1 }).exec(),
       getLatestSubscriptions(),
-      Expense.find().sort({ createdAt: -1, _id: -1 }).exec(),
+      Expense.find({ archivedAt: null }).sort({ createdAt: -1, _id: -1 }).exec(),
       Branch.find().sort({ createdAt: -1, _id: -1 }).exec(),
     ]);
 

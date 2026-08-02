@@ -33,6 +33,7 @@ import {
   applyXenditSessionSnapshot,
   applyPaidSubscriptionStudentData,
   buildXenditPermissionHelpMessage,
+  createAdminOfflinePaidMembershipForStudent,
   createAdminPaymentSessionForStudent,
   expirePendingPayment,
   findStudentAndUserByPublicStudentId,
@@ -78,6 +79,12 @@ type AdminCreateSessionRequestBody = {
   studentId?: string;
   packageKey?: string;
   expiresAt?: string;
+};
+
+type AdminCreateOfflineRenewalRequestBody = {
+  studentId?: string;
+  packageKey?: string;
+  paidAt?: string | null;
 };
 
 type AdminCreateBatchSessionRequestBody = {
@@ -1379,9 +1386,9 @@ async function buildAdminActivationsResponse(
 
 export async function buildOwnerActivitiesResponse() {
   const [payments, subscriptions, expenses] = await Promise.all([
-    Payment.find({ status: { $ne: "draft_renewal" } }).sort({ createdAt: -1, _id: -1 }).exec(),
+    Payment.find({ archivedAt: null, status: { $ne: "draft_renewal" } }).sort({ createdAt: -1, _id: -1 }).exec(),
     Subscription.find().sort({ createdAt: -1, _id: -1 }).exec(),
-    Expense.find().sort({ createdAt: -1, _id: -1 }).exec(),
+    Expense.find({ archivedAt: null }).sort({ createdAt: -1, _id: -1 }).exec(),
   ]);
 
   const subscriptionsByStudentId = new Map<string, SubscriptionDocument[]>();
@@ -1877,6 +1884,91 @@ export const createAdminPaymentSession = asyncHandler(
     } catch (error) {
       throw error;
     }
+  },
+);
+
+export const createAdminOfflineRenewal = asyncHandler(
+  async (
+    req: Request<
+      Record<string, string>,
+      Record<string, never>,
+      AdminCreateOfflineRenewalRequestBody
+    >,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    if (!req.user || req.user.role !== "admin") {
+      next(new AppError(403, "Hanya admin yang dapat membuat perpanjangan offline."));
+      return;
+    }
+
+    const studentId = normalizeText(req.body.studentId);
+    const packageKey = normalizeText(req.body.packageKey);
+    const selectedPackage = getOnlinePackageByKey(packageKey);
+    const errors: Record<string, string> = {};
+
+    if (!studentId) {
+      errors.studentId = "Student ID wajib dikirim.";
+    }
+
+    if (!packageKey) {
+      errors.packageKey = "packageKey wajib dikirim.";
+    } else if (!selectedPackage) {
+      errors.packageKey = "packageKey tidak valid.";
+    }
+
+    const paidAtInput = normalizeText(req.body.paidAt);
+    const paidAt = paidAtInput ? new Date(paidAtInput) : new Date();
+
+    if (Number.isNaN(paidAt.getTime())) {
+      errors.paidAt = "Tanggal pembayaran offline belum valid.";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      next(new AppError(400, "Data perpanjangan offline tidak valid.", errors));
+      return;
+    }
+
+    const { student } = await findStudentAndUserByPublicStudentId(studentId);
+
+    if (!student) {
+      next(new AppError(404, "Student tidak ditemukan.", null, "STUDENT_NOT_FOUND"));
+      return;
+    }
+
+    const scope = await resolveFinanceBranchScope(req.user, {
+      requireManagedBranchesForAdmin: true,
+    });
+
+    if (!matchesScopedBranch(readStudentBranch(student), "", scope)) {
+      next(
+        new AppError(
+          403,
+          "Admin tidak memiliki akses untuk membuat perpanjangan siswa cabang ini.",
+          null,
+          "ADMIN_BRANCH_SCOPE_FORBIDDEN",
+        ),
+      );
+      return;
+    }
+
+    const { user, subscription, payment } =
+      await createAdminOfflinePaidMembershipForStudent({
+        student,
+        packageKey,
+        paidAt,
+        adminId: req.user._id,
+      });
+
+    sendSuccess(res, {
+      statusCode: 201,
+      message: "Perpanjangan membership offline berhasil dicatat dan langsung lunas.",
+      data: {
+        student: toAdminMembershipStudentResponse(student, user),
+        subscription: toPublicSubscription(subscription),
+        payment: toPublicPayment(payment),
+      },
+    });
   },
 );
 

@@ -998,6 +998,102 @@ export async function createAdminPaymentSessionForStudent(params: {
   }
 }
 
+export async function createAdminOfflinePaidMembershipForStudent(params: {
+  student: StudentDocument;
+  packageKey: string;
+  adminId: Types.ObjectId | string;
+  paidAt?: Date | null;
+}) {
+  const selectedPackage = getOnlinePackageByKey(params.packageKey);
+
+  if (!selectedPackage) {
+    throw new AppError(400, "packageKey tidak valid.", null, "INVALID_PACKAGE_KEY");
+  }
+
+  const user = await User.findById(params.student.userId).exec();
+
+  if (!user) {
+    throw new AppError(
+      409,
+      "Student belum memiliki relasi user yang valid.",
+      null,
+      "STUDENT_USER_NOT_FOUND",
+    );
+  }
+
+  const blockingPendingPayment = await findBlockingPendingPaymentForStudent(params.student._id);
+
+  if (blockingPendingPayment) {
+    throw new AppError(
+      409,
+      "Siswa masih memiliki pending payment aktif. Tandai payment tersebut lunas atau batalkan dulu sebelum membuat perpanjangan offline.",
+      {
+        paymentId: blockingPendingPayment.payment.paymentId,
+        subscriptionCode: blockingPendingPayment.subscription.subscriptionCode,
+      },
+      "PENDING_PAYMENT_EXISTS",
+    );
+  }
+
+  const paidAt = params.paidAt && !Number.isNaN(params.paidAt.getTime())
+    ? params.paidAt
+    : new Date();
+  const renewalPreview = await resolveRenewalWindow(
+    params.student._id,
+    selectedPackage.durationMonth,
+    paidAt,
+  );
+  let createdPaymentId: string | null = null;
+  let createdSubscriptionId: string | null = null;
+
+  try {
+    const { subscription, payment } = await createPendingSubscriptionAndPayment({
+      user,
+      student: params.student,
+      packageDefinition: selectedPackage,
+      source: "admin",
+      createdByAdminId: params.adminId,
+      renewalOfSubscriptionId: renewalPreview.renewalOfSubscriptionId,
+      paymentStatus: "pending",
+    });
+    createdPaymentId = payment._id.toString();
+    createdSubscriptionId = subscription._id.toString();
+
+    payment.provider = "manual";
+    payment.method = "manual_confirmation";
+    payment.checkoutUrl = null;
+    payment.expiresAt = null;
+    payment.checkoutLastSentAt = null;
+    payment.checkoutSendCount = 0;
+
+    await markPaymentPaidManually({
+      payment,
+      subscription,
+      paidAt,
+      method: "manual_confirmation",
+    });
+
+    await Promise.all([payment.save(), subscription.save()]);
+    await applyPaidSubscriptionStudentData(subscription);
+
+    return {
+      student: params.student,
+      user,
+      subscription,
+      payment,
+    };
+  } catch (error) {
+    await Promise.all([
+      createdPaymentId ? Payment.deleteOne({ _id: createdPaymentId }) : Promise.resolve(),
+      createdSubscriptionId
+        ? Subscription.deleteOne({ _id: createdSubscriptionId })
+        : Promise.resolve(),
+    ]);
+
+    throw error;
+  }
+}
+
 export async function replaceAdminPaymentSessionForStudent(params: {
   currentPayment: PaymentDocument;
   currentSubscription: SubscriptionDocument;

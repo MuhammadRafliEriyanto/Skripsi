@@ -159,9 +159,11 @@ async function buildFinanceTransactions(
   const scopedBranchQuery = buildScopeBranchQuery(scope, resolvedBranchName);
   const studentBranchQuery = buildScopeBranchQuery(scope, resolvedBranchName);
   const [payments, manualIncomes, expenses, students] = await Promise.all([
-    Payment.find().sort({ createdAt: -1, _id: -1 }).exec(),
+    Payment.find({ archivedAt: null }).sort({ createdAt: -1, _id: -1 }).exec(),
     BranchIncome.find(scopedBranchQuery).sort({ createdAt: -1, _id: -1 }).exec(),
-    Expense.find(scopedBranchQuery).sort({ createdAt: -1, _id: -1 }).exec(),
+    Expense.find({ ...scopedBranchQuery, archivedAt: null })
+      .sort({ createdAt: -1, _id: -1 })
+      .exec(),
     Student.find(studentBranchQuery)
       .select("_id userId studentId branch program className")
       .exec(),

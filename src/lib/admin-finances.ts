@@ -51,10 +51,16 @@ export type AdminFinanceTransactionKind =
   (typeof adminFinanceTransactionKindOptions)[number];
 
 export const adminExpenseFormStatusOptions = [
-  "Menunggu",
   "Selesai",
+  "Menunggu",
   "Dibatalkan",
 ] as const satisfies readonly AdminExpenseStatus[];
+export const adminExpenseStatusFilterOptions = [
+  ...adminExpenseFormStatusOptions,
+  "Terhapus",
+] as const;
+export type AdminExpenseStatusFilter =
+  (typeof adminExpenseStatusFilterOptions)[number];
 
 export function normalizeAdminExpenseFormCategory(
   value: string | null | undefined,
@@ -97,6 +103,8 @@ export function getAdminExpenseStatusLabel(status: string) {
       return "Sudah Dibayar";
     case "Dibatalkan":
       return "Dibatalkan";
+    case "Terhapus":
+      return "Terhapus";
     default:
       return status;
   }
@@ -153,6 +161,9 @@ export type AdminExpense = {
   note: string;
   createdBy: string | null;
   updatedBy: string | null;
+  archivedAt: string | null;
+  archivedBy: string | null;
+  archiveReason: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -278,7 +289,7 @@ export type FetchAdminExpensesParams = {
   q?: string;
   branch?: string;
   category?: AdminExpenseCategory;
-  status?: AdminExpenseStatus;
+  status?: AdminExpenseStatus | AdminExpenseStatusFilter;
   dateFrom?: string;
   dateTo?: string;
 };
@@ -425,6 +436,18 @@ export async function deleteAdminExpense(id: string) {
       method: "DELETE",
     },
   );
+}
+
+export async function restoreAdminExpense(id: string) {
+  const payload = await requestAdminApi<{
+    expense: AdminExpense;
+  }>(`/api/expenses/${encodeURIComponent(id)}/restore`, {
+    method: "POST",
+  });
+
+  return payload.data as {
+    expense: AdminExpense;
+  };
 }
 
 export async function fetchAdminFinanceSummary(

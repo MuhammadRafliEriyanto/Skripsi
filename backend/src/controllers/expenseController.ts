@@ -42,6 +42,8 @@ type ExpenseQuery = {
   dateTo?: string;
 };
 
+const archivedExpenseStatusFilter = "Terhapus";
+
 function normalizeText(value: string | null | undefined) {
   return value?.trim().replace(/\s+/g, " ") ?? "";
 }
@@ -114,13 +116,19 @@ function toPublicExpense(expense: ExpenseDocument) {
     note: expense.note,
     createdBy: expense.createdBy,
     updatedBy: expense.updatedBy,
+    archivedAt: expense.archivedAt,
+    archivedBy: expense.archivedBy,
+    archiveReason: expense.archiveReason,
     createdAt: expense.createdAt,
     updatedAt: expense.updatedAt,
   };
 }
 
-async function findExpenseByParam(id: string) {
+async function findExpenseByParam(id: string, includeArchived = false) {
+  const archiveFilter = includeArchived ? {} : { archivedAt: null };
+
   return Expense.findOne({
+    ...archiveFilter,
     $or: [
       { expenseId: id },
       ...(Types.ObjectId.isValid(id) ? [{ _id: id }] : []),
@@ -214,7 +222,9 @@ export const getExpenses = asyncHandler(
       throw new AppError(400, "Kategori pengeluaran belum valid.");
     }
 
-    if (statusFilter && !isExpenseStatus(statusFilter)) {
+    const isArchivedFilter = statusFilter === archivedExpenseStatusFilter;
+
+    if (statusFilter && !isArchivedFilter && !isExpenseStatus(statusFilter)) {
       throw new AppError(400, "Status pengeluaran belum valid.");
     }
 
@@ -223,13 +233,19 @@ export const getExpenses = asyncHandler(
     }
 
     const branchQuery = buildScopeBranchQuery(scope, req.query.branch);
-    const expenses = await Expense.find(branchQuery)
+    const expenses = await Expense.find({
+      ...branchQuery,
+      archivedAt: isArchivedFilter ? { $ne: null } : null,
+    })
       .sort({ createdAt: -1, _id: -1 })
       .exec();
 
     const filteredExpenses = expenses.filter((expense) => {
       const matchesCategory = categoryFilter ? expense.category === categoryFilter : true;
-      const matchesStatus = matchesExpenseStatusFilter(expense.status, statusFilter);
+      const matchesStatus =
+        statusFilter && !isArchivedFilter
+          ? matchesExpenseStatusFilter(expense.status, statusFilter)
+          : true;
       const matchesQuery = searchQuery
         ? [
             expense.expenseId,
@@ -371,10 +387,43 @@ export const deleteExpense = asyncHandler(
 
     assertBranchAccess(expense.branch, scope);
 
-    await Expense.deleteOne({ _id: expense._id }).exec();
+    expense.archivedAt = new Date();
+    expense.archivedBy = req.user?._id ?? null;
+    expense.archiveReason = "Dihapus dari daftar pengeluaran oleh admin.";
+    expense.updatedBy = req.user?._id ?? null;
+    await expense.save();
 
     sendSuccess(res, {
-      message: "Data pengeluaran berhasil dihapus.",
+      message: "Data pengeluaran berhasil dihapus dari daftar dan disimpan sebagai arsip audit.",
+    });
+  },
+);
+
+export const restoreExpense = asyncHandler(
+  async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
+    const scope = await resolveFinanceBranchScope(req.user, {
+      requireManagedBranchesForAdmin: true,
+    });
+    const expense = await findExpenseByParam(req.params.id, true);
+
+    if (!expense || !expense.archivedAt) {
+      next(new AppError(404, "Data pengeluaran terhapus tidak ditemukan."));
+      return;
+    }
+
+    assertBranchAccess(expense.branch, scope);
+
+    expense.archivedAt = null;
+    expense.archivedBy = null;
+    expense.archiveReason = null;
+    expense.updatedBy = req.user?._id ?? null;
+    await expense.save();
+
+    sendSuccess(res, {
+      message: "Data pengeluaran berhasil dipulihkan.",
+      data: {
+        expense: toPublicExpense(expense),
+      },
     });
   },
 );

@@ -5,6 +5,7 @@ import {
   cancelAdminPayment,
   createAdminBatchPaymentSession,
   confirmDummyPayment,
+  createAdminOfflineRenewal,
   createAdminPaymentSession,
   createXenditTestSession,
   exportAdminPaymentActivations,
@@ -50,6 +51,12 @@ router.post(
   protect,
   authorizeRole("admin"),
   createAdminPaymentSession,
+);
+router.post(
+  "/admin/create-offline-renewal",
+  protect,
+  authorizeRole("admin"),
+  createAdminOfflineRenewal,
 );
 router.post(
   "/admin/create-batch-session",

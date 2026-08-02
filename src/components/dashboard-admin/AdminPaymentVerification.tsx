@@ -51,6 +51,7 @@ import {
 } from "@/lib/admin-dashboard-config";
 import {
   archiveAdminPayment,
+  createAdminOfflineRenewal,
   createAdminBatchPaymentSession,
   exportAdminPaymentActivationsCsv,
   exportAdminPaymentsCsv,
@@ -198,6 +199,24 @@ function formatDateTimeLocalInput(value: string | null | undefined) {
   return new Date(date.getTime() - offsetMilliseconds)
     .toISOString()
     .slice(0, 16);
+}
+
+function formatDateInputValue(value: Date | string | null | undefined) {
+  if (!value) {
+    return "";
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 function formatPaymentSourceLabel(value: IncomingPaymentRecord["source"]) {
@@ -1572,6 +1591,184 @@ function IncomingPaymentEditDialog({
   );
 }
 
+function OfflineMembershipRenewalDialog({
+  record,
+  billingPackages,
+  classPricingMatrix,
+  packageLookupOptions,
+  open,
+  isSubmitting,
+  onOpenChange,
+  onConfirm,
+}: {
+  record: ActivationRecord | null;
+  billingPackages: AdminBillingPackage[];
+  classPricingMatrix: ClassPricingMatrix;
+  packageLookupOptions: OnlinePackageDefinition[];
+  open: boolean;
+  isSubmitting: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: (
+    record: ActivationRecord,
+    payload: {
+      packageKey: string;
+      paidAt: string;
+    },
+  ) => void;
+}) {
+  const initialPackage =
+    billingPackages.find((item) => item.packageKey === record?.packageKey) ??
+    billingPackages[0];
+  const [packageKey, setPackageKey] = useState(
+    initialPackage?.packageKey ?? "",
+  );
+  const [paidAtValue, setPaidAtValue] = useState(formatDateInputValue(new Date()));
+  const selectedPackage =
+    billingPackages.find((item) => item.packageKey === packageKey) ??
+    initialPackage ??
+    null;
+  const selectedAmount =
+    record && selectedPackage
+      ? getPriceByClassAndPackage(
+          record.kelas,
+          selectedPackage.packageKey,
+          classPricingMatrix,
+          packageLookupOptions,
+        )
+      : 0;
+  const canSubmit = Boolean(record && packageKey && paidAtValue);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className={detailDialogClassName}>
+        {record ? (
+          <form
+            className="flex max-h-[84vh] flex-col"
+            onSubmit={(event) => {
+              event.preventDefault();
+
+              if (!canSubmit) {
+                return;
+              }
+
+              onConfirm(record, {
+                packageKey,
+                paidAt: new Date(`${paidAtValue}T00:00:00`).toISOString(),
+              });
+            }}
+          >
+            <DialogHeader className="gap-3 border-b border-slate-100 px-5 pb-4 pt-5 pr-12 sm:px-6">
+              <div className="flex flex-wrap items-center gap-2">
+                <AdminStatusBadge
+                  status={record.activationStatus}
+                  tone={formatActivationStatusTone(record.activationStatus)}
+                  className="w-fit"
+                />
+                <Badge variant="secondary">Perpanjangan offline</Badge>
+              </div>
+              <DialogTitle className="text-xl sm:text-2xl">
+                {record.studentName}
+              </DialogTitle>
+              <DialogDescription>
+                Catat pembayaran offline dari siswa dan langsung buat
+                perpanjangan membership berstatus Lunas.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] px-5 py-4 sm:px-6">
+              <div className="grid gap-3 md:grid-cols-2">
+                <InfoField label="Nomor induk" value={record.studentId ?? "-"} />
+                <InfoField label="Cabang" value={record.branch} />
+                <InfoField
+                  label="Membership sekarang"
+                  value={record.membershipPackage}
+                />
+                <InfoField
+                  label="Aktif sampai"
+                  value={formatDateTimeLabel(record.activeUntil)}
+                />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-700">
+                    Paket perpanjangan
+                  </label>
+                  <Select
+                    value={packageKey}
+                    onValueChange={setPackageKey}
+                    disabled={isSubmitting}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih paket" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {billingPackages.map((item) => {
+                        const amount = getPriceByClassAndPackage(
+                          record.kelas,
+                          item.packageKey,
+                          classPricingMatrix,
+                          packageLookupOptions,
+                        );
+                        return (
+                          <SelectItem key={item.packageKey} value={item.packageKey}>
+                            {item.packageName} - {formatCurrency(amount)}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label
+                    htmlFor="offline-renewal-paid-at"
+                    className="text-sm font-semibold text-slate-700"
+                  >
+                    Tanggal bayar offline
+                  </label>
+                  <Input
+                    id="offline-renewal-paid-at"
+                    type="date"
+                    value={paidAtValue}
+                    disabled={isSubmitting}
+                    onChange={(event) => setPaidAtValue(event.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-[20px] border border-emerald-100/80 bg-emerald-50/90 px-4 py-3 text-sm leading-6 text-emerald-700">
+                Nominal yang dicatat: {formatCurrency(selectedAmount)}. Sistem
+                membuat payment manual, menandai Lunas, lalu memperpanjang masa
+                aktif membership sesuai paket.
+              </div>
+            </div>
+
+            <DialogFooter className="border-t border-slate-100 px-5 py-4 sm:px-6">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={isSubmitting}
+              >
+                Batal
+              </Button>
+              <Button type="submit" disabled={!canSubmit || isSubmitting}>
+                {isSubmitting ? (
+                  <LoaderCircle className="size-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="size-4" />
+                )}
+                Simpan Offline
+              </Button>
+            </DialogFooter>
+          </form>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function IncomingPaymentStatusEditDialog({
   record,
   open,
@@ -2034,6 +2231,8 @@ export function AdminPaymentVerification({
     useState<IncomingPaymentRecord | null>(null);
   const [paymentEditRecord, setPaymentEditRecord] =
     useState<IncomingPaymentRecord | null>(null);
+  const [offlineRenewalRecord, setOfflineRenewalRecord] =
+    useState<ActivationRecord | null>(null);
   const [selectedActivationId, setSelectedActivationId] = useState<string | null>(
     null,
   );
@@ -2055,6 +2254,7 @@ export function AdminPaymentVerification({
   >(null);
   const [isUpdatingPaymentStatus, setIsUpdatingPaymentStatus] = useState(false);
   const [isReplacingPayment, setIsReplacingPayment] = useState(false);
+  const [isCreatingOfflineRenewal, setIsCreatingOfflineRenewal] = useState(false);
   const [financeRefreshKey, setFinanceRefreshKey] = useState(0);
   const previousIncomingFiltersRef = useRef<string | null>(null);
   const previousActivationFiltersRef = useRef<string | null>(null);
@@ -2909,6 +3109,71 @@ export function AdminPaymentVerification({
     }
   }
 
+  async function handleCreateOfflineRenewal(
+    record: ActivationRecord,
+    payload: {
+      packageKey: string;
+      paidAt: string;
+    },
+  ) {
+    const studentId = normalizeText(record.studentId);
+
+    if (!studentId) {
+      const message = "Nomor induk siswa tidak tersedia untuk perpanjangan offline.";
+      setBillingFeedback({
+        tone: "warning",
+        title: "Perpanjangan offline gagal",
+        message,
+      });
+      window.alert(message);
+      return;
+    }
+
+    setIsCreatingOfflineRenewal(true);
+
+    try {
+      const response = await createAdminOfflineRenewal({
+        studentId,
+        packageKey: payload.packageKey,
+        paidAt: payload.paidAt,
+      });
+
+      setBillingFeedback({
+        tone: "success",
+        title: "Perpanjangan offline berhasil",
+        message: `Payment ${response.payment.paymentId} sudah Lunas untuk ${record.studentName}. Membership ${response.subscription.subscriptionCode} diperbarui.`,
+      });
+      setOfflineRenewalRecord(null);
+      window.alert("Perpanjangan offline berhasil dicatat.");
+      setIncomingPage(1);
+      await Promise.allSettled([
+        refreshPaymentViews({
+          includeStudents: false,
+          page: 1,
+        }),
+        loadMembershipCoverage(),
+      ]);
+      setFinanceRefreshKey((value) => value + 1);
+    } catch (requestError) {
+      const message =
+        requestError instanceof Error
+          ? requestError.message
+          : "Perpanjangan offline belum bisa dicatat.";
+
+      setBillingFeedback({
+        tone: "warning",
+        title: "Perpanjangan offline gagal",
+        message,
+      });
+      window.alert(message);
+      await refreshPaymentViews({
+        includeStudents: false,
+      });
+    } finally {
+      setIsCreatingOfflineRenewal(false);
+    }
+  }
+
   async function handleArchivePayment(payment: IncomingPaymentRecord) {
     const blockReason = getArchivePaymentBlockReason(payment);
 
@@ -3461,7 +3726,7 @@ export function AdminPaymentVerification({
     {
       key: "actions",
       header: "Aksi",
-      className: "min-w-[156px] text-center",
+      className: "min-w-[200px] text-center",
       cell: (student) => {
         const payment = buildPaymentRecordFromActivation(student);
         const isMarkingPaid = payment
@@ -3482,6 +3747,20 @@ export function AdminPaymentVerification({
 
         return (
           <div className="flex flex-wrap items-center justify-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label="Perpanjang offline"
+              title="Perpanjang offline"
+              className="size-9 rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-700"
+              disabled={isCreatingOfflineRenewal || !student.studentId}
+              onClick={() => {
+                setOfflineRenewalRecord(student);
+              }}
+            >
+              <Plus className="size-4" />
+            </Button>
             {payment ? (
               <>
               <Button
@@ -4236,6 +4515,24 @@ export function AdminPaymentVerification({
         }}
         onConfirm={(record) => {
           void handleMarkPaymentPaid(record);
+        }}
+      />
+
+      <OfflineMembershipRenewalDialog
+        key={offlineRenewalRecord?.id ?? "empty-offline-renewal"}
+        record={offlineRenewalRecord}
+        billingPackages={billingPackages}
+        classPricingMatrix={subscriptionConfig.classPricingMatrix}
+        packageLookupOptions={packageLookupOptions}
+        open={offlineRenewalRecord !== null}
+        isSubmitting={isCreatingOfflineRenewal}
+        onOpenChange={(open) => {
+          if (!open && !isCreatingOfflineRenewal) {
+            setOfflineRenewalRecord(null);
+          }
+        }}
+        onConfirm={(record, payload) => {
+          void handleCreateOfflineRenewal(record, payload);
         }}
       />
 

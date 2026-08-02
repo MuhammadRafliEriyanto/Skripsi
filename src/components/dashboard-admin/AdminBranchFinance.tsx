@@ -38,6 +38,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   adminExpenseCategoryOptions,
   adminExpenseFormStatusOptions,
+  adminExpenseStatusFilterOptions,
   createAdminExpense,
   deleteAdminExpense,
   fetchAdminExpenses,
@@ -45,11 +46,13 @@ import {
   getAdminExpenseStatusLabel,
   normalizeAdminExpenseFormCategory,
   normalizeAdminExpenseFormStatus,
+  restoreAdminExpense,
   updateAdminExpense,
   type AdminExpense,
   type AdminExpenseCategory,
   type AdminExpenseMutationPayload,
   type AdminExpenseStatus,
+  type AdminExpenseStatusFilter,
   type AdminFinanceScope,
   type AdminFinanceSummaryData,
   type AdminUiExpenseCategory,
@@ -239,12 +242,23 @@ function getFinanceStatusTone(status: string) {
   if (
     normalizedStatus === "failed" ||
     normalizedStatus === "expired" ||
-    normalizedStatus === "dibatalkan"
+    normalizedStatus === "dibatalkan" ||
+    normalizedStatus === "terhapus"
   ) {
     return "danger" as const;
   }
 
   return "default" as const;
+}
+
+function isArchivedExpense(expense: AdminExpense | null | undefined) {
+  return Boolean(expense?.archivedAt);
+}
+
+function getExpenseStatusDisplay(expense: AdminExpense) {
+  return isArchivedExpense(expense)
+    ? "Terhapus"
+    : getAdminExpenseStatusLabel(expense.status);
 }
 
 function FinanceField({
@@ -505,7 +519,7 @@ export function AdminBranchFinance({
           status:
             expenseStatusFilter === allExpenseStatusValue
               ? undefined
-              : (expenseStatusFilter as AdminExpenseStatus),
+              : (expenseStatusFilter as AdminExpenseStatusFilter),
           dateFrom: dateFrom || undefined,
           dateTo: dateTo || undefined,
         });
@@ -572,6 +586,14 @@ export function AdminBranchFinance({
   function handleOpenEditExpense(expense: AdminExpense) {
     if (!canManageExpenses) {
       setSelectedExpenseDetail(expense);
+      return;
+    }
+
+    if (isArchivedExpense(expense)) {
+      setFeedback({
+        tone: "warning",
+        message: "Pengeluaran terhapus harus dipulihkan dulu sebelum diedit.",
+      });
       return;
     }
 
@@ -671,7 +693,7 @@ export function AdminBranchFinance({
       await deleteAdminExpense(expenseToDelete.id);
       setFeedback({
         tone: "warning",
-        message: `Pengeluaran ${expenseToDelete.expenseId} berhasil dihapus.`,
+        message: `Pengeluaran ${expenseToDelete.expenseId} berhasil dihapus dari daftar.`,
       });
       setExpenseToDelete(null);
       setRefreshKey((currentValue) => currentValue + 1);
@@ -682,6 +704,52 @@ export function AdminBranchFinance({
         message: getFinanceErrorMessage(
           error,
           "Pengeluaran cabang belum berhasil dihapus.",
+        ),
+      });
+    } finally {
+      setIsExpenseDeleting(false);
+    }
+  }
+
+  async function handleRestoreExpense(expense: AdminExpense) {
+    if (!canManageExpenses) {
+      setSelectedExpenseDetail(expense);
+      return;
+    }
+
+    if (!isArchivedExpense(expense)) {
+      setFeedback({
+        tone: "warning",
+        message: "Pengeluaran ini belum masuk daftar Terhapus.",
+      });
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Pulihkan pengeluaran ${expense.expenseId} ke daftar pengeluaran aktif?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setIsExpenseDeleting(true);
+    setFeedback(null);
+
+    try {
+      await restoreAdminExpense(expense.id);
+      setFeedback({
+        tone: "success",
+        message: `Pengeluaran ${expense.expenseId} berhasil dipulihkan.`,
+      });
+      setRefreshKey((currentValue) => currentValue + 1);
+      void Promise.resolve(onRefresh?.());
+    } catch (error) {
+      setFeedback({
+        tone: "warning",
+        message: getFinanceErrorMessage(
+          error,
+          "Pengeluaran cabang belum berhasil dipulihkan.",
         ),
       });
     } finally {
@@ -737,10 +805,17 @@ export function AdminBranchFinance({
       header: "Status",
       className: "min-w-[140px]",
       cell: (expense) => (
-        <AdminStatusBadge
-          status={getAdminExpenseStatusLabel(expense.status)}
-          tone={getFinanceStatusTone(expense.status)}
-        />
+        <div className="space-y-1">
+          <AdminStatusBadge
+            status={getExpenseStatusDisplay(expense)}
+            tone={getFinanceStatusTone(getExpenseStatusDisplay(expense))}
+          />
+          {isArchivedExpense(expense) ? (
+            <p className="text-xs text-slate-400">
+              Asli: {getAdminExpenseStatusLabel(expense.status)}
+            </p>
+          ) : null}
+        </div>
       ),
     },
     {
@@ -759,45 +834,59 @@ export function AdminBranchFinance({
     {
       key: "actions",
       header: "Aksi",
-      className: "min-w-[140px]",
+      className: "min-w-[156px]",
       cell: (expense) => (
         <div className="flex items-center justify-center gap-2">
           {canManageExpenses ? (
-            <>
+            isArchivedExpense(expense) ? (
               <Button
                 type="button"
                 variant="outline"
                 size="icon"
-                className="size-9 rounded-xl text-orange-600"
-                onClick={() => handleOpenEditExpense(expense)}
+                className="size-9 rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-700"
+                title="Pulihkan pengeluaran"
+                disabled={isExpenseDeleting}
+                onClick={() => void handleRestoreExpense(expense)}
               >
-                <Pencil className="size-4" />
-                <span className="sr-only">Edit pengeluaran</span>
+                <RotateCcw className="size-4" />
+                <span className="sr-only">Pulihkan pengeluaran</span>
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="size-9 rounded-xl border-rose-200 text-rose-600 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700"
-                onClick={() => setExpenseToDelete(expense)}
-              >
-                <Trash2 className="size-4" />
-                <span className="sr-only">Hapus pengeluaran</span>
-              </Button>
-            </>
-          ) : (
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="size-9 rounded-xl text-slate-600 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"
-              title="Lihat detail pengeluaran"
-              onClick={() => setSelectedExpenseDetail(expense)}
-            >
-              <Eye className="size-4" />
-              <span className="sr-only">Detail pengeluaran</span>
-            </Button>
-          )}
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="size-9 rounded-xl text-orange-600"
+                  onClick={() => handleOpenEditExpense(expense)}
+                >
+                  <Pencil className="size-4" />
+                  <span className="sr-only">Edit pengeluaran</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="size-9 rounded-xl border-rose-200 text-rose-600 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700"
+                  onClick={() => setExpenseToDelete(expense)}
+                >
+                  <Trash2 className="size-4" />
+                  <span className="sr-only">Hapus pengeluaran</span>
+                </Button>
+              </>
+            )
+          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="size-9 rounded-xl text-slate-600 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"
+            title="Lihat detail pengeluaran"
+            onClick={() => setSelectedExpenseDetail(expense)}
+          >
+            <Eye className="size-4" />
+            <span className="sr-only">Detail pengeluaran</span>
+          </Button>
         </div>
       ),
     },
@@ -1087,7 +1176,7 @@ export function AdminBranchFinance({
                       >
                         Semua status
                       </SelectItem>
-                      {adminExpenseFormStatusOptions.map((status) => (
+                      {adminExpenseStatusFilterOptions.map((status) => (
                         <SelectItem
                           key={status}
                           value={status}
@@ -1201,8 +1290,25 @@ export function AdminBranchFinance({
               />
               <FinanceDetailItem
                 label="Status"
-                value={getAdminExpenseStatusLabel(selectedExpenseDetail.status)}
+                value={getExpenseStatusDisplay(selectedExpenseDetail)}
               />
+              {isArchivedExpense(selectedExpenseDetail) ? (
+                <>
+                  <FinanceDetailItem
+                    label="Status asli"
+                    value={getAdminExpenseStatusLabel(selectedExpenseDetail.status)}
+                  />
+                  <FinanceDetailItem
+                    label="Dihapus pada"
+                    value={formatDateTimeLabel(selectedExpenseDetail.archivedAt)}
+                  />
+                  <FinanceDetailItem
+                    label="Alasan hapus"
+                    value={selectedExpenseDetail.archiveReason ?? "-"}
+                    className="sm:col-span-2"
+                  />
+                </>
+              ) : null}
               <FinanceDetailItem
                 label="Tanggal dicatat dibayar"
                 value={formatDateLabel(selectedExpenseDetail.paidAt)}

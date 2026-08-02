@@ -174,6 +174,12 @@ export type CreateAdminPaymentSessionPayload = {
   expiresAt?: string;
 };
 
+export type CreateAdminOfflineRenewalPayload = {
+  studentId: string;
+  packageKey: string;
+  paidAt?: string | null;
+};
+
 export type CreateAdminBatchPaymentSessionPayload = {
   level: "SD" | "SMP" | "SMA";
   grade?: string;
@@ -190,6 +196,12 @@ export type CreateAdminPaymentSessionData = {
   subscription: MembershipSubscription;
   payment: MembershipPayment;
   statusPagePath: string;
+};
+
+export type CreateAdminOfflineRenewalData = {
+  student: MembershipStudent;
+  subscription: MembershipSubscription;
+  payment: MembershipPayment;
 };
 
 export type ResendAdminPaymentLinkData = {
@@ -433,6 +445,20 @@ export async function createAdminPaymentSession(
   );
 
   return response.data as CreateAdminPaymentSessionData;
+}
+
+export async function createAdminOfflineRenewal(
+  payload: CreateAdminOfflineRenewalPayload,
+) {
+  const response = await requestAdminApi<CreateAdminOfflineRenewalData>(
+    "/api/payments/admin/create-offline-renewal",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+
+  return response.data as CreateAdminOfflineRenewalData;
 }
 
 export async function createAdminBatchPaymentSession(

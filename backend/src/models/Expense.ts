@@ -50,6 +50,9 @@ export interface IExpense {
   note: string;
   createdBy: Types.ObjectId | null;
   updatedBy: Types.ObjectId | null;
+  archivedAt: Date | null;
+  archivedBy: Types.ObjectId | null;
+  archiveReason: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -125,6 +128,23 @@ const expenseSchema = new Schema<IExpense>(
       default: null,
       index: true,
     },
+    archivedAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+    archivedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
+    },
+    archiveReason: {
+      type: String,
+      default: null,
+      trim: true,
+      maxlength: 300,
+    },
   },
   {
     timestamps: true,
@@ -134,6 +154,7 @@ const expenseSchema = new Schema<IExpense>(
 
 expenseSchema.index({ status: 1, createdAt: -1 });
 expenseSchema.index({ branch: 1, status: 1, createdAt: -1 });
+expenseSchema.index({ archivedAt: 1, branch: 1, status: 1, createdAt: -1 });
 
 export const Expense: Model<IExpense> =
   (models.Expense as Model<IExpense> | undefined) ?? model<IExpense>("Expense", expenseSchema);
