@@ -21,6 +21,7 @@ import {
   buildTeacherAcademicPeriodOrLegacyFilter,
   type TeacherAcademicPeriodFilters,
 } from "../utils/teacherAcademicPeriod";
+import { buildStableTeacherClassId } from "../utils/teacherClassIdentity";
 
 type StudentWithUser = StudentDocument & {
   userId: UserDocument | null;
@@ -30,6 +31,7 @@ type DashboardJenjang = "SD" | "SMP" | "SMA";
 
 type DashboardClass = {
   id: string;
+  classId: string;
   classKey: string;
   className: string;
   branch: string;
@@ -273,13 +275,15 @@ export const getMyTeacherDashboard = asyncHandler(
     const dashboardClasses: DashboardClass[] = schedules.map((schedule) => {
       const academicInfo = getAcademicInfo(schedule.className);
       const branch = normalizeText(schedule.branch);
+      const className = normalizeText(schedule.className);
       const participants =
         studentsByClassKey.get(buildBranchClassKey(branch, academicInfo.classKey)) ?? [];
 
       return {
         id: schedule.id,
+        classId: buildStableTeacherClassId(teacher.teacherId, branch, className),
         classKey: academicInfo.classKey,
-        className: schedule.className,
+        className,
         branch,
         jenjang: academicInfo.jenjang,
         tingkat: academicInfo.tingkat,

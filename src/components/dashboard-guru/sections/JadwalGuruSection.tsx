@@ -35,6 +35,7 @@ type GuruStatus = "Berjalan" | "Siap" | "Selesai" | "Bentrok" | "Review";
 
 type JadwalGuruItem = {
   id: string;
+  kelasId?: string;
   className: string;
   jenjang: string;
   tingkat: string;
@@ -312,6 +313,7 @@ function buildItemId(prefix: string, value: string | null | undefined, index: nu
 function mapKelasToJadwalItem(item: GuruClassCardItem): JadwalGuruItem {
   return {
     id: item.kelasId,
+    kelasId: item.kelasId,
     className: item.namaKelas,
     jenjang: item.jenjang,
     tingkat: item.tingkat,
@@ -495,6 +497,7 @@ function mapScheduleItem(
 
   return {
     id: itemId,
+    kelasId: linkedClass?.kelasId,
     className,
     jenjang: linkedClass?.jenjang || inferJenjang(className),
     tingkat: linkedClass?.tingkat || inferTingkat(className),
@@ -652,9 +655,17 @@ function LoadingStack({ count = 3 }: { count?: number }) {
   );
 }
 
-function JadwalCard({ item }: { item: JadwalGuruItem }) {
-  return (
-    <div className="rounded-xl border border-gray-200 bg-white p-3 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.01] hover:border-orange-300 hover:shadow-lg hover:shadow-orange-200/35 hover:ring-1 hover:ring-orange-100">
+function JadwalCard({
+  item,
+  academicYear,
+}: {
+  item: JadwalGuruItem;
+  academicYear: string;
+}) {
+  const cardClassName =
+    "group block rounded-xl border border-gray-200 bg-white p-3 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.01] hover:border-orange-300 hover:bg-orange-50/40 hover:shadow-lg hover:shadow-orange-200/35 hover:ring-1 hover:ring-orange-100";
+  const content = (
+    <>
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold text-slate-800">{item.className}</h3>
@@ -693,7 +704,38 @@ function JadwalCard({ item }: { item: JadwalGuruItem }) {
           {item.room}
         </div>
       </div>
-    </div>
+
+      <div
+        className={`mt-3 flex items-center justify-between rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+          item.kelasId
+            ? "border-orange-100 bg-orange-50/70 text-orange-700 group-hover:border-orange-200 group-hover:bg-orange-100/70"
+            : "border-slate-100 bg-slate-50 text-slate-500"
+        }`}
+      >
+        <span className="inline-flex items-center gap-1.5">
+          {item.kelasId ? <ClipboardCheck size={12} /> : <AlertCircle size={12} />}
+          {item.kelasId ? "Mulai Absen" : "Kelas belum terhubung"}
+        </span>
+        {item.kelasId ? <ChevronRight size={14} /> : null}
+      </div>
+    </>
+  );
+
+  if (!item.kelasId) {
+    return <div className={cardClassName}>{content}</div>;
+  }
+
+  return (
+    <Link
+      href={buildGuruUrl(
+        "/dashboard-guru/absensi-kelas",
+        new URLSearchParams({ academicYear }),
+        { kelasId: item.kelasId },
+      )}
+      className={cardClassName}
+    >
+      {content}
+    </Link>
   );
 }
 
@@ -1146,7 +1188,13 @@ export default function JadwalGuruSection() {
               {isLoading ? (
                 <LoadingStack count={3} />
               ) : jadwalPerHari.length > 0 ? (
-                jadwalPerHari.map((item) => <JadwalCard key={item.id} item={item} />)
+                jadwalPerHari.map((item) => (
+                  <JadwalCard
+                    key={item.id}
+                    item={item}
+                    academicYear={academicYear}
+                  />
+                ))
               ) : (
                 <div className="flex flex-col items-center justify-center py-10 text-center text-gray-400">
                   <Calendar size={28} className="opacity-40" />
