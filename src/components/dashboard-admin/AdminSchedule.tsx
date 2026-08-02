@@ -953,13 +953,29 @@ export function AdminSchedule({
         const selectedTeacher = resolvedTeachers.find(
           (t) => t.id === currentValues.teacherId,
         );
+        let teacherMatches = false;
+
         if (selectedTeacher && selectedTeacher.subject) {
           const normalizedTeacherSubject = normalizeScheduleSubject(
             selectedTeacher.subject,
             scheduleSubjectOptions,
           );
-          if (normalizedTeacherSubject !== value) {
-            nextValues.teacherId = "";
+          if (normalizedTeacherSubject === value) {
+            teacherMatches = true;
+          }
+        }
+
+        if (!teacherMatches) {
+          nextValues.teacherId = "";
+
+          const teachersForSubject = resolvedTeachers.filter(
+            (t) =>
+              normalizeScheduleSubject(t.subject, scheduleSubjectOptions) ===
+              normalizeScheduleSubject(value as string, scheduleSubjectOptions),
+          );
+
+          if (teachersForSubject.length === 1) {
+            nextValues.teacherId = teachersForSubject[0].id;
           }
         }
       }
@@ -1939,6 +1955,12 @@ export function AdminSchedule({
               ? `Hapus jadwal ${scheduleToDelete.className} pada ${scheduleToDelete.day}, ${scheduleToDelete.time}?`
               : "Pilih jadwal yang ingin dihapus."}
           </div>
+
+          {formError ? (
+            <p className="rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-sm text-rose-600">
+              {formError}
+            </p>
+          ) : null}
 
           <DialogFooter>
             <Button
