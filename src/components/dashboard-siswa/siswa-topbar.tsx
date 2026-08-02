@@ -93,12 +93,6 @@ const regularMenus = [
     exact: false,
     activePathPrefixes: [
       "/dashboard-siswa/nilai",
-      "/dashboard-siswa/tugas",
-      "/dashboard-siswa/kirim-tugas",
-      "/dashboard-siswa/tryout",
-      "/dashboard-siswa/ujian",
-      "/dashboard-siswa/riwayat-akademik",
-      "/dashboard-siswa/materi",
     ],
   },
   {
@@ -129,8 +123,6 @@ const utbkMenus = [
     exact: false,
     activePathPrefixes: [
       "/dashboard-siswa/nilai",
-      "/dashboard-siswa/tryout",
-      "/dashboard-siswa/ujian",
     ],
   },
   {
