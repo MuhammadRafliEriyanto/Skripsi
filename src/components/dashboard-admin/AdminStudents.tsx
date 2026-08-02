@@ -3,6 +3,7 @@
 import {
   Download,
   Eye,
+  KeyRound,
   Pencil,
   Plus,
   Power,
@@ -138,6 +139,13 @@ type StudentPasswordResetResponse = {
     loginCode: string;
     password: string;
   };
+};
+
+type StudentPasswordResetNotice = {
+  studentId: string;
+  studentName: string;
+  loginCode: string;
+  password: string;
 };
 
 type StudentActionFeedback = {
@@ -591,6 +599,8 @@ export function AdminStudents({
   const [importError, setImportError] = useState<string | null>(null);
   const [importResult, setImportResult] =
     useState<StudentImportResponse | null>(null);
+  const [resetStudentAccount, setResetStudentAccount] =
+    useState<StudentPasswordResetNotice | null>(null);
   const [importInputVersion, setImportInputVersion] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
@@ -808,6 +818,7 @@ export function AdminStudents({
       ),
     );
     setFormError(null);
+    setResetStudentAccount(null);
     setIsFormOpen(true);
   };
 
@@ -823,6 +834,7 @@ export function AdminStudents({
     setEditingStudentId(student.id);
     setFormValues(toStudentFormValues(student));
     setFormError(null);
+    setResetStudentAccount(null);
     setIsFormOpen(true);
   };
 
@@ -837,6 +849,7 @@ export function AdminStudents({
       ),
     );
     setFormError(null);
+    setResetStudentAccount(null);
   };
 
   const closeImportDialog = () => {
@@ -1029,11 +1042,17 @@ export function AdminStudents({
       const studentName =
         payload.data?.student?.name || formValues.name.trim() || "Siswa";
 
-      updateFormValue("password", "");
+      setResetStudentAccount({
+        studentId: payload.data?.student?.id ?? editingStudentId,
+        studentName,
+        loginCode: credentials.loginCode,
+        password: credentials.password,
+      });
+      setFormValues((currentValues) => ({
+        ...currentValues,
+        password: "",
+      }));
       await refreshStudentViews();
-      alert(
-        `Password ${studentName} berhasil direset.\n\nKode Login: ${credentials.loginCode}\nPassword: ${credentials.password}`,
-      );
     } catch (requestError) {
       setFormError(
         requestError instanceof Error
@@ -1701,23 +1720,38 @@ export function AdminStudents({
                 </StudentField>
 
                 {isEditing ? (
-                  <StudentField label="Password">
-                    <div className="space-y-2 pt-1">
+                  <div className="rounded-xl border border-amber-100 bg-amber-50/70 px-4 py-3 text-sm text-amber-800 sm:col-span-2">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="space-y-1">
+                        <p className="font-medium text-amber-900">
+                          Reset password awal siswa
+                        </p>
+                      </div>
                       <Button
                         type="button"
                         variant="outline"
-                        className={`w-full justify-start text-orange-600 hover:text-orange-700 hover:bg-orange-50 border-orange-200 ${warmOutlineButtonClassName}`}
+                        className="w-full shrink-0 border-amber-200 bg-white text-amber-700 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-800 sm:w-auto"
                         onClick={handleResetStudentPassword}
                         disabled={isResettingPassword || isSubmitting}
                       >
-                        <RotateCcw className="mr-2 size-4" />
-                        {isResettingPassword ? "Mereset..." : "Reset Password ke Default"}
+                        <KeyRound className="size-4" />
+                        {isResettingPassword ? "Mereset..." : "Reset Password"}
                       </Button>
-                      <p className="text-xs leading-5 text-slate-500">
-                        Klik tombol di atas untuk mereset password ke bawaan sistem dan membuka akun yang terkunci.
-                      </p>
                     </div>
-                  </StudentField>
+
+                    {resetStudentAccount ? (
+                      <div className="mt-3 rounded-lg border border-emerald-100 bg-white px-3 py-2 text-emerald-700">
+                        <p className="font-medium">
+                          Password {resetStudentAccount.studentName} berhasil
+                          direset.
+                        </p>
+                        <p className="mt-1 text-xs leading-6">
+                          Kode Login: {resetStudentAccount.loginCode} | Password:{" "}
+                          {resetStudentAccount.password}
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
             </div>

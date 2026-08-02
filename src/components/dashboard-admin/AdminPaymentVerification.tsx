@@ -228,6 +228,13 @@ function formatPaymentStatusTone(status: PaymentStatus) {
   }
 }
 
+function canArchivePaymentRecord(record: IncomingPaymentRecord | null | undefined) {
+  return (
+    record?.source === "admin" &&
+    (record.status === "pending" || record.status === "expired")
+  );
+}
+
 function formatActivationStatusTone(status: ActivationStatus) {
   switch (status) {
     case "Aktif":
@@ -3053,106 +3060,105 @@ export function AdminPaymentVerification({
           isArchiving;
         const canEditPayment =
           payment.source === "admin" && payment.status === "pending";
-        const canArchivePayment =
-          payment.source === "admin" && payment.status !== "paid";
+        const canArchivePayment = canArchivePaymentRecord(payment);
 
         return (
           <div className="flex flex-wrap items-center justify-center gap-2">
-            {canEditPayment ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-2 border-sky-200 text-sky-700 hover:bg-sky-50 hover:text-sky-700"
-                disabled={isProcessing}
-                onClick={() => {
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-2 border-sky-200 text-sky-700 hover:bg-sky-50 hover:text-sky-700"
+              disabled={!canEditPayment || isProcessing}
+              onClick={() => {
+                if (canEditPayment) {
                   setPaymentEditRecord(payment);
-                }}
-              >
-                {isReplacing ? (
-                  <LoaderCircle className="size-4 animate-spin" />
-                ) : (
-                  <Pencil className="size-4" />
-                )}
-                Edit Transaksi
-              </Button>
-            ) : null}
-            {payment.status === "pending" ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-700"
-                disabled={isProcessing}
-                onClick={() => {
+                }
+              }}
+            >
+              {isReplacing ? (
+                <LoaderCircle className="size-4 animate-spin" />
+              ) : (
+                <Pencil className="size-4" />
+              )}
+              Edit Transaksi
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-700"
+              disabled={payment.status !== "pending" || isProcessing}
+              onClick={() => {
+                if (payment.status === "pending") {
                   setPaymentStatusEditRecord(payment);
-                }}
-              >
-                {isMarkingPaid ? (
-                  <LoaderCircle className="size-4 animate-spin" />
-                ) : (
-                  <Pencil className="size-4" />
-                )}
-                Edit Status
-              </Button>
-            ) : null}
-            {payment.canResendLink ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                disabled={isProcessing}
-                onClick={() => {
+                }
+              }}
+            >
+              {isMarkingPaid ? (
+                <LoaderCircle className="size-4 animate-spin" />
+              ) : (
+                <Pencil className="size-4" />
+              )}
+              Edit Status
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              disabled={!payment.canResendLink || isProcessing}
+              onClick={() => {
+                if (payment.canResendLink) {
                   void handleResendPaymentLink(payment);
-                }}
-              >
-                {isResending ? (
-                  <LoaderCircle className="size-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="size-4" />
-                )}
-                Kirim Ulang Link
-              </Button>
-            ) : null}
-            {payment.canCancel ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-2 border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-700"
-                disabled={isProcessing}
-                onClick={() => {
+                }
+              }}
+            >
+              {isResending ? (
+                <LoaderCircle className="size-4 animate-spin" />
+              ) : (
+                <RefreshCw className="size-4" />
+              )}
+              Kirim Ulang Link
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-2 border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-700"
+              disabled={!payment.canCancel || isProcessing}
+              onClick={() => {
+                if (payment.canCancel) {
                   void handleCancelPayment(payment);
-                }}
-              >
-                {isCanceling ? (
-                  <LoaderCircle className="size-4 animate-spin" />
-                ) : (
-                  <Ban className="size-4" />
-                )}
-                Batalkan Transaksi
-              </Button>
-            ) : null}
-            {canArchivePayment ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-2 border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-700"
-                disabled={isProcessing}
-                onClick={() => {
+                }
+              }}
+            >
+              {isCanceling ? (
+                <LoaderCircle className="size-4 animate-spin" />
+              ) : (
+                <Ban className="size-4" />
+              )}
+              Batalkan Transaksi
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-2 border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-700"
+              disabled={!canArchivePayment || isProcessing}
+              onClick={() => {
+                if (canArchivePayment) {
                   void handleArchivePayment(payment);
-                }}
-              >
-                {isArchiving ? (
-                  <LoaderCircle className="size-4 animate-spin" />
-                ) : (
-                  <Trash2 className="size-4" />
-                )}
-                Hapus
-              </Button>
-            ) : null}
+                }
+              }}
+            >
+              {isArchiving ? (
+                <LoaderCircle className="size-4 animate-spin" />
+              ) : (
+                <Trash2 className="size-4" />
+              )}
+              Hapus
+            </Button>
             <Button
               type="button"
               variant="ghost"
@@ -3346,20 +3352,22 @@ export function AdminPaymentVerification({
           isArchiving;
         const canEditPayment =
           payment?.source === "admin" && payment.status === "pending";
-        const canArchivePayment =
-          payment?.source === "admin" && payment.status !== "paid";
+        const canArchivePayment = canArchivePaymentRecord(payment);
 
         return (
           <div className="flex flex-wrap items-center justify-center gap-2">
-            {payment && canEditPayment ? (
+            {payment ? (
+              <>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 className="gap-2 border-sky-200 text-sky-700 hover:bg-sky-50 hover:text-sky-700"
-                disabled={isProcessing}
+                disabled={!canEditPayment || isProcessing}
                 onClick={() => {
-                  setPaymentEditRecord(payment);
+                  if (canEditPayment) {
+                    setPaymentEditRecord(payment);
+                  }
                 }}
               >
                 {isReplacing ? (
@@ -3369,16 +3377,16 @@ export function AdminPaymentVerification({
                 )}
                 Edit Transaksi
               </Button>
-            ) : null}
-            {payment && payment.status === "pending" ? (
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-700"
-                disabled={isProcessing}
+                disabled={payment.status !== "pending" || isProcessing}
                 onClick={() => {
-                  setPaymentStatusEditRecord(payment);
+                  if (payment.status === "pending") {
+                    setPaymentStatusEditRecord(payment);
+                  }
                 }}
               >
                 {isMarkingPaid ? (
@@ -3388,16 +3396,16 @@ export function AdminPaymentVerification({
                 )}
                 Edit Status
               </Button>
-            ) : null}
-            {payment?.canResendLink ? (
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 className="gap-2"
-                disabled={isProcessing}
+                disabled={!payment.canResendLink || isProcessing}
                 onClick={() => {
-                  void handleResendPaymentLink(payment);
+                  if (payment.canResendLink) {
+                    void handleResendPaymentLink(payment);
+                  }
                 }}
               >
                 {isResending ? (
@@ -3407,16 +3415,16 @@ export function AdminPaymentVerification({
                 )}
                 Kirim Ulang Link
               </Button>
-            ) : null}
-            {payment?.canCancel ? (
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 className="gap-2 border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-700"
-                disabled={isProcessing}
+                disabled={!payment.canCancel || isProcessing}
                 onClick={() => {
-                  void handleCancelPayment(payment);
+                  if (payment.canCancel) {
+                    void handleCancelPayment(payment);
+                  }
                 }}
               >
                 {isCanceling ? (
@@ -3426,16 +3434,16 @@ export function AdminPaymentVerification({
                 )}
                 Batalkan Transaksi
               </Button>
-            ) : null}
-            {payment && canArchivePayment ? (
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 className="gap-2 border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-700"
-                disabled={isProcessing}
+                disabled={!canArchivePayment || isProcessing}
                 onClick={() => {
-                  void handleArchivePayment(payment);
+                  if (canArchivePayment) {
+                    void handleArchivePayment(payment);
+                  }
                 }}
               >
                 {isArchiving ? (
@@ -3445,6 +3453,7 @@ export function AdminPaymentVerification({
                 )}
                 Hapus
               </Button>
+              </>
             ) : null}
             <Button
               type="button"
