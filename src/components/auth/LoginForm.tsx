@@ -172,14 +172,19 @@ export function LoginForm() {
       title="Silahkan Login ke Bina Cendekia!"
       description="Masuk ke akun Anda untuk membuka dashboard belajar, jadwal, dan progres terbaru."
       footer={
-        <div className="text-center text-sm text-slate-500">
-          Belum punya akun?{" "}
-          <Link
-            href="/register"
-            className="font-semibold text-[#c2410c] transition hover:text-[#9a3412] underline-offset-4 hover:underline"
-          >
-            Daftar sekarang
-          </Link>
+        <div className="flex flex-col gap-3 text-center text-sm text-slate-500">
+          <div>
+            Belum punya akun?{" "}
+            <Link
+              href="/register"
+              className="font-semibold text-[#c2410c] transition hover:text-[#9a3412] underline-offset-4 hover:underline"
+            >
+              Daftar sekarang
+            </Link>
+          </div>
+          <p>
+            Lupa password? Hubungi admin untuk reset password.
+          </p>
         </div>
       }
     >
@@ -269,9 +274,6 @@ export function LoginForm() {
             </div>
           ) : null}
 
-          <p className="text-center text-sm text-slate-500">
-            Lupa password? Hubungi admin untuk reset password.
-          </p>
 
           <Button
             type="submit"
