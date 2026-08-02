@@ -851,52 +851,34 @@ export const getMyStudentLearningData = asyncHandler(
     );
     const academicAccess = await resolveStudentAcademicContentAccess(student);
 
-    if (
-      membershipAccess.isMembershipLocked ||
-      academicAccess.isUpcomingClassLocked
-    ) {
-      sendSuccess(res, {
-        message: "Data materi dan tugas siswa berhasil diambil.",
-        data: {
-          student: toPublicStudentLearningProfile(
-            student,
-            membershipSnapshot.accessStatus,
-          ),
-          materials: [],
-          tasks: [],
-          academicSummaries: [],
-          period: academicAccess.period,
-          academicAccess,
-          membershipAccess,
-        },
-      });
-      return;
-    }
+    // Bypass filter akses keanggotaan dan jadwal kelas (untuk tujuan testing)
+    // if (
+    //   membershipAccess.isMembershipLocked ||
+    //   academicAccess.isUpcomingClassLocked
+    // ) {
+    //   sendSuccess(res, {
+    //     message: "Data materi dan tugas siswa berhasil diambil.",
+    //     data: {
+    //       student: toPublicStudentLearningProfile(
+    //         student,
+    //         membershipSnapshot.accessStatus,
+    //       ),
+    //       materials: [],
+    //       tasks: [],
+    //       academicSummaries: [],
+    //       period: academicAccess.period,
+    //       academicAccess,
+    //       membershipAccess,
+    //     },
+    //   });
+    //   return;
+    // }
 
     const classFilter = buildStudentMaterialClassFilter(student);
     const academicJoinedAt = getStudentEffectiveAcademicJoinedAt(
       student,
       membershipSnapshot.subscription,
-    );
-
-    if (!academicJoinedAt) {
-      sendSuccess(res, {
-        message: "Data materi dan tugas siswa berhasil diambil.",
-        data: {
-          student: toPublicStudentLearningProfile(
-            student,
-            membershipSnapshot.accessStatus,
-          ),
-          materials: [],
-          tasks: [],
-          academicSummaries: [],
-          period: academicAccess.period,
-          academicAccess,
-          membershipAccess,
-        },
-      });
-      return;
-    }
+    ) || new Date(0); // Bypass: Berikan tanggal 1970 jika belum punya langganan
     const subscriptionId = membershipSnapshot.subscription?._id ?? null;
     const subscriptionStartAt =
       parseValidDate(membershipSnapshot.subscription?.startDate) ?? academicJoinedAt;
@@ -1128,22 +1110,11 @@ export const getMyStudentDashboardData = asyncHandler(
     );
     const classFilter = buildStudentMaterialClassFilter(student);
     const isUtbkProgram = isUtbkStudent(student);
-    const isLearningLocked =
-      membershipAccess.isMembershipLocked || academicAccess.isUpcomingClassLocked;
-    const eligibleTryoutFilter = isLearningLocked
-      ? null
-      : await buildEligibleTryoutFilter(student);
-    const academicJoinedAt = isLearningLocked
-      ? null
-      : getStudentEffectiveAcademicJoinedAt(student, membershipSnapshot.subscription);
-    const subscriptionStartAt =
-      academicJoinedAt && !isLearningLocked
-        ? parseValidDate(membershipSnapshot.subscription?.startDate) ?? academicJoinedAt
-        : null;
-    const subscriptionEndAt =
-      academicJoinedAt && !isLearningLocked
-        ? parseValidDate(membershipSnapshot.subscription?.endDate)
-        : null;
+    const isLearningLocked = false; // Bypass filter langganan
+    const eligibleTryoutFilter = await buildEligibleTryoutFilter(student);
+    const academicJoinedAt = getStudentEffectiveAcademicJoinedAt(student, membershipSnapshot.subscription) || new Date(0);
+    const subscriptionStartAt = parseValidDate(membershipSnapshot.subscription?.startDate) ?? academicJoinedAt;
+    const subscriptionEndAt = parseValidDate(membershipSnapshot.subscription?.endDate);
     const materialPeriodFilter = buildClassContentPeriodFilter(
       academicAccess.period,
       buildSubscriptionDateRangeFilter("date", subscriptionStartAt, subscriptionEndAt),
