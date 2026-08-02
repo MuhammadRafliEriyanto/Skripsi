@@ -1380,21 +1380,24 @@ async function getTeacherSchedules(filters?: { academicYear?: string; semester?:
 }
 
 async function getTeacherOwnedSchedules(
-  teacherId: string,
+  teacher: { teacherId: string },
   filters?: { academicYear?: string; semester?: string },
 ) {
-  const query: FilterQuery<ISchedule> = {
-    $and: [
-      { teacherId },
-      buildAcademicPeriodOrLegacyFilter(filters),
-    ],
-  };
+  const schedules = await getTeacherSchedules(filters);
 
-  return (await Schedule.find(query)
-    .select("scheduleId day time className branch subject room status academicYear semester")
-    .sort({ day: 1, time: 1, createdAt: 1 })
-    .lean()
-    .exec()) as TeacherOwnedSchedule[];
+  return filterSchedulesForTeacher(
+    buildSchedulePresentation(schedules),
+    teacher,
+  ).map((schedule) => ({
+    scheduleId: schedule.id,
+    day: schedule.day,
+    time: schedule.time,
+    className: schedule.className,
+    branch: schedule.branch,
+    subject: schedule.subject,
+    room: schedule.room,
+    status: schedule.status,
+  })) satisfies TeacherOwnedSchedule[];
 }
 
 async function getTeacherByUserId(userId: string) {
@@ -1421,7 +1424,7 @@ export async function resolveTeacherClassDetailContext(
   }
 
   const [ownedSchedules, students] = await Promise.all([
-    getTeacherOwnedSchedules(teacher._id.toString(), filters),
+    getTeacherOwnedSchedules(teacher, filters),
     Student.find({ status: "Aktif" })
       .select("_id branch className program utbkTrack")
       .lean()
@@ -1522,7 +1525,7 @@ export async function resolveTeacherClassDetailContext(
 
 function filterSchedulesForTeacher(
   schedules: ReturnType<typeof buildSchedulePresentation>,
-  teacher: NonNullable<Awaited<ReturnType<typeof getTeacherByUserId>>>,
+  teacher: { teacherId: string },
 ) {
   return schedules.filter(
     (schedule) => schedule.teacherId === teacher.teacherId,
@@ -1574,7 +1577,7 @@ export const getMyTeacherClasses = asyncHandler(
     const filters = resolveTeacherAcademicPeriodFilters(req.query);
 
     const [ownedSchedules, students] = await Promise.all([
-      getTeacherOwnedSchedules(teacher._id.toString(), filters),
+      getTeacherOwnedSchedules(teacher, filters),
       Student.find({ status: "Aktif" })
         .select("_id branch className program utbkTrack")
         .lean()

@@ -114,6 +114,7 @@ type TeacherScheduleApiItem = {
   id?: string;
   className?: string;
   subject?: string;
+  teacherId?: string;
   branch?: string;
   day?: string;
   time?: string;
@@ -312,6 +313,25 @@ function buildItemId(prefix: string, value: string | null | undefined, index: nu
   return normalizedValue || `${prefix}-${index + 1}`;
 }
 
+function slugifyIdentityPart(value: string) {
+  return normalizeText(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function buildStableTeacherClassId(
+  teacherPublicId: string,
+  branch: string,
+  className: string,
+) {
+  const teacherSlug = slugifyIdentityPart(teacherPublicId) || "guru";
+  const branchSlug = slugifyIdentityPart(branch) || "cabang";
+  const classSlug = slugifyIdentityPart(className) || "kelas";
+
+  return `class-${teacherSlug}-${branchSlug}-${classSlug}`;
+}
+
 function mapKelasToJadwalItem(item: GuruClassCardItem): JadwalGuruItem {
   return {
     id: item.kelasId,
@@ -410,6 +430,117 @@ function buildClassLookups(classItems: GuruClassLookupItem[]) {
     byBranchAndClassName,
     byNextScheduleId,
   };
+}
+
+function getUpcomingDayOffset(day: GuruDay) {
+  const currentDayIndex = DAY_ORDER.indexOf(getCurrentIndonesianDay());
+  const targetDayIndex = DAY_ORDER.indexOf(day);
+
+  if (targetDayIndex < 0 || currentDayIndex < 0) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+
+  return (targetDayIndex - currentDayIndex + DAY_ORDER.length) % DAY_ORDER.length;
+}
+
+function compareSchedulesByUpcoming(
+  left: TeacherScheduleApiItem,
+  right: TeacherScheduleApiItem,
+) {
+  const leftDay = toGuruDay(left.day);
+  const rightDay = toGuruDay(right.day);
+  const leftOffset = leftDay ? getUpcomingDayOffset(leftDay) : Number.MAX_SAFE_INTEGER;
+  const rightOffset = rightDay ? getUpcomingDayOffset(rightDay) : Number.MAX_SAFE_INTEGER;
+
+  if (leftOffset !== rightOffset) {
+    return leftOffset - rightOffset;
+  }
+
+  return toMinuteValue(normalizeText(left.time)) - toMinuteValue(normalizeText(right.time));
+}
+
+function buildClassItemsFromSchedules(
+  scheduleItems: TeacherScheduleApiItem[],
+  existingClassItems: GuruClassLookupItem[],
+) {
+  const existingClassKeys = new Set(
+    existingClassItems.map((item) =>
+      buildClassLookupKey(item.branch, item.namaKelas),
+    ),
+  );
+  const schedulesByClass = new Map<string, TeacherScheduleApiItem[]>();
+
+  for (const item of scheduleItems) {
+    const className = normalizeText(item.className);
+    const branch = normalizeText(item.branch);
+
+    if (!className || !branch) {
+      continue;
+    }
+
+    const classKey = buildClassLookupKey(branch, className);
+
+    if (existingClassKeys.has(classKey)) {
+      continue;
+    }
+
+    schedulesByClass.set(classKey, [
+      ...(schedulesByClass.get(classKey) ?? []),
+      item,
+    ]);
+  }
+
+  return Array.from(schedulesByClass.values())
+    .map((classSchedules, index) => {
+      const sortedSchedules = [...classSchedules].sort(compareSchedulesByUpcoming);
+      const nextSchedule = sortedSchedules[0] ?? classSchedules[0];
+      const className = normalizeText(nextSchedule?.className) || `Kelas ${index + 1}`;
+      const branch = normalizeText(nextSchedule?.branch) || "Cabang belum diatur";
+      const teacherPublicId = normalizeText(nextSchedule?.teacherId);
+
+      if (!teacherPublicId) {
+        return null;
+      }
+
+      const nextScheduleId = normalizeText(nextSchedule?.id);
+      const status = sortedSchedules.reduce<GuruStatus>((currentStatus, schedule) => {
+        const scheduleStatus =
+          Array.isArray(schedule.conflicts) && schedule.conflicts.length > 0
+            ? "Bentrok"
+            : toGuruStatus(schedule.status);
+
+        return pickHigherPriorityStatus(currentStatus, scheduleStatus);
+      }, "Siap");
+
+      return {
+        kelasId: buildStableTeacherClassId(teacherPublicId, branch, className),
+        scheduleId: nextScheduleId,
+        namaKelas: className,
+        jenjang: inferJenjang(className),
+        tingkat: inferTingkat(className),
+        mapel:
+          normalizeText(nextSchedule?.subject) ||
+          "Mapel belum diatur",
+        branch,
+        day: toGuruDay(nextSchedule?.day) ?? getCurrentIndonesianDay(),
+        time: normalizeText(nextSchedule?.time) || "00:00 - 00:00",
+        ruangan:
+          normalizeText(nextSchedule?.room) ||
+          "Ruangan belum diatur",
+        totalSiswa: 0,
+        totalPertemuan: DEFAULT_SEMESTER_MEETING_TARGET,
+        status,
+        conflictCount: sortedSchedules.reduce(
+          (total, schedule) =>
+            total + (Array.isArray(schedule.conflicts) ? schedule.conflicts.length : 0),
+          0,
+        ),
+        pendingTaskCount: 0,
+        overdueTaskCount: 0,
+        nextScheduleId,
+      } satisfies GuruClassLookupItem;
+    })
+    .filter(isDefined);
 }
 
 function resolveLinkedClassItem(
@@ -669,9 +800,27 @@ function JadwalCard({
   academicYear: string;
 }) {
   const cardClassName =
-    "group block rounded-xl border border-gray-200 bg-white p-3 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.01] hover:border-orange-300 hover:bg-orange-50/40 hover:shadow-lg hover:shadow-orange-200/35 hover:ring-1 hover:ring-orange-100";
-  const content = (
-    <>
+    "group rounded-xl border border-gray-200 bg-white p-3 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.01] hover:border-orange-300 hover:bg-orange-50/40 hover:shadow-lg hover:shadow-orange-200/35 hover:ring-1 hover:ring-orange-100";
+  const attendanceHref = item.kelasId
+    ? buildGuruUrl(
+        "/dashboard-guru/absensi-kelas",
+        new URLSearchParams({ academicYear }),
+        {
+          kelasId: item.kelasId,
+          ...(item.scheduleId ? { scheduleId: item.scheduleId } : {}),
+        },
+      )
+    : "";
+  const detailHref = item.kelasId
+    ? buildGuruUrl(
+        "/dashboard-guru/detail-kelas",
+        new URLSearchParams({ academicYear }),
+        { kelasId: item.kelasId },
+      )
+    : "";
+
+  return (
+    <div className={cardClassName}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold text-slate-800">{item.className}</h3>
@@ -711,40 +860,32 @@ function JadwalCard({
         </div>
       </div>
 
-      <div
-        className={`mt-3 flex items-center justify-between rounded-xl border px-3 py-2 text-xs font-semibold transition ${
-          item.kelasId
-            ? "border-orange-100 bg-orange-50/70 text-orange-700 group-hover:border-orange-200 group-hover:bg-orange-100/70"
-            : "border-slate-100 bg-slate-50 text-slate-500"
-        }`}
-      >
-        <span className="inline-flex items-center gap-1.5">
-          {item.kelasId ? <ClipboardCheck size={12} /> : <AlertCircle size={12} />}
-          {item.kelasId ? "Mulai Absen" : "Kelas belum terhubung"}
-        </span>
-        {item.kelasId ? <ChevronRight size={14} /> : null}
-      </div>
-    </>
-  );
-
-  if (!item.kelasId) {
-    return <div className={cardClassName}>{content}</div>;
-  }
-
-  return (
-    <Link
-      href={buildGuruUrl(
-        "/dashboard-guru/absensi-kelas",
-        new URLSearchParams({ academicYear }),
-        {
-          kelasId: item.kelasId,
-          ...(item.scheduleId ? { scheduleId: item.scheduleId } : {}),
-        },
+      {item.kelasId ? (
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <Link
+            href={detailHref}
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"
+          >
+            <ExternalLink size={12} />
+            Detail
+          </Link>
+          <Link
+            href={attendanceHref}
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-orange-100 bg-orange-50/70 px-3 py-2 text-xs font-semibold text-orange-700 transition group-hover:border-orange-200 group-hover:bg-orange-100/70"
+          >
+            <ClipboardCheck size={12} />
+            Absen
+          </Link>
+        </div>
+      ) : (
+        <div className="mt-3 flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
+          <span className="inline-flex items-center gap-1.5">
+            <AlertCircle size={12} />
+            Kelas belum terhubung
+          </span>
+        </div>
       )}
-      className={cardClassName}
-    >
-      {content}
-    </Link>
+    </div>
   );
 }
 
@@ -965,14 +1106,25 @@ export default function JadwalGuruSection() {
           shouldClearSession = true;
         } else if (response.ok && payload?.success) {
           const scheduleItems = payload.data?.schedules ?? [];
+          const scheduleClassItems = buildClassItemsFromSchedules(
+            scheduleItems,
+            nextBaseClassItems,
+          );
+          const mergedClassItems = [
+            ...nextBaseClassItems,
+            ...scheduleClassItems,
+          ];
+
+          classLookups = buildClassLookups(mergedClassItems);
+
           const statsByClassId = buildClassScheduleStats(
             scheduleItems,
             classLookups,
           );
 
-          if (nextBaseClassItems.length > 0) {
+          if (mergedClassItems.length > 0) {
             nextKelasItems = mergeClassScheduleStats(
-              nextBaseClassItems,
+              mergedClassItems,
               statsByClassId,
             );
           }
