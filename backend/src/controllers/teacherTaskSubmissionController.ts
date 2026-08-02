@@ -11,7 +11,7 @@ import { AppError, sendSuccess } from "../utils/apiResponse";
 import {
   normalizeText,
 } from "../utils/classroomLearning";
-import { resolveLearningAttachmentPath } from "../utils/learningAttachmentStorage";
+import { sendLearningAttachmentFile } from "../utils/learningAttachmentStorage";
 import {
   buildAcademicRecordSubscriptionFilter,
   findActiveSubscriptionIdsForAcademicRecords,
@@ -590,14 +590,6 @@ export const downloadTeacherTaskSubmissionAttachment = asyncHandler(
       return;
     }
 
-    res.attachment(
-      normalizeText(submission.attachment.originalName) ||
-        normalizeText(submission.attachment.fileName),
-    );
-    res.type(submission.attachment.mimeType || "application/octet-stream");
-
-    return res.sendFile(
-      resolveLearningAttachmentPath(submission.attachment.storagePath),
-    );
+    await sendLearningAttachmentFile(res, submission.attachment);
   },
 );

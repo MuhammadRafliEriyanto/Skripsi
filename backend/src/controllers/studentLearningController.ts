@@ -27,7 +27,7 @@ import {
   deleteLearningAttachment,
   getAttachmentSizeLimitLabel,
   isAttachmentSizeAllowed,
-  resolveLearningAttachmentPath,
+  sendLearningAttachmentFile,
   saveLearningAttachment,
 } from "../utils/learningAttachmentStorage";
 import { getNextPublicId } from "../utils/publicId";
@@ -822,9 +822,7 @@ async function sendStudentAttachmentFile(
     throw new AppError(404, "Lampiran file tidak ditemukan.");
   }
 
-  res.attachment(attachment.fileName);
-  res.type(attachment.mimeType || "application/octet-stream");
-  return res.sendFile(resolveLearningAttachmentPath(attachment.storagePath));
+  await sendLearningAttachmentFile(res, attachment);
 }
 
 export const getMyStudentLearningData = asyncHandler(
@@ -1590,14 +1588,7 @@ export const downloadMyStudentTaskSubmissionAttachment = asyncHandler(
       return;
     }
 
-    res.attachment(
-      normalizeText(submission.attachment.originalName) ||
-        normalizeText(submission.attachment.fileName),
-    );
-    res.type(submission.attachment.mimeType || "application/octet-stream");
-    return res.sendFile(
-      resolveLearningAttachmentPath(submission.attachment.storagePath),
-    );
+    await sendLearningAttachmentFile(res, submission.attachment);
   },
 );
 

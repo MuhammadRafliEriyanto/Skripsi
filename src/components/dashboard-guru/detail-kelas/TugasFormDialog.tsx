@@ -29,17 +29,17 @@ export default function TugasFormDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="top-2 flex max-h-[calc(100dvh-1rem)] max-w-3xl translate-y-0 flex-col gap-0 rounded-[24px] border border-slate-200 bg-white p-0 shadow-lg sm:top-[50%] sm:max-h-[calc(100dvh-3rem)] sm:translate-y-[-50%]">
-        <DialogHeader className="shrink-0 border-b border-slate-200 bg-gradient-to-r from-orange-50/60 via-white to-amber-50/30 px-4 py-4 pr-14 text-left md:px-5">
+        <DialogHeader className="shrink-0 border-b border-slate-200 bg-white px-4 py-4 pr-14 text-left md:px-5">
           <DialogTitle className="text-lg font-semibold text-slate-800">
-            {mode === "add" ? "Tambah Latihan Pertemuan" : "Edit Latihan Pertemuan"}
+            {mode === "add" ? "Tambah Latihan" : "Edit Latihan"}
           </DialogTitle>
           <DialogDescription className="text-sm text-slate-500">
-            Atur latihan per pertemuan beserta lampiran file opsional. Jumlah pengumpulan dan status penilaian akan dihitung otomatis dari jawaban siswa dan nilai guru.
+            Lengkapi pertemuan, judul, deadline, dan instruksi.
           </DialogDescription>
         </DialogHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
-          <div className="grid gap-5 px-4 py-4 md:px-5 md:py-5">
+          <div className="grid gap-4 px-4 py-4 md:px-5 md:py-5">
             <div className="grid gap-4 md:grid-cols-2">
               <label className="grid gap-2 text-sm font-medium text-slate-700">
                 Pertemuan Ke
@@ -79,47 +79,16 @@ export default function TugasFormDialog({
             <label className="grid gap-2 text-sm font-medium text-slate-700">
               Deskripsi
               <textarea
-                rows={5}
+                rows={4}
                 value={draft?.deskripsi ?? ""}
                 onChange={(event) => onChange("deskripsi", event.target.value)}
-                placeholder="Tuliskan instruksi latihan, penjelasan singkat, atau catatan penilaian..."
+                placeholder="Instruksi singkat untuk siswa..."
                 className="resize-none border border-slate-200 bg-white px-3 py-3 text-sm leading-6 text-slate-700 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
               />
             </label>
 
-            <div className="grid gap-3 border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm font-semibold text-slate-700">
-                Status Pengumpulan dan Penilaian Otomatis
-              </p>
-              <p className="text-sm leading-6 text-slate-500">
-                Setelah latihan disimpan, sistem akan menghitung jumlah siswa yang
-                sudah mengumpulkan jawaban. Status penilaian juga
-                akan berubah otomatis menjadi:
-              </p>
-              <div className="grid gap-2 text-sm text-slate-600">
-                <p>
-                  <span className="font-semibold text-slate-800">
-                    Belum Ada Pengumpulan
-                  </span>{" "}
-                  saat belum ada siswa yang mengumpulkan jawaban.
-                </p>
-                <p>
-                  <span className="font-semibold text-slate-800">
-                    Belum Dinilai
-                  </span>{" "}
-                  saat sudah ada jawaban tetapi nilainya belum lengkap.
-                </p>
-                <p>
-                  <span className="font-semibold text-slate-800">
-                    Sudah Dinilai
-                  </span>{" "}
-                  saat semua jawaban pada latihan ini sudah dinilai.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid gap-3 border border-slate-200 bg-slate-50/30 p-4 text-sm font-medium text-slate-700">
-              <span>Lampiran Latihan Opsional</span>
+            <div className="grid gap-3 border border-slate-200 bg-slate-50/40 p-4 text-sm font-medium text-slate-700">
+              <span>Lampiran</span>
               <input
                 type="file"
                 accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png,.webp,.txt,.csv"
@@ -155,9 +124,7 @@ export default function TugasFormDialog({
                   Lampiran lama akan dihapus saat latihan disimpan.
                 </p>
               ) : (
-                <p className="text-xs leading-5 text-slate-400">
-                  Lampiran latihan boleh kosong jika guru hanya ingin memberi instruksi teks.
-                </p>
+                <p className="text-xs text-slate-400">Opsional, maksimal 10 MB.</p>
               )}
             </div>
           </div>

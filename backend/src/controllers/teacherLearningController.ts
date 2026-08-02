@@ -20,7 +20,7 @@ import {
   deleteLearningAttachment,
   getAttachmentSizeLimitLabel,
   isAttachmentSizeAllowed,
-  resolveLearningAttachmentPath,
+  sendLearningAttachmentFile,
   saveLearningAttachment,
 } from "../utils/learningAttachmentStorage";
 import { getNextPublicId } from "../utils/publicId";
@@ -139,9 +139,7 @@ async function sendTeacherAttachmentFile(
     throw new AppError(404, "Lampiran file tidak ditemukan.");
   }
 
-  res.attachment(attachment.fileName);
-  res.type(attachment.mimeType || "application/octet-stream");
-  return res.sendFile(resolveLearningAttachmentPath(attachment.storagePath));
+  await sendLearningAttachmentFile(res, attachment);
 }
 
 async function findTeacherMaterialByParam(
