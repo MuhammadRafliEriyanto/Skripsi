@@ -50,6 +50,7 @@ export type AdminStudent = {
     startDate?: string;
     endDate?: string;
   };
+  hasFinancialHistory?: boolean;
 };
 
 export type AdminTeacher = {

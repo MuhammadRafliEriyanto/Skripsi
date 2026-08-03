@@ -527,18 +527,20 @@ function StudentActions({
 
 
 
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        className="size-9 rounded-xl border-rose-200 bg-white p-0 text-rose-600 shadow-sm transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 active:border-rose-300 active:bg-rose-100/80 focus-visible:ring-orange-500/10"
-        aria-label={`Hapus ${student.name}`}
-        title={readOnly ? readOnlyMessage : "Hapus"}
-        disabled={readOnly}
-        onClick={() => onDelete(student)}
-      >
-        <Trash2 className="size-4" />
-      </Button>
+      {student.hasFinancialHistory ? null : (
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="size-9 rounded-xl border-rose-200 bg-white p-0 text-rose-600 shadow-sm transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 active:border-rose-300 active:bg-rose-100/80 focus-visible:ring-orange-500/10"
+          aria-label={`Hapus ${student.name}`}
+          title={readOnly ? readOnlyMessage : "Hapus"}
+          disabled={readOnly}
+          onClick={() => onDelete(student)}
+        >
+          <Trash2 className="size-4" />
+        </Button>
+      )}
     </div>
   );
 }

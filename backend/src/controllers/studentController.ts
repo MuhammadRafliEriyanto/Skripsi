@@ -480,11 +480,16 @@ async function getResolvedStudentEntries() {
   logSkippedStudents("list", students);
 
   const studentObjectIds = resolvedStudents.map((s) => s._id);
-  const [subscriptions, branchNameMap] = await Promise.all([
+  const [subscriptions, payments, branchNameMap] = await Promise.all([
     Subscription.find({
       studentId: { $in: studentObjectIds },
     })
       .sort({ createdAt: -1, _id: -1 })
+      .exec(),
+    Payment.find({
+      studentId: { $in: studentObjectIds },
+    })
+      .select("studentId")
       .exec(),
     getBranchNameMap(),
   ]);
@@ -496,6 +501,11 @@ async function getResolvedStudentEntries() {
       subscriptionsByStudentId.set(sid, []);
     }
     subscriptionsByStudentId.get(sid)!.push(sub);
+  }
+
+  const paymentsByStudentId = new Set<string>();
+  for (const pay of payments) {
+    paymentsByStudentId.add(String(pay.studentId));
   }
 
   return resolvedStudents.map((student) => {
@@ -518,7 +528,8 @@ async function getResolvedStudentEntries() {
       };
     }
 
-    const publicStudent = toPublicStudent(student, student.userId, membership);
+    const hasFinancialHistory = studentSubs.length > 0 || paymentsByStudentId.has(String(student._id));
+    const publicStudent = toPublicStudent(student, student.userId, membership, hasFinancialHistory);
     const registeredBranch =
       branchNameMap.get(normalizeText(publicStudent.branch).toLowerCase()) ?? "";
 
@@ -1462,11 +1473,13 @@ export const deleteStudent = asyncHandler(
     const financialHistory = await getStudentFinancialHistory(student);
 
     if (financialHistory.hasFinancialHistory) {
-      const query = buildStudentFinancialHistoryQuery(student);
-      await Promise.all([
-        Payment.deleteMany(query),
-        Subscription.deleteMany(query),
-      ]);
+      next(
+        new AppError(
+          409,
+          "Siswa tidak dapat dihapus karena memiliki riwayat pembayaran. Silakan ubah statusnya menjadi Nonaktif.",
+        ),
+      );
+      return;
     }
 
     if (!hasPopulatedUserDocument(student.userId)) {

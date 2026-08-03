@@ -31,6 +31,7 @@ export type PublicStudent = {
     startDate?: string;
     endDate?: string;
   };
+  hasFinancialHistory?: boolean;
 };
 
 export type PublicTeacher = {
@@ -107,7 +108,8 @@ export function hasPopulatedUserDocument(value: unknown): value is UserDocument 
 export function toPublicStudent(
   student: StudentDocument,
   user: UserDocument,
-  membership?: PublicStudent["membership"]
+  membership?: PublicStudent["membership"],
+  hasFinancialHistory?: boolean
 ): PublicStudent {
   const birthDate = formatDateOnly(student.birthDate);
 
@@ -130,6 +132,7 @@ export function toPublicStudent(
     }),
     status: student.status,
     membership,
+    hasFinancialHistory,
   };
 }
 
