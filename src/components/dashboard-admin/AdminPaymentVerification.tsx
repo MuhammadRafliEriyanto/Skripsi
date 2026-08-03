@@ -3593,33 +3593,7 @@ export function AdminPaymentVerification({
                 <Pencil className="size-4" />
               )}
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              aria-label="Hapus pembayaran"
-              title={
-                canArchivePayment
-                  ? "Hapus pembayaran"
-                  : `Hapus tidak tersedia: ${archiveBlockReason}`
-              }
-              className={cn(
-                "size-9 rounded-xl",
-                canArchivePayment
-                  ? "border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-700"
-                  : "border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-500",
-              )}
-              disabled={isProcessing}
-              onClick={() => {
-                void handleArchivePayment(payment);
-              }}
-            >
-              {isArchiving ? (
-                <LoaderCircle className="size-4 animate-spin" />
-              ) : (
-                <Trash2 className="size-4" />
-              )}
-            </Button>
+
               </>
             )}
             <Button
