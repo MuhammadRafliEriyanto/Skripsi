@@ -17,6 +17,7 @@ import {
   type UserRole,
 } from "@/lib/auth";
 
+
 const DEFAULT_IDLE_TIMEOUT_MS = 15 * 60 * 1000;
 const IDLE_CHECK_INTERVAL_MS = 10 * 1000;
 const ACTIVITY_THROTTLE_MS = 1000;

@@ -16,6 +16,9 @@ export interface IStudent {
   targetJurusan?: string;
   academicYear: string;
   birthDate: Date | null;
+  gender: "Laki-laki" | "Perempuan" | null;
+  address: string;
+  schoolOrigin: string;
   status: StudentStatus;
   academicJoinedAt: Date | null;
   createdAt: Date;
@@ -80,6 +83,21 @@ const studentSchema = new Schema<IStudent>(
     birthDate: {
       type: Date,
       default: null,
+    },
+    gender: {
+      type: String,
+      enum: ["Laki-laki", "Perempuan"],
+      default: null,
+    },
+    address: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    schoolOrigin: {
+      type: String,
+      default: "",
+      trim: true,
     },
     status: {
       type: String,

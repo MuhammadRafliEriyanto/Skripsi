@@ -122,7 +122,7 @@ export default function RegisterOnlineView({
   const [formValues, setFormValues] = useState<RegisterOnlinePayload>(() => ({
     nama: "",
     email: "",
-    phone: "-",
+    phone: "",
     branch: "",
     program: "",
     classLevel: "",
@@ -130,6 +130,9 @@ export default function RegisterOnlineView({
     targetKampus: "",
     targetJurusan: "",
     packageKey: resolvedInitialPackageKey,
+    gender: "",
+    address: "",
+    schoolOrigin: "",
   }));
 
   const classOptions = useMemo(
@@ -399,6 +402,109 @@ export default function RegisterOnlineView({
                 />
                 <InputError message={fieldErrors.email} />
               </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor="phone"
+                  className="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >
+                  Nomor HP (WhatsApp)
+                </label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={formValues.phone}
+                  onChange={(event) =>
+                    setFormValues((current) => ({
+                      ...current,
+                      phone: event.target.value,
+                    }))
+                  }
+                  placeholder="081234567890"
+                  className="h-12 rounded-2xl border-slate-200/60 bg-slate-50/50 px-4 transition-all duration-300 focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-500/10 hover:border-slate-300"
+                  autoComplete="tel"
+                  required
+                />
+                <InputError message={fieldErrors.phone} />
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label
+                  htmlFor="gender"
+                  className="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >
+                  Jenis Kelamin
+                </label>
+                <Select
+                  value={formValues.gender}
+                  onValueChange={(value) =>
+                    setFormValues((current) => ({
+                      ...current,
+                      gender: value as "Laki-laki" | "Perempuan",
+                    }))
+                  }
+                >
+                  <SelectTrigger
+                    id="gender"
+                    className="h-12 rounded-2xl border-slate-200/60 bg-slate-50/50 px-4 transition-all duration-300 focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-500/10 hover:border-slate-300"
+                  >
+                    <SelectValue placeholder="Pilih jenis kelamin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Laki-laki">Laki-laki</SelectItem>
+                    <SelectItem value="Perempuan">Perempuan</SelectItem>
+                  </SelectContent>
+                </Select>
+                <InputError message={fieldErrors.gender} />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor="schoolOrigin"
+                  className="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                >
+                  Asal Sekolah
+                </label>
+                <Input
+                  id="schoolOrigin"
+                  value={formValues.schoolOrigin}
+                  onChange={(event) =>
+                    setFormValues((current) => ({
+                      ...current,
+                      schoolOrigin: event.target.value,
+                    }))
+                  }
+                  placeholder="Nama sekolah asal"
+                  className="h-12 rounded-2xl border-slate-200/60 bg-slate-50/50 px-4 transition-all duration-300 focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-500/10 hover:border-slate-300"
+                  required
+                />
+                <InputError message={fieldErrors.schoolOrigin} />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="address"
+                className="text-xs font-bold text-slate-500 uppercase tracking-wider"
+              >
+                Alamat Lengkap
+              </label>
+              <Input
+                id="address"
+                value={formValues.address}
+                onChange={(event) =>
+                  setFormValues((current) => ({
+                    ...current,
+                    address: event.target.value,
+                  }))
+                }
+                placeholder="Alamat lengkap domisili"
+                className="h-12 rounded-2xl border-slate-200/60 bg-slate-50/50 px-4 transition-all duration-300 focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-500/10 hover:border-slate-300"
+                required
+              />
+              <InputError message={fieldErrors.address} />
             </div>
           </FormSection>
 

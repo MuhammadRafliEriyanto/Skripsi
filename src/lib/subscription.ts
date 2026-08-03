@@ -107,6 +107,9 @@ export type RegisterOnlinePayload = {
   targetKampus?: string;
   targetJurusan?: string;
   packageKey: OnlinePackageKey;
+  gender: "Laki-laki" | "Perempuan" | "";
+  address: string;
+  schoolOrigin: string;
 };
 
 export type RegisterBranchOption = {
@@ -128,6 +131,9 @@ export type MembershipStudent = {
   utbkTrack?: string;
   targetKampus?: string;
   targetJurusan?: string;
+  gender?: "Laki-laki" | "Perempuan" | null;
+  address?: string;
+  schoolOrigin?: string;
   status: string;
   isEmailVerified: boolean;
 };

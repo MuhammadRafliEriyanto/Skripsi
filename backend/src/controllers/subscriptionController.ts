@@ -49,6 +49,9 @@ type RegisterOnlineRequestBody = {
   targetKampus?: string;
   targetJurusan?: string;
   packageKey?: string;
+  gender?: string;
+  address?: string;
+  schoolOrigin?: string;
 };
 
 type CreateMyRenewalRequestBody = {
@@ -169,6 +172,9 @@ export const registerOnline = asyncHandler(
     const utbkTrackInput = normalizeText(req.body.utbkTrack);
     const targetKampus = normalizeText(req.body.targetKampus);
     const targetJurusan = normalizeText(req.body.targetJurusan);
+    const gender = normalizeText(req.body.gender) as "Laki-laki" | "Perempuan" | "";
+    const address = normalizeText(req.body.address);
+    const schoolOrigin = normalizeText(req.body.schoolOrigin);
     const isUtbkRegistration = program === "UTBK";
     const utbkTrack = isUtbkRegistration ? utbkTrackInput || classLevel : "";
     const errors: Record<string, string> = {};
@@ -189,6 +195,18 @@ export const registerOnline = asyncHandler(
 
     if (!branchInput) {
       errors.branch = "Cabang wajib dipilih.";
+    }
+
+    if (!gender || !["Laki-laki", "Perempuan"].includes(gender)) {
+      errors.gender = "Jenis kelamin wajib dipilih.";
+    }
+
+    if (!address) {
+      errors.address = "Alamat wajib diisi.";
+    }
+
+    if (!schoolOrigin) {
+      errors.schoolOrigin = "Asal sekolah wajib diisi.";
     }
 
     if (!program || !(program in PROGRAM_CLASS_OPTIONS)) {
@@ -297,6 +315,9 @@ export const registerOnline = asyncHandler(
         targetJurusan: isUtbkRegistration ? targetJurusan : "",
         academicYear: studentAcademicPeriod.academicYear,
         birthDate: null,
+        gender: gender || null,
+        address,
+        schoolOrigin,
         status: "Nonaktif",
         academicJoinedAt: null,
       });
