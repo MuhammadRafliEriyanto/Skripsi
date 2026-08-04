@@ -387,30 +387,6 @@ function mapApiAcademicSummary(
     },
     note: normalizeText(summary.note),
     finalAverage:
-    mySubmission: mapTaskSubmissionSummary(task.mySubmission),
-    myGrade,
-  };
-}
-
-function mapApiAcademicSummary(
-  summary: StudentLearningApiAcademicSummaryItem,
-): StudentAcademicSummary {
-  return {
-    classId: normalizeText(summary.classId),
-    className: normalizeText(summary.className),
-    subject: normalizeText(summary.subject) || "Mapel belum diatur",
-    scheme: summary.scheme ?? "semester",
-    academicYear: normalizeText(summary.period?.academicYear),
-    semester: normalizeText(summary.period?.semester),
-    taskAverage:
-      typeof summary.taskAverage === "number" ? summary.taskAverage : null,
-    gradedTaskCount: Math.max(summary.gradedTaskCount ?? 0, 0),
-    scores: {
-      ...EMPTY_ACADEMIC_SCORES,
-      ...summary.scores,
-    },
-    note: normalizeText(summary.note),
-    finalAverage:
       typeof summary.finalAverage === "number" ? summary.finalAverage : null,
     evaluatedAt: normalizeText(summary.evaluatedAt) || null,
   };
