@@ -29,8 +29,9 @@ function SiswaDashboardContent() {
         <div className="w-full">
           <HeaderProfilSiswa
             dashboardData={dashboardData}
-            dashboardLoading={isLoading || isWaitingForYear}
+            dashboardLoading={isLoading}
             dashboardError={loadError}
+            isWaitingForYear={isWaitingForYear}
           />
         </div>
 

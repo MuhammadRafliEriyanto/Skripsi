@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -87,9 +88,11 @@ export default function PelajaranSection({
   dashboardData,
   dashboardLoading = false,
 }: PelajaranSectionProps) {
+  const searchParams = useSearchParams();
+  const academicYear = searchParams.get("academicYear") ?? "";
   const [activeTab, setActiveTab] = useState<TabKey>("materi");
-  const { materials, tasks, student, academicAccess, isLoading, loadError } =
-    useStudentLearningData();
+  const { materials, tasks, student, academicAccess, isLoading, loadError, isWaitingForYear } =
+    useStudentLearningData(academicYear);
   const academicAccessMessage =
     getStudentAcademicAccessMessage(academicAccess);
   const isUtbkStudent = isUtbkStudentProfile(student ?? dashboardData?.student);
@@ -120,6 +123,15 @@ export default function PelajaranSection({
   }, [resolvedActiveTab, isLoading, dashboardLoading, materials.length, tasks.length]);
 
   const renderMateri = () => {
+    if (isWaitingForYear) {
+      return (
+        <EmptyState
+          title="Pilih Tahun Pembelajaran"
+          description="Silakan pilih tahun pembelajaran pada opsi di atas untuk memuat daftar materi."
+        />
+      );
+    }
+
     if (isLoading) {
       return (
         <EmptyState
@@ -184,6 +196,15 @@ export default function PelajaranSection({
   };
 
   const renderTugas = () => {
+    if (isWaitingForYear) {
+      return (
+        <EmptyState
+          title="Pilih Tahun Pembelajaran"
+          description="Silakan pilih tahun pembelajaran pada opsi di atas untuk memuat latihan soal."
+        />
+      );
+    }
+
     if (isLoading) {
       return (
         <EmptyState
