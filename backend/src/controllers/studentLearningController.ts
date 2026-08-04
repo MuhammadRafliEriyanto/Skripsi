@@ -464,17 +464,11 @@ async function getStudentLearningClassMetadata(
   
   const scheduleFilter: any = buildClassContentPeriodFilter(period);
   if (normalizedBranch) {
-    const branchOptions = [
-      normalizedBranch,
-      normalizedBranch.toLowerCase(),
-      normalizedBranch.toUpperCase(),
-      "Pusat",
-      "pusat",
-      "",
-      "-",
-      null
+    scheduleFilter.$or = [
+      { branch: { $regex: new RegExp(`^${normalizedBranch}$`, "i") } },
+      { branch: { $in: ["", "-", null] } },
+      { branch: { $regex: /^pusat$/i } }
     ];
-    scheduleFilter.branch = { $in: branchOptions };
   }
 
   const scheduleDocuments = (await Schedule.find(scheduleFilter)
@@ -543,17 +537,11 @@ async function getStudentDashboardSchedules(
     : {};
     
   if (normalizedBranch) {
-    const branchOptions = [
-      normalizedBranch,
-      normalizedBranch.toLowerCase(),
-      normalizedBranch.toUpperCase(),
-      "Pusat",
-      "pusat",
-      "",
-      "-",
-      null
+    scheduleFilter.$or = [
+      { branch: { $regex: new RegExp(`^${normalizedBranch}$`, "i") } },
+      { branch: { $in: ["", "-", null] } },
+      { branch: { $regex: /^pusat$/i } }
     ];
-    scheduleFilter.branch = { $in: branchOptions };
   }
 
   const scheduleDocuments = (await Schedule.find(scheduleFilter)
