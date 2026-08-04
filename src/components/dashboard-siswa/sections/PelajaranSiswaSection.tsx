@@ -13,12 +13,10 @@ import {
 } from "lucide-react";
 import { useStudentDashboardData } from "../data/useStudentDashboardData";
 import { useStudentLearningData } from "../data/useStudentLearningData";
-import { useStudentTryouts } from "../data/useStudentTryouts";
 import { getStudentAcademicAccessMessage } from "../data/studentAcademicAccess";
 import { isUtbkStudentProfile } from "../data/studentProgram";
-import { formatUtbkTryoutStageLabel } from "@/lib/utbk-tryout-stages";
 
-type TabKey = "materi" | "tugas" | "tryout";
+type TabKey = "materi" | "tugas";
 
 type TabConfig = {
   key: TabKey;
@@ -42,13 +40,6 @@ const tabs: TabConfig[] = [
     shortLabel: "Latihan",
     icon: FileText,
     href: "/dashboard-siswa/tugas",
-  },
-  {
-    key: "tryout",
-    label: "Tryout & Evaluasi",
-    shortLabel: "Evaluasi",
-    icon: TimerReset,
-    href: "/dashboard-siswa/ujian",
   },
 ];
 
@@ -92,30 +83,12 @@ export default function PelajaranSection() {
   const { dashboardData, isLoading: isDashboardLoading } = useStudentDashboardData();
   const { materials, tasks, student, academicAccess, isLoading, loadError } =
     useStudentLearningData();
-  const {
-    tryouts,
-    academicAccess: tryoutAcademicAccess,
-    isLoading: isTryoutsLoading,
-    loadError: tryoutsError,
-  } = useStudentTryouts();
   const academicAccessMessage =
     getStudentAcademicAccessMessage(academicAccess);
-  const tryoutAcademicAccessMessage =
-    getStudentAcademicAccessMessage(tryoutAcademicAccess);
   const isUtbkStudent = isUtbkStudentProfile(student ?? dashboardData?.student);
   const visibleTabs = useMemo(
     () =>
-      tabs
-        .filter((tab) => !isUtbkStudent || tab.key !== "tugas")
-        .map((tab) =>
-          isUtbkStudent && tab.key === "tryout"
-            ? {
-                ...tab,
-                label: "Sesi Tryout",
-                shortLabel: "Tryout",
-              }
-            : tab,
-        ),
+      tabs.filter((tab) => !isUtbkStudent || tab.key !== "tugas"),
     [isUtbkStudent],
   );
   const resolvedActiveTab =
@@ -130,15 +103,14 @@ export default function PelajaranSection() {
   );
 
   const summaryLabel = useMemo(() => {
-    if (isLoading || isDashboardLoading || isTryoutsLoading) {
+    if (isLoading || isDashboardLoading) {
       return "Memuat data aktivitas...";
     }
 
     if (resolvedActiveTab === "materi")
       return `${materials.length} materi tersedia`;
-    if (resolvedActiveTab === "tugas") return `${tasks.length} latihan soal`;
-    return `${tryouts.length} ${isUtbkStudent ? "tryout tersedia" : "evaluasi tersedia"}`;
-  }, [resolvedActiveTab, isLoading, isDashboardLoading, isTryoutsLoading, materials.length, tasks.length, tryouts.length, isUtbkStudent]);
+    return `${tasks.length} latihan soal`;
+  }, [resolvedActiveTab, isLoading, isDashboardLoading, materials.length, tasks.length]);
 
   const renderMateri = () => {
     if (isLoading) {
@@ -274,107 +246,6 @@ export default function PelajaranSection() {
     );
   };
 
-  const renderTryout = () => {
-    if (isTryoutsLoading) {
-      return (
-        <EmptyState
-          title="Memuat sesi evaluasi"
-          description="Sistem sedang mengambil sesi evaluasi atau tryout terbaru dari kelas kamu."
-        />
-      );
-    }
-
-    if (tryouts.length === 0) {
-      return (
-        <EmptyState
-          title="Belum ada sesi evaluasi"
-          description={
-            tryoutAcademicAccessMessage ??
-            tryoutsError ??
-            "Belum ada sesi evaluasi atau tryout yang diterbitkan untuk kelas kamu saat ini."
-          }
-        />
-      );
-    }
-
-    return (
-      <div className="space-y-3 bg-white p-4 md:p-5">
-        {tryouts.map((tryout) => {
-          const assessmentType = tryout.assessmentType || "Ujian";
-          const assessmentLabel =
-            assessmentType === "Tryout" && tryout.stage
-              ? isUtbkStudent
-                ? formatUtbkTryoutStageLabel(
-                    tryout.stage,
-                    `Tryout ${tryout.stage}`,
-                  )
-                : `Tryout ${tryout.stage}`
-              : assessmentType;
-          const totalQ = Math.max(
-            tryout.totalQuestions ?? 0,
-            tryout.questionCount ?? 0
-          );
-          const title = tryout.title || `${assessmentLabel} ${tryout.subject || ""}`;
-
-          return (
-            <article key={tryout.id || tryout.tryoutId} className="flex flex-col gap-4 rounded-2xl border border-slate-100 px-4 py-4 transition hover:border-orange-200 hover:bg-orange-50/50">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-orange-50 px-2.5 py-1 text-[11px] font-semibold text-orange-700">
-                      {tryout.subject || "Campuran"}
-                    </span>
-                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] text-slate-500">
-                      {totalQ} soal
-                    </span>
-                    <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
-                      {tryout.durationMinutes ?? 90} menit
-                    </span>
-                  </div>
-
-                  <h4 className="mt-2 text-sm font-semibold text-slate-800">
-                    {title}
-                  </h4>
-                  <p className="mt-1 text-xs leading-6 text-slate-500">
-                    {tryout.availability || "Status ujian belum tersedia"}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl bg-orange-50 px-3 py-2 text-right">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-orange-600">
-                    Kode
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-orange-700">
-                    {tryout.tryoutId || tryout.id || "-"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                <span className="rounded-full bg-slate-100 px-2.5 py-1">
-                  {tryout.questionSource === "bank" ? "Ujian Bank Soal" : "Ujian Terjadwal"}
-                </span>
-                <span className="rounded-full bg-slate-100 px-2.5 py-1">
-                  {tryout.branch || "Pusat"}
-                </span>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <Link
-                  href="/dashboard-siswa/ujian"
-                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-orange-500 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-orange-600"
-                >
-                  <TimerReset className="h-3.5 w-3.5" />
-                  Buka Menu Ujian
-                </Link>
-              </div>
-            </article>
-          );
-        })}
-      </div>
-    );
-  };
-
   return (
     <section className="rounded-[24px] border border-slate-100 bg-white p-4 shadow-sm md:p-5">
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -384,8 +255,8 @@ export default function PelajaranSection() {
           </p>
           <h3 className="mt-1 text-base font-semibold text-slate-800">
             {isUtbkStudent
-              ? "Materi dan tryout UTBK"
-              : "Materi, tugas, dan tryout siswa"}
+              ? "Materi dan latihan soal UTBK"
+              : "Materi dan latihan soal siswa"}
           </h3>
         </div>
 
@@ -427,7 +298,6 @@ export default function PelajaranSection() {
 
         {resolvedActiveTab === "materi" && renderMateri()}
         {resolvedActiveTab === "tugas" && renderTugas()}
-        {resolvedActiveTab === "tryout" && renderTryout()}
       </div>
     </section>
   );
