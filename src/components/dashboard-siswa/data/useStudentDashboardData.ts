@@ -49,17 +49,29 @@ export type StudentDashboardData = {
     tryoutCount: number;
     todayScheduleCount: number;
     scheduleCount: number;
+    accessStatus: string;
+  };
+  academicSummary: {
+    jenjang: string;
+    kelas: number | null;
+    kelasLabel: string;
+    materialCount: number;
+    taskCount: number;
+    tryoutCount: number;
+    todayScheduleCount: number;
+    scheduleCount: number;
   };
   schedules: StudentDashboardSchedule[];
   todaySchedules: StudentDashboardSchedule[];
   academicAccess?: StudentAcademicAccess | null;
 };
 
-export function useStudentDashboardData() {
+export function useStudentDashboardData(academicYear?: string) {
   const [dashboardData, setDashboardData] = useState<StudentDashboardData | null>(
     null,
   );
-  const [isLoading, setIsLoading] = useState(true);
+  const isWaitingForYear = academicYear === "";
+  const [isLoading, setIsLoading] = useState(!isWaitingForYear);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
@@ -67,11 +79,21 @@ export function useStudentDashboardData() {
     let isMounted = true;
 
     async function loadStudentDashboardData() {
+      if (!academicYear) {
+        setDashboardData(null);
+        setLoadError(null);
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       setLoadError(null);
 
       try {
-        const response = await fetch("/api/student/me/dashboard", {
+        const url = new URL("/api/student/me/dashboard", window.location.origin);
+        url.searchParams.set("academicYear", academicYear);
+
+        const response = await fetch(url.toString(), {
           method: "GET",
           ...withStoredAuthHeader(),
           credentials: "include",
@@ -130,7 +152,7 @@ export function useStudentDashboardData() {
     return () => {
       isMounted = false;
     };
-  }, [reloadToken]);
+  }, [reloadToken, academicYear]);
 
   useEffect(() => {
     return subscribeStudentDashboardRefresh(() => {
@@ -142,5 +164,6 @@ export function useStudentDashboardData() {
     dashboardData,
     isLoading,
     loadError,
+    isWaitingForYear,
   };
 }

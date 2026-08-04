@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Download, FolderOpenDot } from "lucide-react";
 
@@ -40,18 +40,20 @@ function toDateOrder(value: string | null | undefined) {
   return Number.isNaN(resolvedDate.getTime()) ? 0 : resolvedDate.getTime();
 }
 
-export default function KirimTugasSiswaPageView() {
+function KirimTugasSiswaPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const academicYear = searchParams.get("academicYear") ?? "";
   const {
     tasks,
     student,
     academicAccess,
-    isLoading,
+    isLoading: isLearningDataLoading,
     loadError,
     refreshLearningData,
     updateTaskSubmissionSummary,
-  } = useStudentLearningData();
+    isWaitingForYear,
+  } = useStudentLearningData(academicYear);
   const isUtbkStudent = isUtbkStudentProfile(student);
   const academicAccessMessage =
     getStudentAcademicAccessMessage(academicAccess);
@@ -62,6 +64,7 @@ export default function KirimTugasSiswaPageView() {
   const submittedTaskCount = submitTargets.filter(
     (task) => task.mySubmission?.submitted,
   ).length;
+  const isLoading = isLearningDataLoading || isWaitingForYear;
   const latestGradedTask =
     [...gradedTasks].sort(
       (leftTask, rightTask) =>
@@ -328,5 +331,13 @@ export default function KirimTugasSiswaPageView() {
         </div>
       )}
     </StudentLearningShell>
+  );
+}
+
+export default function KirimTugasSiswaPageView({ taskId }: { taskId: string }) {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-sm text-slate-500">Memuat form tugas...</div>}>
+      <KirimTugasSiswaPageContent taskId={taskId} />
+    </Suspense>
   );
 }

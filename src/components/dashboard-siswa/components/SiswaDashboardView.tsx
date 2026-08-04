@@ -1,13 +1,27 @@
 "use client";
 
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, Suspense } from "react";
 import HeaderAkademikSiswa from "../sections/HeaderAkademikSiswa";
 import HeaderProfilSiswa from "../sections/HeaderProfilSiswa";
 import { useStudentDashboardData } from "../data/useStudentDashboardData";
-import { isUtbkStudentProfile } from "../data/studentProgram";
 import UtbkProgressWidget from "../widgets/UtbkProgressWidget";
 
-export default function SiswaDashboardView() {
-  const { dashboardData, isLoading, loadError } = useStudentDashboardData();
+function SiswaDashboardContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const academicYear = searchParams.get("academicYear") ?? "";
+
+  const handleYearChange = useCallback(
+    (newYear: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("academicYear", newYear);
+      router.push(`?${params.toString()}`);
+    },
+    [router, searchParams]
+  );
+
+  const { dashboardData, isLoading, loadError, isWaitingForYear } = useStudentDashboardData(academicYear);
 
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 md:py-8">
@@ -15,7 +29,7 @@ export default function SiswaDashboardView() {
         <div className="w-full">
           <HeaderProfilSiswa
             dashboardData={dashboardData}
-            dashboardLoading={isLoading}
+            dashboardLoading={isLoading || isWaitingForYear}
             dashboardError={loadError}
           />
         </div>
@@ -25,13 +39,25 @@ export default function SiswaDashboardView() {
             dashboardData={dashboardData}
             dashboardLoading={isLoading}
             dashboardError={loadError}
+            academicYear={academicYear}
+            onYearChange={handleYearChange}
           />
-          <UtbkProgressWidget
-            dashboardData={dashboardData}
-            dashboardLoading={isLoading}
-          />
+          {(dashboardData || isLoading) && (
+            <UtbkProgressWidget
+              dashboardData={dashboardData}
+              dashboardLoading={isLoading}
+            />
+          )}
         </div>
       </div>
     </section>
+  );
+}
+
+export default function SiswaDashboardView() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-sm text-slate-500">Memuat dashboard...</div>}>
+      <SiswaDashboardContent />
+    </Suspense>
   );
 }

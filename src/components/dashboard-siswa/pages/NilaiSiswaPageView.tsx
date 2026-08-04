@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useMemo, useState } from "react";
 import {
   ArrowLeft,
   ChevronRight,
@@ -174,10 +175,12 @@ function UtbkScoreCard({
 }
 
 function UtbkNilaiView({
-  isProfileLoading,
+  isLoading,
+  academicAccessMessage,
   profileLoadError,
 }: {
-  isProfileLoading: boolean;
+  isLoading: boolean;
+  academicAccessMessage: string | null;
   profileLoadError: string | null;
 }) {
   const {
@@ -186,9 +189,9 @@ function UtbkNilaiView({
     isLoading: isTryoutsLoading,
     loadError: tryoutsLoadError,
   } = useStudentTryouts();
-  const academicAccessMessage =
+  const studentAcademicAccessMessage =
     getStudentAcademicAccessMessage(academicAccess);
-  const isLoading = isProfileLoading || isTryoutsLoading;
+  const isDataLoading = isLoading || isTryoutsLoading;
   const submittedTryouts = tryouts.filter(isSubmittedTryout);
   const stageProgress = UTBK_TRYOUT_STAGE_META.map((stage) => {
     const stageTryouts = submittedTryouts
@@ -217,7 +220,7 @@ function UtbkNilaiView({
     bestScore,
     completedStages.length,
   );
-  const loadError = profileLoadError ?? academicAccessMessage ?? tryoutsLoadError;
+  const loadError = profileLoadError ?? academicAccessMessage ?? studentAcademicAccessMessage ?? tryoutsLoadError;
 
   return (
     <section className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 md:px-6 md:py-8">
@@ -245,7 +248,7 @@ function UtbkNilaiView({
         </span>
       </div>
 
-      {isLoading ? (
+      {isDataLoading ? (
         <section className="rounded-[26px] border border-slate-100 bg-white p-8 text-center shadow-sm">
           <p className="text-base font-semibold text-slate-800">
             Data nilai UTBK sedang dimuat
@@ -381,11 +384,13 @@ function UtbkNilaiView({
   );
 }
 
-export default function NilaiSiswaPageView() {
-  const { tasks, academicSummaries, academicAccess, isLoading, loadError, student } =
-    useStudentLearningData();
+function NilaiSiswaPageContent() {
+  const searchParams = useSearchParams();
+  const academicYear = searchParams.get("academicYear") ?? "";
+  const { student, academicSummaries, tasks, isLoading, loadError, isWaitingForYear } =
+    useStudentLearningData(academicYear);
   const academicAccessMessage =
-    getStudentAcademicAccessMessage(academicAccess);
+    getStudentAcademicAccessMessage(null);
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const isUtbkStudent = isUtbkStudentProfile(student);
 
@@ -431,7 +436,12 @@ export default function NilaiSiswaPageView() {
   if (!isLoading && isUtbkStudent) {
     return (
       <UtbkNilaiView
-        isProfileLoading={isLoading}
+        isLoading={isLoading || isWaitingForYear}
+        academicAccessMessage={
+          isWaitingForYear 
+            ? "Silakan pilih tahun akademik di dashboard utama untuk melihat nilai." 
+            : null
+        }
         profileLoadError={loadError}
       />
     );

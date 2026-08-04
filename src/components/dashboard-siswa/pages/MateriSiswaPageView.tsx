@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import {
   BookOpen,
   CheckCircle2,
@@ -46,9 +47,11 @@ function getSubjectStyle(subject: string) {
   return { bg: 'bg-slate-50', text: 'text-slate-500', icon: FileText };
 }
 
-export default function MateriSiswaPageView() {
-  const { materials, student, academicAccess, isLoading, loadError } =
-    useStudentLearningData();
+function MateriSiswaPageContent() {
+  const searchParams = useSearchParams();
+  const academicYear = searchParams.get("academicYear") ?? "";
+  const { materials, student, academicAccess, isLoading, loadError, isWaitingForYear } =
+    useStudentLearningData(academicYear);
   const [selectedMaterialId, setSelectedMaterialId] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const isUtbkStudent = isUtbkStudentProfile(student);
@@ -68,8 +71,15 @@ export default function MateriSiswaPageView() {
       title={isUtbkStudent ? "Materi UTBK/SNBT" : "Materi Belajar"}
       description={
         isUtbkStudent
-          ? "Jelajahi modul persiapan UTBK dan SNBT yang difokuskan untuk target kampus serta jurusanmu."
-          : "Jelajahi dan pelajari materi yang telah disiapkan khusus untuk kelasmu."
+          ? "Pelajari materi persiapan UTBK yang disusun khusus untuk target jurusanmu."
+          : "Temukan materi yang tepat untuk persiapan belajarmu hari ini."
+      }
+      loading={isLoading || isWaitingForYear}
+      error={loadError}
+      academicAccessMessage={
+        isWaitingForYear
+          ? "Silakan pilih tahun akademik di dashboard utama untuk melihat materi."
+          : academicAccessMessage
       }
       summary={
         isLoading
@@ -296,5 +306,13 @@ export default function MateriSiswaPageView() {
         </DialogContent>
       </Dialog>
     </StudentLearningShell>
+  );
+}
+
+export default function MateriSiswaPageView() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-sm text-slate-500">Memuat materi...</div>}>
+      <MateriSiswaPageContent />
+    </Suspense>
   );
 }

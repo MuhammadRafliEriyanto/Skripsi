@@ -387,12 +387,36 @@ function mapApiAcademicSummary(
     },
     note: normalizeText(summary.note),
     finalAverage:
+    mySubmission: mapTaskSubmissionSummary(task.mySubmission),
+    myGrade,
+  };
+}
+
+function mapApiAcademicSummary(
+  summary: StudentLearningApiAcademicSummaryItem,
+): StudentAcademicSummary {
+  return {
+    classId: normalizeText(summary.classId),
+    className: normalizeText(summary.className),
+    subject: normalizeText(summary.subject) || "Mapel belum diatur",
+    scheme: summary.scheme ?? "semester",
+    academicYear: normalizeText(summary.period?.academicYear),
+    semester: normalizeText(summary.period?.semester),
+    taskAverage:
+      typeof summary.taskAverage === "number" ? summary.taskAverage : null,
+    gradedTaskCount: Math.max(summary.gradedTaskCount ?? 0, 0),
+    scores: {
+      ...EMPTY_ACADEMIC_SCORES,
+      ...summary.scores,
+    },
+    note: normalizeText(summary.note),
+    finalAverage:
       typeof summary.finalAverage === "number" ? summary.finalAverage : null,
     evaluatedAt: normalizeText(summary.evaluatedAt) || null,
   };
 }
 
-export function useStudentLearningData() {
+export function useStudentLearningData(academicYear?: string) {
   const [student, setStudent] = useState<StudentLearningProfile | null>(null);
   const [materials, setMaterials] = useState<StudentMaterial[]>([]);
   const [tasks, setTasks] = useState<StudentTask[]>([]);
@@ -401,7 +425,8 @@ export function useStudentLearningData() {
   >([]);
   const [academicAccess, setAcademicAccess] =
     useState<StudentAcademicAccess | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const isWaitingForYear = academicYear === "";
+  const [isLoading, setIsLoading] = useState(!isWaitingForYear);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
   const isMountedRef = useRef(true);
@@ -413,6 +438,17 @@ export function useStudentLearningData() {
     silentReloadRef.current = false;
 
     async function loadStudentLearningData() {
+      if (!academicYear) {
+        setMaterials([]);
+        setTasks([]);
+        setAcademicSummaries([]);
+        setStudent(null);
+        setAcademicAccess(null);
+        setLoadError(null);
+        setIsLoading(false);
+        return;
+      }
+
       if (showLoading && isMountedRef.current) {
         setIsLoading(true);
       }
@@ -422,7 +458,10 @@ export function useStudentLearningData() {
       }
 
       try {
-        const response = await fetch("/api/student/me/learning", {
+        const url = new URL("/api/student/me/learning", window.location.origin);
+        url.searchParams.set("academicYear", academicYear);
+
+        const response = await fetch(url.toString(), {
           method: "GET",
           ...withStoredAuthHeader(),
           credentials: "include",
@@ -493,7 +532,7 @@ export function useStudentLearningData() {
     return () => {
       isMountedRef.current = false;
     };
-  }, [reloadToken]);
+  }, [reloadToken, academicYear]);
 
   function refreshLearningData() {
     silentReloadRef.current = true;
@@ -537,6 +576,7 @@ export function useStudentLearningData() {
     academicAccess,
     isLoading,
     loadError,
+    isWaitingForYear,
     refreshLearningData,
     updateTaskSubmissionSummary,
   };

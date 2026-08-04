@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -82,11 +82,12 @@ function getSubjectStyle(subject: string) {
   return { bg: 'bg-slate-50', text: 'text-slate-500', icon: FileText };
 }
 
-export default function TugasSiswaPageView() {
+function TugasSiswaPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { tasks, academicAccess, isLoading, loadError, student } =
-    useStudentLearningData();
+  const academicYear = searchParams.get("academicYear") ?? "";
+  const { tasks, academicAccess, isLoading, loadError, student, isWaitingForYear } =
+    useStudentLearningData(academicYear);
   const isUtbkStudent = isUtbkStudentProfile(student);
   const pendingTasks = tasks.filter((task) => task.status !== "Sudah Dinilai");
   const academicAccessMessage =
@@ -413,5 +414,13 @@ export default function TugasSiswaPageView() {
         </DialogContent>
       </Dialog>
     </StudentLearningShell>
+  );
+}
+
+export default function TugasSiswaPageView() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-sm text-slate-500">Memuat tugas...</div>}>
+      <TugasSiswaPageContent />
+    </Suspense>
   );
 }

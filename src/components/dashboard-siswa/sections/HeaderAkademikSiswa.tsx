@@ -22,8 +22,10 @@ import { getUtbkTrackLabel, isUtbkStudentProfile } from "../data/studentProgram"
 
 type HeaderAkademikSiswaProps = {
   dashboardData: StudentDashboardData | null;
-  dashboardLoading?: boolean;
-  dashboardError?: string | null;
+  dashboardLoading: boolean;
+  dashboardError: string | null;
+  academicYear?: string;
+  onYearChange?: (year: string) => void;
 };
 
 function EmptyState({ message }: { message: string }) {
@@ -44,6 +46,8 @@ export default function HeaderAkademikSiswa({
   dashboardData,
   dashboardLoading = false,
   dashboardError = null,
+  academicYear,
+  onYearChange,
 }: HeaderAkademikSiswaProps) {
   const academicAccessMessage = getStudentAcademicAccessMessage(
     dashboardData?.academicAccess,
@@ -91,9 +95,11 @@ export default function HeaderAkademikSiswa({
 
   const emptyStateMessage = dashboardLoading
     ? "Memuat ringkasan belajar siswa..."
-    : academicAccessMessage ??
-      dashboardError ??
-      "Data akademik siswa belum tersedia.";
+    : !academicYear
+      ? "Silakan pilih tahun akademik terlebih dahulu untuk melihat dashboard belajar Anda."
+      : academicAccessMessage ??
+        dashboardError ??
+        "Data akademik siswa belum tersedia.";
 
   return (
     <div id="header-akademik-siswa" className="scroll-mt-24 space-y-4">
@@ -112,7 +118,8 @@ export default function HeaderAkademikSiswa({
             <select
               id="academicYearFilter"
               className="w-full appearance-none rounded-md border border-slate-200 bg-white px-3 py-2.5 pr-10 text-sm font-medium text-slate-700 outline-none transition focus:border-slate-400 focus:ring-1 focus:ring-slate-400 cursor-pointer"
-              defaultValue=""
+              value={academicYear || ""}
+              onChange={(e) => onYearChange?.(e.target.value)}
             >
               <option value="" disabled>
                 -- Pilih Tahun Akademik --

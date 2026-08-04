@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
 
@@ -147,8 +147,11 @@ function ScheduleLoadingState() {
   );
 }
 
-export default function JadwalSiswaPageView() {
-  const { dashboardData, isLoading, loadError } = useStudentDashboardData();
+function JadwalSiswaPageContent() {
+  const searchParams = useSearchParams();
+  const academicYear = searchParams.get("academicYear") ?? "";
+  const { dashboardData, isLoading, loadError, isWaitingForYear } =
+    useStudentDashboardData(academicYear);
   const [selectedDay, setSelectedDay] = useState("Semua");
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(
     null,
@@ -267,7 +270,7 @@ export default function JadwalSiswaPageView() {
           />
         </div>
 
-        {isLoading ? (
+        {isLoading || isWaitingForYear ? (
           <ScheduleLoadingState />
         ) : schedules.length === 0 ? (
           <section className="rounded-[26px] border border-dashed border-slate-200 bg-white px-6 py-14 text-center shadow-sm">
@@ -278,9 +281,11 @@ export default function JadwalSiswaPageView() {
               Belum ada jadwal pelajaran
             </h2>
             <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500">
-              {academicAccessMessage ??
-                loadError ??
-                "Jadwal akan tampil otomatis setelah kelas dan cabang siswa memiliki jadwal aktif."}
+              {isWaitingForYear
+                ? "Silakan pilih tahun akademik di dashboard utama untuk melihat jadwal."
+                : academicAccessMessage ??
+                  loadError ??
+                  "Jadwal akan tampil otomatis setelah kelas dan cabang siswa memiliki jadwal aktif."}
             </p>
           </section>
         ) : (
@@ -561,5 +566,13 @@ function ScheduleDetailPanel({
         </div>
       </div>
     </section>
+  );
+}
+
+export default function JadwalSiswaPageView() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-sm text-slate-500">Memuat jadwal...</div>}>
+      <JadwalSiswaPageContent />
+    </Suspense>
   );
 }

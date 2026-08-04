@@ -1027,6 +1027,10 @@ export const getMyStudentLearningData = asyncHandler(
     );
     const academicAccess = await resolveStudentAcademicContentAccess(student);
 
+    if (req.query.academicYear && typeof req.query.academicYear === "string") {
+      academicAccess.period.academicYear = req.query.academicYear;
+    }
+
     // Bypass filter akses keanggotaan dan jadwal kelas (untuk tujuan testing)
     // if (
     //   membershipAccess.isMembershipLocked ||
@@ -1340,6 +1344,10 @@ export const getMyStudentDashboardData = asyncHandler(
     }
 
     const academicAccess = await resolveStudentAcademicContentAccess(student);
+
+    if (req.query.academicYear && typeof req.query.academicYear === "string") {
+      academicAccess.period.academicYear = req.query.academicYear;
+    }
     const membershipAccess = resolveStudentMembershipContentAccess(
       membershipSnapshot.accessStatus,
       {
