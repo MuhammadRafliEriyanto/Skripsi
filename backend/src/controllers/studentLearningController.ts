@@ -462,13 +462,25 @@ async function getStudentLearningClassMetadata(
     normalizeCanonicalClassName(student.className)?.toLowerCase() ?? "";
   const normalizedBranch = normalizeText(student.branch).toLowerCase();
   
-  const scheduleFilter: any = buildClassContentPeriodFilter(period);
+  const scheduleFilter: any = {
+    $and: [buildClassContentPeriodFilter(period)]
+  };
+  
   if (normalizedBranch) {
-    scheduleFilter.$or = [
-      { branch: { $regex: new RegExp(`^${normalizedBranch}$`, "i") } },
-      { branch: { $in: ["", "-", null] } },
-      { branch: { $regex: /^pusat$/i } }
+    const titleCaseBranch = normalizedBranch.charAt(0).toUpperCase() + normalizedBranch.slice(1).toLowerCase();
+    const branchOptions = [
+      normalizedBranch,
+      normalizedBranch.toLowerCase(),
+      normalizedBranch.toUpperCase(),
+      titleCaseBranch,
+      "Pusat",
+      "pusat",
+      "PUSAT",
+      "",
+      "-",
+      null
     ];
+    scheduleFilter.$and.push({ branch: { $in: branchOptions } });
   }
 
   const scheduleDocuments = (await Schedule.find(scheduleFilter)
@@ -532,16 +544,31 @@ async function getStudentDashboardSchedules(
   const canonicalClassName =
     normalizeCanonicalClassName(student.className)?.toLowerCase() ?? "";
   const normalizedBranch = normalizeText(student.branch).toLowerCase();
-  const scheduleFilter: any = period
-    ? buildClassContentPeriodFilter(period)
-    : {};
+  const scheduleFilter: any = { $and: [] };
+  
+  if (period) {
+    scheduleFilter.$and.push(buildClassContentPeriodFilter(period));
+  }
     
   if (normalizedBranch) {
-    scheduleFilter.$or = [
-      { branch: { $regex: new RegExp(`^${normalizedBranch}$`, "i") } },
-      { branch: { $in: ["", "-", null] } },
-      { branch: { $regex: /^pusat$/i } }
+    const titleCaseBranch = normalizedBranch.charAt(0).toUpperCase() + normalizedBranch.slice(1).toLowerCase();
+    const branchOptions = [
+      normalizedBranch,
+      normalizedBranch.toLowerCase(),
+      normalizedBranch.toUpperCase(),
+      titleCaseBranch,
+      "Pusat",
+      "pusat",
+      "PUSAT",
+      "",
+      "-",
+      null
     ];
+    scheduleFilter.$and.push({ branch: { $in: branchOptions } });
+  }
+
+  if (scheduleFilter.$and.length === 0) {
+    delete scheduleFilter.$and;
   }
 
   const scheduleDocuments = (await Schedule.find(scheduleFilter)
