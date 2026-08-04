@@ -31,20 +31,10 @@ export function subscribeStudentDashboardRefresh(listener: () => void) {
     listener();
   };
 
-  const refreshWhenVisible = () => {
-    if (document.visibilityState === "visible") {
-      requestRefresh();
-    }
-  };
-
   window.addEventListener(studentDashboardRefreshEventName, requestRefresh);
-  window.addEventListener("focus", requestRefresh);
-  document.addEventListener("visibilitychange", refreshWhenVisible);
 
   return () => {
     window.removeEventListener(studentDashboardRefreshEventName, requestRefresh);
-    window.removeEventListener("focus", requestRefresh);
-    document.removeEventListener("visibilitychange", refreshWhenVisible);
   };
 }
 

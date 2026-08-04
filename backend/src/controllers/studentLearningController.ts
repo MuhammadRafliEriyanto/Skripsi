@@ -461,7 +461,17 @@ async function getStudentLearningClassMetadata(
   const canonicalClassName =
     normalizeCanonicalClassName(student.className)?.toLowerCase() ?? "";
   const normalizedBranch = normalizeText(student.branch).toLowerCase();
-  const scheduleDocuments = (await Schedule.find(buildClassContentPeriodFilter(period))
+  
+  const scheduleFilter: any = buildClassContentPeriodFilter(period);
+  if (normalizedBranch) {
+    scheduleFilter.$or = [
+      { branch: { $regex: new RegExp(`^${normalizedBranch}$`, "i") } },
+      { branch: { $in: ["", "-", null] } },
+      { branch: { $regex: /^pusat$/i } }
+    ];
+  }
+
+  const scheduleDocuments = (await Schedule.find(scheduleFilter)
     .populate<{
       teacherId: {
         teacherId: string;
@@ -522,9 +532,18 @@ async function getStudentDashboardSchedules(
   const canonicalClassName =
     normalizeCanonicalClassName(student.className)?.toLowerCase() ?? "";
   const normalizedBranch = normalizeText(student.branch).toLowerCase();
-  const scheduleFilter = period
+  const scheduleFilter: any = period
     ? buildClassContentPeriodFilter(period)
     : {};
+    
+  if (normalizedBranch) {
+    scheduleFilter.$or = [
+      { branch: { $regex: new RegExp(`^${normalizedBranch}$`, "i") } },
+      { branch: { $in: ["", "-", null] } },
+      { branch: { $regex: /^pusat$/i } }
+    ];
+  }
+
   const scheduleDocuments = (await Schedule.find(scheduleFilter)
     .populate<{
       teacherId: {
