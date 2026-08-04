@@ -12,6 +12,7 @@ import {
   Lock,
   Target,
   TimerReset,
+  Bookmark,
 } from "lucide-react";
 
 import type { StudentDashboardData } from "../data/useStudentDashboardData";
@@ -145,6 +146,38 @@ export default function HeaderAkademikSiswa({
             ) : (
               <div className="flex flex-col gap-6">
                 <div>
+                  <div className="mb-6 flex overflow-hidden rounded-[16px] border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+                    <div className="flex w-16 items-center justify-center bg-gradient-to-br from-orange-400 to-orange-500 text-white md:w-20">
+                      <Bookmark className="h-6 w-6 md:h-8 md:w-8" />
+                    </div>
+                    <div className="flex flex-1 flex-col justify-center px-4 py-3 md:px-5">
+                      <label
+                        htmlFor="academicYearFilter"
+                        className="text-[11px] font-bold tracking-wider text-slate-400 md:text-xs"
+                      >
+                        TAHUN AKADEMIK
+                      </label>
+                      <div className="relative mt-1 max-w-sm">
+                        <select
+                          id="academicYearFilter"
+                          className="w-full appearance-none bg-transparent text-sm font-semibold text-slate-700 outline-none cursor-pointer"
+                          defaultValue=""
+                        >
+                          <option value="" disabled>
+                            -- Pilih Tahun Akademik --
+                          </option>
+                          <option value="2025/2026">2025/2026</option>
+                          <option value="2026/2027">2026/2027</option>
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                          <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
+                            <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="mb-3 flex items-center gap-2">
                     <Target className="h-5 w-5 text-orange-500" />
                     <h2 className="text-lg font-bold text-slate-800">Lanjutkan Belajar</h2>
