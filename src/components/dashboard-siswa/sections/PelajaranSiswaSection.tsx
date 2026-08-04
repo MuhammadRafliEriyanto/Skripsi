@@ -162,10 +162,10 @@ export default function PelajaranSection({
                 </span>
               </div>
 
-              <h4 className="mt-2 text-sm font-semibold text-slate-800">
+              <h4 className="mt-2 text-sm font-semibold text-slate-800 md:text-base">
                 {item.judul}
               </h4>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-[11px] text-slate-500 md:text-xs">
                 Materi siap dibaca untuk penguatan konsep dan latihan mandiri.
               </p>
             </div>
@@ -223,10 +223,10 @@ export default function PelajaranSection({
                 </span>
               </div>
 
-              <h4 className="mt-2 text-sm font-semibold text-slate-800">
+              <h4 className="mt-2 text-sm font-semibold text-slate-800 md:text-base">
                 {item.judul}
               </h4>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-[11px] text-slate-500 md:text-xs">
                 Batas pengumpulan pada {item.deadline}.
               </p>
             </div>
@@ -257,14 +257,14 @@ export default function PelajaranSection({
     <section className="rounded-[24px] border border-slate-100 bg-white p-4 shadow-sm md:p-5">
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-orange-600">
-            Aktivitas Belajar
-          </p>
-          <h3 className="mt-1 text-base font-semibold text-slate-800">
+          <h3 className="text-xs font-semibold text-slate-700 md:text-sm">
             {isUtbkStudent
-              ? "Materi dan latihan soal UTBK"
-              : "Materi dan latihan soal siswa"}
+              ? "Materi & Latihan Soal UTBK"
+              : "Materi & Latihan Soal"}
           </h3>
+          <p className="mt-1 text-[11px] text-slate-500">
+            Aktivitas belajar kamu hari ini.
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
