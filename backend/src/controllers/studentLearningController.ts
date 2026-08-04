@@ -420,15 +420,18 @@ function buildSubscriptionDateRangeFilter(
 }
 
 function buildClassContentPeriodFilter(
-  period: { academicYear: string; semester: string },
+  period: { academicYear: string; semester?: string },
   legacyFilter: Record<string, unknown> = {},
 ) {
-  const periodCandidates: Array<Record<string, string>> = [
-    {
-      academicYear: period.academicYear,
-      semester: period.semester,
-    },
-  ];
+  const candidate: Record<string, string> = {
+    academicYear: period.academicYear,
+  };
+
+  if (period.semester) {
+    candidate.semester = period.semester;
+  }
+
+  const periodCandidates: Array<Record<string, string>> = [candidate];
 
   if (period.academicYear === TEACHER_VISIBLE_ACADEMIC_YEAR) {
     periodCandidates.push({
@@ -1028,6 +1031,7 @@ export const getMyStudentLearningData = asyncHandler(
 
     if (req.query.academicYear && typeof req.query.academicYear === "string") {
       academicAccess.period.academicYear = req.query.academicYear;
+      delete (academicAccess.period as any).semester;
     }
 
     // Bypass filter akses keanggotaan dan jadwal kelas (untuk tujuan testing)
@@ -1346,6 +1350,7 @@ export const getMyStudentDashboardData = asyncHandler(
 
     if (req.query.academicYear && typeof req.query.academicYear === "string") {
       academicAccess.period.academicYear = req.query.academicYear;
+      delete (academicAccess.period as any).semester;
     }
     const membershipAccess = resolveStudentMembershipContentAccess(
       membershipSnapshot.accessStatus,

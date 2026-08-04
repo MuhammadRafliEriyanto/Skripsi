@@ -124,8 +124,8 @@ export default function HeaderAkademikSiswa({
               <option value="" disabled>
                 -- Pilih Tahun Belajar --
               </option>
-              <option value="2026/2027">2025/2026</option>
-              <option value="2027/2028">2026/2027</option>
+              <option value="2026/2027">2026/2027</option>
+              <option value="2027/2028">2027/2028</option>
             </select>
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
               <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
