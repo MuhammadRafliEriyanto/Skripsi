@@ -97,21 +97,21 @@ export default function HeaderAkademikSiswa({
 
   return (
     <div id="header-akademik-siswa" className="scroll-mt-24 space-y-4">
-      <div className="flex overflow-hidden rounded-[16px] border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
-        <div className="flex w-16 items-center justify-center bg-gradient-to-br from-orange-400 to-orange-500 text-white md:w-20">
-          <Bookmark className="h-6 w-6 md:h-8 md:w-8" />
+      <div className="flex overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+        <div className="flex w-16 shrink-0 items-center justify-center bg-slate-800 text-white md:w-20">
+          <Bookmark className="h-6 w-6 md:h-8 md:w-8" fill="currentColor" />
         </div>
-        <div className="flex flex-1 flex-col justify-center px-4 py-3 md:px-5">
+        <div className="flex flex-1 flex-col justify-center px-4 py-4 md:px-5">
           <label
             htmlFor="academicYearFilter"
-            className="text-[11px] font-bold tracking-wider text-slate-400 md:text-xs"
+            className="text-[11px] font-semibold tracking-wide text-slate-500 md:text-xs"
           >
             TAHUN AKADEMIK
           </label>
-          <div className="relative mt-1 max-w-sm">
+          <div className="relative mt-2 w-full">
             <select
               id="academicYearFilter"
-              className="w-full appearance-none bg-transparent text-sm font-semibold text-slate-700 outline-none cursor-pointer"
+              className="w-full appearance-none rounded-md border border-slate-200 bg-white px-3 py-2.5 pr-10 text-sm font-medium text-slate-700 outline-none transition focus:border-slate-400 focus:ring-1 focus:ring-slate-400 cursor-pointer"
               defaultValue=""
             >
               <option value="" disabled>
@@ -120,7 +120,7 @@ export default function HeaderAkademikSiswa({
               <option value="2025/2026">2025/2026</option>
               <option value="2026/2027">2026/2027</option>
             </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
               <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
                 <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
               </svg>
