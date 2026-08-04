@@ -98,8 +98,8 @@ export default function HeaderAkademikSiswa({
   return (
     <div id="header-akademik-siswa" className="scroll-mt-24 space-y-4">
       <div className="flex overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
-        <div className="flex w-16 shrink-0 items-center justify-center bg-slate-800 text-white md:w-20">
-          <Bookmark className="h-6 w-6 md:h-8 md:w-8" fill="currentColor" />
+        <div className="flex w-16 shrink-0 items-center justify-center bg-gradient-to-br from-orange-400 to-orange-500 text-white md:w-20">
+          <Bookmark className="h-6 w-6 md:h-8 md:w-8" />
         </div>
         <div className="flex flex-1 flex-col justify-center px-4 py-4 md:px-5">
           <label
@@ -117,8 +117,8 @@ export default function HeaderAkademikSiswa({
               <option value="" disabled>
                 -- Pilih Tahun Akademik --
               </option>
-              <option value="2025/2026">2025/2026</option>
-              <option value="2026/2027">2026/2027</option>
+              <option value="2026/2027">2025/2026</option>
+              <option value="2027/2028">2026/2027</option>
             </select>
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
               <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
