@@ -586,7 +586,7 @@ async function getStudentDashboardSchedules(
           );
       const scheduleBranch = normalizeText(schedule.branch).toLowerCase();
       const matchesBranch = normalizedBranch
-        ? scheduleBranch === normalizedBranch
+        ? scheduleBranch === normalizedBranch || !scheduleBranch || scheduleBranch === "-" || scheduleBranch === "pusat"
         : true;
 
       return matchesClassName && matchesBranch;
