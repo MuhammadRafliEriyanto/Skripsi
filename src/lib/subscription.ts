@@ -413,10 +413,28 @@ export const membershipService = {
       },
     );
   },
+  
+  _mySubscriptionPromise: null as Promise<ApiResponse<MembershipStatusData>> | null,
+  
   getMySubscription() {
-    return requestMembershipJson<MembershipStatusData>("/api/subscriptions/me", {
+    if (this._mySubscriptionPromise) {
+      return this._mySubscriptionPromise;
+    }
+
+    const promise = requestMembershipJson<MembershipStatusData>("/api/subscriptions/me", {
       method: "GET",
+    }).finally(() => {
+      // Clear the promise after it settles so future calls can fetch fresh data
+      // We add a tiny delay to ensure all concurrent mounts catch the same promise
+      setTimeout(() => {
+        if (this._mySubscriptionPromise === promise) {
+          this._mySubscriptionPromise = null;
+        }
+      }, 500);
     });
+    
+    this._mySubscriptionPromise = promise;
+    return promise;
   },
   getMyPaymentHistory() {
     return requestMembershipJson<MembershipPaymentHistoryData>(
