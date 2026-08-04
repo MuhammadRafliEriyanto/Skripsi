@@ -33,7 +33,12 @@ export default function SiswaDashboardView() {
             dashboardData={dashboardData}
             dashboardLoading={isLoading}
           />
-          {showLearningActivity ? <PelajaranSection /> : null}
+          {showLearningActivity ? (
+            <PelajaranSection
+              dashboardData={dashboardData}
+              dashboardLoading={isLoading}
+            />
+          ) : null}
         </div>
       </div>
     </section>

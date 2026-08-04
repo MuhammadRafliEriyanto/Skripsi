@@ -11,7 +11,7 @@ import {
   Send,
   TimerReset,
 } from "lucide-react";
-import { useStudentDashboardData } from "../data/useStudentDashboardData";
+import type { StudentDashboardData } from "../data/useStudentDashboardData";
 import { useStudentLearningData } from "../data/useStudentLearningData";
 import { getStudentAcademicAccessMessage } from "../data/studentAcademicAccess";
 import { isUtbkStudentProfile } from "../data/studentProgram";
@@ -78,9 +78,16 @@ function SectionAction({
   );
 }
 
-export default function PelajaranSection() {
+type PelajaranSectionProps = {
+  dashboardData: StudentDashboardData | null;
+  dashboardLoading?: boolean;
+};
+
+export default function PelajaranSection({
+  dashboardData,
+  dashboardLoading = false,
+}: PelajaranSectionProps) {
   const [activeTab, setActiveTab] = useState<TabKey>("materi");
-  const { dashboardData, isLoading: isDashboardLoading } = useStudentDashboardData();
   const { materials, tasks, student, academicAccess, isLoading, loadError } =
     useStudentLearningData();
   const academicAccessMessage =
@@ -103,14 +110,14 @@ export default function PelajaranSection() {
   );
 
   const summaryLabel = useMemo(() => {
-    if (isLoading || isDashboardLoading) {
+    if (isLoading || dashboardLoading) {
       return "Memuat data aktivitas...";
     }
 
     if (resolvedActiveTab === "materi")
       return `${materials.length} materi tersedia`;
     return `${tasks.length} latihan soal`;
-  }, [resolvedActiveTab, isLoading, isDashboardLoading, materials.length, tasks.length]);
+  }, [resolvedActiveTab, isLoading, dashboardLoading, materials.length, tasks.length]);
 
   const renderMateri = () => {
     if (isLoading) {
