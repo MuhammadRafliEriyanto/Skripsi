@@ -465,7 +465,7 @@ export default function RegisterOnlineView({
           {/* Section 2: Profil Akademik */}
           <FormSection title="Profil Akademik" icon={GraduationCap}>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
+              <div className="space-y-2 sm:col-span-2">
                 <label
                   htmlFor="schoolOrigin"
                   className="text-xs font-bold text-slate-500 uppercase tracking-wider"
@@ -489,7 +489,7 @@ export default function RegisterOnlineView({
               </div>
 
               {/* Target Peningkatan Belajar */}
-              <div className="space-y-2.5">
+              <div className="space-y-2.5 sm:col-span-2">
                 <label
                   htmlFor="difficultSubjects"
                   className="text-xs font-bold text-slate-500 uppercase tracking-wider"
