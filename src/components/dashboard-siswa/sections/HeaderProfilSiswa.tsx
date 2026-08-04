@@ -319,6 +319,7 @@ export default function HeaderProfilSiswa({
         >
           <div className="absolute inset-0 bg-gradient-to-r from-red-600/90 to-orange-500/90" />
 
+
           <div className="relative flex w-full items-center gap-4">
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/10 text-lg font-bold shadow-none">
               {profile.initials}
@@ -326,10 +327,12 @@ export default function HeaderProfilSiswa({
 
             <div className="min-w-0 leading-tight">
               <p className="truncate text-sm font-semibold md:text-base">
-                {profile.name}
+                {profile.name} <span className="font-normal text-white/80">({profile.className})</span>
               </p>
-              <p className="mt-1 text-xs text-white/90 md:text-sm">
-                {profile.membershipValue}
+              <p className="mt-1 flex items-center gap-2 text-xs text-white/90 md:text-sm">
+                <span>Status: {profile.studentStatus}</span>
+                <span className="h-1 w-1 rounded-full bg-white/50" />
+                <span>Tagihan: {profile.paymentValue}</span>
               </p>
             </div>
           </div>
@@ -338,10 +341,7 @@ export default function HeaderProfilSiswa({
         <div className="text-xs md:text-sm">
           {[
             ["Program", profile.program],
-            ["Status Siswa", profile.studentStatus],
             ["Akses Membership", profile.membershipValue],
-            [isUtbkDashboard ? "Status Peserta" : "Kelas", profile.className],
-            ["Tagihan", profile.paymentValue],
           ].map(([label, value]) => (
             <div
               key={label}
@@ -432,95 +432,104 @@ export default function HeaderProfilSiswa({
           id="jadwal-mata-pelajaran"
           className="overflow-hidden rounded-[24px] border border-slate-100 bg-white shadow-sm"
         >
-        <div className="h-1 bg-gradient-to-r from-red-600 via-orange-500 to-orange-400" />
+          <div className="h-1 bg-gradient-to-r from-red-600 via-orange-500 to-orange-400" />
+          
+          <div className="flex h-full flex-col p-4 md:p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-xs font-semibold text-slate-700 md:text-sm">
+                  Jadwal Mata Pelajaran
+                </h3>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  {dashboardLoading
+                    ? "Memuat jadwal pelajaran siswa..."
+                    : subjectSchedules.length > 0
+                      ? `${subjectSchedules.length} sesi tersedia untuk dipantau.`
+                      : academicAccessMessage ??
+                        "Belum ada jadwal pelajaran untuk saat ini."}
+                </p>
+              </div>
 
-        <div className="flex h-full flex-col p-4 md:p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h3 className="text-xs font-semibold text-slate-700 md:text-sm">
-                Jadwal Mata Pelajaran
-              </h3>
-              <p className="mt-1 text-[11px] text-slate-500">
-                {dashboardLoading
-                  ? "Memuat jadwal pelajaran siswa..."
-                  : subjectSchedules.length > 0
-                    ? `${subjectSchedules.length} sesi tersedia untuk dipantau.`
-                    : academicAccessMessage ??
-                      "Belum ada jadwal pelajaran untuk saat ini."}
-              </p>
+              <Link
+                href="/dashboard-siswa/jadwal"
+                className="text-[10px] font-medium text-orange-600 transition hover:text-orange-700 md:text-xs"
+              >
+                Lihat Semua Jadwal
+              </Link>
             </div>
 
-            <Link
-              href="/dashboard-siswa/jadwal"
-              className="text-[10px] font-medium text-orange-600 transition hover:text-orange-700 md:text-xs"
-            >
-              Lihat Semua Jadwal
-            </Link>
-          </div>
+            {dashboardLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="h-20 animate-pulse rounded-xl border border-slate-200 bg-slate-50"
+                  />
+                ))}
+              </div>
+            ) : subjectSchedules.length > 0 ? (
+              <div className="space-y-3 overflow-y-auto pr-1">
+                {visibleSubjectSchedules.map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-xl border border-slate-100 bg-white p-3 transition hover:border-orange-100 hover:shadow-sm"
+                  >
+                    <p className="text-[11px] font-semibold text-orange-600 md:text-xs">
+                      {item.time}
+                    </p>
 
-          {dashboardLoading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 3 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="h-20 animate-pulse rounded-xl border border-slate-200 bg-slate-50"
-                />
-              ))}
-            </div>
-          ) : subjectSchedules.length > 0 ? (
-            <div className="space-y-3 overflow-y-auto pr-1">
-              {visibleSubjectSchedules.map((item) => (
-                <div
-                  key={item.id}
-                  className="rounded-xl border border-slate-100 bg-white p-3 transition hover:border-orange-100 hover:shadow-sm"
-                >
-                  <p className="text-[11px] font-semibold text-orange-600 md:text-xs">
-                    {item.time}
-                  </p>
+                    <h4 className="mt-1 text-sm font-semibold text-slate-800 md:text-base">
+                      {item.subject}
+                    </h4>
 
-                  <h4 className="mt-1 text-sm font-semibold text-slate-800 md:text-base">
-                    {item.subject}
-                  </h4>
-
-                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500 md:text-xs">
-                    <span className="inline-flex items-center gap-1">
-                      <CalendarDays className="h-3.5 w-3.5 text-orange-500" />
-                      {item.day}
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <UserRound className="h-3.5 w-3.5 text-orange-500" />
-                      {item.teacher}
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <MapPin className="h-3.5 w-3.5 text-orange-500" />
-                      {item.room}
-                    </span>
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500 md:text-xs">
+                      <span className="inline-flex items-center gap-1">
+                        <CalendarDays className="h-3.5 w-3.5 text-orange-500" />
+                        {item.day}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <UserRound className="h-3.5 w-3.5 text-orange-500" />
+                        {item.teacher}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <MapPin className="h-3.5 w-3.5 text-orange-500" />
+                        {item.room}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-orange-200 bg-orange-50/50 p-5 text-center">
-              <CalendarDays className="mx-auto h-5 w-5 text-orange-400" />
-              <p className="mt-2 text-xs font-semibold text-orange-600">
-                Belum ada jadwal pelajaran untuk saat ini.
-              </p>
-              <p className="mt-1 text-[11px] text-slate-500">
-                {academicAccessMessage ??
-                  dashboardError ??
-                  "Jadwal kelas akan tampil otomatis sesuai kelas siswa yang sedang login."}
-              </p>
-            </div>
-          )}
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-orange-200 bg-orange-50/50 p-5 text-center">
+                <CalendarDays className="mx-auto h-5 w-5 text-orange-400" />
+                <p className="mt-2 text-xs font-semibold text-orange-600">
+                  Belum ada jadwal pelajaran untuk saat ini.
+                </p>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  {academicAccessMessage ??
+                    dashboardError ??
+                    "Jadwal kelas akan tampil otomatis sesuai kelas siswa yang sedang login."}
+                </p>
+              </div>
+            )}
 
-          <Link
-            href="/dashboard-siswa/jadwal"
-            className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-dashed border-orange-200 bg-orange-50/60 px-4 py-3 text-xs font-semibold text-orange-700 transition hover:bg-orange-100/70"
-          >
-            <CalendarDays className="h-4 w-4" />
-            Buka halaman jadwal lengkap
-          </Link>
-        </div>
+            <div className="mt-3 flex flex-col gap-2">
+              <Link
+                href="/dashboard-siswa/absensi"
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 text-sm font-bold text-white shadow-[0_4px_15px_-3px_rgba(249,115,22,0.3)] transition-all hover:bg-orange-600 hover:-translate-y-0.5"
+              >
+                <Target className="h-5 w-5" />
+                Tampilkan QR Absensi
+              </Link>
+              <Link
+                href="/dashboard-siswa/jadwal"
+                className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-2.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-800"
+              >
+                <CalendarDays className="h-4 w-4" />
+                Buka Jadwal Lengkap
+              </Link>
+            </div>
+          </div>
         </section>
       )}
     </div>

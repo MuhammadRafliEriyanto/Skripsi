@@ -78,21 +78,23 @@ const regularMenus = [
     exact: true,
   },
   {
-    name: "Absensi",
-    path: "/dashboard-siswa/absensi",
+    name: "Latihan & Evaluasi",
+    path: "/dashboard-siswa/materi",
     exact: false,
     activePathPrefixes: [
-      "/dashboard-siswa/absensi",
-      "/dashboard-siswa/scan-absen",
-      "/dashboard-siswa/jadwal",
+      "/dashboard-siswa/materi",
+      "/dashboard-siswa/tugas",
+      "/dashboard-siswa/tryout",
+      "/dashboard-siswa/ujian",
     ],
   },
   {
-    name: "Nilai",
+    name: "Statistik Belajar",
     path: "/dashboard-siswa/nilai",
     exact: false,
     activePathPrefixes: [
       "/dashboard-siswa/nilai",
+      "/dashboard-siswa/riwayat-akademik",
     ],
   },
   {
@@ -109,20 +111,22 @@ const utbkMenus = [
     exact: true,
   },
   {
-    name: "Absensi",
-    path: "/dashboard-siswa/absensi",
+    name: "Latihan & Evaluasi",
+    path: "/dashboard-siswa/materi",
     exact: false,
     activePathPrefixes: [
-      "/dashboard-siswa/absensi",
-      "/dashboard-siswa/scan-absen",
+      "/dashboard-siswa/materi",
+      "/dashboard-siswa/tugas",
+      "/dashboard-siswa/tryout",
     ],
   },
   {
-    name: "Nilai",
+    name: "Statistik Belajar",
     path: "/dashboard-siswa/nilai",
     exact: false,
     activePathPrefixes: [
       "/dashboard-siswa/nilai",
+      "/dashboard-siswa/riwayat-akademik",
     ],
   },
   {

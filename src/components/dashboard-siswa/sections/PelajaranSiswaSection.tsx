@@ -38,15 +38,15 @@ const tabs: TabConfig[] = [
   },
   {
     key: "tugas",
-    label: "Daftar Latihan",
-    shortLabel: "Tugas",
+    label: "Latihan Soal",
+    shortLabel: "Latihan",
     icon: FileText,
     href: "/dashboard-siswa/tugas",
   },
   {
     key: "tryout",
-    label: "Sesi Ujian",
-    shortLabel: "Ujian",
+    label: "Tryout & Evaluasi",
+    shortLabel: "Evaluasi",
     icon: TimerReset,
     href: "/dashboard-siswa/ujian",
   },
@@ -136,8 +136,8 @@ export default function PelajaranSection() {
 
     if (resolvedActiveTab === "materi")
       return `${materials.length} materi tersedia`;
-    if (resolvedActiveTab === "tugas") return `${tasks.length} tugas aktif`;
-    return `${tryouts.length} ${isUtbkStudent ? "tryout tersedia" : "ujian tersedia"}`;
+    if (resolvedActiveTab === "tugas") return `${tasks.length} latihan soal`;
+    return `${tryouts.length} ${isUtbkStudent ? "tryout tersedia" : "evaluasi tersedia"}`;
   }, [resolvedActiveTab, isLoading, isDashboardLoading, isTryoutsLoading, materials.length, tasks.length, tryouts.length, isUtbkStudent]);
 
   const renderMateri = () => {
@@ -208,8 +208,8 @@ export default function PelajaranSection() {
     if (isLoading) {
       return (
         <EmptyState
-          title="Memuat tugas"
-          description="Sistem sedang mengambil tugas terbaru dari kelas kamu."
+          title="Memuat latihan soal"
+          description="Sistem sedang mengambil latihan soal terbaru dari kelas kamu."
         />
       );
     }
@@ -217,11 +217,11 @@ export default function PelajaranSection() {
     if (tasks.length === 0) {
       return (
         <EmptyState
-          title="Belum ada tugas"
+          title="Belum ada latihan soal"
           description={
             academicAccessMessage ??
             loadError ??
-            "Tugas mandiri maupun kelompok belum ditambahkan oleh guru kelas kamu."
+            "Latihan soal belum ditambahkan oleh guru kelas kamu."
           }
         />
       );
@@ -278,8 +278,8 @@ export default function PelajaranSection() {
     if (isTryoutsLoading) {
       return (
         <EmptyState
-          title="Memuat sesi ujian"
-          description="Sistem sedang mengambil sesi ujian atau tryout terbaru dari kelas kamu."
+          title="Memuat sesi evaluasi"
+          description="Sistem sedang mengambil sesi evaluasi atau tryout terbaru dari kelas kamu."
         />
       );
     }
@@ -287,11 +287,11 @@ export default function PelajaranSection() {
     if (tryouts.length === 0) {
       return (
         <EmptyState
-          title="Belum ada sesi ujian"
+          title="Belum ada sesi evaluasi"
           description={
             tryoutAcademicAccessMessage ??
             tryoutsError ??
-            "Belum ada sesi ujian atau tryout yang diterbitkan untuk kelas kamu saat ini."
+            "Belum ada sesi evaluasi atau tryout yang diterbitkan untuk kelas kamu saat ini."
           }
         />
       );

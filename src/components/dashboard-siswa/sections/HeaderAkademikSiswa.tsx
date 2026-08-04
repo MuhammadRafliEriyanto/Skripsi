@@ -18,29 +18,11 @@ import type { StudentDashboardData } from "../data/useStudentDashboardData";
 import { getStudentAcademicAccessMessage } from "../data/studentAcademicAccess";
 import { getUtbkTrackLabel, isUtbkStudentProfile } from "../data/studentProgram";
 
+
 type HeaderAkademikSiswaProps = {
   dashboardData: StudentDashboardData | null;
   dashboardLoading?: boolean;
   dashboardError?: string | null;
-};
-
-type TabConfig = {
-  name: string;
-  icon: LucideIcon;
-  content: {
-    title: string;
-    desc: string;
-    stats: string;
-    primaryLabel: string;
-    primaryHref: string;
-    secondaryLabel: string;
-    secondaryHref: string;
-  };
-};
-
-type ProgramConfig = {
-  name: string;
-  tabs: TabConfig[];
 };
 
 function EmptyState({ message }: { message: string }) {
@@ -65,158 +47,6 @@ export default function HeaderAkademikSiswa({
   const academicAccessMessage = getStudentAcademicAccessMessage(
     dashboardData?.academicAccess,
   );
-
-  const derivedProgram = useMemo<ProgramConfig | null>(() => {
-    if (!dashboardData) {
-      return null;
-    }
-
-    const { student, academicSummary } = dashboardData;
-    const isUtbkStudent = isUtbkStudentProfile(student);
-    const utbkTrackLabel = getUtbkTrackLabel(student);
-    const utbkScheduleScope =
-      utbkTrackLabel === "Program SNBT"
-        ? "program UTBK"
-        : `program UTBK ${utbkTrackLabel}`;
-    const scheduleScopeLabel = isUtbkStudent
-      ? utbkScheduleScope
-      : `kelas ${student.className}`;
-    const scheduleDescription =
-      academicAccessMessage ??
-      (academicSummary.todayScheduleCount > 0
-        ? `${academicSummary.todayScheduleCount} sesi belajar terjadwal hari ini untuk ${scheduleScopeLabel}.`
-        : academicSummary.scheduleCount > 0
-          ? `Tidak ada jadwal hari ini. Total ${academicSummary.scheduleCount} jadwal mingguan siap dipantau dari dashboard siswa.`
-          : "Jadwal pelajaran untuk kelas kamu belum tersedia.");
-
-    const materialTab: TabConfig = {
-      name: "Materi",
-      icon: FileText,
-      content: {
-        title: isUtbkStudent ? "Materi UTBK aktif" : "Materi belajar aktif",
-        desc:
-          academicSummary.materialCount > 0
-            ? isUtbkStudent
-              ? `${academicSummary.materialCount} materi UTBK/SNBT sudah tersedia untuk dipelajari.`
-              : `${academicSummary.materialCount} materi sudah dipublikasikan untuk kelas ${student.className}.`
-            : academicAccessMessage ??
-              (isUtbkStudent
-                ? "Materi UTBK/SNBT belum dipublikasikan untuk akun ini."
-                : `Guru belum mempublikasikan materi untuk kelas ${student.className}.`),
-        stats: `${academicSummary.materialCount} Materi`,
-        primaryLabel: "Buka Materi",
-        primaryHref: "/dashboard-siswa/materi",
-        secondaryLabel: "Lihat Detail",
-        secondaryHref: "/dashboard-siswa/materi",
-      },
-    };
-
-    const tryoutTab: TabConfig = {
-      name: isUtbkStudent ? "Tryout SNBT" : "Sesi Ujian",
-      icon: TimerReset,
-      content: {
-        title: isUtbkStudent ? "Sesi Tryout UTBK/SNBT" : "Sesi Ujian dan Tryout",
-        desc:
-          academicSummary.tryoutCount > 0
-            ? isUtbkStudent
-              ? `${academicSummary.tryoutCount} sesi tryout tersedia untuk program UTBK.`
-              : `${academicSummary.tryoutCount} sesi ujian/tryout tersedia untuk kelas ${student.className}.`
-            : academicAccessMessage ??
-              (isUtbkStudent
-                ? "Belum ada tryout UTBK/SNBT yang tersedia untuk akun ini."
-                : "Belum ada sesi ujian aktif yang tersedia untuk kelas kamu."),
-        stats: `${academicSummary.tryoutCount} ${isUtbkStudent ? "Tryout" : "Ujian"}`,
-        primaryLabel: isUtbkStudent ? "Buka Tryout" : "Mulai Ujian",
-        primaryHref: "/dashboard-siswa/ujian",
-        secondaryLabel: isUtbkStudent ? "Lihat Tryout" : "Lihat Ujian",
-        secondaryHref: "/dashboard-siswa/ujian",
-      },
-    };
-
-    const scheduleTab: TabConfig = {
-      name: "Jadwal",
-      icon: CalendarClock,
-      content: {
-        title: isUtbkStudent
-          ? "Jadwal kelas UTBK"
-          : "Jadwal pelajaran hari ini",
-        desc: scheduleDescription,
-        stats: `${academicSummary.todayScheduleCount} Jadwal`,
-        primaryLabel: "Lihat Jadwal",
-        primaryHref: "/dashboard-siswa/jadwal",
-        secondaryLabel: "Buka Dashboard",
-        secondaryHref: "/dashboard-siswa",
-      },
-    };
-
-    const attendanceTab: TabConfig = {
-      name: "Absensi",
-      icon: CalendarClock,
-      content: {
-        title: isUtbkStudent
-          ? "Kehadiran sesi UTBK"
-          : "Riwayat kehadiran kelas",
-        desc:
-          academicAccessMessage ??
-          (isUtbkStudent
-            ? "Pantau kehadiran dari sesi intensif UTBK yang sudah berjalan."
-            : "Pantau riwayat kehadiran dari sesi kelas yang sudah berjalan."),
-        stats: `${academicSummary.scheduleCount} Sesi`,
-        primaryLabel: "Lihat Absensi",
-        primaryHref: "/dashboard-siswa/absensi",
-        secondaryLabel: "Buka Jadwal",
-        secondaryHref: "/dashboard-siswa/jadwal",
-      },
-    };
-
-    const regularTabs: TabConfig[] = [
-      materialTab,
-        {
-          name: "Tugas",
-          icon: BookOpen,
-          content: {
-            title: "Tugas dan agenda belajar",
-            desc:
-              academicSummary.taskCount > 0
-                ? `${academicSummary.taskCount} tugas tersedia untuk dipantau dan dikerjakan dari dashboard siswa.`
-                : academicAccessMessage ??
-                  "Belum ada tugas aktif yang dibagikan untuk kelas kamu.",
-            stats: `${academicSummary.taskCount} Tugas`,
-            primaryLabel: "Lihat Tugas",
-            primaryHref: "/dashboard-siswa/tugas",
-            secondaryLabel: "Kirim Jawaban",
-            secondaryHref: "/dashboard-siswa/kirim-tugas",
-          },
-        },
-        tryoutTab,
-        scheduleTab,
-        attendanceTab,
-        {
-          name: "Nilai",
-          icon: Target,
-          content: {
-            title: "Nilai dan evaluasi belajar",
-            desc:
-              academicAccessMessage ??
-              "Lihat rekap nilai tugas, evaluasi, dan catatan akademik dari guru.",
-            stats: `${academicSummary.taskCount} Tugas`,
-            primaryLabel: "Lihat Nilai",
-            primaryHref: "/dashboard-siswa/nilai",
-            secondaryLabel: "Riwayat Akademik",
-            secondaryHref: "/dashboard-siswa/riwayat-akademik",
-          },
-        },
-    ];
-
-    return {
-      name: isUtbkStudent
-        ? `UTBK - ${getUtbkTrackLabel(student)}`
-        : `${student.program || academicSummary.jenjang} - ${academicSummary.kelasLabel}`,
-      tabs: isUtbkStudent
-        ? [scheduleTab, materialTab, tryoutTab]
-        : regularTabs,
-    };
-  }, [academicAccessMessage, dashboardData]);
 
   const heroTitle = useMemo(() => {
     if (dashboardLoading) {
@@ -252,28 +82,12 @@ export default function HeaderAkademikSiswa({
 
     const { academicSummary, student } = dashboardData;
     if (isUtbkStudentProfile(student)) {
-      return `${academicSummary.materialCount} materi, ${academicSummary.tryoutCount} tryout, dan ${academicSummary.todayScheduleCount} jadwal hari ini siap dipantau dari dashboard UTBK.`;
+      return `Ada ${academicSummary.materialCount} materi dan ${academicSummary.tryoutCount} tryout untuk persiapan UTBK kamu.`;
     }
 
-    return `${academicSummary.materialCount} materi, ${academicSummary.taskCount} tugas, ${academicSummary.tryoutCount} ujian, dan ${academicSummary.todayScheduleCount} jadwal hari ini siap dipantau dari dashboard siswa.`;
+    return `Kamu punya ${academicSummary.materialCount} materi untuk dipelajari dan ${academicSummary.taskCount} latihan soal untuk diselesaikan. Semangat!`;
   }, [academicAccessMessage, dashboardData, dashboardError, dashboardLoading]);
 
-  const programOptions = useMemo(
-    () => (derivedProgram ? [derivedProgram] : []),
-    [derivedProgram],
-  );
-  const [selectedProgramName, setSelectedProgramName] = useState("");
-
-  const selectedProgram =
-    programOptions.find((program) => program.name === selectedProgramName) ??
-    programOptions[0] ??
-    null;
-  const [activeTabName, setActiveTabName] = useState("");
-
-  const selectedTab =
-    selectedProgram?.tabs.find((tab) => tab.name === activeTabName) ??
-    selectedProgram?.tabs[0] ??
-    null;
   const emptyStateMessage = dashboardLoading
     ? "Memuat ringkasan belajar siswa..."
     : academicAccessMessage ??
@@ -299,96 +113,70 @@ export default function HeaderAkademikSiswa({
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
-        <div className="flex items-stretch">
-          <div className="flex w-16 items-center justify-center bg-orange-50 md:w-20">
-            <BookOpen className="h-6 w-6 text-orange-400 md:h-7 md:w-7" />
+        <div className="flex flex-col md:flex-row items-stretch">
+          <div className="flex w-full md:w-24 shrink-0 flex-col items-center justify-center bg-orange-50 p-4 md:p-6">
+            <Flame className="h-8 w-8 mb-2 text-orange-500" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-orange-600 text-center">Fokus Hari Ini</span>
           </div>
 
-          <div className="flex-1 px-4 py-4">
-            <div className="mb-2 flex items-center gap-2">
-              <Target className="h-4 w-4 text-orange-500" />
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                Panel Siswa
-              </p>
-            </div>
+          <div className="flex-1 p-5 md:p-6">
+            {dashboardLoading ? (
+               <EmptyState message="Memuat aktivitas belajar..." />
+            ) : !dashboardData ? (
+               <EmptyState message={emptyStateMessage} />
+            ) : (
+              <div className="flex flex-col gap-6">
+                <div>
+                  <div className="mb-3 flex items-center gap-2">
+                    <Target className="h-5 w-5 text-orange-500" />
+                    <h2 className="text-lg font-bold text-slate-800">Lanjutkan Belajar</h2>
+                  </div>
+                  
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <p className="text-sm font-semibold text-slate-800 md:text-base">
+                      {isUtbkStudentProfile(dashboardData.student) ? `Persiapan ${getUtbkTrackLabel(dashboardData.student)}` : `Materi ${dashboardData.academicSummary.kelasLabel}`}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500 md:text-sm">
+                      {academicAccessMessage ?? "Mari lanjutkan materi dan selesaikan latihan soalmu hari ini."}
+                    </p>
 
-            {selectedProgram ? (
-              <>
-                <div className="relative">
-                  <select
-                    value={selectedProgram?.name ?? ""}
-                    onChange={(event) => setSelectedProgramName(event.target.value)}
-                    className="w-full appearance-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 pr-10 text-sm font-medium text-gray-700 transition focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100"
-                  >
-                    {programOptions.map((program) => (
-                      <option key={program.name} value={program.name}>
-                        {program.name}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {selectedProgram.tabs.map((tab) => {
-                    const Icon = tab.icon;
-                    const isActive = selectedTab?.name === tab.name;
-
-                    return (
-                      <button
-                        key={tab.name}
-                        type="button"
-                        onClick={() => setActiveTabName(tab.name)}
-                        className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
-                          isActive
-                            ? "bg-orange-500 text-white shadow-sm"
-                            : "bg-slate-50 text-slate-600 hover:bg-orange-50 hover:text-orange-600"
-                        }`}
-                      >
-                        <Icon className="h-3.5 w-3.5" />
-                        {tab.name}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {selectedTab ? (
-                  <div className="mt-4 rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <h3 className="text-sm font-semibold text-slate-800 md:text-base">
-                          {selectedTab.content.title}
-                        </h3>
-                        <p className="mt-1 text-xs text-slate-500 md:text-sm">
-                          {selectedTab.content.desc}
-                        </p>
-                      </div>
-                      <div className="shrink-0 rounded-xl bg-white border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm">
-                        {selectedTab.content.stats}
-                      </div>
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap gap-2">
+                    <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <Link
-                        href={selectedTab.content.primaryHref}
-                        className="rounded-xl bg-orange-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-orange-700"
+                        href="/dashboard-siswa/materi"
+                        className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700 hover:-translate-y-0.5"
                       >
-                        {selectedTab.content.primaryLabel}
+                        <BookOpen className="h-4 w-4" />
+                        Buka Materi
                       </Link>
                       <Link
-                        href={selectedTab.content.secondaryHref}
-                        className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
+                        href="/dashboard-siswa/tugas"
+                        className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:border-orange-200"
                       >
-                        {selectedTab.content.secondaryLabel}
+                        <FileText className="h-4 w-4" />
+                        Kerjakan Latihan
                       </Link>
                     </div>
                   </div>
-                ) : (
-                  <EmptyState message={emptyStateMessage} />
-                )}
-              </>
-            ) : (
-              <EmptyState message={emptyStateMessage} />
+                </div>
+
+                <div>
+                  <div className="mb-3 flex items-center gap-2">
+                    <Target className="h-4 w-4 text-slate-400" />
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">Statistik Belajar</h3>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-xl bg-orange-50/50 border border-orange-100 p-4">
+                      <p className="text-2xl font-black text-orange-600">{dashboardData.academicSummary.materialCount}</p>
+                      <p className="mt-1 text-[11px] font-medium text-orange-800 uppercase tracking-wide">Materi Tersedia</p>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 border border-slate-100 p-4">
+                      <p className="text-2xl font-black text-slate-700">{dashboardData.academicSummary.taskCount}</p>
+                      <p className="mt-1 text-[11px] font-medium text-slate-500 uppercase tracking-wide">Latihan Soal</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>
