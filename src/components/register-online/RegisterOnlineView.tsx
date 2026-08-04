@@ -316,8 +316,8 @@ export default function RegisterOnlineView({
       hideSplitVisualOnMobile
       hideSplitTopBadge
       allowDesktopScroll
-      title="Silahkan isi data diri"
-      description="Bergabunglah bersama ratusan siswa lainnya dan raih prestasi impianmu dengan fasilitas belajar terbaik."
+      title="Mulai Langkah Prestasimu Bersama Kami"
+      description="Buat akun belajarmu sekarang. Setelah mendaftar, kamu bisa langsung memilih paket membership dan menjadwalkan sesi pertamamu."
       footer={
         <div className="text-sm text-slate-500 text-center space-y-4">
           <p>
@@ -348,8 +348,8 @@ export default function RegisterOnlineView({
     >
       <div className="space-y-8 pb-10">
         <form className="space-y-10" onSubmit={handleSubmit}>
-          {/* Section 1: Data Diri */}
-          <FormSection title="Informasi Siswa" icon={User}>
+          {/* Section 1: Data Akun & Kontak */}
+          <FormSection title="Data Akun & Kontak" icon={User}>
             <div className="space-y-2">
               <label
                 htmlFor="nama"
@@ -431,37 +431,40 @@ export default function RegisterOnlineView({
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label
-                  htmlFor="gender"
-                  className="text-xs font-bold text-slate-500 uppercase tracking-wider"
+            <div className="space-y-2">
+              <label
+                htmlFor="gender"
+                className="text-xs font-bold text-slate-500 uppercase tracking-wider"
+              >
+                Jenis Kelamin
+              </label>
+              <Select
+                value={formValues.gender}
+                onValueChange={(value) =>
+                  setFormValues((current) => ({
+                    ...current,
+                    gender: value as "Laki-laki" | "Perempuan",
+                  }))
+                }
+              >
+                <SelectTrigger
+                  id="gender"
+                  className="h-12 rounded-2xl border-slate-200/60 bg-slate-50/50 px-4 transition-all duration-300 focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-500/10 hover:border-slate-300"
                 >
-                  Jenis Kelamin
-                </label>
-                <Select
-                  value={formValues.gender}
-                  onValueChange={(value) =>
-                    setFormValues((current) => ({
-                      ...current,
-                      gender: value as "Laki-laki" | "Perempuan",
-                    }))
-                  }
-                >
-                  <SelectTrigger
-                    id="gender"
-                    className="h-12 rounded-2xl border-slate-200/60 bg-slate-50/50 px-4 transition-all duration-300 focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-500/10 hover:border-slate-300"
-                  >
-                    <SelectValue placeholder="Pilih jenis kelamin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Laki-laki">Laki-laki</SelectItem>
-                    <SelectItem value="Perempuan">Perempuan</SelectItem>
-                  </SelectContent>
-                </Select>
-                <InputError message={fieldErrors.gender} />
-              </div>
+                  <SelectValue placeholder="Pilih jenis kelamin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Laki-laki">Laki-laki</SelectItem>
+                  <SelectItem value="Perempuan">Perempuan</SelectItem>
+                </SelectContent>
+              </Select>
+              <InputError message={fieldErrors.gender} />
+            </div>
+          </FormSection>
 
+          {/* Section 2: Profil Akademik */}
+          <FormSection title="Profil Akademik" icon={GraduationCap}>
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <label
                   htmlFor="schoolOrigin"
@@ -485,13 +488,13 @@ export default function RegisterOnlineView({
                 <InputError message={fieldErrors.schoolOrigin} />
               </div>
 
-              {/* Mata Pelajaran yang Sulit Dipahami */}
-              <div className="space-y-2.5 sm:col-span-2">
+              {/* Target Peningkatan Belajar */}
+              <div className="space-y-2.5">
                 <label
                   htmlFor="difficultSubjects"
                   className="text-xs font-bold text-slate-500 uppercase tracking-wider"
                 >
-                  Mata Pelajaran yang Sulit Dipahami <span className="text-slate-400 font-normal lowercase capitalize-none">(Opsional)</span>
+                  Target Peningkatan Belajar <span className="text-slate-400 font-normal lowercase capitalize-none">(Opsional)</span>
                 </label>
                 <div className="relative group">
                   <div className="absolute left-3 top-3.5 text-slate-400 transition-colors group-focus-within:text-indigo-600">
@@ -513,35 +516,7 @@ export default function RegisterOnlineView({
                 </div>
                 <InputError message={fieldErrors.difficultSubjects} />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <label
-                htmlFor="address"
-                className="text-xs font-bold text-slate-500 uppercase tracking-wider"
-              >
-                Alamat Lengkap
-              </label>
-              <Input
-                id="address"
-                value={formValues.address}
-                onChange={(event) =>
-                  setFormValues((current) => ({
-                    ...current,
-                    address: event.target.value,
-                  }))
-                }
-                placeholder="Alamat lengkap domisili"
-                className="h-12 rounded-2xl border-slate-200/60 bg-slate-50/50 px-4 transition-all duration-300 focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-500/10 hover:border-slate-300"
-                required
-              />
-              <InputError message={fieldErrors.address} />
-            </div>
-          </FormSection>
-
-          {/* Section 2: Akademik */}
-          <FormSection title="Program & Cabang" icon={GraduationCap}>
-            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <label
                   htmlFor="program"
@@ -603,6 +578,80 @@ export default function RegisterOnlineView({
                 </Select>
                 <InputError message={fieldErrors.classLevel} />
               </div>
+
+              {isUtbkProgram ? (
+                <>
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="targetKampus"
+                      className="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                    >
+                      Target Kampus
+                    </label>
+                    <Input
+                      id="targetKampus"
+                      value={formValues.targetKampus ?? ""}
+                      onChange={(event) =>
+                        setFormValues((current) => ({
+                          ...current,
+                          targetKampus: event.target.value,
+                        }))
+                      }
+                      placeholder="Contoh: Universitas Indonesia"
+                      className="h-12 rounded-2xl border-slate-200/60 bg-slate-50/50 px-4 transition-all duration-300 focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-500/10 hover:border-slate-300"
+                    />
+                    <InputError message={fieldErrors.targetKampus} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="targetJurusan"
+                      className="text-xs font-bold text-slate-500 uppercase tracking-wider"
+                    >
+                      Target Jurusan
+                    </label>
+                    <Input
+                      id="targetJurusan"
+                      value={formValues.targetJurusan ?? ""}
+                      onChange={(event) =>
+                        setFormValues((current) => ({
+                          ...current,
+                          targetJurusan: event.target.value,
+                        }))
+                      }
+                      placeholder="Contoh: Kedokteran"
+                      className="h-12 rounded-2xl border-slate-200/60 bg-slate-50/50 px-4 transition-all duration-300 focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-500/10 hover:border-slate-300"
+                    />
+                    <InputError message={fieldErrors.targetJurusan} />
+                  </div>
+                </>
+              ) : null}
+            </div>
+          </FormSection>
+
+          {/* Section 3: Rencana Belajar */}
+          <FormSection title="Lokasi & Rencana Belajar" icon={MapPin}>
+            <div className="space-y-2">
+              <label
+                htmlFor="address"
+                className="text-xs font-bold text-slate-500 uppercase tracking-wider"
+              >
+                Alamat Lengkap
+              </label>
+              <Input
+                id="address"
+                value={formValues.address}
+                onChange={(event) =>
+                  setFormValues((current) => ({
+                    ...current,
+                    address: event.target.value,
+                  }))
+                }
+                placeholder="Alamat lengkap domisili"
+                className="h-12 rounded-2xl border-slate-200/60 bg-slate-50/50 px-4 transition-all duration-300 focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-500/10 hover:border-slate-300"
+                required
+              />
+              <InputError message={fieldErrors.address} />
             </div>
 
             <div className="space-y-2">
@@ -649,57 +698,9 @@ export default function RegisterOnlineView({
               </Select>
               <InputError message={fieldErrors.branch || branchOptionsError} />
             </div>
-
-            {isUtbkProgram ? (
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <label
-                    htmlFor="targetKampus"
-                    className="text-xs font-bold text-slate-500 uppercase tracking-wider"
-                  >
-                    Target Kampus
-                  </label>
-                  <Input
-                    id="targetKampus"
-                    value={formValues.targetKampus ?? ""}
-                    onChange={(event) =>
-                      setFormValues((current) => ({
-                        ...current,
-                        targetKampus: event.target.value,
-                      }))
-                    }
-                    placeholder="Contoh: Universitas Indonesia"
-                    className="h-12 rounded-2xl border-slate-200/60 bg-slate-50/50 px-4 transition-all duration-300 focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-500/10 hover:border-slate-300"
-                  />
-                  <InputError message={fieldErrors.targetKampus} />
-                </div>
-
-                <div className="space-y-2">
-                  <label
-                    htmlFor="targetJurusan"
-                    className="text-xs font-bold text-slate-500 uppercase tracking-wider"
-                  >
-                    Target Jurusan
-                  </label>
-                  <Input
-                    id="targetJurusan"
-                    value={formValues.targetJurusan ?? ""}
-                    onChange={(event) =>
-                      setFormValues((current) => ({
-                        ...current,
-                        targetJurusan: event.target.value,
-                      }))
-                    }
-                    placeholder="Contoh: Kedokteran"
-                    className="h-12 rounded-2xl border-slate-200/60 bg-slate-50/50 px-4 transition-all duration-300 focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-500/10 hover:border-slate-300"
-                  />
-                  <InputError message={fieldErrors.targetJurusan} />
-                </div>
-              </div>
-            ) : null}
           </FormSection>
 
-          {/* Section 3: Paket */}
+          {/* Section 4: Paket */}
           <div className="space-y-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -880,7 +881,7 @@ export default function RegisterOnlineView({
                 </>
               ) : (
                 <div className="flex items-center justify-center gap-2">
-                  Daftar & Buat Tagihan
+                  Buat Akun & Lanjut ke Pembayaran
                   <ChevronRight className="size-5 transition-transform duration-300 group-hover:translate-x-1" />
                 </div>
               )}
