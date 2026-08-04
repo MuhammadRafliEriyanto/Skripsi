@@ -20,6 +20,8 @@ export type PublicStudent = {
   className: string;
   birthDate: string;
   academicYear: string;
+  schoolOrigin?: string;
+  difficultSubjects?: string;
   academicJoinedAt: string | null;
   generatedPassword: string;
   status: "Aktif" | "Nonaktif";
@@ -125,6 +127,8 @@ export function toPublicStudent(
     className: student.className,
     birthDate,
     academicYear: student.academicYear || getCurrentAcademicPeriod().academicYear,
+    schoolOrigin: student.schoolOrigin,
+    difficultSubjects: student.difficultSubjects,
     academicJoinedAt: student.academicJoinedAt?.toISOString() ?? null,
     generatedPassword: buildGeneratedPasswordForStudent({
       birthDate,

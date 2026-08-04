@@ -19,6 +19,7 @@ export interface IStudent {
   gender: "Laki-laki" | "Perempuan" | null;
   address: string;
   schoolOrigin: string;
+  difficultSubjects?: string;
   status: StudentStatus;
   academicJoinedAt: Date | null;
   createdAt: Date;
@@ -95,6 +96,11 @@ const studentSchema = new Schema<IStudent>(
       trim: true,
     },
     schoolOrigin: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    difficultSubjects: {
       type: String,
       default: "",
       trim: true,

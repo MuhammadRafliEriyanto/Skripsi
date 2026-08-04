@@ -528,6 +528,7 @@ export function toPublicStudentMembership(student: StudentWithUser) {
     gender: student.gender ?? null,
     address: student.address ?? "",
     schoolOrigin: student.schoolOrigin ?? "",
+    difficultSubjects: student.difficultSubjects ?? "",
     status: student.status,
     academicJoinedAt: student.academicJoinedAt,
     isEmailVerified: student.userId.isEmailVerified,

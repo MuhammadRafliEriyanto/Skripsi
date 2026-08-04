@@ -52,6 +52,7 @@ type RegisterOnlineRequestBody = {
   gender?: string;
   address?: string;
   schoolOrigin?: string;
+  difficultSubjects?: string;
 };
 
 type CreateMyRenewalRequestBody = {
@@ -175,6 +176,7 @@ export const registerOnline = asyncHandler(
     const gender = normalizeText(req.body.gender) as "Laki-laki" | "Perempuan" | "";
     const address = normalizeText(req.body.address);
     const schoolOrigin = normalizeText(req.body.schoolOrigin);
+    const difficultSubjects = normalizeText(req.body.difficultSubjects);
     const isUtbkRegistration = program === "UTBK";
     const utbkTrack = isUtbkRegistration ? utbkTrackInput || classLevel : "";
     const errors: Record<string, string> = {};
@@ -318,6 +320,7 @@ export const registerOnline = asyncHandler(
         gender: gender || null,
         address,
         schoolOrigin,
+        difficultSubjects,
         status: "Nonaktif",
         academicJoinedAt: null,
       });

@@ -4,6 +4,7 @@ import {
   Check,
   ChevronRight,
   GraduationCap,
+  BookOpen,
   Info,
   type LucideIcon,
   LoaderCircle,
@@ -133,6 +134,7 @@ export default function RegisterOnlineView({
     gender: "",
     address: "",
     schoolOrigin: "",
+    difficultSubjects: "",
   }));
 
   const classOptions = useMemo(
@@ -481,6 +483,35 @@ export default function RegisterOnlineView({
                   required
                 />
                 <InputError message={fieldErrors.schoolOrigin} />
+              </div>
+
+              {/* Mata Pelajaran yang Sulit Dipahami */}
+              <div className="space-y-2.5 sm:col-span-2">
+                <Label
+                  htmlFor="difficultSubjects"
+                  className="text-sm font-semibold text-slate-700"
+                >
+                  Mata Pelajaran yang Sulit Dipahami <span className="text-slate-400 font-normal">(Opsional)</span>
+                </Label>
+                <div className="relative group">
+                  <div className="absolute left-3 top-3.5 text-slate-400 transition-colors group-focus-within:text-indigo-600">
+                    <BookOpen className="size-5" />
+                  </div>
+                  <Input
+                    id="difficultSubjects"
+                    name="difficultSubjects"
+                    value={formValues.difficultSubjects || ""}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                      setFormValues({
+                        ...formValues,
+                        difficultSubjects: event.target.value,
+                      });
+                    }}
+                    placeholder="Contoh: Matematika, Fisika"
+                    className="h-12 w-full rounded-xl border-slate-200 bg-slate-50/50 pl-11 text-base placeholder:text-slate-400 hover:border-indigo-200 focus:border-indigo-600 focus:bg-white focus:ring-4 focus:ring-indigo-600/10 transition-all duration-300"
+                  />
+                </div>
+                <InputError message={fieldErrors.difficultSubjects} />
               </div>
             </div>
 

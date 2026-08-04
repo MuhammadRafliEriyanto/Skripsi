@@ -506,6 +506,8 @@ function StudentActions({
               <div className="grid gap-3 sm:grid-cols-2">
                 <DetailItem label="Program" value={student.program} />
                 <DetailItem label="Kelas" value={`${student.level} - ${student.className}`} />
+                <DetailItem label="Asal Sekolah" value={student.schoolOrigin || "-"} />
+                <DetailItem label="Mapel Sulit" value={student.difficultSubjects || "-"} />
               </div>
             </div>
           </div>

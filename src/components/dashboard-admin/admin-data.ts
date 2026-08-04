@@ -40,6 +40,8 @@ export type AdminStudent = {
   className: string;
   birthDate: string;
   academicYear: string;
+  schoolOrigin?: string;
+  difficultSubjects?: string;
   generatedPassword: string;
   status: "Aktif" | "Nonaktif";
   membership?: {

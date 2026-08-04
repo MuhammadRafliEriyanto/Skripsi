@@ -110,6 +110,7 @@ export type RegisterOnlinePayload = {
   gender: "Laki-laki" | "Perempuan" | "";
   address: string;
   schoolOrigin: string;
+  difficultSubjects?: string;
 };
 
 export type RegisterBranchOption = {
@@ -134,6 +135,7 @@ export type MembershipStudent = {
   gender?: "Laki-laki" | "Perempuan" | null;
   address?: string;
   schoolOrigin?: string;
+  difficultSubjects?: string;
   status: string;
   isEmailVerified: boolean;
 };
