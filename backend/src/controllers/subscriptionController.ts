@@ -432,7 +432,11 @@ export const getMySubscriptionStatus = asyncHandler(
 
     const student = await Student.findOne({ userId: req.user._id }).exec();
     if (student) {
-      await findBlockingPendingPaymentForStudent(student._id);
+      // FIRE AND FORGET: Jangan block loading dashboard hanya untuk ngecek API Xendit.
+      // Biarkan berjalan di background agar dashboard terbuka instan.
+      findBlockingPendingPaymentForStudent(student._id).catch((err) => {
+        console.error("[subscription-me] background_xendit_sync_failed", err);
+      });
     }
     const snapshot = await getMembershipSnapshotByUserId(req.user._id);
 
