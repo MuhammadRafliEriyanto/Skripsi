@@ -2,15 +2,12 @@
 
 import HeaderAkademikSiswa from "../sections/HeaderAkademikSiswa";
 import HeaderProfilSiswa from "../sections/HeaderProfilSiswa";
-import PelajaranSection from "../sections/PelajaranSiswaSection";
 import { useStudentDashboardData } from "../data/useStudentDashboardData";
 import { isUtbkStudentProfile } from "../data/studentProgram";
 import UtbkProgressWidget from "../widgets/UtbkProgressWidget";
 
 export default function SiswaDashboardView() {
   const { dashboardData, isLoading, loadError } = useStudentDashboardData();
-  const showLearningActivity =
-    dashboardData && !isUtbkStudentProfile(dashboardData.student);
 
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 md:py-8">
@@ -33,12 +30,6 @@ export default function SiswaDashboardView() {
             dashboardData={dashboardData}
             dashboardLoading={isLoading}
           />
-          {showLearningActivity ? (
-            <PelajaranSection
-              dashboardData={dashboardData}
-              dashboardLoading={isLoading}
-            />
-          ) : null}
         </div>
       </div>
     </section>
