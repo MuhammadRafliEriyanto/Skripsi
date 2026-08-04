@@ -112,7 +112,7 @@ export default function HeaderAkademikSiswa({
             htmlFor="academicYearFilter"
             className="text-[11px] font-semibold tracking-wide text-slate-500 md:text-xs"
           >
-            TAHUN AKADEMIK
+            TAHUN PEMBELAJARAN
           </label>
           <div className="relative mt-2 w-full">
             <select
@@ -122,7 +122,7 @@ export default function HeaderAkademikSiswa({
               onChange={(e) => onYearChange?.(e.target.value)}
             >
               <option value="" disabled>
-                -- Pilih Tahun Akademik --
+                -- Pilih Tahun Belajar --
               </option>
               <option value="2026/2027">2025/2026</option>
               <option value="2027/2028">2026/2027</option>

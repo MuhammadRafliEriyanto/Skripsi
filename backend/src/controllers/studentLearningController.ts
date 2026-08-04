@@ -483,25 +483,15 @@ async function getStudentLearningClassMetadata(
     scheduleFilter.$and.push({ branch: { $in: branchOptions } });
   }
 
-  const scheduleDocuments = (await Schedule.find(scheduleFilter)
-    .populate<{
-      teacherId: {
-        teacherId: string;
-        branch: string;
-      };
-    }>({
-      path: "teacherId",
-      select: "teacherId branch",
-    })
+  const rawSchedules = await Schedule.find(scheduleFilter)
     .sort({ createdAt: -1 })
     .lean()
-    .exec()) as unknown as ScheduleWithTeacher[];
-  const metadataByClassId = new Map<string, StudentLearningClassMetadata>();
+    .exec();
 
-  for (const schedule of scheduleDocuments) {
+  const filteredRawSchedules = rawSchedules.filter((schedule) => {
     const className = normalizeText(schedule.className);
-    const branch = getScheduleBranch(schedule);
-    const scheduleBranch = normalizeText(branch).toLowerCase();
+    const scheduleBranch = normalizeText(schedule.branch).toLowerCase();
+    
     const matchesClassName = isUtbkStudent(student)
       ? matchesUtbkScheduleClassName(className, student)
       : matchesStudentScheduleClass(
@@ -509,13 +499,24 @@ async function getStudentLearningClassMetadata(
           student.className,
           canonicalClassName,
         );
+    
     const matchesBranch = normalizedBranch
-      ? scheduleBranch === normalizedBranch || !scheduleBranch || scheduleBranch === "-"
+      ? scheduleBranch === normalizedBranch || !scheduleBranch || scheduleBranch === "-" || scheduleBranch === "pusat"
       : true;
 
-    if (!matchesClassName || !matchesBranch) {
-      continue;
-    }
+    return matchesClassName && matchesBranch;
+  });
+
+  const scheduleDocuments = (await Schedule.populate(filteredRawSchedules, {
+    path: "teacherId",
+    select: "teacherId branch",
+  })) as unknown as ScheduleWithTeacher[];
+
+  const metadataByClassId = new Map<string, StudentLearningClassMetadata>();
+
+  for (const schedule of scheduleDocuments) {
+    const className = normalizeText(schedule.className);
+    const branch = getScheduleBranch(schedule);
 
     const classId = buildStableLearningClassId(
       getScheduleTeacherPublicId(schedule),
@@ -571,40 +572,38 @@ async function getStudentDashboardSchedules(
     delete scheduleFilter.$and;
   }
 
-  const scheduleDocuments = (await Schedule.find(scheduleFilter)
-    .populate<{
-      teacherId: {
-        teacherId: string;
-        branch: string;
-        userId: {
-          nama: string;
-        };
-      };
-    }>({
-      path: "teacherId",
-      populate: {
-        path: "userId",
-        model: User,
-      },
-    })
+  const rawSchedules = await Schedule.find(scheduleFilter)
     .sort({ createdAt: -1 })
     .lean()
-    .exec()) as unknown as ScheduleWithTeacher[];
+    .exec();
+
+  const filteredRawSchedules = rawSchedules.filter((schedule) => {
+    const matchesClassName = isUtbkStudent(student)
+      ? matchesUtbkScheduleClassName(schedule.className, student)
+      : matchesStudentScheduleClass(
+          schedule.className,
+          student.className,
+          canonicalClassName,
+        );
+    return matchesClassName;
+  });
+
+  const scheduleDocuments = (await Schedule.populate(filteredRawSchedules, {
+    path: "teacherId",
+    populate: {
+      path: "userId",
+      model: User,
+    },
+  })) as unknown as ScheduleWithTeacher[];
+
   const schedules = buildSchedulePresentation(scheduleDocuments)
     .filter((schedule) => {
-      const matchesClassName = isUtbkStudent(student)
-        ? matchesUtbkScheduleClassName(schedule.className, student)
-        : matchesStudentScheduleClass(
-            schedule.className,
-            student.className,
-            canonicalClassName,
-          );
       const scheduleBranch = normalizeText(schedule.branch).toLowerCase();
       const matchesBranch = normalizedBranch
         ? scheduleBranch === normalizedBranch || !scheduleBranch || scheduleBranch === "-" || scheduleBranch === "pusat"
         : true;
 
-      return matchesClassName && matchesBranch;
+      return matchesBranch;
     })
     .sort((leftSchedule, rightSchedule) => {
       const dayOrderDifference =
