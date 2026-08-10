@@ -949,53 +949,6 @@ function NilaiSiswaPageContent() {
             </div>
           </section>
 
-          <section className="rounded-[26px] border border-slate-100 bg-white p-5 shadow-sm md:p-6">
-            <div className="mb-5 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-50 text-orange-600">
-                <BarChart3 className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-900">
-                  Grafik Nilai P1-P24
-                </p>
-                <p className="text-xs text-slate-500">
-                  Tinggi bar mengikuti nilai latihan. Kosong berarti latihan belum
-                  tersedia atau belum dinilai.
-                </p>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <div className="flex min-w-[920px] items-end gap-2 border-b border-slate-100 pb-4">
-                {meetingSlots.map((slot) => {
-                  const barHeight = Math.max(slot.score ?? 8, 8);
-
-                  return (
-                    <button
-                      key={slot.meetingNumber}
-                      type="button"
-                      onClick={() => setSelectedResultKey(`p-${slot.meetingNumber}`)}
-                      className="flex h-44 w-8 shrink-0 flex-col items-center justify-end gap-2"
-                      title={`${slot.label}: ${formatScoreLabel(slot.score)}`}
-                    >
-                      <div className="flex h-32 w-full items-end rounded-full bg-slate-50 p-1">
-                        <div
-                          className={`w-full rounded-full transition-all ${getBarClassName(
-                            slot.status,
-                          )}`}
-                          style={{ height: `${barHeight}%` }}
-                        />
-                      </div>
-                      <span className="text-[10px] font-bold text-slate-500">
-                        {slot.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </section>
-
           <section className="overflow-hidden rounded-[26px] border border-slate-100 bg-white shadow-sm">
             <div className="border-b border-slate-100 px-5 py-5 md:px-6">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-orange-600">

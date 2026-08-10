@@ -52,7 +52,13 @@
     "data:utbk:live-attendance:dry-run": "tsx src/scripts/seedUtbkLiveAttendanceDemoData.ts",
     "data:utbk:live-attendance": "tsx src/scripts/seedUtbkLiveAttendanceDemoData.ts --apply",
     "data:utbk:demo-learning:dry-run": "tsx src/scripts/seedUtbkDemoLearningData.ts",
-    "data:utbk:demo-learning": "tsx src/scripts/seedUtbkDemoLearningData.ts --apply"
+    "data:utbk:demo-learning": "tsx src/scripts/seedUtbkDemoLearningData.ts --apply",
+    "data:bimbel:p1-p9:dry-run": "tsx src/scripts/seedBimbelP1P9MembershipData.ts --replace-existing",
+    "data:bimbel:p1-p9:replace": "tsx src/scripts/seedBimbelP1P9MembershipData.ts --apply --replace-existing",
+    "data:bimbel:p1-p9:february-dates:dry-run": "tsx src/scripts/normalizeBimbelP1P9FebruaryDates.ts",
+    "data:bimbel:p1-p9:february-dates": "tsx src/scripts/normalizeBimbelP1P9FebruaryDates.ts --apply",
+    "data:schedules:duration-90:dry-run": "tsx src/scripts/normalizeScheduleDurations.ts",
+    "data:schedules:duration-90": "tsx src/scripts/normalizeScheduleDurations.ts --apply"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
