@@ -55,17 +55,17 @@ const utbkScheduleTemplates: Array<{
 }> = [
   {
     day: "Sabtu",
-    time: "13:00 - 14:00",
+    time: "13:00 - 14:30",
     subject: "TPS",
   },
   {
     day: "Sabtu",
-    time: "14:00 - 15:00",
+    time: "14:00 - 15:30",
     subject: "Literasi Bahasa Indonesia",
   },
   {
     day: "Minggu",
-    time: "13:00 - 14:00",
+    time: "13:00 - 14:30",
     subject: "Penalaran Matematika",
   },
 ];
@@ -248,7 +248,7 @@ async function getOrCreateUtbkRoom(branch: string, options: SeedOptions) {
     status: "Kosong",
     activeClass: "UTBK",
     teacher: "Jadwal UTBK",
-    time: "Sabtu-Minggu 13:00 - 15:00",
+    time: "Sabtu-Minggu 13:00 - 14:30",
     occupancy: 0,
     capacityLabel: "0/20",
     nextSession: "Jadwal UTBK",

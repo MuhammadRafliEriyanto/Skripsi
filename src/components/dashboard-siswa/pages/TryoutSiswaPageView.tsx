@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
 import {
   AlertTriangle,
+  CheckCircle2,
   Clock3,
+  Eye,
+  History,
   ListChecks,
   Loader2,
   PlayCircle,
@@ -33,6 +36,7 @@ import {
   type StudentTryoutListResponse,
   buildSessionFromTryout,
   fetchStudentTryoutJson,
+  formatDateTime,
   normalizeText,
 } from "./tryoutUtils";
 
@@ -150,6 +154,27 @@ function EmptyTryoutState({
   );
 }
 
+function getAttemptDateValue(tryout: StudentTryoutItem) {
+  const rawDate =
+    tryout.myAttempt?.submittedAt ??
+    tryout.myAttempt?.startedAt ??
+    tryout.startAt ??
+    "";
+  const date = new Date(rawDate);
+
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function isSubmittedTryout(tryout: StudentTryoutItem) {
+  const attempt = tryout.myAttempt;
+
+  return Boolean(
+    attempt?.submitted ||
+      attempt?.status === "submitted" ||
+      normalizeText(attempt?.submittedAt),
+  );
+}
+
 export default function TryoutSiswaPageView() {
   const router = useRouter();
   const [tryouts, setTryouts] = useState<StudentTryoutItem[]>([]);
@@ -163,6 +188,9 @@ export default function TryoutSiswaPageView() {
 
   const totalQuestions = activeSession?.totalQuestions ?? 0;
   const isUtbkStudent = isUtbkStudentProfile(student);
+  const submittedTryouts = tryouts
+    .filter(isSubmittedTryout)
+    .sort((left, right) => getAttemptDateValue(right) - getAttemptDateValue(left));
   const academicAccessMessage =
     getStudentAcademicAccessMessage(academicAccess);
   const summaryText = isLoading
@@ -248,6 +276,18 @@ export default function TryoutSiswaPageView() {
       return;
     }
 
+    if (activeSession.myAttempt?.submitted) {
+      const attemptId = normalizeText(activeSession.myAttempt.attemptId);
+
+      if (!attemptId) {
+        window.alert("Riwayat pengerjaan belum memiliki ID attempt.");
+        return;
+      }
+
+      router.push(`/dashboard-siswa/ujian/${encodeURIComponent(attemptId)}`);
+      return;
+    }
+
     if (!activeSession.isOpen && !activeSession.myAttempt?.submitted) {
       window.alert(activeSession.availabilityMessage);
       return;
@@ -291,6 +331,17 @@ export default function TryoutSiswaPageView() {
     } finally {
       setIsDetailLoading(false);
     }
+  }
+
+  function handleOpenAttemptReview(tryout: StudentTryoutItem) {
+    const attemptId = normalizeText(tryout.myAttempt?.attemptId);
+
+    if (!attemptId) {
+      window.alert("Riwayat pengerjaan belum memiliki ID attempt.");
+      return;
+    }
+
+    router.push(`/dashboard-siswa/ujian/${encodeURIComponent(attemptId)}`);
   }
 
   return (
@@ -446,7 +497,7 @@ export default function TryoutSiswaPageView() {
                       <PlayCircle className="h-4 w-4" />
                     )}
                     {activeSession.myAttempt?.submitted
-                      ? "Lihat Hasil"
+                      ? "Lihat Soal"
                       : `Mulai ${activeSession.assessmentLabel}`}
                   </button>
                   <div className="inline-flex items-center gap-2 rounded-2xl border border-slate-100 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
@@ -513,6 +564,90 @@ export default function TryoutSiswaPageView() {
               <TryoutInstructionList items={activeSession.instructions} />
             </aside>
           </div>
+
+          {submittedTryouts.length > 0 ? (
+            <section className="rounded-[24px] border border-slate-100 bg-white p-5 shadow-sm md:p-6">
+              <SectionHeader
+                icon={History}
+                title="Riwayat Pengerjaan"
+                description="Tryout CBT yang sudah dikirim bisa dibuka ulang untuk melihat soal, jawaban, kunci, dan pembahasan."
+              />
+
+              <div className="grid gap-3">
+                {submittedTryouts.map((item) => {
+                  const session = buildSessionFromTryout(item);
+                  const attempt = item.myAttempt;
+
+                  return (
+                    <article
+                      key={`${session.id}-${attempt?.attemptId ?? "attempt"}`}
+                      className="flex flex-col gap-4 rounded-[20px] border border-slate-100 bg-slate-50/60 p-4 md:flex-row md:items-center md:justify-between"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Selesai
+                          </span>
+                          <span className="rounded-full border border-orange-100 bg-white px-3 py-1 text-xs font-semibold text-orange-700">
+                            {session.assessmentLabel}
+                          </span>
+                          <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                            {session.subject}
+                          </span>
+                        </div>
+
+                        <h3 className="mt-3 line-clamp-1 text-base font-semibold text-slate-800">
+                          {session.title}
+                        </h3>
+                        <p className="mt-1 text-sm leading-6 text-slate-500">
+                          Dikirim pada {formatDateTime(attempt?.submittedAt)}.
+                        </p>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-[auto_auto] md:items-center">
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          <div className="rounded-2xl border border-slate-100 bg-white px-3 py-2">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                              Skor
+                            </p>
+                            <p className="mt-1 text-lg font-semibold text-slate-800">
+                              {attempt?.score ?? "-"}
+                            </p>
+                          </div>
+                          <div className="rounded-2xl border border-slate-100 bg-white px-3 py-2">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                              Benar
+                            </p>
+                            <p className="mt-1 text-lg font-semibold text-slate-800">
+                              {attempt?.correctCount ?? "-"}
+                            </p>
+                          </div>
+                          <div className="rounded-2xl border border-slate-100 bg-white px-3 py-2">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                              Soal
+                            </p>
+                            <p className="mt-1 text-lg font-semibold text-slate-800">
+                              {session.totalQuestions || "-"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleOpenAttemptReview(item)}
+                          className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-orange-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700"
+                        >
+                          <Eye className="h-4 w-4" />
+                          Lihat Soal
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          ) : null}
         </>
       )}
     </StudentLearningShell>

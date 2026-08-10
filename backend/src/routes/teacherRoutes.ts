@@ -7,6 +7,7 @@ import {
   getTeacherById,
   getTeachers,
   importTeachers,
+  resendTeacherVerification,
   resetTeacherPassword,
   updateTeacher,
 } from "../controllers/teacherController";
@@ -23,5 +24,10 @@ router.route("/export").get(exportTeachers);
 router.route("/import").post(importTeachers);
 router.route("/:id/reset-password").post(resetTeacherPassword);
 router.route("/:id").get(getTeacherById).put(updateTeacher).delete(deleteTeacher);
+
+router.post(
+  "/:id/resend-verification",
+  resendTeacherVerification,
+);
 
 export default router;

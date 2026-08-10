@@ -35,6 +35,10 @@ import {
   getTeacherTaskSubmissions,
 } from "../controllers/teacherTaskSubmissionController";
 import {
+  getTeacherClassTaskQuestions,
+  uploadTeacherClassTaskQuestionsFromXlsx,
+} from "../controllers/teacherTaskCbtController";
+import {
   getMyTeacherClasses,
   getMyTeacherClassDetail,
   getMyTeacherSchedules,
@@ -83,6 +87,14 @@ router.delete(
 );
 router.post("/me/classes/:classId/tasks", createTeacherClassTask);
 router.patch("/me/classes/:classId/tasks/:taskId", updateTeacherClassTask);
+router.get(
+  "/me/classes/:classId/tasks/:taskId/questions",
+  getTeacherClassTaskQuestions,
+);
+router.post(
+  "/me/classes/:classId/tasks/:taskId/questions/xlsx",
+  uploadTeacherClassTaskQuestionsFromXlsx,
+);
 router.patch("/me/classes/:classId/settings", updateTeacherClassSetting);
 router.get(
   "/me/classes/:classId/tasks/:taskId/attachment",

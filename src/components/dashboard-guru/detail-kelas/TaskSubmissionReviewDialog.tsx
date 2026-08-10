@@ -25,12 +25,14 @@ import {
 
 import type { TaskSubmissionReviewDialogProps } from "./types";
 
-function formatSubmissionModeLabel(mode: "file" | "text" | "drive") {
+function formatSubmissionModeLabel(mode: "file" | "text" | "drive" | "cbt") {
   switch (mode) {
     case "file":
       return "File";
     case "drive":
       return "Drive";
+    case "cbt":
+      return "CBT";
     default:
       return "Teks";
   }
@@ -54,10 +56,18 @@ function formatSubmissionDateTime(value: string | null) {
   }).format(parsedDate);
 }
 
-function getGradeStatusClass(status: "Belum Dinilai" | "Sudah Dinilai") {
-  return status === "Sudah Dinilai"
-    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-    : "border-slate-200 bg-slate-50 text-slate-700";
+function getGradeStatusClass(
+  status: "Belum Dinilai" | "Sudah Dinilai" | "Perlu Remedial",
+) {
+  if (status === "Sudah Dinilai") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  if (status === "Perlu Remedial") {
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+
+  return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
 export default function TaskSubmissionReviewDialog({

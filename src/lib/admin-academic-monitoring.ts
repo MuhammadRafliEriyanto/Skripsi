@@ -1,11 +1,12 @@
 import { requestAdminApi } from "@/lib/admin-api";
 
 export type AdminAcademicMonitoringStatus =
-  | "Belum Ada Data"
-  | "Mulai Terpantau"
-  | "Aktif Belajar"
-  | "Perlu Dipantau"
-  | "Data Lengkap";
+  | "Belum Hadir"
+  | "Belum Akses Materi"
+  | "Belum Latihan"
+  | "Menunggu Review"
+  | "Data Lengkap"
+  | "Belum Ada Data";
 
 export type AdminAcademicMonitoringLatestTryout = {
   attemptId: string;

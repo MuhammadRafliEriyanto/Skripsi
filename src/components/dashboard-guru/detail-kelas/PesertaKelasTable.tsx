@@ -183,7 +183,7 @@ export default function PesertaKelasTable({
               Detail Peserta
             </DialogTitle>
             <DialogDescription className="text-sm text-slate-500">
-              Riwayat kehadiran kelas dan histori akademik peserta dari kelas {activeClass.namaKelas}.
+              Riwayat kehadiran kelas dan histori membership peserta dari kelas {activeClass.namaKelas}.
             </DialogDescription>
           </DialogHeader>
 
@@ -212,7 +212,7 @@ export default function PesertaKelasTable({
             <Tabs value={activeDetailTab} onValueChange={setActiveDetailTab}>
               <TabsList className="w-full justify-start">
                 <TabsTrigger value="attendance">Kehadiran Kelas</TabsTrigger>
-                <TabsTrigger value="academic-history">Riwayat Akademik</TabsTrigger>
+                <TabsTrigger value="academic-history">Riwayat Membership</TabsTrigger>
               </TabsList>
 
               <TabsContent value="attendance" className="mt-4">

@@ -51,7 +51,7 @@ type PublicTeacherTaskSubmissionListItem = {
   hasAttachment: boolean;
   driveUrl: string;
   answerTextPreview: string;
-  gradeStatus: "Belum Dinilai" | "Sudah Dinilai";
+  gradeStatus: "Belum Dinilai" | "Sudah Dinilai" | "Perlu Remedial";
   score: number | null;
 };
 
@@ -97,9 +97,17 @@ function buildAnswerTextPreview(answerText: string) {
 }
 
 function toGradeStatus(value: string | null | undefined) {
-  return normalizeText(value).toLowerCase() === "sudah dinilai"
-    ? "Sudah Dinilai"
-    : "Belum Dinilai";
+  const normalizedValue = normalizeText(value).toLowerCase();
+
+  if (normalizedValue === "sudah dinilai") {
+    return "Sudah Dinilai";
+  }
+
+  if (normalizedValue === "perlu remedial") {
+    return "Perlu Remedial";
+  }
+
+  return "Belum Dinilai";
 }
 
 function toSafeScore(value: unknown) {
@@ -225,7 +233,10 @@ function buildGradeMap(grades: TaskSubmissionGradeLookup[]) {
           {
             gradeStatus,
             score:
-              gradeStatus === "Sudah Dinilai" ? toSafeScore(grade.score) : null,
+              gradeStatus === "Sudah Dinilai" ||
+              gradeStatus === "Perlu Remedial"
+                ? toSafeScore(grade.score)
+                : null,
           },
         ] as const;
       })
@@ -233,7 +244,7 @@ function buildGradeMap(grades: TaskSubmissionGradeLookup[]) {
       readonly [
         string,
         {
-          gradeStatus: "Belum Dinilai" | "Sudah Dinilai";
+          gradeStatus: "Belum Dinilai" | "Sudah Dinilai" | "Perlu Remedial";
           score: number | null;
         },
       ]
@@ -271,7 +282,10 @@ function toPublicTeacherTaskSubmissionListItem(
     answerText?: string;
   },
   studentName: string,
-  grade: { gradeStatus: "Belum Dinilai" | "Sudah Dinilai"; score: number | null } | null,
+  grade: {
+    gradeStatus: "Belum Dinilai" | "Sudah Dinilai" | "Perlu Remedial";
+    score: number | null;
+  } | null,
 ): PublicTeacherTaskSubmissionListItem {
   const recordId = toRecordId(submission._id) || normalizeText(submission.submissionId);
 
@@ -314,7 +328,10 @@ function toPublicTeacherTaskSubmissionDetail(
     updatedAt?: Date | null;
   },
   studentName: string,
-  grade: { gradeStatus: "Belum Dinilai" | "Sudah Dinilai"; score: number | null } | null,
+  grade: {
+    gradeStatus: "Belum Dinilai" | "Sudah Dinilai" | "Perlu Remedial";
+    score: number | null;
+  } | null,
 ): PublicTeacherTaskSubmissionDetail {
   const listItem = toPublicTeacherTaskSubmissionListItem(
     submission,
@@ -368,7 +385,7 @@ export const getTeacherTaskSubmissions = asyncHandler(
     const taskParam = normalizeText(req.params.taskId);
 
     if (!taskParam) {
-      next(new AppError(404, "Tugas kelas tidak ditemukan."));
+      next(new AppError(404, "Latihan kelas tidak ditemukan."));
       return;
     }
 
@@ -379,7 +396,7 @@ export const getTeacherTaskSubmissions = asyncHandler(
     );
 
     if (!task) {
-      next(new AppError(404, "Tugas kelas tidak ditemukan."));
+      next(new AppError(404, "Latihan kelas tidak ditemukan."));
       return;
     }
 
@@ -431,7 +448,7 @@ export const getTeacherTaskSubmissions = asyncHandler(
     ).length;
 
     sendSuccess(res, {
-      message: "Daftar submission tugas siswa berhasil diambil.",
+      message: "Daftar pengerjaan latihan siswa berhasil diambil.",
       data: {
         taskId: normalizedTaskId,
         submissions: submissionItems,
@@ -465,7 +482,7 @@ export const getTeacherTaskSubmissionDetail = asyncHandler(
     const submissionParam = normalizeText(req.params.submissionId);
 
     if (!taskParam || !submissionParam) {
-      next(new AppError(404, "Submission tugas siswa tidak ditemukan."));
+      next(new AppError(404, "Pengerjaan latihan siswa tidak ditemukan."));
       return;
     }
 
@@ -476,7 +493,7 @@ export const getTeacherTaskSubmissionDetail = asyncHandler(
     );
 
     if (!task) {
-      next(new AppError(404, "Tugas kelas tidak ditemukan."));
+      next(new AppError(404, "Latihan kelas tidak ditemukan."));
       return;
     }
 
@@ -494,7 +511,7 @@ export const getTeacherTaskSubmissionDetail = asyncHandler(
     );
 
     if (!submission) {
-      next(new AppError(404, "Submission tugas siswa tidak ditemukan."));
+      next(new AppError(404, "Pengerjaan latihan siswa tidak ditemukan."));
       return;
     }
 
@@ -515,7 +532,7 @@ export const getTeacherTaskSubmissionDetail = asyncHandler(
     const studentId = normalizeText(submission.studentId);
 
     sendSuccess(res, {
-      message: "Detail submission tugas siswa berhasil diambil.",
+      message: "Detail pengerjaan latihan siswa berhasil diambil.",
       data: {
         submission: toPublicTeacherTaskSubmissionDetail(
           submission,
@@ -528,7 +545,8 @@ export const getTeacherTaskSubmissionDetail = asyncHandler(
             ? {
                 gradeStatus: toGradeStatus(grade.status),
                 score:
-                  toGradeStatus(grade.status) === "Sudah Dinilai"
+                  toGradeStatus(grade.status) === "Sudah Dinilai" ||
+                  toGradeStatus(grade.status) === "Perlu Remedial"
                     ? toSafeScore(grade.score)
                     : null,
               }
@@ -569,7 +587,7 @@ export const downloadTeacherTaskSubmissionAttachment = asyncHandler(
     );
 
     if (!task) {
-      next(new AppError(404, "Tugas kelas tidak ditemukan."));
+      next(new AppError(404, "Latihan kelas tidak ditemukan."));
       return;
     }
 

@@ -184,7 +184,7 @@ function ScoreChips({ grade }: { grade: AcademicHistoryAcademicGrade }) {
 
 function AcademicGradesTable({ grades }: { grades: AcademicHistoryAcademicGrade[] }) {
   if (grades.length === 0) {
-    return <EmptySection label="Nilai akademik" />;
+    return <EmptySection label="Nilai belajar" />;
   }
 
   return (
@@ -193,7 +193,7 @@ function AcademicGradesTable({ grades }: { grades: AcademicHistoryAcademicGrade[
         <thead className="bg-white text-xs uppercase tracking-[0.12em] text-slate-400">
           <tr>
             <th className="px-5 py-3 font-semibold">Kelas</th>
-            <th className="px-5 py-3 font-semibold">Periode</th>
+            <th className="px-5 py-3 font-semibold">Sumber</th>
             <th className="px-5 py-3 font-semibold">Skor</th>
             <th className="px-5 py-3 font-semibold">Catatan</th>
             <th className="px-5 py-3 font-semibold">Evaluasi</th>
@@ -206,7 +206,7 @@ function AcademicGradesTable({ grades }: { grades: AcademicHistoryAcademicGrade[
                 {grade.classId || "-"}
               </td>
               <td className="px-5 py-4 text-slate-600">
-                {grade.semester || "-"} {grade.academicYear || ""}
+                {grade.subscriptionId ? "Membership terpilih" : "Data lama"}
               </td>
               <td className="px-5 py-4">
                 <ScoreChips grade={grade} />
@@ -225,7 +225,7 @@ function AcademicGradesTable({ grades }: { grades: AcademicHistoryAcademicGrade[
 
 function TaskGradesTable({ grades }: { grades: AcademicHistoryTaskGrade[] }) {
   if (grades.length === 0) {
-    return <EmptySection label="Nilai tugas" />;
+    return <EmptySection label="Nilai latihan" />;
   }
 
   return (
@@ -233,7 +233,7 @@ function TaskGradesTable({ grades }: { grades: AcademicHistoryTaskGrade[] }) {
       <table className="w-full min-w-[760px] text-left text-sm">
         <thead className="bg-white text-xs uppercase tracking-[0.12em] text-slate-400">
           <tr>
-            <th className="px-5 py-3 font-semibold">Tugas</th>
+            <th className="px-5 py-3 font-semibold">Latihan</th>
             <th className="px-5 py-3 font-semibold">Kelas</th>
             <th className="px-5 py-3 font-semibold">Nilai</th>
             <th className="px-5 py-3 font-semibold">Status</th>
@@ -369,7 +369,7 @@ function TryoutTable({ tryouts }: { tryouts: AcademicHistoryTryout[] }) {
 
 function TasksTable({ tasks }: { tasks: AcademicHistoryTask[] }) {
   if (tasks.length === 0) {
-    return <EmptySection label="Daftar tugas" />;
+    return <EmptySection label="Daftar latihan" />;
   }
 
   return (
@@ -377,7 +377,7 @@ function TasksTable({ tasks }: { tasks: AcademicHistoryTask[] }) {
       <table className="w-full min-w-[900px] text-left text-sm">
         <thead className="bg-white text-xs uppercase tracking-[0.12em] text-slate-400">
           <tr>
-            <th className="px-5 py-3 font-semibold">Tugas</th>
+            <th className="px-5 py-3 font-semibold">Latihan</th>
             <th className="px-5 py-3 font-semibold">Kelas</th>
             <th className="px-5 py-3 font-semibold">Deadline</th>
             <th className="px-5 py-3 font-semibold">Pengumpulan</th>
@@ -457,13 +457,12 @@ export function AcademicHistoryDetailPanel({
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-orange-600">
-              Periode Akademik
+              Membership Belajar
             </p>
             <h2 className="mt-2 text-xl font-semibold text-slate-900">
               {subscription?.program || "Program"} - {subscription?.className || "Kelas"}
             </h2>
             <p className="mt-1 text-sm text-slate-600">
-              {subscription?.semester || "-"} {subscription?.academicYear || ""} |{" "}
               {formatDate(subscription?.startDate)} - {formatDate(subscription?.endDate)}
             </p>
           </div>
@@ -480,24 +479,24 @@ export function AcademicHistoryDetailPanel({
       </section>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-        <MetricCard label="Nilai Akademik" value={academicGrades.length} />
-        <MetricCard label="Nilai Tugas" value={taskGrades.length} />
+        <MetricCard label="Nilai Evaluasi" value={academicGrades.length} />
+        <MetricCard label="Nilai Latihan" value={taskGrades.length} />
         <MetricCard label="Absensi" value={attendanceRecords.length} />
         <MetricCard label="Tryout" value={tryouts.length} />
-        <MetricCard label="Tugas" value={tasks.length} />
+        <MetricCard label="Latihan" value={tasks.length} />
       </div>
 
       <SectionShell
-        title="Nilai Akademik"
-        description="Rekap evaluasi semester atau tryout untuk subscription ini."
+        title="Nilai Evaluasi"
+        description="Rekap evaluasi atau tryout untuk subscription ini."
         icon={Trophy}
       >
         <AcademicGradesTable grades={academicGrades} />
       </SectionShell>
 
       <SectionShell
-        title="Nilai Tugas"
-        description="Nilai tugas yang tersimpan untuk periode akademik ini."
+        title="Nilai Latihan"
+        description="Nilai latihan yang tersimpan untuk membership ini."
         icon={BookOpenCheck}
       >
         <TaskGradesTable grades={taskGrades} />
@@ -505,7 +504,7 @@ export function AcademicHistoryDetailPanel({
 
       <SectionShell
         title="Absensi"
-        description="Riwayat kehadiran siswa pada periode yang dipilih."
+        description="Riwayat kehadiran siswa pada membership yang dipilih."
         icon={CalendarCheck2}
       >
         <AttendanceTable records={attendanceRecords} />
@@ -520,8 +519,8 @@ export function AcademicHistoryDetailPanel({
       </SectionShell>
 
       <SectionShell
-        title="Daftar Tugas"
-        description="Tugas yang masuk ke periode akademik ini beserta status pengumpulan dan nilai."
+        title="Daftar Latihan"
+        description="Latihan yang masuk ke membership ini beserta status pengerjaan dan nilai."
         icon={FileText}
       >
         <TasksTable tasks={tasks} />

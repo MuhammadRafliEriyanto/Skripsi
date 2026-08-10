@@ -1,6 +1,10 @@
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 import { Types } from "mongoose";
 import type { NextFunction, Request, Response } from "express";
+
+import { validateEnv } from "../config/env";
+import { sendVerificationEmail } from "../utils/email";
 
 import { Branch } from "../models/Branch";
 import { Schedule } from "../models/Schedule";
@@ -54,6 +58,8 @@ type TeacherRequestBody = {
   activeClasses?: number;
   classList?: string;
   capableGrades?: string[];
+  address?: string;
+  education?: string;
   status?: string;
   availability?: string;
 };
@@ -110,6 +116,8 @@ type TeacherCreateInput = {
   activeClasses: number;
   classList: string;
   capableGrades: string[];
+  address: string;
+  education: string;
   status: TeacherStatus;
   availability: TeacherAvailability;
 };
@@ -411,14 +419,20 @@ async function createTeacherAccount(
   let createdUser: UserDocument | null = null;
 
   try {
+    const plainVerificationToken = crypto.randomBytes(32).toString("hex");
+    const emailVerificationToken = crypto
+      .createHash("sha256")
+      .update(plainVerificationToken)
+      .digest("hex");
+      
     createdUser = await User.create({
       nama: input.name,
       email: input.email,
       loginCode: input.loginCode,
       password: hashedPassword,
       role: "guru",
-      isEmailVerified: true,
-      emailVerificationToken: null,
+      isEmailVerified: input.email.endsWith("@bimbel.local"),
+      emailVerificationToken: input.email.endsWith("@bimbel.local") ? null : emailVerificationToken,
       emailVerificationExpires: null,
     });
 
@@ -433,6 +447,8 @@ async function createTeacherAccount(
       activeClasses: input.activeClasses,
       classList: input.classList,
       capableGrades: input.capableGrades,
+      address: input.address,
+      education: input.education,
       status: input.status,
       availability: input.availability,
     });
@@ -445,7 +461,10 @@ async function createTeacherAccount(
       throw new AppError(500, "Gagal memuat ulang data guru yang baru dibuat.");
     }
 
-    return populatedTeacher;
+    return {
+      ...populatedTeacher.toObject(),
+      plainVerificationToken,
+    } as TeacherWithUser & { plainVerificationToken: string };
   } catch (error) {
     if (createdUser) {
       await User.deleteOne({ _id: createdUser._id });
@@ -752,6 +771,8 @@ export const createTeacher = asyncHandler(
     const capableGrades = Array.isArray(req.body.capableGrades) 
       ? req.body.capableGrades.map(String) 
       : [];
+    const address = normalizeText(req.body.address);
+    const education = normalizeText(req.body.education);
     const status = normalizeText(req.body.status);
     const availability = normalizeText(req.body.availability) || "Tersedia";
 
@@ -815,6 +836,8 @@ export const createTeacher = asyncHandler(
       activeClasses,
       classList,
       capableGrades,
+      address,
+      education,
       status,
       availability,
     });
@@ -836,6 +859,22 @@ export const createTeacher = asyncHandler(
             : undefined,
       },
     });
+
+    if ("plainVerificationToken" in teacher && (teacher as any).plainVerificationToken && !resolvedEmail.endsWith("@bimbel.local")) {
+      const { clientUrl } = validateEnv();
+      const verificationLink = `${clientUrl}/verify-email?token=${(teacher as any).plainVerificationToken}`;
+      sendVerificationEmail({
+        nama: name,
+        email: resolvedEmail,
+        verificationLink,
+        accountCredentials: {
+          loginCode,
+          password: resolvedPassword,
+        },
+      }).catch((err) => {
+        console.error("Gagal mengirim email verifikasi ke guru baru:", err);
+      });
+    }
   },
 );
 
@@ -978,6 +1017,8 @@ export const importTeachers = asyncHandler(
           activeClasses: 0,
           classList,
           capableGrades: [],
+          address: "",
+          education: "",
           status,
           availability,
         });
@@ -1059,6 +1100,8 @@ export const updateTeacher = asyncHandler(
     const schedule = normalizeText(req.body.schedule) || normalizeText(teacher.schedule) || "-";
     const activeClasses = parseActiveClasses(req.body.activeClasses ?? teacher.activeClasses ?? 0);
     const classList = normalizeText(req.body.classList) || normalizeText(teacher.classList);
+    const address = normalizeText(req.body.address) || normalizeText(teacher.address);
+    const education = normalizeText(req.body.education) || normalizeText(teacher.education);
     const status = normalizeText(req.body.status) || normalizeText(teacher.status);
     const availability =
       normalizeText(req.body.availability) ||
@@ -1103,14 +1146,39 @@ export const updateTeacher = asyncHandler(
         useFirstManagedBranchAsDefault: true,
       });
     }
-    const duplicateUser = await User.findOne({
-      email,
-      _id: { $ne: teacher.userId._id },
-    });
 
-    if (duplicateUser) {
-      next(new AppError(409, "Email guru sudah digunakan."));
-      return;
+
+
+    let isEmailChanged = false;
+    let plainVerificationToken: string | null = null;
+    
+    if (email && email !== teacher.userId.email) {
+      const duplicateEmail = await User.findOne({
+        email,
+        _id: { $ne: teacher.userId._id },
+      });
+      if (duplicateEmail) {
+        next(new AppError(409, "Email guru sudah digunakan."));
+        return;
+      }
+      teacher.userId.email = email;
+      isEmailChanged = true;
+    }
+
+    if (isEmailChanged) {
+      if (email.endsWith("@bimbel.local")) {
+        teacher.userId.isEmailVerified = true;
+        teacher.userId.emailVerificationToken = null;
+        teacher.userId.emailVerificationExpires = null;
+      } else {
+        plainVerificationToken = crypto.randomBytes(32).toString("hex");
+        teacher.userId.isEmailVerified = false;
+        teacher.userId.emailVerificationToken = crypto
+          .createHash("sha256")
+          .update(plainVerificationToken)
+          .digest("hex");
+        teacher.userId.emailVerificationExpires = null;
+      }
     }
 
     if (!isPlaceholderPhone(phone)) {
@@ -1126,11 +1194,7 @@ export const updateTeacher = asyncHandler(
     }
 
     teacher.userId.nama = name;
-    teacher.userId.email = email;
     teacher.userId.loginCode = teacher.userId.loginCode || buildTeacherLoginCode(teacher.teacherId);
-    teacher.userId.isEmailVerified = true;
-    teacher.userId.emailVerificationToken = null;
-    teacher.userId.emailVerificationExpires = null;
 
     if (password) {
       if (password.length < 8) {
@@ -1151,10 +1215,24 @@ export const updateTeacher = asyncHandler(
     teacher.schedule = schedule;
     teacher.activeClasses = activeClasses;
     teacher.classList = classList;
-    teacher.status = status;
-    teacher.availability = availability;
+    teacher.address = address;
+    teacher.education = education;
+    teacher.status = status as TeacherStatus;
+    teacher.availability = availability as TeacherAvailability;
 
     await Promise.all([teacher.userId.save(), teacher.save()]);
+
+    if (plainVerificationToken) {
+      const { clientUrl } = validateEnv();
+      const verificationLink = `${clientUrl}/verify-email?token=${plainVerificationToken}`;
+      sendVerificationEmail({
+        nama: name,
+        email: email,
+        verificationLink,
+      }).catch((err) => {
+        console.error("Gagal mengirim email verifikasi otomatis:", err);
+      });
+    }
 
     sendSuccess(res, {
       message: "Data guru berhasil diperbarui.",
@@ -1237,6 +1315,56 @@ export const deleteTeacher = asyncHandler(
 
     sendSuccess(res, {
       message: "Data guru berhasil dihapus.",
+    });
+  },
+);
+
+export const resendTeacherVerification = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+
+    const teacher = await Teacher.findOne({ teacherId: id })
+      .populate<{ userId: UserDocument }>("userId")
+      .exec();
+
+    if (!teacher || !teacher.userId) {
+      next(new AppError(404, "Data guru tidak ditemukan."));
+      return;
+    }
+
+    const user = teacher.userId;
+
+    if (user.isEmailVerified) {
+      next(new AppError(400, "Email guru ini sudah terverifikasi."));
+      return;
+    }
+
+    if (!user.email || user.email.endsWith("@bimbel.local")) {
+      next(
+        new AppError(400, "Guru ini menggunakan email sistem, tidak perlu verifikasi."),
+      );
+      return;
+    }
+
+    const plainVerificationToken = crypto.randomBytes(32).toString("hex");
+    user.emailVerificationToken = crypto
+      .createHash("sha256")
+      .update(plainVerificationToken)
+      .digest("hex");
+    user.emailVerificationExpires = null;
+    await user.save();
+
+    const { clientUrl } = validateEnv();
+    const verificationLink = `${clientUrl}/verify-email?token=${plainVerificationToken}`;
+
+    await sendVerificationEmail({
+      nama: user.nama,
+      email: user.email,
+      verificationLink,
+    });
+
+    sendSuccess(res, {
+      message: "Email verifikasi berhasil dikirim ulang.",
     });
   },
 );

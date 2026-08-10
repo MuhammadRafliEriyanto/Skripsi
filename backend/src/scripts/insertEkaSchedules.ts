@@ -22,10 +22,10 @@ async function run() {
   }
 
   const newSchedules = [
-    { className: "SD 2", branch: "Slawi", day: "Senin", time: "16:00 - 17:00", room: "Ruangan 1A" },
-    { className: "SD 3", branch: "Slawi", day: "Selasa", time: "16:00 - 17:00", room: "Ruangan 1A" },
-    { className: "SD 2", branch: "Adiwerna", day: "Rabu", time: "13:00 - 14:00", room: "Ruangan 1B" },
-    { className: "SD 3", branch: "Adiwerna", day: "Rabu", time: "14:00 - 15:00", room: "Ruangan 1B" }
+    { className: "SD 2", branch: "Slawi", day: "Senin", time: "16:00 - 17:30", room: "Ruangan 1A" },
+    { className: "SD 3", branch: "Slawi", day: "Selasa", time: "16:00 - 17:30", room: "Ruangan 1A" },
+    { className: "SD 2", branch: "Adiwerna", day: "Rabu", time: "13:00 - 14:30", room: "Ruangan 1B" },
+    { className: "SD 3", branch: "Adiwerna", day: "Rabu", time: "14:00 - 15:30", room: "Ruangan 1B" }
   ];
 
   for (const s of newSchedules) {

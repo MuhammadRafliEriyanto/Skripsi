@@ -1,5 +1,5 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -176,6 +176,11 @@ type TeacherClassApiTaskItem = {
   title?: string;
   description?: string;
   deadline?: string;
+  startAt?: string | null;
+  endAt?: string | null;
+  durationMinutes?: number | null;
+  questionCount?: number | null;
+  passingGrade?: number | null;
   submittedCount?: number;
   gradedCount?: number;
   reviewStatus?: string;
@@ -243,6 +248,14 @@ type TeacherClassTaskMutationResponse = {
   };
 };
 
+type TeacherClassTaskQuestionsUploadResponse = {
+  success: boolean;
+  message?: string;
+  data?: {
+    questionCount?: number;
+  };
+};
+
 type TeacherClassGradesResponse = {
   success: boolean;
   message?: string;
@@ -277,7 +290,6 @@ type TeacherClassAcademicGradeMutationResponse = {
 import {
   buildGuruApiUrl,
   buildGuruUrl,
-  getGuruAcademicYearStatus,
 } from "@/lib/guru-helpers";
 import toast from "react-hot-toast";
 
@@ -352,7 +364,7 @@ type TeacherTaskGradeEntry = {
   studentId: string;
   score: number;
   note: string;
-  status: "Belum Dinilai" | "Sudah Dinilai";
+  status: "Belum Dinilai" | "Sudah Dinilai" | "Perlu Remedial";
   gradedAt: string | null;
   createdAt: string | null;
   updatedAt: string | null;
@@ -454,6 +466,15 @@ async function readFileAsBase64(file: File) {
   });
 }
 
+function isTaskQuestionWorkbook(file: File | null) {
+  if (!file) {
+    return false;
+  }
+
+  const normalizedName = normalizeText(file.name).toLowerCase();
+  return normalizedName.endsWith(".xlsx") || normalizedName.endsWith(".xls");
+}
+
 function toSafeNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
@@ -471,6 +492,142 @@ function toNullableScore(value: unknown) {
 
 function formatTimeLabel(value: string) {
   return normalizeText(value).replace(/:/g, ".");
+}
+
+function normalizeTimeInput(value: string | null | undefined) {
+  const matchedTime = normalizeText(value).match(/(\d{1,2})[.:](\d{2})/);
+
+  if (!matchedTime) {
+    return "";
+  }
+
+  const hour = Number.parseInt(matchedTime[1], 10);
+  const minute = Number.parseInt(matchedTime[2], 10);
+
+  if (
+    !Number.isInteger(hour) ||
+    !Number.isInteger(minute) ||
+    hour < 0 ||
+    hour > 23 ||
+    minute < 0 ||
+    minute > 59
+  ) {
+    return "";
+  }
+
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+function parseTimeRange(value: string | null | undefined) {
+  const timeMatches = [...normalizeText(value).matchAll(/(\d{1,2})[.:](\d{2})/g)]
+    .map((match) => normalizeTimeInput(match[0]))
+    .filter(Boolean);
+
+  if (timeMatches.length < 2) {
+    return null;
+  }
+
+  return {
+    startTime: timeMatches[0],
+    endTime: timeMatches[1],
+  };
+}
+
+function timeToMinutes(value: string | null | undefined) {
+  const normalizedTime = normalizeTimeInput(value);
+  const [hourText, minuteText] = normalizedTime.split(":");
+  const hour = Number.parseInt(hourText, 10);
+  const minute = Number.parseInt(minuteText, 10);
+
+  if (!normalizedTime || !Number.isInteger(hour) || !Number.isInteger(minute)) {
+    return null;
+  }
+
+  return hour * 60 + minute;
+}
+
+function getTimeRangeDurationMinutes(
+  startTime: string | null | undefined,
+  endTime: string | null | undefined,
+) {
+  const startMinutes = timeToMinutes(startTime);
+  const endMinutes = timeToMinutes(endTime);
+
+  if (startMinutes === null || endMinutes === null || endMinutes <= startMinutes) {
+    return null;
+  }
+
+  return endMinutes - startMinutes;
+}
+
+function addMinutesToTime(timeValue: string | null | undefined, minutes: number) {
+  const startMinutes = timeToMinutes(timeValue);
+
+  if (startMinutes === null || !Number.isFinite(minutes) || minutes <= 0) {
+    return "";
+  }
+
+  const totalMinutes = (startMinutes + Math.trunc(minutes)) % (24 * 60);
+  const hour = Math.floor(totalMinutes / 60);
+  const minute = totalMinutes % 60;
+
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+function formatJakartaDateInput(value: string | null | undefined) {
+  const normalizedValue = normalizeText(value);
+
+  if (!normalizedValue) {
+    return "";
+  }
+
+  const date = new Date(normalizedValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("en-CA", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+  }).format(date);
+}
+
+function formatJakartaTimeInput(value: string | null | undefined) {
+  const normalizedValue = normalizeText(value);
+
+  if (!normalizedValue) {
+    return "";
+  }
+
+  const date = new Date(normalizedValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    hour12: false,
+    minute: "2-digit",
+    timeZone: "Asia/Jakarta",
+  }).format(date);
+}
+
+function buildJakartaDateTimeIso(
+  dateValue: string | null | undefined,
+  timeValue: string | null | undefined,
+) {
+  const normalizedDate = normalizeText(dateValue);
+  const normalizedTime = normalizeTimeInput(timeValue);
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalizedDate) || !normalizedTime) {
+    return "";
+  }
+
+  return `${normalizedDate}T${normalizedTime}:00+07:00`;
 }
 
 function extractGrade(value: string) {
@@ -649,15 +806,27 @@ function toTugasStatusPenilaian(
     return "Belum Ada Pengumpulan";
   }
 
+  if (normalizedValue === "perlu remedial") {
+    return "Perlu Remedial";
+  }
+
   return "Belum Dinilai";
 }
 
 function toTaskGradeStatus(
   value: string | null | undefined,
 ): TeacherTaskGradeEntry["status"] {
-  return normalizeText(value).toLowerCase() === "sudah dinilai"
-    ? "Sudah Dinilai"
-    : "Belum Dinilai";
+  const normalizedValue = normalizeText(value).toLowerCase();
+
+  if (normalizedValue === "sudah dinilai") {
+    return "Sudah Dinilai";
+  }
+
+  if (normalizedValue === "perlu remedial") {
+    return "Perlu Remedial";
+  }
+
+  return "Belum Dinilai";
 }
 
 function sortMaterialsByMeeting(materials: MateriPertemuan[]) {
@@ -718,6 +887,11 @@ function mapTeacherApiTaskToFormItem(
     normalizeText(task.taskId) ||
     normalizeText(task.id) ||
     `task-${Date.now()}`;
+  const startTime = formatJakartaTimeInput(task.startAt);
+  const endTime = formatJakartaTimeInput(task.endAt);
+  const sessionDuration =
+    getTimeRangeDurationMinutes(startTime, endTime) ??
+    Math.max(toSafeNumber(task.durationMinutes) || 60, 1);
 
   return {
     id: taskId,
@@ -725,7 +899,17 @@ function mapTeacherApiTaskToFormItem(
     pertemuanKe: Math.max(toSafeNumber(task.meetingNumber), 1),
     judulTugas: normalizeText(task.title),
     deskripsi: normalizeText(task.description),
-    deadline: normalizeText(task.deadline),
+    deadline:
+      formatJakartaDateInput(task.startAt) ||
+      normalizeText(task.deadline),
+    jamMulai: startTime,
+    jamSelesai: endTime,
+    durasiMenit: sessionDuration,
+    jumlahSoal: Math.max(toSafeNumber(task.questionCount), 0),
+    nilaiMinimum: Math.min(
+      Math.max(toSafeNumber(task.passingGrade) || 70, 1),
+      100,
+    ),
     jumlahMengumpulkan: Math.max(toSafeNumber(task.submittedCount), 0),
     statusPenilaian: toTugasStatusPenilaian(task.reviewStatus),
     attachmentFileName: normalizeText(task.attachment?.fileName) || undefined,
@@ -899,7 +1083,11 @@ function applyLatestGradesToSubmissionList(
     return {
       ...submission,
       gradeStatus: matchedGrade.status,
-      score: matchedGrade.status === "Sudah Dinilai" ? matchedGrade.score : null,
+      score:
+        matchedGrade.status === "Sudah Dinilai" ||
+        matchedGrade.status === "Perlu Remedial"
+          ? matchedGrade.score
+          : null,
     } satisfies TaskSubmissionListItem;
   });
 }
@@ -926,7 +1114,10 @@ function applyLatestGradeToSubmissionDetail(
     ...submissionDetail,
     gradeStatus: matchedGrade.status,
     score:
-      matchedGrade.status === "Sudah Dinilai" ? matchedGrade.score : null,
+      matchedGrade.status === "Sudah Dinilai" ||
+      matchedGrade.status === "Perlu Remedial"
+        ? matchedGrade.score
+        : null,
   } satisfies TaskSubmissionDetail;
 }
 
@@ -945,14 +1136,19 @@ function applyGradeStatusToTasks(
   return sortTasksByMeeting(
     taskRows.map((task) => {
       const submittedCount = Math.max(task.jumlahMengumpulkan, 0);
+      const taskGrades = gradeEntries.filter(
+        (grade) => normalizeText(grade.taskId) === normalizeText(task.id),
+      );
       const gradedStudentIds = new Set(
-        gradeEntries
+        taskGrades
           .filter(
             (grade) =>
-              normalizeText(grade.taskId) === normalizeText(task.id) &&
               grade.status === "Sudah Dinilai",
           )
           .map((grade) => normalizeText(grade.studentId).toLowerCase()),
+      );
+      const hasRemedialStudent = taskGrades.some(
+        (grade) => grade.status === "Perlu Remedial",
       );
       const expectedGradeCount =
         submittedCount > 0
@@ -964,6 +1160,8 @@ function applyGradeStatusToTasks(
         statusPenilaian:
           submittedCount <= 0
             ? "Belum Ada Pengumpulan"
+            : hasRemedialStudent
+              ? "Perlu Remedial"
             : expectedGradeCount > 0 && gradedStudentIds.size >= expectedGradeCount
               ? "Sudah Dinilai"
               : "Belum Dinilai",
@@ -974,15 +1172,54 @@ function applyGradeStatusToTasks(
 
 function buildNilaiRows(
   participants: ClassStudent[],
+  taskRows: TugasPertemuan[],
   gradeEntries: TeacherTaskGradeEntry[],
   academicGradeEntries: TeacherAcademicGradeEntry[],
 ) {
+  const taskMeetingMap = new Map(
+    taskRows.map((task) => [normalizeText(task.id), task.pertemuanKe]),
+  );
+
   return participants.map((student) => {
     const studentGrades = gradeEntries.filter(
       (grade) =>
         normalizeText(grade.studentId) === normalizeText(student.id) &&
-        grade.status === "Sudah Dinilai",
+        (grade.status === "Sudah Dinilai" ||
+          grade.status === "Perlu Remedial"),
     );
+    const pertemuanScoreBuckets = new Map<number, number[]>();
+    const pertemuanStatuses: Record<number, TeacherTaskGradeEntry["status"]> = {};
+
+    studentGrades.forEach((grade) => {
+      const meetingNumber = taskMeetingMap.get(normalizeText(grade.taskId));
+
+      if (!meetingNumber || meetingNumber < 1) {
+        return;
+      }
+
+      const currentScores = pertemuanScoreBuckets.get(meetingNumber) ?? [];
+      currentScores.push(grade.score);
+      pertemuanScoreBuckets.set(meetingNumber, currentScores);
+
+      if (
+        grade.status === "Perlu Remedial" ||
+        !pertemuanStatuses[meetingNumber]
+      ) {
+        pertemuanStatuses[meetingNumber] = grade.status;
+      }
+    });
+
+    const pertemuanScores = Object.fromEntries(
+      [...pertemuanScoreBuckets.entries()].map(([meetingNumber, scores]) => [
+        meetingNumber,
+        scores.length
+          ? Math.round(
+              scores.reduce((total, score) => total + score, 0) /
+                scores.length,
+            )
+          : null,
+      ]),
+    ) as Record<number, number | null>;
     const tugasScore = studentGrades.length
       ? Math.round(
           studentGrades.reduce((total, grade) => total + grade.score, 0) /
@@ -999,6 +1236,8 @@ function buildNilaiRows(
       tugas: tugasScore,
       scores: academicGrade?.scores ?? { ...EMPTY_ACADEMIC_SCORES },
       note: academicGrade?.note ?? "",
+      pertemuanScores,
+      pertemuanStatuses,
     } satisfies NilaiSiswa;
   });
 }
@@ -1077,6 +1316,38 @@ function buildScheduleLabel(
   }
 
   return `${day}, ${formatTimeLabel(time)} WIB`;
+}
+
+function buildDefaultTaskSchedule(
+  activeClass: ClassDetailData,
+  materialRows: MateriPertemuan[],
+  meetingNumber: number,
+) {
+  const scheduleTimeRange = parseTimeRange(activeClass.jadwal);
+  const matchedSession =
+    activeClass.attendanceSessions.find(
+      (session) => session.meetingNumber === meetingNumber,
+    ) ?? null;
+  const matchedMaterial =
+    materialRows.find((material) => material.pertemuanKe === meetingNumber) ?? null;
+  const startTime =
+    normalizeTimeInput(matchedSession?.startTime) ||
+    scheduleTimeRange?.startTime ||
+    "";
+  const endTime =
+    scheduleTimeRange?.endTime ||
+    addMinutesToTime(startTime, 90);
+  const durationMinutes =
+    getTimeRangeDurationMinutes(startTime, endTime) ?? 90;
+
+  return {
+    deadline:
+      normalizeText(matchedSession?.date) ||
+      normalizeText(matchedMaterial?.tanggal),
+    jamMulai: startTime,
+    jamSelesai: endTime,
+    durasiMenit: durationMinutes,
+  };
 }
 
 function buildEmptyClassDetail(
@@ -1372,9 +1643,8 @@ export default function DetailKelasGuruSection({
   kelasId,
 }: DetailKelasGuruSectionProps) {
   const searchParams = useSearchParams();
-  const academicYearStatus = getGuruAcademicYearStatus(searchParams);
-  const archiveMessage = `Tahun ajaran ${academicYearStatus.academicYear} sudah menjadi arsip. Data hanya bisa dilihat.`;
-  const isAcademicArchive = academicYearStatus.isArchive;
+  const archiveMessage = "";
+  const isAcademicArchive = false;
   const [teacherName, setTeacherName] = useState(
     () => readPersistedAuthUser()?.nama ?? "Guru login",
   );
@@ -1550,6 +1820,7 @@ export default function DetailKelasGuruSection({
   async function saveTaskRequest(
     draft: TugasPertemuan,
     mode: DialogMode,
+    attachmentFile: File | null = tugasAttachmentFile,
   ) {
     const normalizedClassId = normalizeText(activeClass.kelasId);
 
@@ -1561,18 +1832,29 @@ export default function DetailKelasGuruSection({
       mode === "add"
         ? `/api/teacher/me/classes/${encodeURIComponent(normalizedClassId)}/tasks`
         : `/api/teacher/me/classes/${encodeURIComponent(normalizedClassId)}/tasks/${encodeURIComponent(draft.id)}`;
+    const sessionDuration =
+      getTimeRangeDurationMinutes(draft.jamMulai, draft.jamSelesai) ??
+      Math.max(Number(draft.durasiMenit) || 60, 1);
     const body: Record<string, string | number | boolean> = {
       meetingNumber: draft.pertemuanKe,
       title: draft.judulTugas,
       description: draft.deskripsi,
       deadline: draft.deadline,
+      startAt: buildJakartaDateTimeIso(draft.deadline, draft.jamMulai),
+      endAt: buildJakartaDateTimeIso(draft.deadline, draft.jamSelesai),
+      durationMinutes: sessionDuration,
+      questionCount: Math.max(Number(draft.jumlahSoal) || 0, 0),
+      passingGrade: Math.min(
+        Math.max(Number(draft.nilaiMinimum) || 70, 1),
+        100,
+      ),
     };
 
-    if (tugasAttachmentFile) {
-      body.attachmentFileName = tugasAttachmentFile.name;
+    if (attachmentFile) {
+      body.attachmentFileName = attachmentFile.name;
       body.attachmentMimeType =
-        normalizeText(tugasAttachmentFile.type) || "application/octet-stream";
-      body.attachmentFileDataBase64 = await readFileAsBase64(tugasAttachmentFile);
+        normalizeText(attachmentFile.type) || "application/octet-stream";
+      body.attachmentFileDataBase64 = await readFileAsBase64(attachmentFile);
     } else if (tugasAttachmentMarkedForRemoval) {
       body.removeAttachment = true;
     }
@@ -1600,6 +1882,48 @@ export default function DetailKelasGuruSection({
     }
 
     return mapTeacherApiTaskToFormItem(payload.data.task, normalizedClassId);
+  }
+
+  async function uploadTaskQuestionsRequest(taskId: string, file: File) {
+    const normalizedClassId = normalizeText(activeClass.kelasId);
+    const normalizedTaskId = normalizeText(taskId);
+
+    if (!normalizedClassId || !normalizedTaskId) {
+      throw new Error(DETAIL_CLASS_ERROR_MESSAGE);
+    }
+
+    const response = await fetch(
+      buildGuruApiUrl(
+        `/api/teacher/me/classes/${encodeURIComponent(normalizedClassId)}/tasks/${encodeURIComponent(normalizedTaskId)}`,
+        searchParams,
+      ),
+      {
+        method: "POST",
+        credentials: "include",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          attachmentFileName: file.name,
+          attachmentFileDataBase64: await readFileAsBase64(file),
+        }),
+      },
+    );
+    const payload = (await response.json().catch(() => null)) as
+      | TeacherClassTaskQuestionsUploadResponse
+      | null;
+
+    if (response.status === 401) {
+      clearAuthClientState();
+      throw new Error("Sesi login berakhir. Silakan login ulang.");
+    }
+
+    if (!response.ok || !payload?.success) {
+      throw new Error(payload?.message || "Soal CBT latihan belum bisa diunggah.");
+    }
+
+    return Math.max(Number(payload.data?.questionCount) || 0, 0);
   }
 
   async function deleteMaterialRequest(materialId: string) {
@@ -1685,6 +2009,21 @@ export default function DetailKelasGuruSection({
         normalizeText(grade.taskId) === normalizedTaskId &&
         normalizeText(grade.studentId) === normalizedStudentId,
     );
+    const normalizedNote = normalizeText(draft.note);
+    const isChangingExistingGrade =
+      Boolean(existingGrade) &&
+      (existingGrade?.score !== draft.tugas ||
+        normalizeText(existingGrade?.status) !== "Sudah Dinilai");
+
+    if (
+      isChangingExistingGrade &&
+      normalizedNote === normalizeText(existingGrade?.note)
+    ) {
+      throw new Error(
+        "Isi alasan perubahan nilai pada catatan penilaian terlebih dahulu.",
+      );
+    }
+
     const endpoint = existingGrade
       ? `/api/teacher/me/classes/${encodeURIComponent(normalizedClassId)}/grades/${encodeURIComponent(existingGrade.id)}`
       : `/api/teacher/me/classes/${encodeURIComponent(normalizedClassId)}/grades`;
@@ -1699,7 +2038,7 @@ export default function DetailKelasGuruSection({
         taskId: normalizedTaskId,
         studentId: normalizedStudentId,
         score: draft.tugas,
-        note: normalizeText(draft.note),
+        note: normalizedNote,
         status: "Sudah Dinilai",
       }),
     });
@@ -2002,6 +2341,7 @@ export default function DetailKelasGuruSection({
       );
       const nextNilaiRows = buildNilaiRows(
         nextClassDetail.participants,
+        nextTasks,
         nextGradeEntries,
         nextAcademicGradeEntries,
       );
@@ -2143,7 +2483,7 @@ export default function DetailKelasGuruSection({
       return true;
     }
 
-    toast.error("Program UTBK menggunakan materi dan tryout, bukan tugas pertemuan.");
+    toast.error("Program UTBK menggunakan materi dan tryout, bukan latihan pertemuan.");
     return false;
   }
 
@@ -2461,9 +2801,14 @@ export default function DetailKelasGuruSection({
       return;
     }
 
+    const nextMeetingNumber = Math.max(tasks.length + 1, 1);
     setTugasMode("add");
     setTugasDraft(
-      createEmptyTugas(activeClass.kelasId, Math.max(tasks.length + 1, 1)),
+      createEmptyTugas(
+        activeClass.kelasId,
+        nextMeetingNumber,
+        buildDefaultTaskSchedule(activeClass, materials, nextMeetingNumber),
+      ),
     );
     setTugasAttachmentFile(null);
     setTugasAttachmentMarkedForRemoval(false);
@@ -2476,7 +2821,22 @@ export default function DetailKelasGuruSection({
     }
 
     setTugasMode("edit");
-    setTugasDraft({ ...task });
+    const scheduleDefaults = buildDefaultTaskSchedule(
+      activeClass,
+      materials,
+      task.pertemuanKe,
+    );
+    const jamMulai = task.jamMulai || scheduleDefaults.jamMulai;
+    const jamSelesai = task.jamSelesai || scheduleDefaults.jamSelesai;
+    setTugasDraft({
+      ...task,
+      deadline: task.deadline || scheduleDefaults.deadline,
+      jamMulai,
+      jamSelesai,
+      durasiMenit:
+        getTimeRangeDurationMinutes(jamMulai, jamSelesai) ??
+        task.durasiMenit,
+    });
     setTugasAttachmentFile(null);
     setTugasAttachmentMarkedForRemoval(false);
     setIsTugasDialogOpen(true);
@@ -2488,13 +2848,72 @@ export default function DetailKelasGuruSection({
   ) {
     setTugasDraft((current) =>
       current
-        ? {
-            ...current,
-            [field]:
-              field === "pertemuanKe" || field === "jumlahMengumpulkan"
-                ? Number(value)
-                : String(value),
-          }
+        ? (() => {
+            const nextValue = (() => {
+              if (
+                field === "pertemuanKe" ||
+                field === "jumlahMengumpulkan" ||
+                field === "durasiMenit" ||
+                field === "jumlahSoal"
+              ) {
+                return Number(value);
+              }
+
+              if (field === "nilaiMinimum") {
+                return value === "" ? null : Number(value);
+              }
+
+              return String(value);
+            })();
+            const nextDraft = {
+              ...current,
+              [field]: nextValue,
+            };
+
+            if (field === "pertemuanKe") {
+              const meetingNumber = Math.max(Number(value) || 1, 1);
+              const scheduleDefaults = buildDefaultTaskSchedule(
+                activeClass,
+                materials,
+                meetingNumber,
+              );
+              const jamMulai = scheduleDefaults.jamMulai || nextDraft.jamMulai;
+              const jamSelesai =
+                scheduleDefaults.jamSelesai || nextDraft.jamSelesai;
+
+              return {
+                ...nextDraft,
+                deadline: scheduleDefaults.deadline || nextDraft.deadline,
+                jamMulai,
+                jamSelesai,
+                durasiMenit:
+                  getTimeRangeDurationMinutes(jamMulai, jamSelesai) ??
+                  nextDraft.durasiMenit,
+              };
+            }
+
+            if (field === "jamMulai" || field === "jamSelesai") {
+              const jamMulai =
+                field === "jamMulai"
+                  ? normalizeTimeInput(String(value))
+                  : nextDraft.jamMulai;
+              const jamSelesai =
+                field === "jamSelesai"
+                  ? normalizeTimeInput(String(value))
+                  : nextDraft.jamSelesai;
+
+              return {
+                ...nextDraft,
+                jamMulai,
+                jamSelesai,
+                durasiMenit:
+                  getTimeRangeDurationMinutes(jamMulai, jamSelesai) ??
+                  nextDraft.durasiMenit,
+              };
+            }
+
+            return nextDraft;
+          })()
         : current,
     );
   }
@@ -2539,23 +2958,68 @@ export default function DetailKelasGuruSection({
     if (
       !tugasDraft ||
       !tugasDraft.deadline ||
+      !normalizeTimeInput(tugasDraft.jamMulai) ||
+      !normalizeTimeInput(tugasDraft.jamSelesai) ||
       !tugasDraft.judulTugas.trim() ||
       !tugasDraft.deskripsi.trim()
     ) {
-      toast.error("Mohon isi judul latihan, deskripsi, dan tenggat waktu terlebih dahulu.");
+      toast.error("Mohon isi jadwal sesi, judul latihan, dan deskripsi terlebih dahulu.");
+      return;
+    }
+
+    const sessionDuration = getTimeRangeDurationMinutes(
+      tugasDraft.jamMulai,
+      tugasDraft.jamSelesai,
+    );
+
+    if (!sessionDuration) {
+      toast.error("Jam selesai latihan harus lebih besar dari jam mulai.");
+      return;
+    }
+
+    if (
+      sessionDuration < 1 ||
+      Number(tugasDraft.nilaiMinimum) < 1 ||
+      Number(tugasDraft.nilaiMinimum) > 100
+    ) {
+      toast.error("Durasi latihan minimal 1 menit dan KKM harus di antara 1-100.");
       return;
     }
 
     try {
-      const savedTask = await saveTaskRequest(tugasDraft, tugasMode);
+      const questionWorkbook = isTaskQuestionWorkbook(tugasAttachmentFile)
+        ? tugasAttachmentFile
+        : null;
+      const savedTask = await saveTaskRequest(
+        tugasDraft,
+        tugasMode,
+        questionWorkbook ? null : tugasAttachmentFile,
+      );
+      const taskWithQuestions = questionWorkbook
+        ? {
+            ...savedTask,
+            jumlahSoal: await uploadTaskQuestionsRequest(
+              savedTask.id,
+              questionWorkbook,
+            ),
+          }
+        : savedTask;
 
-      setTasks((current) =>
-        sortTasksByMeeting(
-          tugasMode === "add"
-            ? [...current, savedTask]
-            : current.map((task) =>
-                task.id === tugasDraft.id ? savedTask : task,
-              ),
+      const nextTasks = sortTasksByMeeting(
+        tugasMode === "add"
+          ? [...tasks, taskWithQuestions]
+          : tasks.map((task) =>
+              task.id === tugasDraft.id ? taskWithQuestions : task,
+            ),
+      );
+
+      setTasks(nextTasks);
+      setNilaiRows(
+        buildNilaiRows(
+          activeClass.participants,
+          nextTasks,
+          gradeEntries,
+          academicGradeEntries,
         ),
       );
       setIsTugasDialogOpen(false);
@@ -2576,7 +3040,11 @@ export default function DetailKelasGuruSection({
 
     try {
       await deleteTaskRequest(taskId);
-      setTasks((current) => current.filter((task) => task.id !== taskId));
+      const nextTasks = tasks.filter(
+        (task) => normalizeText(task.id) !== normalizeText(taskId),
+      );
+
+      setTasks(nextTasks);
       if (normalizeText(selectedTaskForSubmissions?.id) === normalizeText(taskId)) {
         handleTaskSubmissionDialogOpenChange(false);
       }
@@ -2588,6 +3056,7 @@ export default function DetailKelasGuruSection({
         setNilaiRows(
           buildNilaiRows(
             activeClass.participants,
+            nextTasks,
             nextGradeEntries,
             academicGradeEntries,
           ),
@@ -2753,46 +3222,33 @@ export default function DetailKelasGuruSection({
       return;
     }
 
-    const shouldSaveAcademicGrade = academicScheme !== "tryout";
     const shouldSaveTaskGrade = Boolean(
       selectedTaskForScore && nilaiDraft.tugas !== null,
     );
 
-    if (!shouldSaveTaskGrade && !shouldSaveAcademicGrade) {
+    if (!shouldSaveTaskGrade) {
       toast.error("Isi nilai latihan terlebih dahulu.");
       return;
     }
 
     try {
-      const [savedGrade, savedAcademicGrade] = await Promise.all([
-        shouldSaveTaskGrade && selectedTaskForScore
-          ? saveGradeRequest(nilaiDraft, selectedTaskForScore)
-          : Promise.resolve(null),
-        shouldSaveAcademicGrade
-          ? saveAcademicGradeRequest(nilaiDraft)
-          : Promise.resolve(null),
-      ]);
+      const savedGrade = selectedTaskForScore
+        ? await saveGradeRequest(nilaiDraft, selectedTaskForScore)
+        : null;
       const nextGradeEntries = savedGrade
         ? [
             savedGrade,
             ...gradeEntries.filter((grade) => grade.id !== savedGrade.id),
           ]
         : gradeEntries;
-      const otherAcademicGrades = academicGradeEntries.filter(
-        (grade) =>
-          normalizeText(grade.studentId) !== normalizeText(nilaiDraft.studentId),
-      );
-      const nextAcademicGradeEntries = savedAcademicGrade
-        ? [savedAcademicGrade, ...otherAcademicGrades]
-        : otherAcademicGrades;
       const nextNilaiRows = buildNilaiRows(
         activeClass.participants,
+        tasksWithGradeStatus,
         nextGradeEntries,
-        nextAcademicGradeEntries,
+        academicGradeEntries,
       );
 
       setGradeEntries(nextGradeEntries);
-      setAcademicGradeEntries(nextAcademicGradeEntries);
       setNilaiRows(nextNilaiRows);
       setIsNilaiDialogOpen(false);
       setSelectedTaskForScore(null);
@@ -2936,12 +3392,6 @@ export default function DetailKelasGuruSection({
             Kembali ke Semua Kelas
           </Link>
         </div>
-
-        {isAcademicArchive ? (
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600">
-            {archiveMessage} Tambah, edit, hapus, dan input nilai dinonaktifkan untuk menjaga riwayat tahun ajaran.
-          </div>
-        ) : null}
 
         <section className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-shadow hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
           <div className="relative overflow-hidden bg-gradient-to-br from-orange-50/80 via-white to-amber-50/40 px-5 py-6 text-slate-900 md:px-7 md:py-7">

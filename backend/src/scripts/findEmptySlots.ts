@@ -5,7 +5,7 @@ import { Schedule } from "../models/Schedule";
 dotenv.config();
 
 const DAYS = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
-const TIME_SLOTS = ["13:00 - 14:00", "14:00 - 15:00", "15:00 - 16:00", "16:00 - 17:00"];
+const TIME_SLOTS = ["13:00 - 14:30", "14:00 - 15:30", "15:00 - 16:30", "16:00 - 17:30"];
 const ROOMS = ["Ruangan 1A", "Ruangan 1B", "Ruangan 2A", "Ruangan 2B"];
 
 async function run() {

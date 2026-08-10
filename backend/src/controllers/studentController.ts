@@ -58,6 +58,9 @@ import {
   toPublicPayment,
   toPublicSubscription,
 } from "../utils/subscription";
+import crypto from "crypto";
+import { validateEnv } from "../config/env";
+import { sendVerificationEmail } from "../utils/email";
 
 type StudentRequestBody = {
   name?: string;
@@ -68,6 +71,9 @@ type StudentRequestBody = {
   className?: string;
   birthDate?: string;
   academicYear?: string;
+  address?: string;
+  schoolOrigin?: string;
+  difficultSubjects?: string;
   status?: string;
   password?: string;
   membershipPaymentMode?: string;
@@ -109,6 +115,9 @@ type StudentCreateInput = {
   className: string;
   birthDate: Date | null;
   academicYear: string;
+  address: string;
+  schoolOrigin: string;
+  difficultSubjects: string;
   status: StudentStatus;
   generatedPassword: string;
 };
@@ -380,7 +389,7 @@ async function getStudentFinancialHistory(student: StudentWithUser) {
 
 async function createStudentAccount(
   input: StudentCreateInput,
-): Promise<StudentWithUser> {
+): Promise<{ student: StudentWithUser; plainVerificationToken: string | null }> {
   const existingUser = await User.findOne({
     $or: [{ email: input.email }, { loginCode: input.loginCode }],
   }).exec();
@@ -393,15 +402,27 @@ async function createStudentAccount(
   let createdUser: UserDocument | null = null;
 
   try {
+    let isEmailVerified = true;
+    let emailVerificationToken = null;
+    let emailVerificationExpires = null;
+    let plainVerificationToken: string | null = null;
+
+    if (!input.email.endsWith("@bimbel.local")) {
+      plainVerificationToken = crypto.randomBytes(32).toString("hex");
+      emailVerificationToken = crypto.createHash("sha256").update(plainVerificationToken).digest("hex");
+      emailVerificationExpires = new Date(Date.now() + 1000 * 60 * 60 * 24);
+      isEmailVerified = false;
+    }
+
     createdUser = await User.create({
       nama: input.name,
       email: input.email,
       loginCode: input.loginCode,
       password: hashedPassword,
       role: "siswa",
-      isEmailVerified: true,
-      emailVerificationToken: null,
-      emailVerificationExpires: null,
+      isEmailVerified,
+      emailVerificationToken,
+      emailVerificationExpires,
     });
 
     const student = await Student.create({
@@ -413,6 +434,9 @@ async function createStudentAccount(
       className: input.className,
       academicYear: input.academicYear,
       birthDate: input.birthDate,
+      address: input.address,
+      schoolOrigin: input.schoolOrigin,
+      difficultSubjects: input.difficultSubjects,
       status: input.status,
     });
 
@@ -424,7 +448,7 @@ async function createStudentAccount(
       throw new AppError(500, "Gagal memuat ulang data siswa yang baru dibuat.");
     }
 
-    return populatedStudent;
+    return { student: populatedStudent, plainVerificationToken };
   } catch (error) {
     if (createdUser) {
       await User.deleteOne({ _id: createdUser._id });
@@ -918,6 +942,9 @@ export const createStudent = asyncHandler(
     );
     const program = normalizeText(req.body.program);
     const className = normalizeText(req.body.className);
+    const address = normalizeText(req.body.address);
+    const schoolOrigin = normalizeText(req.body.schoolOrigin);
+    const difficultSubjects = normalizeText(req.body.difficultSubjects);
     const birthDate = parseBirthDate(req.body.birthDate);
     const hasBirthDateInput =
       typeof req.body.birthDate === "string" && normalizeText(req.body.birthDate);
@@ -939,7 +966,12 @@ export const createStudent = asyncHandler(
       return;
     }
 
-    if (email && !isValidEmail(email)) {
+    if (!email) {
+      next(new AppError(400, "Email aktif siswa wajib diisi."));
+      return;
+    }
+
+    if (!isValidEmail(email)) {
       next(new AppError(400, "Email siswa belum valid."));
       return;
     }
@@ -1010,7 +1042,7 @@ export const createStudent = asyncHandler(
 
     const resolvedEmail = email || buildImportedStudentEmail(studentId);
     const loginCode = buildStudentLoginCode(studentId);
-    const student = await createStudentAccount({
+    const { student, plainVerificationToken } = await createStudentAccount({
       studentId,
       name,
       email: resolvedEmail,
@@ -1021,6 +1053,9 @@ export const createStudent = asyncHandler(
       className,
       birthDate,
       academicYear,
+      address,
+      schoolOrigin,
+      difficultSubjects,
       status: status as StudentStatus,
       generatedPassword,
     });
@@ -1090,6 +1125,22 @@ export const createStudent = asyncHandler(
           : {}),
       },
     });
+
+    if (plainVerificationToken && !resolvedEmail.endsWith("@bimbel.local")) {
+      const { clientUrl } = validateEnv();
+      const verificationLink = `${clientUrl}/verify-email?token=${plainVerificationToken}`;
+      sendVerificationEmail({
+        nama: name,
+        email: resolvedEmail,
+        verificationLink,
+        accountCredentials: {
+          loginCode,
+          password: generatedPassword,
+        },
+      }).catch((err) => {
+        console.error("Gagal mengirim email verifikasi ke siswa baru:", err);
+      });
+    }
   },
 );
 
@@ -1232,6 +1283,9 @@ export const importStudents = asyncHandler(
           className,
           birthDate: null,
           academicYear: academicPeriod.academicYear,
+          address: "",
+          schoolOrigin: "",
+          difficultSubjects: "",
           status: "Aktif",
           generatedPassword,
         });
@@ -1314,6 +1368,9 @@ export const updateStudent = asyncHandler(
     );
     const program = normalizeText(req.body.program);
     const className = normalizeText(req.body.className);
+    const address = normalizeText(req.body.address);
+    const schoolOrigin = normalizeText(req.body.schoolOrigin);
+    const difficultSubjects = normalizeText(req.body.difficultSubjects);
     const birthDate = parseBirthDate(req.body.birthDate);
     const hasBirthDateInput = Object.prototype.hasOwnProperty.call(req.body, "birthDate");
     const hasFilledBirthDateInput =
@@ -1357,6 +1414,10 @@ export const updateStudent = asyncHandler(
       return;
     }
 
+    let isEmailChanged = false;
+    try {
+      isEmailChanged = student.userId.email !== email;
+
     student.userId.nama = name;
     student.userId.email = email;
     student.userId.loginCode = student.userId.loginCode || buildStudentLoginCode(student.studentId);
@@ -1367,6 +1428,9 @@ export const updateStudent = asyncHandler(
     if (hasBirthDateInput) {
       student.birthDate = birthDate;
     }
+    student.address = address;
+    student.schoolOrigin = schoolOrigin;
+    student.difficultSubjects = difficultSubjects;
     student.academicYear = targetAcademicPeriod.academicYear;
     student.status = status as StudentStatus;
 
@@ -1380,18 +1444,44 @@ export const updateStudent = asyncHandler(
       clearUserLoginLock(student.userId);
     }
 
-    student.userId.isEmailVerified = true;
-    student.userId.emailVerificationToken = null;
-    student.userId.emailVerificationExpires = null;
+      let plainVerificationToken: string | null = null;
+      if (isEmailChanged) {
+        student.userId.isEmailVerified = false;
+        
+        if (!email.endsWith("@bimbel.local")) {
+          plainVerificationToken = crypto.randomBytes(32).toString("hex");
+          student.userId.emailVerificationToken = crypto.createHash("sha256").update(plainVerificationToken).digest("hex");
+          student.userId.emailVerificationExpires = new Date(Date.now() + 1000 * 60 * 60 * 24);
+        } else {
+          student.userId.emailVerificationToken = null;
+          student.userId.emailVerificationExpires = null;
+        }
+      }
 
-    await Promise.all([student.userId.save(), student.save()]);
+      await Promise.all([student.userId.save(), student.save()]);
 
-    sendSuccess(res, {
-      message: "Data siswa berhasil diperbarui.",
-      data: {
-        student: toPublicStudent(student, student.userId),
-      },
-    });
+      if (plainVerificationToken) {
+        const { clientUrl } = validateEnv();
+        const verificationLink = `${clientUrl}/verify-email?token=${plainVerificationToken}`;
+        sendVerificationEmail({
+          nama: name,
+          email: email,
+          verificationLink,
+        }).catch((err) => {
+          console.error("Gagal mengirim email verifikasi otomatis:", err);
+        });
+      }
+
+      sendSuccess(res, {
+        message: "Data siswa berhasil diperbarui.",
+        data: {
+          student: toPublicStudent(student, student.userId),
+        },
+      });
+    } catch (error) {
+      console.error("Error in updateStudent:", error);
+      next(new AppError(500, `Debug Error: ${error instanceof Error ? error.message : "Unknown error"}`));
+    }
   },
 );
 
@@ -1473,13 +1563,10 @@ export const deleteStudent = asyncHandler(
     const financialHistory = await getStudentFinancialHistory(student);
 
     if (financialHistory.hasFinancialHistory) {
-      next(
-        new AppError(
-          409,
-          "Siswa tidak dapat dihapus karena memiliki riwayat pembayaran. Silakan ubah statusnya menjadi Nonaktif.",
-        ),
-      );
-      return;
+      await Promise.all([
+        Payment.deleteMany({ studentId: student._id }),
+        Subscription.deleteMany({ studentId: student._id })
+      ]);
     }
 
     if (!hasPopulatedUserDocument(student.userId)) {
@@ -1506,6 +1593,65 @@ export const deleteStudent = asyncHandler(
         deletionMode: "deleted",
         hasFinancialHistory: false,
       },
+    });
+  },
+);
+
+export const resendStudentVerification = asyncHandler(
+  async (
+    req: Request<{ id: string }>,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    const scope = await resolveAdminBranchScope(req.user, {
+      requireManagedBranchesForAdmin: true,
+    });
+    const student = await findStudentByParam(req.params.id);
+
+    if (!student) {
+      next(new AppError(404, "Data siswa tidak ditemukan."));
+      return;
+    }
+
+    assertBranchAccess(student.branch, scope);
+
+    if (!student.userId) {
+      next(new AppError(404, "Akun user siswa tidak ditemukan."));
+      return;
+    }
+
+    const user = await User.findById(student.userId);
+    if (!user) {
+      next(new AppError(404, "Akun user siswa tidak ditemukan."));
+      return;
+    }
+
+    if (user.isEmailVerified) {
+      next(new AppError(400, "Email siswa sudah terverifikasi."));
+      return;
+    }
+
+    if (user.email.endsWith("@bimbel.local")) {
+      next(new AppError(400, "Tidak dapat mengirim verifikasi ke email sistem."));
+      return;
+    }
+
+    const plainVerificationToken = crypto.randomBytes(32).toString("hex");
+    user.emailVerificationToken = crypto.createHash("sha256").update(plainVerificationToken).digest("hex");
+    user.emailVerificationExpires = new Date(Date.now() + 1000 * 60 * 60 * 24);
+    await user.save();
+
+    const { clientUrl } = validateEnv();
+    const verificationLink = `${clientUrl}/verify-email?token=${plainVerificationToken}`;
+
+    await sendVerificationEmail({
+      nama: user.nama,
+      email: user.email,
+      verificationLink,
+    });
+
+    sendSuccess(res, {
+      message: "Email verifikasi berhasil dikirim ulang.",
     });
   },
 );

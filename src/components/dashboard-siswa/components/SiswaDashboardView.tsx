@@ -1,27 +1,13 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, Suspense } from "react";
+import { Suspense } from "react";
 import HeaderAkademikSiswa from "../sections/HeaderAkademikSiswa";
 import HeaderProfilSiswa from "../sections/HeaderProfilSiswa";
 import { useStudentDashboardData } from "../data/useStudentDashboardData";
 import UtbkProgressWidget from "../widgets/UtbkProgressWidget";
 
 function SiswaDashboardContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const academicYear = searchParams.get("academicYear") ?? "";
-
-  const handleYearChange = useCallback(
-    (newYear: string) => {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("academicYear", newYear);
-      router.push(`?${params.toString()}`);
-    },
-    [router, searchParams]
-  );
-
-  const { dashboardData, isLoading, loadError, isWaitingForYear } = useStudentDashboardData(academicYear);
+  const { dashboardData, isLoading, loadError } = useStudentDashboardData();
 
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 md:py-8">
@@ -31,7 +17,6 @@ function SiswaDashboardContent() {
             dashboardData={dashboardData}
             dashboardLoading={isLoading}
             dashboardError={loadError}
-            isWaitingForYear={isWaitingForYear}
           />
         </div>
 
@@ -40,8 +25,6 @@ function SiswaDashboardContent() {
             dashboardData={dashboardData}
             dashboardLoading={isLoading}
             dashboardError={loadError}
-            academicYear={academicYear}
-            onYearChange={handleYearChange}
           />
           {(dashboardData || isLoading) && (
             <UtbkProgressWidget

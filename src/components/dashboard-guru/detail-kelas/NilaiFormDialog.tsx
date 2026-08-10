@@ -9,10 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  ACADEMIC_SCORE_LABELS,
-  getAcademicScoreKeys,
-} from "@/lib/academic-grades";
 
 import type { NilaiFormDialogProps } from "./types";
 
@@ -20,7 +16,6 @@ export default function NilaiFormDialog({
   draft,
   includeTaskScore = true,
   mode,
-  onAcademicScoreChange,
   onChange,
   onOpenChange,
   onStudentChange,
@@ -31,10 +26,7 @@ export default function NilaiFormDialog({
   selectedStudentId,
   selectedTask,
   tasks,
-  scheme,
 }: NilaiFormDialogProps) {
-  const academicScoreKeys = getAcademicScoreKeys(scheme);
-  const hasAcademicScoreFields = academicScoreKeys.length > 0;
   const activeStudent =
     participants.find((student) => student.id === selectedStudentId) ?? null;
 
@@ -48,9 +40,7 @@ export default function NilaiFormDialog({
           <DialogDescription className="text-sm text-slate-500">
             {includeTaskScore
               ? "Simpan nilai latihan siswa."
-              : hasAcademicScoreFields
-                ? "Simpan nilai evaluasi siswa."
-                : "Simpan nilai evaluasi siswa."}
+              : "Simpan koreksi nilai siswa."}
           </DialogDescription>
         </DialogHeader>
 
@@ -58,7 +48,7 @@ export default function NilaiFormDialog({
           <div className="grid gap-4 px-5 py-5">
           {includeTaskScore && tasks.length > 0 ? (
             <label className="grid gap-2 text-sm font-medium text-slate-700">
-              Pilih Tugas
+              Pilih Latihan
               <select
                 value={selectedTask?.id ?? ""}
                 onChange={(event) => onTaskChange(event.target.value)}
@@ -131,35 +121,7 @@ export default function NilaiFormDialog({
               </label>
             ) : null}
 
-            {hasAcademicScoreFields && scheme !== "tryout"
-              ? academicScoreKeys.map((scoreKey) => (
-                  <label
-                    key={scoreKey}
-                    className="grid gap-2 text-sm font-medium text-slate-700"
-                  >
-                    Nilai {ACADEMIC_SCORE_LABELS[scoreKey]}
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={draft?.scores[scoreKey] ?? ""}
-                      onChange={(event) =>
-                        onAcademicScoreChange(scoreKey, event.target.value)
-                      }
-                      placeholder="Belum dinilai"
-                      className="border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
-                    />
-                  </label>
-                ))
-              : null}
           </div>
-
-          {hasAcademicScoreFields ? (
-            <p className="text-xs leading-5 text-slate-400">
-              Kosongkan kolom yang belum dinilai. Sistem tidak akan mengubahnya
-              menjadi nilai nol.
-            </p>
-          ) : null}
 
           <label className="grid gap-2 text-sm font-medium text-slate-700">
             Catatan Penilaian
@@ -167,10 +129,20 @@ export default function NilaiFormDialog({
               rows={4}
               value={draft?.note ?? ""}
               onChange={(event) => onChange("note", event.target.value)}
-              placeholder="Tambahkan catatan singkat untuk penilaian latihan ini jika diperlukan..."
+              placeholder={
+                mode === "edit"
+                  ? "Wajib isi alasan jika mengubah nilai, misalnya koreksi kunci jawaban atau kendala teknis siswa."
+                  : "Tambahkan catatan singkat untuk penilaian latihan ini jika diperlukan..."
+              }
               className="border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
             />
           </label>
+          {mode === "edit" ? (
+            <p className="text-xs leading-5 text-slate-400">
+              Nilai otomatis CBT boleh dikoreksi guru, tetapi perubahan nilai
+              harus disertai alasan agar riwayat penilaian tetap jelas.
+            </p>
+          ) : null}
           </div>
         </div>
 

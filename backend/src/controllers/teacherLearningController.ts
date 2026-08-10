@@ -3,6 +3,8 @@ import { Types } from "mongoose";
 
 import { ClassMaterial } from "../models/ClassMaterial";
 import { ClassTask } from "../models/ClassTask";
+import { ClassTaskQuestion } from "../models/ClassTaskQuestion";
+import { StudentTaskAttempt } from "../models/StudentTaskAttempt";
 import { TaskGrade } from "../models/TaskGrade";
 import { TaskSubmission } from "../models/TaskSubmission";
 import asyncHandler from "../utils/asyncHandler";
@@ -51,6 +53,11 @@ type UpsertClassTaskBody = {
   title?: string;
   description?: string;
   deadline?: string;
+  startAt?: string;
+  endAt?: string;
+  durationMinutes?: number | string;
+  questionCount?: number | string;
+  passingGrade?: number | string;
   attachmentFileName?: string;
   attachmentMimeType?: string;
   attachmentFileDataBase64?: string;
@@ -72,6 +79,51 @@ function isIsoDate(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(normalizeText(value));
 }
 
+function parseOptionalDateTime(value: string | undefined, fieldLabel: string) {
+  const normalizedValue = normalizeText(value);
+
+  if (!normalizedValue) {
+    return null;
+  }
+
+  const parsedDate = new Date(normalizedValue);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    throw new AppError(400, `${fieldLabel} tidak valid.`);
+  }
+
+  return parsedDate;
+}
+
+function resolveClassTaskTimingPayload(body: UpsertClassTaskBody) {
+  const startAt = parseOptionalDateTime(body.startAt, "Tanggal mulai latihan");
+  const endAt = parseOptionalDateTime(body.endAt, "Tanggal selesai latihan");
+  const durationMinutes = normalizePositiveInteger(body.durationMinutes);
+  const questionCount =
+    body.questionCount === undefined
+      ? undefined
+      : Math.max(normalizePositiveInteger(body.questionCount) ?? 0, 0);
+  const passingGrade =
+    body.passingGrade === undefined
+      ? undefined
+      : normalizePositiveInteger(body.passingGrade);
+
+  if (startAt && endAt && endAt.getTime() <= startAt.getTime()) {
+    throw new AppError(
+      400,
+      "Tanggal selesai latihan harus lebih besar dari tanggal mulai.",
+    );
+  }
+
+  return {
+    startAt,
+    endAt,
+    durationMinutes,
+    questionCount,
+    passingGrade,
+  };
+}
+
 function isUtbkTeacherClass(
   classGroup: Awaited<ReturnType<typeof resolveTeacherClassDetailContext>>["classGroup"],
 ) {
@@ -88,6 +140,59 @@ function normalizeBoolean(value: boolean | string | undefined) {
 
   const normalizedValue = normalizeText(value).toLowerCase();
   return ["true", "1", "yes", "ya"].includes(normalizedValue);
+}
+
+type TaskIdAggregationModel = {
+  aggregate: (pipeline: Array<Record<string, unknown>>) => {
+    exec: () => Promise<Array<{ numericValue?: number }>>;
+  };
+};
+
+async function getLatestSequentialTaskIdNumber(model: TaskIdAggregationModel) {
+  const [latestDocument] = await model
+    .aggregate([
+      {
+        $match: {
+          taskId: /^TSK-\d+$/,
+        },
+      },
+      {
+        $project: {
+          numericValue: {
+            $convert: {
+              input: {
+                $arrayElemAt: [{ $split: ["$taskId", "-"] }, -1],
+              },
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+        },
+      },
+      { $sort: { numericValue: -1 } },
+      { $limit: 1 },
+    ])
+    .exec();
+
+  return latestDocument?.numericValue ?? 0;
+}
+
+async function getNextClassTaskPublicId() {
+  const latestNumbers = await Promise.all([
+    getLatestSequentialTaskIdNumber(ClassTask as unknown as TaskIdAggregationModel),
+    getLatestSequentialTaskIdNumber(
+      ClassTaskQuestion as unknown as TaskIdAggregationModel,
+    ),
+    getLatestSequentialTaskIdNumber(
+      StudentTaskAttempt as unknown as TaskIdAggregationModel,
+    ),
+    getLatestSequentialTaskIdNumber(TaskSubmission as unknown as TaskIdAggregationModel),
+    getLatestSequentialTaskIdNumber(TaskGrade as unknown as TaskIdAggregationModel),
+  ]);
+  const nextNumber = Math.max(0, ...latestNumbers) + 1;
+
+  return `TSK-${String(nextNumber).padStart(3, "0")}`;
 }
 
 function parseAttachmentPayload(
@@ -482,7 +587,7 @@ export const createTeacherClassTask = asyncHandler(
     );
 
     if (isUtbkTeacherClass(classGroup)) {
-      next(new AppError(400, "Program UTBK menggunakan materi dan tryout, bukan tugas pertemuan."));
+      next(new AppError(400, "Program UTBK menggunakan materi dan tryout, bukan latihan pertemuan."));
       return;
     }
 
@@ -491,19 +596,20 @@ export const createTeacherClassTask = asyncHandler(
     const description = normalizeText(req.body.description);
     const deadline = normalizeText(req.body.deadline);
     const attachmentPayload = parseAttachmentPayload(req.body);
+    const timingPayload = resolveClassTaskTimingPayload(req.body);
 
     if (!meetingNumber) {
-      next(new AppError(400, "Pertemuan tugas wajib berupa angka minimal 1."));
+      next(new AppError(400, "Pertemuan latihan wajib berupa angka minimal 1."));
       return;
     }
 
     if (!isIsoDate(deadline)) {
-      next(new AppError(400, "Deadline tugas wajib menggunakan format YYYY-MM-DD."));
+      next(new AppError(400, "Deadline latihan wajib menggunakan format YYYY-MM-DD."));
       return;
     }
 
     if (!title || !description) {
-      next(new AppError(400, "Judul dan deskripsi tugas wajib diisi."));
+      next(new AppError(400, "Judul dan deskripsi latihan wajib diisi."));
       return;
     }
 
@@ -511,17 +617,13 @@ export const createTeacherClassTask = asyncHandler(
       next(
         new AppError(
           400,
-          `Lampiran tugas tidak valid atau melebihi batas ${getAttachmentSizeLimitLabel()}.`,
+          `Lampiran latihan tidak valid atau melebihi batas ${getAttachmentSizeLimitLabel()}.`,
         ),
       );
       return;
     }
 
-    const taskId = await getNextPublicId(
-      ClassTask,
-      "taskId",
-      "TSK",
-    );
+    const taskId = await getNextClassTaskPublicId();
     const attachment =
       attachmentPayload.fileBuffer && attachmentPayload.fileName
         ? await saveLearningAttachment({
@@ -546,6 +648,11 @@ export const createTeacherClassTask = asyncHandler(
       title,
       description,
       deadline,
+      startAt: timingPayload.startAt,
+      endAt: timingPayload.endAt,
+      durationMinutes: timingPayload.durationMinutes,
+      questionCount: timingPayload.questionCount ?? 0,
+      passingGrade: timingPayload.passingGrade ?? 70,
       attachment,
       submittedCount: 0,
       reviewStatus: "Belum Ada Pengumpulan",
@@ -564,7 +671,7 @@ export const createTeacherClassTask = asyncHandler(
 
     sendSuccess(res, {
       statusCode: 201,
-      message: "Tugas kelas berhasil disimpan.",
+      message: "Latihan kelas berhasil disimpan.",
       data: {
         task: toPublicClassTask(task),
       },
@@ -597,14 +704,14 @@ export const updateTeacherClassTask = asyncHandler(
     );
 
     if (isUtbkTeacherClass(classGroup)) {
-      next(new AppError(400, "Program UTBK menggunakan materi dan tryout, bukan tugas pertemuan."));
+      next(new AppError(400, "Program UTBK menggunakan materi dan tryout, bukan latihan pertemuan."));
       return;
     }
 
     const taskId = normalizeText(req.params.taskId);
 
     if (!taskId) {
-      next(new AppError(404, "Tugas kelas tidak ditemukan."));
+      next(new AppError(404, "Latihan kelas tidak ditemukan."));
       return;
     }
 
@@ -616,7 +723,7 @@ export const updateTeacherClassTask = asyncHandler(
     );
 
     if (!task) {
-      next(new AppError(404, "Tugas kelas tidak ditemukan."));
+      next(new AppError(404, "Latihan kelas tidak ditemukan."));
       return;
     }
 
@@ -625,19 +732,20 @@ export const updateTeacherClassTask = asyncHandler(
     const description = normalizeText(req.body.description);
     const deadline = normalizeText(req.body.deadline);
     const attachmentPayload = parseAttachmentPayload(req.body);
+    const timingPayload = resolveClassTaskTimingPayload(req.body);
 
     if (!meetingNumber) {
-      next(new AppError(400, "Pertemuan tugas wajib berupa angka minimal 1."));
+      next(new AppError(400, "Pertemuan latihan wajib berupa angka minimal 1."));
       return;
     }
 
     if (!isIsoDate(deadline)) {
-      next(new AppError(400, "Deadline tugas wajib menggunakan format YYYY-MM-DD."));
+      next(new AppError(400, "Deadline latihan wajib menggunakan format YYYY-MM-DD."));
       return;
     }
 
     if (!title || !description) {
-      next(new AppError(400, "Judul dan deskripsi tugas wajib diisi."));
+      next(new AppError(400, "Judul dan deskripsi latihan wajib diisi."));
       return;
     }
 
@@ -645,7 +753,7 @@ export const updateTeacherClassTask = asyncHandler(
       next(
         new AppError(
           400,
-          `Lampiran tugas tidak valid atau melebihi batas ${getAttachmentSizeLimitLabel()}.`,
+          `Lampiran latihan tidak valid atau melebihi batas ${getAttachmentSizeLimitLabel()}.`,
         ),
       );
       return;
@@ -660,6 +768,17 @@ export const updateTeacherClassTask = asyncHandler(
     task.title = title;
     task.description = description;
     task.deadline = deadline;
+    if (req.body.startAt !== undefined) task.startAt = timingPayload.startAt;
+    if (req.body.endAt !== undefined) task.endAt = timingPayload.endAt;
+    if (req.body.durationMinutes !== undefined) {
+      task.durationMinutes = timingPayload.durationMinutes ?? null;
+    }
+    if (req.body.questionCount !== undefined) {
+      task.questionCount = timingPayload.questionCount ?? 0;
+    }
+    if (req.body.passingGrade !== undefined) {
+      task.passingGrade = timingPayload.passingGrade ?? null;
+    }
     if (attachmentPayload.removeAttachment && task.attachment?.storagePath) {
       await deleteLearningAttachment(task.attachment.storagePath);
       task.attachment = null;
@@ -688,7 +807,7 @@ export const updateTeacherClassTask = asyncHandler(
     }
 
     sendSuccess(res, {
-      message: "Tugas kelas berhasil diperbarui.",
+      message: "Latihan kelas berhasil diperbarui.",
       data: {
         task: toPublicClassTask(task),
       },
@@ -718,7 +837,7 @@ export const deleteTeacherClassTask = asyncHandler(
     const taskId = normalizeText(req.params.taskId);
 
     if (!taskId) {
-      next(new AppError(404, "Tugas kelas tidak ditemukan."));
+      next(new AppError(404, "Latihan kelas tidak ditemukan."));
       return;
     }
 
@@ -730,7 +849,7 @@ export const deleteTeacherClassTask = asyncHandler(
     );
 
     if (!task) {
-      next(new AppError(404, "Tugas kelas tidak ditemukan."));
+      next(new AppError(404, "Latihan kelas tidak ditemukan."));
       return;
     }
 
@@ -755,6 +874,15 @@ export const deleteTeacherClassTask = asyncHandler(
       ),
     );
     await Promise.all([
+      ClassTaskQuestion.deleteMany({
+        teacherId: teacher._id,
+        taskId: normalizedTaskId,
+      }).exec(),
+      StudentTaskAttempt.deleteMany({
+        teacherId: teacher._id,
+        classId: classGroup.item.id,
+        taskId: normalizedTaskId,
+      }).exec(),
       TaskSubmission.deleteMany({
         teacherId: teacher._id,
         classId: classGroup.item.id,
@@ -769,7 +897,7 @@ export const deleteTeacherClassTask = asyncHandler(
     await task.deleteOne();
 
     sendSuccess(res, {
-      message: "Tugas kelas berhasil dihapus.",
+      message: "Latihan kelas berhasil dihapus.",
       data: {
         taskId: normalizeText(task.taskId),
       },
@@ -832,7 +960,7 @@ export const downloadTeacherClassTaskAttachment = asyncHandler(
     const taskId = normalizeText(req.params.taskId);
 
     if (!taskId) {
-      next(new AppError(404, "Tugas kelas tidak ditemukan."));
+      next(new AppError(404, "Latihan kelas tidak ditemukan."));
       return;
     }
 
@@ -843,7 +971,7 @@ export const downloadTeacherClassTaskAttachment = asyncHandler(
     );
 
     if (!task || !task.attachment) {
-      next(new AppError(404, "Lampiran tugas tidak ditemukan."));
+      next(new AppError(404, "Lampiran latihan tidak ditemukan."));
       return;
     }
 

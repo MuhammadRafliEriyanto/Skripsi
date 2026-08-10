@@ -12,7 +12,7 @@ export type StudentAcademicAccess = {
 };
 
 const UPCOMING_CLASS_FALLBACK_MESSAGE =
-  "Kelas berikutnya sudah terdaftar. Pembelajaran akan dibuka saat periode belajar baru dimulai.";
+  "Membership belajar sudah tercatat. Pembelajaran akan dibuka saat paket membership aktif.";
 
 export function getStudentAcademicAccessMessage(
   academicAccess: StudentAcademicAccess | null | undefined,

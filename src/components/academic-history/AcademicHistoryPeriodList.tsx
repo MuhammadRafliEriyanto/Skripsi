@@ -69,10 +69,10 @@ export function AcademicHistoryPeriodList({
           <CalendarRange className="h-5 w-5" />
         </div>
         <p className="mt-4 text-sm font-semibold text-slate-800">
-          Belum ada histori akademik
+          Belum ada riwayat membership
         </p>
         <p className="mt-2 text-sm leading-6 text-slate-500">
-          Periode akademik akan tampil setelah subscription siswa tercatat.
+          Riwayat akan tampil setelah subscription siswa tercatat.
         </p>
       </section>
     );
@@ -99,7 +99,9 @@ export function AcademicHistoryPeriodList({
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="info">
-                    {subscription.semester || "-"} {subscription.academicYear || ""}
+                    {subscription.packageName ||
+                      subscription.subscriptionCode ||
+                      "Membership"}
                   </Badge>
                   <Badge variant={getMembershipStatusVariant(membershipStatus)}>
                     {membershipStatus}
@@ -111,7 +113,7 @@ export function AcademicHistoryPeriodList({
                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500">
                   <span className="inline-flex items-center gap-1.5">
                     <GraduationCap className="h-3.5 w-3.5 text-orange-500" />
-                    {subscription.packageName || subscription.subscriptionCode || "Membership"}
+                    {subscription.subscriptionCode || "Subscription"}
                   </span>
                   <span>
                     {formatDate(subscription.startDate)} - {formatDate(subscription.endDate)}

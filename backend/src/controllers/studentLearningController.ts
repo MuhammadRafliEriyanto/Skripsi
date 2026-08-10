@@ -11,6 +11,7 @@ import {
   TASK_SUBMISSION_MODES,
   type TaskSubmissionMode,
 } from "../models/TaskSubmission";
+import { StudentTaskAttempt } from "../models/StudentTaskAttempt";
 import { User } from "../models/User";
 import asyncHandler from "../utils/asyncHandler";
 import { TeacherTryout } from "../models/TeacherTryout";
@@ -59,6 +60,7 @@ import {
 } from "../utils/studentAcademicStatus";
 import {
   getUtbkScheduleClassNames,
+  hasUtbkScheduleSignal,
   isUtbkStudent,
   matchesUtbkScheduleClassName,
 } from "../utils/studentProgram";
@@ -130,9 +132,9 @@ async function getAuthenticatedStudentAcademicLearningContextOrThrow(
   if (!academicJoinedAt) {
     throw new AppError(
       403,
-      "Akses akademik siswa belum aktif.",
+      "Membership siswa belum memiliki tanggal mulai belajar.",
       { membershipAccess },
-      "ACADEMIC_ACCESS_REQUIRED",
+      "MEMBERSHIP_START_REQUIRED",
     );
   }
 
@@ -196,7 +198,10 @@ type StudentTaskSubmissionSummary = {
   answerTextPreview: string;
 };
 
-type StudentTaskGradeStatus = "Belum Dinilai" | "Sudah Dinilai";
+type StudentTaskGradeStatus =
+  | "Belum Dinilai"
+  | "Sudah Dinilai"
+  | "Perlu Remedial";
 
 type StudentTaskGradeSummary = {
   graded: boolean;
@@ -205,6 +210,19 @@ type StudentTaskGradeSummary = {
   note: string;
   status: StudentTaskGradeStatus;
   gradedAt: string | null;
+  remedialRequestedAt: string | null;
+  remedialCompletedAt: string | null;
+  remedialCount: number;
+};
+
+type StudentTaskAttemptSummary = {
+  submitted: boolean;
+  attemptId: string | null;
+  status: string;
+  score: number | null;
+  submittedAt: string | null;
+  startedAt: string | null;
+  remedialCount: number;
 };
 
 type PublicStudentTaskSubmissionAttachment = {
@@ -292,6 +310,15 @@ function getScheduleTimeOrder(time: string) {
   return hours * 60 + minutes;
 }
 
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function extractClassModifier(name: string) {
+  const match = normalizeText(name).match(/(?:^|\s)(?:1[0-2]|[2-9])\s*([A-Za-z]+)\b/);
+  return match?.[1]?.toUpperCase() ?? "";
+}
+
 function matchesStudentScheduleClass(
   scheduleClassName: string,
   studentClassName: string,
@@ -311,9 +338,84 @@ function matchesStudentScheduleClass(
     return false;
   }
 
+  const scheduleCanonicalClassName =
+    normalizeCanonicalClassName(normalizedScheduleClassName)?.toLowerCase();
+
+  if (scheduleCanonicalClassName !== canonicalClassName.toLowerCase()) {
+    return false;
+  }
+
   return (
-    normalizeCanonicalClassName(normalizedScheduleClassName)?.toLowerCase() ===
-    canonicalClassName.toLowerCase()
+    extractClassModifier(normalizedScheduleClassName) ===
+    extractClassModifier(normalizedStudentClassName)
+  );
+}
+
+function buildStudentScheduleBranchFilter(studentBranch: string) {
+  const normalizedBranch = normalizeText(studentBranch);
+
+  return normalizedBranch
+    ? { branch: new RegExp(`^${escapeRegex(normalizedBranch)}$`, "i") }
+    : null;
+}
+
+function matchesStudentScheduleBranch(
+  scheduleBranch: string | null | undefined,
+  studentBranch: string | null | undefined,
+) {
+  const normalizedStudentBranch = normalizeText(studentBranch).toLowerCase();
+  const normalizedScheduleBranch = normalizeText(scheduleBranch).toLowerCase();
+
+  return Boolean(
+    normalizedStudentBranch &&
+      normalizedScheduleBranch &&
+      normalizedScheduleBranch === normalizedStudentBranch,
+  );
+}
+
+function isRegularStudentScheduleSubjectAllowed(
+  schedule: { subject?: string | null },
+  student: StudentWithUser,
+) {
+  const normalizedSubject = normalizeText(schedule.subject).toLowerCase();
+
+  if (normalizedSubject !== "guru kelas sd") {
+    return true;
+  }
+
+  return inferStudentLevel(student.program, student.className) === "SD";
+}
+
+function matchesStudentScheduleProgram(
+  schedule: {
+    scheduleId?: string | null;
+    className?: string | null;
+    subject?: string | null;
+    room?: string | null;
+  },
+  student: StudentWithUser,
+  canonicalClassName: string,
+) {
+  const scheduleHasUtbkSignal = hasUtbkScheduleSignal(schedule);
+
+  if (isUtbkStudent(student)) {
+    return (
+      scheduleHasUtbkSignal ||
+      matchesUtbkScheduleClassName(schedule.className, student)
+    );
+  }
+
+  if (scheduleHasUtbkSignal) {
+    return false;
+  }
+
+  return (
+    isRegularStudentScheduleSubjectAllowed(schedule, student) &&
+    matchesStudentScheduleClass(
+      normalizeText(schedule.className),
+      student.className,
+      canonicalClassName,
+    )
   );
 }
 
@@ -463,28 +565,15 @@ async function getStudentLearningClassMetadata(
 ) {
   const canonicalClassName =
     normalizeCanonicalClassName(student.className)?.toLowerCase() ?? "";
-  const normalizedBranch = normalizeText(student.branch).toLowerCase();
-  
-  const scheduleFilter: any = {
-    $and: [buildClassContentPeriodFilter(period)]
-  };
-  
-  if (normalizedBranch) {
-    const titleCaseBranch = normalizedBranch.charAt(0).toUpperCase() + normalizedBranch.slice(1).toLowerCase();
-    const branchOptions = [
-      normalizedBranch,
-      normalizedBranch.toLowerCase(),
-      normalizedBranch.toUpperCase(),
-      titleCaseBranch,
-      "Pusat",
-      "pusat",
-      "PUSAT",
-      "",
-      "-",
-      null
-    ];
-    scheduleFilter.$and.push({ branch: { $in: branchOptions } });
+  const branchFilter = buildStudentScheduleBranchFilter(student.branch);
+
+  if (!branchFilter) {
+    return [];
   }
+  
+  const scheduleFilter: { $and: Record<string, unknown>[] } = {
+    $and: [buildClassContentPeriodFilter(period), branchFilter],
+  };
 
   const rawSchedules = await Schedule.find(scheduleFilter)
     .sort({ createdAt: -1 })
@@ -492,22 +581,18 @@ async function getStudentLearningClassMetadata(
     .exec();
 
   const filteredRawSchedules = rawSchedules.filter((schedule) => {
-    const className = normalizeText(schedule.className);
-    const scheduleBranch = normalizeText(schedule.branch).toLowerCase();
+    const matchesProgram = matchesStudentScheduleProgram(
+      schedule,
+      student,
+      canonicalClassName,
+    );
     
-    const matchesClassName = isUtbkStudent(student)
-      ? matchesUtbkScheduleClassName(className, student)
-      : matchesStudentScheduleClass(
-          className,
-          student.className,
-          canonicalClassName,
-        );
-    
-    const matchesBranch = normalizedBranch
-      ? scheduleBranch === normalizedBranch || !scheduleBranch || scheduleBranch === "-" || scheduleBranch === "pusat"
-      : true;
+    const matchesBranch = matchesStudentScheduleBranch(
+      schedule.branch,
+      student.branch,
+    );
 
-    return matchesClassName && matchesBranch;
+    return matchesProgram && matchesBranch;
   });
 
   const scheduleDocuments = (await Schedule.populate(filteredRawSchedules, {
@@ -547,31 +632,21 @@ async function getStudentDashboardSchedules(
 ) {
   const canonicalClassName =
     normalizeCanonicalClassName(student.className)?.toLowerCase() ?? "";
-  const normalizedBranch = normalizeText(student.branch).toLowerCase();
-  const scheduleFilter: any = { $and: [] };
-  
-  if (period) {
-    scheduleFilter.$and.push(buildClassContentPeriodFilter(period));
-  }
-    
-  if (normalizedBranch) {
-    const titleCaseBranch = normalizedBranch.charAt(0).toUpperCase() + normalizedBranch.slice(1).toLowerCase();
-    const branchOptions = [
-      normalizedBranch,
-      normalizedBranch.toLowerCase(),
-      normalizedBranch.toUpperCase(),
-      titleCaseBranch,
-      "Pusat",
-      "pusat",
-      "PUSAT",
-      "",
-      "-",
-      null
-    ];
-    scheduleFilter.$and.push({ branch: { $in: branchOptions } });
+  const branchFilter = buildStudentScheduleBranchFilter(student.branch);
+
+  if (!branchFilter) {
+    return [];
   }
 
-  if (scheduleFilter.$and.length === 0) {
+  const scheduleFilter: { $and?: Record<string, unknown>[] } = { $and: [] };
+  
+  if (period) {
+    scheduleFilter.$and?.push(buildClassContentPeriodFilter(period));
+  }
+
+  scheduleFilter.$and?.push(branchFilter);
+
+  if (scheduleFilter.$and?.length === 0) {
     delete scheduleFilter.$and;
   }
 
@@ -581,14 +656,7 @@ async function getStudentDashboardSchedules(
     .exec();
 
   const filteredRawSchedules = rawSchedules.filter((schedule) => {
-    const matchesClassName = isUtbkStudent(student)
-      ? matchesUtbkScheduleClassName(schedule.className, student)
-      : matchesStudentScheduleClass(
-          schedule.className,
-          student.className,
-          canonicalClassName,
-        );
-    return matchesClassName;
+    return matchesStudentScheduleProgram(schedule, student, canonicalClassName);
   });
 
   const scheduleDocuments = (await Schedule.populate(filteredRawSchedules, {
@@ -601,12 +669,19 @@ async function getStudentDashboardSchedules(
 
   const schedules = buildSchedulePresentation(scheduleDocuments)
     .filter((schedule) => {
-      const scheduleBranch = normalizeText(schedule.branch).toLowerCase();
-      const matchesBranch = normalizedBranch
-        ? scheduleBranch === normalizedBranch || !scheduleBranch || scheduleBranch === "-" || scheduleBranch === "pusat"
-        : true;
-
-      return matchesBranch;
+      return (
+        matchesStudentScheduleBranch(schedule.branch, student.branch) &&
+        matchesStudentScheduleProgram(
+          {
+            scheduleId: schedule.id,
+            className: schedule.className,
+            subject: schedule.subject,
+            room: schedule.room,
+          },
+          student,
+          canonicalClassName,
+        )
+      );
     })
     .sort((leftSchedule, rightSchedule) => {
       const dayOrderDifference =
@@ -680,9 +755,17 @@ function buildAnswerTextPreview(answerText: string) {
 function normalizeStudentTaskGradeStatus(
   value: string | null | undefined,
 ): StudentTaskGradeStatus {
-  return normalizeText(value).toLowerCase() === "sudah dinilai"
-    ? "Sudah Dinilai"
-    : "Belum Dinilai";
+  const normalizedValue = normalizeText(value).toLowerCase();
+
+  if (normalizedValue === "sudah dinilai") {
+    return "Sudah Dinilai";
+  }
+
+  if (normalizedValue === "perlu remedial") {
+    return "Perlu Remedial";
+  }
+
+  return "Belum Dinilai";
 }
 
 function toPublicStudentTaskSubmissionSummary(
@@ -727,6 +810,9 @@ function toPublicStudentTaskGradeSummary(
     note?: string;
     status?: string;
     gradedAt?: Date | null;
+    remedialRequestedAt?: Date | null;
+    remedialCompletedAt?: Date | null;
+    remedialCount?: number;
   } | null,
 ): StudentTaskGradeSummary {
   if (!grade) {
@@ -737,6 +823,9 @@ function toPublicStudentTaskGradeSummary(
       note: "",
       status: "Belum Dinilai",
       gradedAt: null,
+      remedialRequestedAt: null,
+      remedialCompletedAt: null,
+      remedialCount: 0,
     };
   }
 
@@ -752,6 +841,57 @@ function toPublicStudentTaskGradeSummary(
     note: normalizeText(grade.note),
     status,
     gradedAt: grade.gradedAt?.toISOString() ?? null,
+    remedialRequestedAt: grade.remedialRequestedAt?.toISOString() ?? null,
+    remedialCompletedAt: grade.remedialCompletedAt?.toISOString() ?? null,
+    remedialCount:
+      typeof grade.remedialCount === "number" && grade.remedialCount >= 0
+        ? grade.remedialCount
+        : 0,
+  };
+}
+
+function toPublicStudentTaskAttemptSummary(
+  attempt: {
+    attemptId?: string;
+    status?: string;
+    score?: number;
+    submittedAt?: Date | null;
+    startedAt?: Date | null;
+    remedialCount?: number;
+  } | null,
+): StudentTaskAttemptSummary {
+  if (!attempt) {
+    return {
+      submitted: false,
+      attemptId: null,
+      status: "not_started",
+      score: null,
+      submittedAt: null,
+      startedAt: null,
+      remedialCount: 0,
+    };
+  }
+
+  const normalizedStatus = normalizeText(attempt.status) || "in_progress";
+  const isSubmitted =
+    normalizedStatus === "submitted" || Boolean(attempt.submittedAt);
+
+  return {
+    submitted: isSubmitted,
+    attemptId: normalizeText(attempt.attemptId) || null,
+    status: normalizedStatus,
+    score:
+      isSubmitted &&
+      typeof attempt.score === "number" &&
+      Number.isFinite(attempt.score)
+        ? attempt.score
+        : null,
+    submittedAt: attempt.submittedAt?.toISOString() ?? null,
+    startedAt: attempt.startedAt?.toISOString() ?? null,
+    remedialCount:
+      typeof attempt.remedialCount === "number" && attempt.remedialCount >= 0
+        ? attempt.remedialCount
+        : 0,
   };
 }
 
@@ -927,25 +1067,16 @@ async function findStudentMaterialByParam(
   subscriptionStartAt: Date,
   subscriptionEndAt: Date | null,
 ) {
-  const academicAccess = await resolveStudentAcademicContentAccess(student);
-
-  if (academicAccess.isUpcomingClassLocked) {
-    return null;
-  }
-
   const classFilter = buildStudentMaterialClassFilter(student);
 
   return ClassMaterial.findOne({
     $and: [
       classFilter,
       { status: "Dipublikasikan" },
-      buildClassContentPeriodFilter(
-        academicAccess.period,
-        buildSubscriptionDateRangeFilter(
-          "date",
-          subscriptionStartAt,
-          subscriptionEndAt,
-        ),
+      buildSubscriptionDateRangeFilter(
+        "date",
+        subscriptionStartAt,
+        subscriptionEndAt,
       ),
       {
         $or: [
@@ -966,12 +1097,6 @@ async function findStudentTaskByParam(
     return null;
   }
 
-  const academicAccess = await resolveStudentAcademicContentAccess(student);
-
-  if (academicAccess.isUpcomingClassLocked) {
-    return null;
-  }
-
   const classFilter = buildStudentLearningClassFilter(
     student.className,
     student.branch,
@@ -981,7 +1106,6 @@ async function findStudentTaskByParam(
     $and: [
       classFilter,
       buildStudentAcademicTaskFilter(academicActiveFrom),
-      buildClassContentPeriodFilter(academicAccess.period),
       {
         $or: [
           { taskId },
@@ -1029,61 +1153,49 @@ export const getMyStudentLearningData = asyncHandler(
     );
     const academicAccess = await resolveStudentAcademicContentAccess(student);
 
-    if (req.query.academicYear && typeof req.query.academicYear === "string") {
-      academicAccess.period.academicYear = req.query.academicYear;
-      delete (academicAccess.period as any).semester;
+    if (membershipAccess.isMembershipLocked) {
+      sendSuccess(res, {
+        message: "Data materi dan latihan siswa berhasil diambil.",
+        data: {
+          student: toPublicStudentLearningProfile(
+            student,
+            membershipSnapshot.accessStatus,
+          ),
+          materials: [],
+          tasks: [],
+          academicSummaries: [],
+          academicAccess,
+          membershipAccess,
+        },
+      });
+      return;
     }
 
-    // Bypass filter akses keanggotaan dan jadwal kelas (untuk tujuan testing)
-    // if (
-    //   membershipAccess.isMembershipLocked ||
-    //   academicAccess.isUpcomingClassLocked
-    // ) {
-    //   sendSuccess(res, {
-    //     message: "Data materi dan tugas siswa berhasil diambil.",
-    //     data: {
-    //       student: toPublicStudentLearningProfile(
-    //         student,
-    //         membershipSnapshot.accessStatus,
-    //       ),
-    //       materials: [],
-    //       tasks: [],
-    //       academicSummaries: [],
-    //       period: academicAccess.period,
-    //       academicAccess,
-    //       membershipAccess,
-    //     },
-    //   });
-    //   return;
-    // }
-
     const classFilter = buildStudentMaterialClassFilter(student);
-    const academicJoinedAt = getStudentEffectiveAcademicJoinedAt(
-      student,
-      membershipSnapshot.subscription,
-    ) || new Date(0); // Bypass: Berikan tanggal 1970 jika belum punya langganan
+    const academicJoinedAt =
+      getStudentEffectiveAcademicJoinedAt(
+        student,
+        membershipSnapshot.subscription,
+      ) ?? new Date(0);
     const subscriptionId = membershipSnapshot.subscription?._id ?? null;
     const subscriptionStartAt =
       parseValidDate(membershipSnapshot.subscription?.startDate) ?? academicJoinedAt;
     const subscriptionEndAt = parseValidDate(membershipSnapshot.subscription?.endDate);
     const period = academicAccess.period;
     const isUtbkProgram = isUtbkStudent(student);
-    const materialPeriodFilter = buildClassContentPeriodFilter(
-      period,
+    const materialMembershipFilter =
       buildSubscriptionDateRangeFilter(
         "date",
         subscriptionStartAt,
         subscriptionEndAt,
-      ),
-    );
-    const taskPeriodFilter = buildClassContentPeriodFilter(period);
+      );
 
     const [materials, tasks, scheduleClassMetadata] = await Promise.all([
       ClassMaterial.find({
         $and: [
           classFilter,
           { status: "Dipublikasikan" },
-          materialPeriodFilter,
+          materialMembershipFilter,
         ],
       })
         .sort({ meetingNumber: 1, date: 1, updatedAt: -1 })
@@ -1095,7 +1207,6 @@ export const getMyStudentLearningData = asyncHandler(
             $and: [
               classFilter,
               buildStudentAcademicTaskFilter(subscriptionStartAt),
-              taskPeriodFilter,
             ],
           })
             .sort({ deadline: 1, meetingNumber: 1, updatedAt: -1 })
@@ -1131,7 +1242,24 @@ export const getMyStudentLearningData = asyncHandler(
       upsertClassMetadata(metadata);
     }
 
-    for (const material of materials) {
+    const eligibleScheduleClassIds = new Set(
+      scheduleClassMetadata
+        .map((metadata) => normalizeText(metadata.classId))
+        .filter(Boolean),
+    );
+    const hasEligibleScheduleClassIds = eligibleScheduleClassIds.size > 0;
+    const visibleMaterials = hasEligibleScheduleClassIds
+      ? materials.filter((material) =>
+          eligibleScheduleClassIds.has(normalizeText(material.classId)),
+        )
+      : materials;
+    const visibleTasks = hasEligibleScheduleClassIds
+      ? tasks.filter((task) =>
+          eligibleScheduleClassIds.has(normalizeText(task.classId)),
+        )
+      : tasks;
+
+    for (const material of visibleMaterials) {
       upsertClassMetadata({
         classId: material.classId,
         className: material.className,
@@ -1139,7 +1267,7 @@ export const getMyStudentLearningData = asyncHandler(
       });
     }
 
-    for (const task of tasks) {
+    for (const task of visibleTasks) {
       upsertClassMetadata({
         classId: task.classId,
         className: task.className,
@@ -1147,11 +1275,11 @@ export const getMyStudentLearningData = asyncHandler(
       });
     }
 
-    const normalizedTaskIds = tasks
+    const normalizedTaskIds = visibleTasks
       .map((task) => normalizeText(task.taskId))
       .filter(Boolean);
     const normalizedTaskClassIds = Array.from(
-      new Set(tasks.map((task) => normalizeText(task.classId)).filter(Boolean)),
+      new Set(visibleTasks.map((task) => normalizeText(task.classId)).filter(Boolean)),
     );
     const classIdsForAcademicGrades = Array.from(classMetadataById.keys());
     const submissions = normalizedTaskIds.length
@@ -1166,7 +1294,7 @@ export const getMyStudentLearningData = asyncHandler(
           .lean()
           .exec()
       : [];
-    const [grades, rawAcademicGrades] = await Promise.all([
+    const [grades, rawAcademicGrades, attempts] = await Promise.all([
       normalizedTaskIds.length && normalizedTaskClassIds.length
         ? TaskGrade.find({
             studentId: normalizeText(student.studentId),
@@ -1184,16 +1312,23 @@ export const getMyStudentLearningData = asyncHandler(
         : Promise.resolve([]),
       classIdsForAcademicGrades.length
         ? AcademicGrade.find({
-            $and: [
-              {
-                studentId: normalizeText(student.studentId),
-                classId: {
-                  $in: classIdsForAcademicGrades,
-                },
-                ...buildAcademicRecordSubscriptionFilter(subscriptionId),
-              },
-              buildClassContentPeriodFilter(period),
-            ],
+            studentId: normalizeText(student.studentId),
+            classId: {
+              $in: classIdsForAcademicGrades,
+            },
+            ...buildAcademicRecordSubscriptionFilter(subscriptionId),
+          })
+            .sort({ updatedAt: -1, createdAt: -1 })
+            .lean()
+            .exec()
+        : Promise.resolve([]),
+      normalizedTaskIds.length
+        ? StudentTaskAttempt.find({
+            studentId: normalizeText(student.studentId),
+            taskId: {
+              $in: normalizedTaskIds,
+            },
+            ...buildAcademicRecordSubscriptionFilter(subscriptionId),
           })
             .sort({ updatedAt: -1, createdAt: -1 })
             .lean()
@@ -1219,6 +1354,12 @@ export const getMyStudentLearningData = asyncHandler(
       grades.map((grade) => [
         normalizeText(grade.taskId),
         toPublicStudentTaskGradeSummary(grade),
+      ]),
+    );
+    const attemptMap = new Map(
+      attempts.map((attempt) => [
+        normalizeText(attempt.taskId),
+        toPublicStudentTaskAttemptSummary(attempt),
       ]),
     );
     const academicGradeByClassId = new Map<string, (typeof academicGrades)[number]>();
@@ -1304,14 +1445,14 @@ export const getMyStudentLearningData = asyncHandler(
     });
 
     sendSuccess(res, {
-      message: "Data materi dan tugas siswa berhasil diambil.",
+      message: "Data materi dan latihan siswa berhasil diambil.",
       data: {
         student: toPublicStudentLearningProfile(
           student,
           membershipSnapshot.accessStatus,
         ),
-        materials: materials.map(toPublicClassMaterial),
-        tasks: tasks.map((task) => ({
+        materials: visibleMaterials.map(toPublicClassMaterial),
+        tasks: visibleTasks.map((task) => ({
           ...toPublicClassTask(task),
           mySubmission:
             submissionMap.get(normalizeText(task.taskId)) ??
@@ -1319,6 +1460,9 @@ export const getMyStudentLearningData = asyncHandler(
           myGrade:
             gradeMap.get(normalizeText(task.taskId)) ??
             toPublicStudentTaskGradeSummary(null),
+          myAttempt:
+            attemptMap.get(normalizeText(task.taskId)) ??
+            toPublicStudentTaskAttemptSummary(null),
         })),
         academicSummaries,
         period,
@@ -1347,11 +1491,6 @@ export const getMyStudentDashboardData = asyncHandler(
     }
 
     const academicAccess = await resolveStudentAcademicContentAccess(student);
-
-    if (req.query.academicYear && typeof req.query.academicYear === "string") {
-      academicAccess.period.academicYear = req.query.academicYear;
-      delete (academicAccess.period as any).semester;
-    }
     const membershipAccess = resolveStudentMembershipContentAccess(
       membershipSnapshot.accessStatus,
       {
@@ -1361,16 +1500,16 @@ export const getMyStudentDashboardData = asyncHandler(
     );
     const classFilter = buildStudentMaterialClassFilter(student);
     const isUtbkProgram = isUtbkStudent(student);
-    const isLearningLocked = false; // Bypass filter langganan
+    const isLearningLocked = membershipAccess.isMembershipLocked;
     const eligibleTryoutFilter = await buildEligibleTryoutFilter(student);
     const academicJoinedAt = getStudentEffectiveAcademicJoinedAt(student, membershipSnapshot.subscription) || new Date(0);
     const subscriptionStartAt = parseValidDate(membershipSnapshot.subscription?.startDate) ?? academicJoinedAt;
     const subscriptionEndAt = parseValidDate(membershipSnapshot.subscription?.endDate);
-    const materialPeriodFilter = buildClassContentPeriodFilter(
-      academicAccess.period,
-      buildSubscriptionDateRangeFilter("date", subscriptionStartAt, subscriptionEndAt),
+    const materialMembershipFilter = buildSubscriptionDateRangeFilter(
+      "date",
+      subscriptionStartAt,
+      subscriptionEndAt,
     );
-    const taskPeriodFilter = buildClassContentPeriodFilter(academicAccess.period);
 
     const [materialCount, taskCount, schedules, tryoutCount] = await Promise.all([
       isLearningLocked
@@ -1379,7 +1518,7 @@ export const getMyStudentDashboardData = asyncHandler(
             $and: [
               classFilter,
               { status: "Dipublikasikan" },
-              materialPeriodFilter,
+              materialMembershipFilter,
             ],
           }).exec(),
       isLearningLocked || !academicJoinedAt || isUtbkProgram
@@ -1388,7 +1527,6 @@ export const getMyStudentDashboardData = asyncHandler(
             $and: [
               classFilter,
               buildStudentAcademicTaskFilter(subscriptionStartAt ?? academicJoinedAt),
-              taskPeriodFilter,
             ],
           }).exec(),
       isLearningLocked
@@ -1454,7 +1592,7 @@ export const getMyStudentTaskSubmission = asyncHandler(
     const taskId = normalizeText(req.params.taskId);
 
     if (!taskId) {
-      next(new AppError(404, "Tugas siswa tidak ditemukan."));
+      next(new AppError(404, "Latihan siswa tidak ditemukan."));
       return;
     }
 
@@ -1465,7 +1603,7 @@ export const getMyStudentTaskSubmission = asyncHandler(
     const task = await findStudentTaskByParam(taskId, student, subscriptionStartAt);
 
     if (!task) {
-      next(new AppError(404, "Tugas siswa tidak ditemukan."));
+      next(new AppError(404, "Latihan siswa tidak ditemukan."));
       return;
     }
 
@@ -1479,8 +1617,8 @@ export const getMyStudentTaskSubmission = asyncHandler(
 
     sendSuccess(res, {
       message: submission
-        ? "Submission tugas siswa berhasil diambil."
-        : "Belum ada submission untuk tugas ini.",
+        ? "Pengerjaan latihan siswa berhasil diambil."
+        : "Belum ada pengerjaan untuk latihan ini.",
       data: {
         submitted: Boolean(submission),
         submission: submission ? toPublicStudentTaskSubmission(submission) : null,
@@ -1507,7 +1645,7 @@ export const createMyStudentTaskSubmission = asyncHandler(
     const taskId = normalizeText(req.params.taskId);
 
     if (!taskId) {
-      next(new AppError(404, "Tugas siswa tidak ditemukan."));
+      next(new AppError(404, "Latihan siswa tidak ditemukan."));
       return;
     }
 
@@ -1518,7 +1656,7 @@ export const createMyStudentTaskSubmission = asyncHandler(
     const task = await findStudentTaskByParam(taskId, student, subscriptionStartAt);
 
     if (!task) {
-      next(new AppError(404, "Tugas siswa tidak ditemukan."));
+      next(new AppError(404, "Latihan siswa tidak ditemukan."));
       return;
     }
 
@@ -1536,7 +1674,7 @@ export const createMyStudentTaskSubmission = asyncHandler(
       next(
         new AppError(
           409,
-          "Submission tugas untuk siswa ini sudah ada. Gunakan update submission.",
+          "Pengerjaan latihan untuk siswa ini sudah ada. Gunakan update pengerjaan.",
         ),
       );
       return;
@@ -1549,7 +1687,12 @@ export const createMyStudentTaskSubmission = asyncHandler(
     const attachmentPayload = parseStudentSubmissionAttachmentPayload(req.body);
 
     if (!submissionMode) {
-      next(new AppError(400, "Mode pengumpulan tugas tidak valid."));
+      next(new AppError(400, "Mode pengerjaan latihan tidak valid."));
+      return;
+    }
+
+    if (submissionMode === "cbt") {
+      next(new AppError(400, "Latihan CBT wajib dikerjakan melalui sesi CBT."));
       return;
     }
 
@@ -1615,7 +1758,7 @@ export const createMyStudentTaskSubmission = asyncHandler(
 
     sendSuccess(res, {
       statusCode: 201,
-      message: "Submission tugas berhasil dikirim.",
+      message: "Pengerjaan latihan berhasil dikirim.",
       data: {
         submitted: true,
         submission: toPublicStudentTaskSubmission(submission),
@@ -1642,7 +1785,7 @@ export const updateMyStudentTaskSubmission = asyncHandler(
     const taskId = normalizeText(req.params.taskId);
 
     if (!taskId) {
-      next(new AppError(404, "Tugas siswa tidak ditemukan."));
+      next(new AppError(404, "Latihan siswa tidak ditemukan."));
       return;
     }
 
@@ -1653,7 +1796,7 @@ export const updateMyStudentTaskSubmission = asyncHandler(
     const task = await findStudentTaskByParam(taskId, student, subscriptionStartAt);
 
     if (!task) {
-      next(new AppError(404, "Tugas siswa tidak ditemukan."));
+      next(new AppError(404, "Latihan siswa tidak ditemukan."));
       return;
     }
 
@@ -1668,12 +1811,18 @@ export const updateMyStudentTaskSubmission = asyncHandler(
     );
 
     if (!submission) {
-      next(new AppError(404, "Submission tugas belum ditemukan."));
+      next(new AppError(404, "Pengerjaan latihan belum ditemukan."));
       return;
     }
 
     const nextSubmissionMode =
       normalizeSubmissionMode(req.body.submissionMode) ?? submission.submissionMode;
+
+    if (nextSubmissionMode === "cbt") {
+      next(new AppError(400, "Latihan CBT wajib dikerjakan melalui sesi CBT."));
+      return;
+    }
+
     const nextAnswerText =
       req.body.answerText === undefined
         ? normalizeText(submission.answerText)
@@ -1759,7 +1908,7 @@ export const updateMyStudentTaskSubmission = asyncHandler(
     );
 
     sendSuccess(res, {
-      message: "Submission tugas berhasil diperbarui.",
+      message: "Pengerjaan latihan berhasil diperbarui.",
       data: {
         submitted: true,
         submission: toPublicStudentTaskSubmission(submission),
@@ -1782,7 +1931,7 @@ export const deleteMyStudentTaskSubmission = asyncHandler(
     const taskId = normalizeText(req.params.taskId);
 
     if (!taskId) {
-      next(new AppError(404, "Tugas siswa tidak ditemukan."));
+      next(new AppError(404, "Latihan siswa tidak ditemukan."));
       return;
     }
 
@@ -1793,7 +1942,7 @@ export const deleteMyStudentTaskSubmission = asyncHandler(
     const task = await findStudentTaskByParam(taskId, student, subscriptionStartAt);
 
     if (!task) {
-      next(new AppError(404, "Tugas siswa tidak ditemukan."));
+      next(new AppError(404, "Latihan siswa tidak ditemukan."));
       return;
     }
 
@@ -1808,7 +1957,7 @@ export const deleteMyStudentTaskSubmission = asyncHandler(
     );
 
     if (!submission) {
-      next(new AppError(404, "Submission tugas belum ditemukan."));
+      next(new AppError(404, "Pengerjaan latihan belum ditemukan."));
       return;
     }
 
@@ -1824,7 +1973,7 @@ export const deleteMyStudentTaskSubmission = asyncHandler(
     );
 
     sendSuccess(res, {
-      message: "Submission tugas berhasil dihapus.",
+      message: "Pengerjaan latihan berhasil dihapus.",
       data: {
         submitted: false,
         submission: null,
@@ -1847,7 +1996,7 @@ export const downloadMyStudentTaskSubmissionAttachment = asyncHandler(
     const taskId = normalizeText(req.params.taskId);
 
     if (!taskId) {
-      next(new AppError(404, "Tugas siswa tidak ditemukan."));
+      next(new AppError(404, "Latihan siswa tidak ditemukan."));
       return;
     }
 
@@ -1858,7 +2007,7 @@ export const downloadMyStudentTaskSubmissionAttachment = asyncHandler(
     const task = await findStudentTaskByParam(taskId, student, subscriptionStartAt);
 
     if (!task) {
-      next(new AppError(404, "Tugas siswa tidak ditemukan."));
+      next(new AppError(404, "Latihan siswa tidak ditemukan."));
       return;
     }
 
@@ -1931,7 +2080,7 @@ export const downloadMyStudentTaskAttachment = asyncHandler(
     const taskId = normalizeText(req.params.taskId);
 
     if (!taskId) {
-      next(new AppError(404, "Tugas siswa tidak ditemukan."));
+      next(new AppError(404, "Latihan siswa tidak ditemukan."));
       return;
     }
 
@@ -1942,7 +2091,7 @@ export const downloadMyStudentTaskAttachment = asyncHandler(
     const task = await findStudentTaskByParam(taskId, student, subscriptionStartAt);
 
     if (!task || !task.attachment) {
-      next(new AppError(404, "Lampiran tugas tidak ditemukan."));
+      next(new AppError(404, "Lampiran latihan tidak ditemukan."));
       return;
     }
 

@@ -6,7 +6,7 @@ import type { StudentLearningProfile } from "../data/learning-types";
 import type { StudentAcademicAccess } from "../data/studentAcademicAccess";
 
 export type AnswerMap = Record<string, string>;
-export type AssessmentType = "UTS" | "UAS" | "Tryout";
+export type AssessmentType = "UTS" | "UAS" | "Tryout" | "Latihan";
 
 export type StudentTryoutOption = {
   id: string;
@@ -162,6 +162,10 @@ export function normalizeAssessmentType(value: string | null | undefined): Asses
 
   if (normalizedValue === "UTS" || normalizedValue === "UAS") {
     return normalizedValue;
+  }
+
+  if (normalizedValue === "LATIHAN") {
+    return "Latihan";
   }
 
   return "Tryout";

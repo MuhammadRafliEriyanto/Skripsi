@@ -47,7 +47,7 @@ export default function DetailPertemuanTable({
 
             <p className="mt-1 text-sm text-slate-500">
               {readOnly
-                ? readOnlyMessage ?? "Tahun ajaran ini sudah menjadi arsip. Materi hanya bisa dilihat."
+                ? readOnlyMessage ?? "Materi ini sedang dikunci oleh pengaturan jadwal admin."
                 : `Kelola materi pembelajaran berdasarkan pertemuan kelas ${kelasName}.`}
             </p>
           </div>

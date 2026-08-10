@@ -28,7 +28,7 @@ async function requestTeacherAcademicHistory<T>(url: string) {
   if (!response.ok || !payload?.success || !payload.data) {
     throw new Error(
       payload?.message ||
-        `Histori akademik siswa belum bisa dimuat. (Status: ${response.status})`,
+        `Histori membership siswa belum bisa dimuat. (Status: ${response.status})`,
     );
   }
 
@@ -75,7 +75,7 @@ export default function StudentAcademicHistoryTab({
       setListError(
         error instanceof Error && error.message
           ? error.message
-          : "Histori akademik siswa belum bisa dimuat.",
+          : "Histori membership siswa belum bisa dimuat.",
       );
     } finally {
       setIsLoadingList(false);
@@ -102,7 +102,7 @@ export default function StudentAcademicHistoryTab({
         setDetailError(
           error instanceof Error && error.message
             ? error.message
-            : "Detail histori akademik siswa belum bisa dimuat.",
+            : "Detail histori membership siswa belum bisa dimuat.",
         );
       } finally {
         setLoadingSubscriptionId(null);
@@ -125,7 +125,7 @@ export default function StudentAcademicHistoryTab({
       <section className="rounded-[22px] border border-slate-200 bg-white px-5 py-8 text-center">
         <Loader2 className="mx-auto h-5 w-5 animate-spin text-orange-500" />
         <p className="mt-3 text-sm font-semibold text-slate-800">
-          Memuat histori akademik {studentName}
+          Memuat histori membership {studentName}
         </p>
         <p className="mt-1 text-xs leading-5 text-slate-500">
           Sistem sedang mengambil daftar subscription siswa.
@@ -138,7 +138,7 @@ export default function StudentAcademicHistoryTab({
     return (
       <section className="rounded-[22px] border border-rose-100 bg-white px-5 py-8 text-center">
         <p className="text-sm font-semibold text-rose-700">
-          Histori akademik belum bisa dimuat
+          Histori membership belum bisa dimuat
         </p>
         <p className="mt-2 text-xs leading-5 text-slate-500">{listError}</p>
         <Button
@@ -163,10 +163,10 @@ export default function StudentAcademicHistoryTab({
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-orange-600">
-              Riwayat Akademik
+              Riwayat Membership
             </p>
             <h3 className="mt-1 text-base font-semibold text-slate-900">
-              Periode akademik {studentName}
+              Membership belajar {studentName}
             </h3>
           </div>
           <Button
@@ -213,10 +213,10 @@ export default function StudentAcademicHistoryTab({
             <CalendarRange className="h-5 w-5" />
           </div>
           <p className="mt-3 text-sm font-semibold text-slate-800">
-            Pilih periode akademik
+            Pilih membership siswa
           </p>
           <p className="mx-auto mt-2 max-w-lg text-xs leading-5 text-slate-500">
-            Klik Lihat Detail untuk membuka nilai, absensi, tryout, dan tugas
+            Klik Lihat Detail untuk membuka nilai, absensi, tryout, dan latihan
             pada subscription yang dipilih. Semua data di tab ini hanya baca.
           </p>
         </section>

@@ -220,6 +220,29 @@ function normalizeScheduleSubject(
   );
 }
 
+function isTeacherSubjectMatching(
+  teacherSubject: string,
+  scheduleSubject: string,
+  subjectOptions: string[] = defaultScheduleSubjectOptions,
+) {
+  if (!scheduleSubject) return true;
+
+  const normTeacher = normalizeScheduleSubject(teacherSubject, subjectOptions).toLowerCase();
+  const normSchedule = normalizeScheduleSubject(scheduleSubject, subjectOptions).toLowerCase();
+
+  if (normTeacher === normSchedule) return true;
+
+  if (normSchedule === "penalaran matematika" && normTeacher === "matematika") return true;
+  if (normSchedule === "literasi bahasa indonesia" && normTeacher === "bahasa indonesia") return true;
+  if (normSchedule === "literasi bahasa inggris" && normTeacher === "bahasa inggris") return true;
+  
+  if (normSchedule === "pembahasan tryout utbk" || normSchedule === "strategi snbt") {
+    return true;
+  }
+
+  return false;
+}
+
 function getSelectableScheduleStatus(status: AdminScheduleItem["status"]) {
   return selectableScheduleStatuses.includes(status) ? status : "Siap";
 }
@@ -633,13 +656,25 @@ export function AdminSchedule({
   ];
   const scheduleDayFormOptions = [...orderedScheduleDays];
   const roomOptions = createRoomOptions(roomDirectory ?? []);
-  const filteredResolvedTeachers = formValues.subject
-    ? resolvedTeachers.filter(
-        (t) =>
-          normalizeScheduleSubject(t.subject, scheduleSubjectOptions) ===
-          normalizeScheduleSubject(formValues.subject, scheduleSubjectOptions),
-      )
-    : resolvedTeachers;
+  const filteredResolvedTeachers = resolvedTeachers.filter((t) => {
+    const subjectMatches = isTeacherSubjectMatching(
+      t.subject,
+      formValues.subject,
+      scheduleSubjectOptions
+    );
+
+    let gradeMatches = true;
+    if (formValues.grade && t.classList) {
+      const teacherGrades = t.classList.split(",").map((g) => g.trim().toLowerCase());
+      const selectedGrade = formValues.grade.trim().toLowerCase();
+      
+      gradeMatches = teacherGrades.some(
+        (g) => g === selectedGrade || selectedGrade.includes(g) || g.includes(selectedGrade)
+      );
+    }
+
+    return subjectMatches && gradeMatches;
+  });
 
   const teacherOptions = createTeacherOptions(
     filteredResolvedTeachers,
@@ -970,8 +1005,11 @@ export function AdminSchedule({
 
           const teachersForSubject = resolvedTeachers.filter(
             (t) =>
-              normalizeScheduleSubject(t.subject, scheduleSubjectOptions) ===
-              normalizeScheduleSubject(value as string, scheduleSubjectOptions),
+              isTeacherSubjectMatching(
+                t.subject,
+                value as string,
+                scheduleSubjectOptions
+              )
           );
 
           if (teachersForSubject.length === 1) {
@@ -1331,17 +1369,6 @@ export function AdminSchedule({
         action={
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <Button
-              variant="secondary"
-              className={warmPrimaryButtonClassName}
-              onClick={openCreateDialog}
-              disabled={isAcademicYearLocked}
-              title={isAcademicYearLocked ? academicYearLockMessage : "Tambah Data"}
-            >
-              <Plus className="size-4" />
-              <span className="hidden sm:inline">Tambah Data</span>
-              <span className="inline sm:hidden">Tambah</span>
-            </Button>
-            <Button
               variant="outline"
               className={warmOutlineButtonClassName}
               onClick={handleExport}
@@ -1359,6 +1386,17 @@ export function AdminSchedule({
             >
               <Upload className="size-4" />
               <span className="hidden sm:inline">Import</span>
+            </Button>
+            <Button
+              variant="secondary"
+              className={warmPrimaryButtonClassName}
+              onClick={openCreateDialog}
+              disabled={isAcademicYearLocked}
+              title={isAcademicYearLocked ? academicYearLockMessage : "Tambah Data"}
+            >
+              <Plus className="size-4" />
+              <span className="hidden sm:inline">Tambah Data</span>
+              <span className="inline sm:hidden">Tambah</span>
             </Button>
           </div>
         }

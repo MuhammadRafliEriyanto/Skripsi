@@ -52,6 +52,25 @@ function normalizeScore(value: number | string | undefined) {
   return Math.round(parsedValue);
 }
 
+function hasTaskGradeChanged(params: {
+  currentTaskId: string;
+  currentStudentId: string;
+  currentScore: number;
+  currentStatus: string;
+  nextTaskId: string;
+  nextStudentId: string;
+  nextScore: number;
+  nextStatus: string;
+}) {
+  return (
+    normalizeText(params.currentTaskId) !== normalizeText(params.nextTaskId) ||
+    normalizeText(params.currentStudentId) !==
+      normalizeText(params.nextStudentId) ||
+    params.currentScore !== params.nextScore ||
+    normalizeText(params.currentStatus) !== normalizeText(params.nextStatus)
+  );
+}
+
 function getParticipantAcademicJoinedAt(
   participants: Array<{ studentId: string; academicJoinedAt?: string | null }>,
   studentId: string,
@@ -286,7 +305,7 @@ export const createTeacherClassGrade = asyncHandler(
     }
 
     if (score === null) {
-      next(new AppError(400, "Nilai tugas wajib berupa angka 0 sampai 100."));
+      next(new AppError(400, "Nilai latihan wajib berupa angka 0 sampai 100."));
       return;
     }
 
@@ -298,7 +317,7 @@ export const createTeacherClassGrade = asyncHandler(
     );
 
     if (!task) {
-      next(new AppError(404, "Tugas kelas tidak ditemukan."));
+      next(new AppError(404, "Latihan kelas tidak ditemukan."));
       return;
     }
 
@@ -320,7 +339,7 @@ export const createTeacherClassGrade = asyncHandler(
         studentId,
       })
     ) {
-      next(new AppError(404, "Tugas tidak berlaku untuk siswa ini."));
+      next(new AppError(404, "Latihan tidak berlaku untuk siswa ini."));
       return;
     }
 
@@ -336,7 +355,7 @@ export const createTeacherClassGrade = asyncHandler(
       next(
         new AppError(
           409,
-          "Nilai tugas siswa untuk tugas ini sudah ada. Gunakan update nilai.",
+          "Nilai latihan siswa untuk latihan ini sudah ada. Gunakan update nilai.",
         ),
       );
       return;
@@ -367,7 +386,7 @@ export const createTeacherClassGrade = asyncHandler(
 
     sendSuccess(res, {
       statusCode: 201,
-      message: "Nilai tugas siswa berhasil disimpan.",
+      message: "Nilai latihan siswa berhasil disimpan.",
       data: {
         grade: toPublicTaskGrade(grade),
       },
@@ -403,7 +422,7 @@ export const updateTeacherClassGrade = asyncHandler(
     const gradeParam = normalizeText(req.params.gradeId);
 
     if (!gradeParam) {
-      next(new AppError(404, "Nilai tugas siswa tidak ditemukan."));
+      next(new AppError(404, "Nilai latihan siswa tidak ditemukan."));
       return;
     }
 
@@ -414,7 +433,7 @@ export const updateTeacherClassGrade = asyncHandler(
     );
 
     if (!grade) {
-      next(new AppError(404, "Nilai tugas siswa tidak ditemukan."));
+      next(new AppError(404, "Nilai latihan siswa tidak ditemukan."));
       return;
     }
 
@@ -426,7 +445,7 @@ export const updateTeacherClassGrade = asyncHandler(
     );
 
     if (!existingTask) {
-      next(new AppError(404, "Nilai tugas siswa tidak ditemukan."));
+      next(new AppError(404, "Nilai latihan siswa tidak ditemukan."));
       return;
     }
 
@@ -452,12 +471,12 @@ export const updateTeacherClassGrade = asyncHandler(
     }
 
     if (score === null) {
-      next(new AppError(400, "Nilai tugas wajib berupa angka 0 sampai 100."));
+      next(new AppError(400, "Nilai latihan wajib berupa angka 0 sampai 100."));
       return;
     }
 
     if (!status) {
-      next(new AppError(400, "Status penilaian tugas tidak valid."));
+      next(new AppError(400, "Status penilaian latihan tidak valid."));
       return;
     }
 
@@ -469,7 +488,7 @@ export const updateTeacherClassGrade = asyncHandler(
     );
 
     if (!nextTask) {
-      next(new AppError(404, "Tugas kelas tidak ditemukan."));
+      next(new AppError(404, "Latihan kelas tidak ditemukan."));
       return;
     }
 
@@ -491,12 +510,34 @@ export const updateTeacherClassGrade = asyncHandler(
         studentId: nextStudentId,
       })
     ) {
-      next(new AppError(404, "Tugas tidak berlaku untuk siswa ini."));
+      next(new AppError(404, "Latihan tidak berlaku untuk siswa ini."));
       return;
     }
 
     const normalizedTaskId = normalizeText(nextTask.taskId);
     const previousTaskId = normalizeText(grade.taskId);
+    const nextNote = normalizeText(note);
+    const currentNote = normalizeText(grade.note);
+    const gradeChanged = hasTaskGradeChanged({
+      currentTaskId: grade.taskId,
+      currentStudentId: grade.studentId,
+      currentScore: grade.score,
+      currentStatus: grade.status,
+      nextTaskId: normalizedTaskId,
+      nextStudentId,
+      nextScore: score,
+      nextStatus: status,
+    });
+
+    if (gradeChanged && nextNote === currentNote) {
+      next(
+        new AppError(
+          400,
+          "Alasan perubahan nilai wajib ditulis pada catatan penilaian.",
+        ),
+      );
+      return;
+    }
 
     const duplicateGrade = await TaskGrade.findOne({
       teacherId: teacher._id,
@@ -512,7 +553,7 @@ export const updateTeacherClassGrade = asyncHandler(
       next(
         new AppError(
           409,
-          "Nilai untuk siswa dan tugas yang dipilih sudah tersimpan.",
+          "Nilai untuk siswa dan latihan yang dipilih sudah tersimpan.",
         ),
       );
       return;
@@ -521,7 +562,7 @@ export const updateTeacherClassGrade = asyncHandler(
     grade.taskId = normalizedTaskId;
     grade.studentId = nextStudentId;
     grade.score = score;
-    grade.note = note;
+    grade.note = nextNote;
     grade.status = status;
     grade.gradedAt = status === "Sudah Dinilai" ? new Date() : null;
     await grade.save();
@@ -541,7 +582,7 @@ export const updateTeacherClassGrade = asyncHandler(
     }
 
     sendSuccess(res, {
-      message: "Nilai tugas siswa berhasil diperbarui.",
+      message: "Nilai latihan siswa berhasil diperbarui.",
       data: {
         grade: toPublicTaskGrade(grade),
       },

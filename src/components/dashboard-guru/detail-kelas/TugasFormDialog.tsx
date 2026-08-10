@@ -26,6 +26,11 @@ export default function TugasFormDialog({
   open,
   selectedAttachmentName,
 }: TugasFormDialogProps) {
+  const isSelectedWorkbook =
+    selectedAttachmentName?.toLowerCase().endsWith(".xlsx") ||
+    selectedAttachmentName?.toLowerCase().endsWith(".xls") ||
+    false;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="top-2 flex max-h-[calc(100dvh-1rem)] max-w-3xl translate-y-0 flex-col gap-0 rounded-[24px] border border-slate-200 bg-white p-0 shadow-lg sm:top-[50%] sm:max-h-[calc(100dvh-3rem)] sm:translate-y-[-50%]">
@@ -34,7 +39,7 @@ export default function TugasFormDialog({
             {mode === "add" ? "Tambah Latihan" : "Edit Latihan"}
           </DialogTitle>
           <DialogDescription className="text-sm text-slate-500">
-            Lengkapi pertemuan, judul, deadline, dan instruksi.
+            Lengkapi pertemuan, jadwal sesi, bank soal, dan instruksi.
           </DialogDescription>
         </DialogHeader>
 
@@ -55,12 +60,45 @@ export default function TugasFormDialog({
               </label>
 
               <label className="grid gap-2 text-sm font-medium text-slate-700">
-                Deadline
+                Tanggal Sesi
                 <input
                   type="date"
                   value={draft?.deadline ?? ""}
                   onChange={(event) => onChange("deadline", event.target.value)}
                   className="border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                />
+              </label>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <label className="grid gap-2 text-sm font-medium text-slate-700">
+                Jam Mulai
+                <input
+                  type="time"
+                  value={draft?.jamMulai ?? ""}
+                  onChange={(event) => onChange("jamMulai", event.target.value)}
+                  className="border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                />
+              </label>
+
+              <label className="grid gap-2 text-sm font-medium text-slate-700">
+                Jam Selesai
+                <input
+                  type="time"
+                  value={draft?.jamSelesai ?? ""}
+                  onChange={(event) => onChange("jamSelesai", event.target.value)}
+                  className="border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                />
+              </label>
+
+              <label className="grid gap-2 text-sm font-medium text-slate-700">
+                Durasi CBT
+                <input
+                  type="number"
+                  min={1}
+                  value={draft?.durasiMenit ?? 60}
+                  readOnly
+                  className="border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-500 outline-none"
                 />
               </label>
             </div>
@@ -87,8 +125,35 @@ export default function TugasFormDialog({
               />
             </label>
 
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="grid gap-2 text-sm font-medium text-slate-700">
+                KKM
+                <input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={draft?.nilaiMinimum ?? ""}
+                  onChange={(event) =>
+                    onChange("nilaiMinimum", event.target.value)
+                  }
+                  className="border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                />
+              </label>
+
+              <label className="grid gap-2 text-sm font-medium text-slate-700">
+                Jumlah Soal
+                <input
+                  type="number"
+                  min={0}
+                  value={draft?.jumlahSoal ?? 0}
+                  readOnly
+                  className="border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-500 outline-none"
+                />
+              </label>
+            </div>
+
             <div className="grid gap-3 border border-slate-200 bg-slate-50/40 p-4 text-sm font-medium text-slate-700">
-              <span>Lampiran</span>
+              <span>Lampiran / Bank Soal CBT</span>
               <input
                 type="file"
                 accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png,.webp,.txt,.csv"
@@ -99,7 +164,10 @@ export default function TugasFormDialog({
               />
               {selectedAttachmentName ? (
                 <div className="flex flex-col gap-2 text-xs text-slate-500 sm:flex-row sm:flex-wrap sm:items-center">
-                  <span className="break-all">File baru: {selectedAttachmentName}</span>
+                  <span className="break-all">
+                    {isSelectedWorkbook ? "Bank soal baru" : "File baru"}:{" "}
+                    {selectedAttachmentName}
+                  </span>
                   <button
                     type="button"
                     onClick={onClearSelectedAttachment}

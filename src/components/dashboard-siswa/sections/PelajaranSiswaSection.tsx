@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -10,14 +10,14 @@ import {
   Eye,
   FileText,
   Send,
-  TimerReset,
 } from "lucide-react";
 import type { StudentDashboardData } from "../data/useStudentDashboardData";
 import { useStudentLearningData } from "../data/useStudentLearningData";
 import { getStudentAcademicAccessMessage } from "../data/studentAcademicAccess";
 import { isUtbkStudentProfile } from "../data/studentProgram";
+import { withStoredAuthHeader } from "@/lib/auth";
 
-type TabKey = "materi" | "tugas";
+type TabKey = "materi" | "latihan";
 
 type TabConfig = {
   key: TabKey;
@@ -36,11 +36,11 @@ const tabs: TabConfig[] = [
     href: "/dashboard-siswa/materi",
   },
   {
-    key: "tugas",
+    key: "latihan",
     label: "Latihan Soal",
     shortLabel: "Latihan",
     icon: FileText,
-    href: "/dashboard-siswa/tugas",
+    href: "/dashboard-siswa/latihan",
   },
 ];
 
@@ -88,21 +88,20 @@ export default function PelajaranSection({
   dashboardData,
   dashboardLoading = false,
 }: PelajaranSectionProps) {
-  const searchParams = useSearchParams();
-  const academicYear = searchParams.get("academicYear") ?? "";
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabKey>("materi");
-  const { materials, tasks, student, academicAccess, isLoading, loadError, isWaitingForYear } =
-    useStudentLearningData(academicYear);
+  const { materials, tasks, student, academicAccess, isLoading, loadError } =
+    useStudentLearningData();
   const academicAccessMessage =
     getStudentAcademicAccessMessage(academicAccess);
   const isUtbkStudent = isUtbkStudentProfile(student ?? dashboardData?.student);
   const visibleTabs = useMemo(
     () =>
-      tabs.filter((tab) => !isUtbkStudent || tab.key !== "tugas"),
+      tabs.filter((tab) => !isUtbkStudent || tab.key !== "latihan"),
     [isUtbkStudent],
   );
   const resolvedActiveTab =
-    isUtbkStudent && activeTab === "tugas" ? "materi" : activeTab;
+    isUtbkStudent && activeTab === "latihan" ? "materi" : activeTab;
 
   const activeTabConfig = useMemo(
     () =>
@@ -122,16 +121,36 @@ export default function PelajaranSection({
     return `${tasks.length} latihan soal`;
   }, [resolvedActiveTab, isLoading, dashboardLoading, materials.length, tasks.length]);
 
-  const renderMateri = () => {
-    if (isWaitingForYear) {
-      return (
-        <EmptyState
-          title="Pilih Tahun Pembelajaran"
-          description="Silakan pilih tahun pembelajaran pada opsi di atas untuk memuat daftar materi."
-        />
+  async function handleStartLatihanCbt(taskId: string) {
+    try {
+      const response = await fetch(
+        `/api/student/me/learning/tasks/${encodeURIComponent(taskId)}/cbt/start`,
+        {
+          method: "POST",
+          ...withStoredAuthHeader(),
+          credentials: "include",
+          cache: "no-store",
+        },
+      );
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok || !payload?.success || !payload.data?.attemptId) {
+        throw new Error(payload?.message || "Latihan belum bisa dimulai.");
+      }
+
+      router.push(
+        `/dashboard-siswa/latihan/${encodeURIComponent(payload.data.attemptId)}/cbt`,
+      );
+    } catch (error) {
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : "Terjadi kesalahan saat memulai latihan.",
       );
     }
+  }
 
+  const renderMateri = () => {
     if (isLoading) {
       return (
         <EmptyState
@@ -195,16 +214,7 @@ export default function PelajaranSection({
     );
   };
 
-  const renderTugas = () => {
-    if (isWaitingForYear) {
-      return (
-        <EmptyState
-          title="Pilih Tahun Pembelajaran"
-          description="Silakan pilih tahun pembelajaran pada opsi di atas untuk memuat latihan soal."
-        />
-      );
-    }
-
+  const renderLatihan = () => {
     if (isLoading) {
       return (
         <EmptyState
@@ -248,26 +258,27 @@ export default function PelajaranSection({
                 {item.judul}
               </h4>
               <p className="mt-1 text-[11px] text-slate-500 md:text-xs">
-                Batas pengumpulan pada {item.deadline}.
+                {item.availabilityMessage}
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              <Link
-                href={item.detailHref}
-                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
-              >
-                <Eye className="h-3.5 w-3.5" />
-                Detail
-              </Link>
-              <Link
-                href={item.submitHref}
-                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-orange-500 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-orange-600"
-              >
-                <Send className="h-3.5 w-3.5" />
-                Kirim Jawaban
-              </Link>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                void handleStartLatihanCbt(item.id);
+              }}
+              disabled={!item.isCbtReady || item.myGrade?.graded}
+              className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-orange-500 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none"
+            >
+              <Send className="h-3.5 w-3.5" />
+              {item.myGrade?.graded
+                ? "Sudah Tuntas"
+                : item.isRemedial
+                  ? "Remedial"
+                  : item.isCbtReady
+                    ? "Mulai Latihan"
+                    : "Belum Siap"}
+            </button>
           </article>
         ))}
       </div>
@@ -325,7 +336,7 @@ export default function PelajaranSection({
         </div>
 
         {resolvedActiveTab === "materi" && renderMateri()}
-        {resolvedActiveTab === "tugas" && renderTugas()}
+        {resolvedActiveTab === "latihan" && renderLatihan()}
       </div>
     </section>
   );

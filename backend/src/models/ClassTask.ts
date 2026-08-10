@@ -29,6 +29,11 @@ export interface IClassTask {
   title: string;
   description: string;
   deadline: string;
+  startAt?: Date | null;
+  endAt?: Date | null;
+  durationMinutes?: number | null;
+  questionCount?: number | null;
+  passingGrade?: number | null;
   attachment: IClassTaskAttachment | null;
   submittedCount: number;
   reviewStatus: ClassTaskReviewStatus;
@@ -132,6 +137,31 @@ const classTaskSchema = new Schema<IClassTask>(
       type: String,
       required: [true, "Deadline tugas wajib diisi."],
       trim: true,
+    },
+    startAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+    endAt: {
+      type: Date,
+      default: null,
+    },
+    durationMinutes: {
+      type: Number,
+      default: null,
+      min: 1,
+    },
+    questionCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    passingGrade: {
+      type: Number,
+      default: null,
+      min: 0,
+      max: 100,
     },
     submittedCount: {
       type: Number,

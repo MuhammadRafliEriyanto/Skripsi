@@ -17,7 +17,7 @@ import {
   Users,
 } from "lucide-react";
 import { clearAuthClientState } from "@/lib/auth";
-import { buildGuruApiUrl, buildGuruUrl, getSelectedAcademicPeriod } from "@/lib/guru-helpers";
+import { buildGuruApiUrl, buildGuruUrl } from "@/lib/guru-helpers";
 import {
   CLASS_FILTERS,
   DEFAULT_SEMESTER_MEETING_TARGET,
@@ -517,7 +517,6 @@ function LoadingClassCards({ count = 3 }: { count?: number }) {
 
 export default function SemuaKelasGuruSection() {
   const searchParams = useSearchParams();
-  const { academicYear } = getSelectedAcademicPeriod(searchParams);
   
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
@@ -621,7 +620,7 @@ export default function SemuaKelasGuruSection() {
     queueMicrotask(() => {
       void loadTeacherClasses();
     });
-  }, [academicYear]);
+  }, []);
 
   const branchOptions = useMemo(
     () => [

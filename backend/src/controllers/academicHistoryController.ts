@@ -1374,7 +1374,7 @@ export const getMyStudentAcademicHistory = asyncHandler(
     const subscriptions = await getStudentSubscriptions(student);
 
     sendSuccess(res, {
-      message: "Histori akademik siswa berhasil diambil.",
+      message: "Histori membership siswa berhasil diambil.",
       data: {
         student: toPublicStudentProfile(student),
         subscriptions: subscriptions.map((subscription) =>
@@ -1409,12 +1409,12 @@ export const getMyStudentAcademicHistoryDetail = asyncHandler(
     );
 
     if (!subscription) {
-      next(new AppError(404, "Subscription akademik tidak ditemukan."));
+      next(new AppError(404, "Subscription membership tidak ditemukan."));
       return;
     }
 
     sendSuccess(res, {
-      message: "Detail histori akademik siswa berhasil diambil.",
+      message: "Detail histori membership siswa berhasil diambil.",
       data: await loadAcademicHistoryDetail(student, subscription),
     });
   },
@@ -1450,7 +1450,7 @@ export const getTeacherStudentAcademicHistory = asyncHandler(
     await ensureTeacherCanAccessStudent(teacher, student, subscriptions);
 
     sendSuccess(res, {
-      message: "Histori akademik siswa berhasil diambil.",
+      message: "Histori membership siswa berhasil diambil.",
       data: {
         student: toPublicStudentProfile(student),
         subscriptions: subscriptions.map((subscription) =>
@@ -1497,12 +1497,12 @@ export const getTeacherStudentAcademicHistoryDetail = asyncHandler(
       (await findStudentSubscriptionById(student, req.params.subscriptionId));
 
     if (!subscription) {
-      next(new AppError(404, "Subscription akademik tidak ditemukan."));
+      next(new AppError(404, "Subscription membership tidak ditemukan."));
       return;
     }
 
     sendSuccess(res, {
-      message: "Detail histori akademik siswa berhasil diambil.",
+      message: "Detail histori membership siswa berhasil diambil.",
       data: await loadAcademicHistoryDetail(student, subscription, {
         teacherId: teacher._id,
       }),

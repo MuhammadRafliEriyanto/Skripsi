@@ -154,12 +154,12 @@ export const getMyTeacherNotifications = asyncHandler(
       const primaryTask = pendingTasks[0];
       const taskMessage =
         pendingTasks.length === 1
-          ? `Tugas "${normalizeText(primaryTask.title)}" masih menunggu penilaian.`
-          : `${pendingTasks.length} tugas masih berstatus Belum Dinilai dan perlu ditinjau.`;
+          ? `Latihan "${normalizeText(primaryTask.title)}" masih menunggu penilaian.`
+          : `${pendingTasks.length} latihan masih berstatus Belum Dinilai dan perlu ditinjau.`;
 
       notifications.push({
         id: "teacher-pending-grades",
-        title: "Tugas Perlu Dinilai",
+        title: "Latihan Perlu Dinilai",
         message: taskMessage,
         type: "task",
         createdAt: toIsoDate(primaryTask.updatedAt ?? primaryTask.createdAt),

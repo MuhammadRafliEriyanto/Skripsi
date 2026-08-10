@@ -78,14 +78,12 @@ const regularMenus = [
     exact: true,
   },
   {
-    name: "Latihan & Evaluasi",
+    name: "Materi & Latihan",
     path: "/dashboard-siswa/materi",
     exact: false,
     activePathPrefixes: [
       "/dashboard-siswa/materi",
-      "/dashboard-siswa/tugas",
-      "/dashboard-siswa/tryout",
-      "/dashboard-siswa/ujian",
+      "/dashboard-siswa/latihan",
     ],
   },
   {
@@ -111,13 +109,13 @@ const utbkMenus = [
     exact: true,
   },
   {
-    name: "Latihan & Evaluasi",
+    name: "Materi & Tryout",
     path: "/dashboard-siswa/materi",
     exact: false,
     activePathPrefixes: [
       "/dashboard-siswa/materi",
-      "/dashboard-siswa/tugas",
       "/dashboard-siswa/tryout",
+      "/dashboard-siswa/ujian",
     ],
   },
   {
@@ -370,7 +368,7 @@ function getNotificationTypeLabel(type: StudentNotificationItem["type"]) {
     case "schedule":
       return "Jadwal";
     case "task":
-      return "Tugas";
+      return "Latihan";
     case "material":
       return "Materi";
     case "billing":
@@ -406,6 +404,7 @@ function getNotificationHref(notification: StudentNotificationItem) {
     case "schedule":
       return "/dashboard-siswa/absensi";
     case "task":
+      return "/dashboard-siswa/latihan";
     case "material":
       return "/dashboard-siswa";
     case "billing":
@@ -794,7 +793,7 @@ export default function SiswaTopbar() {
                       <p className="mt-1 text-xs text-slate-500">
                         {isUtbkProfile
                           ? "Ringkasan jadwal, materi UTBK, nilai tryout, dan transaksimu."
-                          : "Ringkasan jadwal, tugas, materi, nilai, dan transaksimu."}
+                          : "Ringkasan jadwal, materi, latihan soal, nilai, dan transaksimu."}
                       </p>
                     </div>
                     {visibleUnreadCount > 0 ? (

@@ -476,10 +476,10 @@ export function SiswaUserProfileDialog({
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-slate-950">
-                      Riwayat Akademik
+                      Riwayat Membership
                     </p>
                     <p className="mt-1 text-xs leading-5 text-slate-500">
-                      Lihat perjalanan belajar, paket aktif, dan catatan akademik.
+                      Lihat perjalanan belajar, paket aktif, nilai, dan absensi.
                     </p>
                   </div>
                 </div>

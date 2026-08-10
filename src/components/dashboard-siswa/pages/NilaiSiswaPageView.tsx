@@ -1,12 +1,11 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import { Suspense, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
-  ArrowLeft,
-  ChevronRight,
-  BookOpen,
+  BarChart3,
   CheckCircle2,
+  Eye,
+  ListChecks,
   Target,
   TimerReset,
   TrendingUp,
@@ -18,11 +17,14 @@ import { useStudentLearningData } from "../data/useStudentLearningData";
 import { useStudentTryouts, type StudentTryoutItem } from "../data/useStudentTryouts";
 import { getStudentAcademicAccessMessage } from "../data/studentAcademicAccess";
 import { isUtbkStudentProfile } from "../data/studentProgram";
+import type { StudentAcademicSummary, StudentTask } from "../data/learning-types";
 import {
-  ACADEMIC_SCORE_LABELS,
-  calculateTotalScores,
-  getAcademicScoreKeys,
-} from "@/lib/academic-grades";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   normalizeUtbkTryoutStage,
   UTBK_MAIN_TRYOUT_STAGE_COUNT,
@@ -30,13 +32,6 @@ import {
 } from "@/lib/utbk-tryout-stages";
 import { formatUtbkSubjectLabel } from "@/lib/utbk-subjects";
 import { cn } from "@/lib/utils";
-
-function getGradeStatusClass(status: string) {
-  if (status === "Sudah Dinilai") {
-    return "bg-emerald-50 text-emerald-700 border-emerald-200";
-  }
-  return "bg-slate-50 text-slate-700 border-slate-200";
-}
 
 function formatGradedTime(value: string | null) {
   if (!value) {
@@ -234,7 +229,7 @@ function UtbkNilaiView({
           </h1>
           <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">
             Nilai UTBK ditampilkan berdasarkan Tryout UTBK 1, Tryout UTBK 2,
-            dan Tryout UTBK 3 yang sudah dikerjakan. Tugas reguler tidak
+            dan Tryout UTBK 3 yang sudah dikerjakan. Latihan reguler tidak
             ditampilkan untuk akun UTBK.
           </p>
         </div>
@@ -304,7 +299,7 @@ function UtbkNilaiView({
                 </h2>
               </div>
               <Link
-                href="/dashboard-siswa/tryout"
+                href="/dashboard-siswa/ujian"
                 className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-2xl bg-orange-600 px-4 text-sm font-semibold text-white transition hover:bg-orange-700"
               >
                 <TimerReset className="h-4 w-4" />
@@ -384,64 +379,298 @@ function UtbkNilaiView({
   );
 }
 
+const REGULAR_MEETING_COUNT = 24;
+const RESULT_DROPDOWN_LATEST = "latest";
+
+type MeetingStatus = "mastered" | "remedial" | "waiting" | "available" | "empty";
+
+type LearningProgressGroup = {
+  id: string;
+  subject: string;
+  className: string;
+  tasks: StudentTask[];
+};
+
+type MeetingSlot = {
+  meetingNumber: number;
+  label: string;
+  task: StudentTask | null;
+  score: number | null;
+  status: MeetingStatus;
+  statusLabel: string;
+};
+
+function toSafeMeetingNumber(value: number) {
+  return Number.isFinite(value)
+    ? Math.min(Math.max(Math.round(value), 1), REGULAR_MEETING_COUNT)
+    : 1;
+}
+
+function getTaskScore(task: StudentTask | null | undefined) {
+  const score = task?.myGrade?.score;
+  return typeof score === "number" && Number.isFinite(score) ? score : null;
+}
+
+function getMeetingStatus(task: StudentTask | null): MeetingStatus {
+  if (!task) {
+    return "empty";
+  }
+
+  const score = getTaskScore(task);
+
+  if (
+    task.myGrade?.status === "Perlu Remedial" ||
+    task.isRemedial ||
+    (typeof score === "number" && score < 70)
+  ) {
+    return "remedial";
+  }
+
+  if (task.myGrade?.graded || typeof score === "number") {
+    return "mastered";
+  }
+
+  if (task.mySubmission?.submitted) {
+    return "waiting";
+  }
+
+  return "available";
+}
+
+function getMeetingStatusLabel(status: MeetingStatus) {
+  switch (status) {
+    case "mastered":
+      return "Tuntas";
+    case "remedial":
+      return "Remedial";
+    case "waiting":
+      return "Menunggu nilai";
+    case "available":
+      return "Belum dikerjakan";
+    default:
+      return "Belum ada latihan";
+  }
+}
+
+function buildMeetingSlots(tasks: StudentTask[]) {
+  const taskByMeeting = new Map<number, StudentTask>();
+
+  for (const task of tasks) {
+    const meetingNumber = toSafeMeetingNumber(task.pertemuan);
+    const currentTask = taskByMeeting.get(meetingNumber);
+    const currentTime = currentTask?.myGrade?.gradedAt
+      ? new Date(currentTask.myGrade.gradedAt).getTime()
+      : 0;
+    const nextTime = task.myGrade?.gradedAt
+      ? new Date(task.myGrade.gradedAt).getTime()
+      : 0;
+
+    if (!currentTask || nextTime >= currentTime) {
+      taskByMeeting.set(meetingNumber, task);
+    }
+  }
+
+  return Array.from({ length: REGULAR_MEETING_COUNT }, (_, index) => {
+    const meetingNumber = index + 1;
+    const task = taskByMeeting.get(meetingNumber) ?? null;
+    const status = getMeetingStatus(task);
+
+    return {
+      meetingNumber,
+      label: `P${meetingNumber}`,
+      task,
+      score: getTaskScore(task),
+      status,
+      statusLabel: getMeetingStatusLabel(status),
+    } satisfies MeetingSlot;
+  });
+}
+
+function getProgressRingOffset(progressPercent: number) {
+  const circumference = 2 * Math.PI * 48;
+  return circumference - (Math.min(Math.max(progressPercent, 0), 100) / 100) * circumference;
+}
+
+function getSlotClassName(status: MeetingStatus) {
+  switch (status) {
+    case "mastered":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    case "remedial":
+      return "border-amber-200 bg-amber-50 text-amber-800";
+    case "waiting":
+      return "border-sky-200 bg-sky-50 text-sky-700";
+    case "available":
+      return "border-slate-200 bg-white text-slate-600";
+    default:
+      return "border-slate-100 bg-slate-50 text-slate-300";
+  }
+}
+
+function getBarClassName(status: MeetingStatus) {
+  switch (status) {
+    case "mastered":
+      return "bg-emerald-500";
+    case "remedial":
+      return "bg-amber-500";
+    case "waiting":
+      return "bg-sky-400";
+    case "available":
+      return "bg-slate-300";
+    default:
+      return "bg-slate-100";
+  }
+}
+
+function getResultPanelClassName(status: MeetingStatus) {
+  switch (status) {
+    case "mastered":
+      return "border-emerald-100 bg-emerald-50/70";
+    case "remedial":
+      return "border-amber-100 bg-amber-50/80";
+    case "waiting":
+      return "border-sky-100 bg-sky-50/80";
+    default:
+      return "border-slate-100 bg-slate-50/80";
+  }
+}
+
+function getResultAdvice(slot: MeetingSlot) {
+  if (!slot.task) {
+    return "Guru belum membuka latihan untuk pertemuan ini.";
+  }
+
+  if (slot.status === "remedial") {
+    return "Nilai latihan belum mencapai target 70. Guru bisa menyarankan remedial agar pemahaman naik.";
+  }
+
+  if (slot.status === "mastered") {
+    return "Latihan sudah tuntas. Gunakan catatan pembahasan untuk menguatkan materi.";
+  }
+
+  if (slot.status === "waiting") {
+    return "Latihan sudah dikerjakan dan sedang menunggu hasil tersimpan.";
+  }
+
+  return "Latihan tersedia. Kerjakan CBT untuk memperbarui progres belajar.";
+}
+
+function formatScoreLabel(value: number | null) {
+  return typeof value === "number" ? value.toString() : "-";
+}
+
+function getSubmittedTaskAttemptId(task: StudentTask | null | undefined) {
+  const attempt = task?.myAttempt;
+
+  if (!attempt?.submitted) {
+    return "";
+  }
+
+  return normalizeText(attempt.attemptId);
+}
+
+function buildLearningGroups(
+  tasks: StudentTask[],
+  summaries: StudentAcademicSummary[],
+) {
+  const groupsBySubjectAndClass = new Map<string, LearningProgressGroup>();
+
+  function getGroupKey(subject: string, className: string) {
+    const s = normalizeText(subject) || "Mapel belum diatur";
+    const c = normalizeText(className) || "Kelas belum diatur";
+    return `${s} - ${c}`;
+  }
+
+  for (const summary of summaries) {
+    const key = getGroupKey(summary.subject, summary.className);
+    if (!groupsBySubjectAndClass.has(key)) {
+      groupsBySubjectAndClass.set(key, {
+        id: normalizeText(summary.classId) || key,
+        subject: normalizeText(summary.subject) || "Mapel belum diatur",
+        className: normalizeText(summary.className) || "Kelas belum diatur",
+        tasks: [],
+      });
+    }
+  }
+
+  for (const task of tasks) {
+    const key = getGroupKey(task.mapel, task.className);
+    
+    let currentGroup = groupsBySubjectAndClass.get(key);
+    if (!currentGroup) {
+      currentGroup = {
+        id: normalizeText(task.classId) || key,
+        subject: normalizeText(task.mapel) || "Mapel belum diatur",
+        className: normalizeText(task.className) || "Kelas belum diatur",
+        tasks: [],
+      };
+      groupsBySubjectAndClass.set(key, currentGroup);
+    }
+    
+    currentGroup.tasks.push(task);
+  }
+
+  return Array.from(groupsBySubjectAndClass.values()).map((group) => ({
+    ...group,
+    tasks: [...group.tasks].sort(
+      (left, right) => left.pertemuan - right.pertemuan,
+    ),
+  }));
+}
+
 function NilaiSiswaPageContent() {
-  const searchParams = useSearchParams();
-  const academicYear = searchParams.get("academicYear") ?? "";
-  const { student, academicSummaries, tasks, isLoading, loadError, isWaitingForYear } =
-    useStudentLearningData(academicYear);
+  const { student, academicSummaries, tasks, academicAccess, isLoading, loadError } =
+    useStudentLearningData();
   const academicAccessMessage =
-    getStudentAcademicAccessMessage(null);
+    getStudentAcademicAccessMessage(academicAccess);
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+  const [selectedResultKey, setSelectedResultKey] = useState(RESULT_DROPDOWN_LATEST);
   const isUtbkStudent = isUtbkStudentProfile(student);
 
-  const groupedTasks = useMemo(() => {
-    const groups: Record<string, typeof tasks> = {};
-    tasks.forEach((task) => {
-      if (!groups[task.classId]) {
-        groups[task.classId] = [];
-      }
-      groups[task.classId].push(task);
-    });
-    return groups;
-  }, [tasks]);
-
-  const mapelSummaries = useMemo(() => {
-    return academicSummaries.map((summary) => {
-      const classTasks = groupedTasks[summary.classId] ?? [];
-      const totalScore = calculateTotalScores([
-        summary.taskAverage,
-        ...getAcademicScoreKeys(summary.scheme).map((key) => summary.scores[key]),
-      ]);
-
-      return {
-        ...summary,
-        totalTasks: classTasks.length,
-        hasUngraded: classTasks.some(
-          (t) => t.mySubmission?.submitted && !t.myGrade?.graded,
-        ),
-        totalScore,
-      };
-    });
-  }, [academicSummaries, groupedTasks]);
-  const selectedSummary = useMemo(
-    () =>
-      mapelSummaries.find((summary) => summary.classId === selectedClassId) ??
-      null,
-    [mapelSummaries, selectedClassId],
+  const learningGroups = useMemo(
+    () => buildLearningGroups(tasks, academicSummaries),
+    [academicSummaries, tasks],
   );
-  const selectedTasks = selectedSummary
-    ? groupedTasks[selectedSummary.classId] ?? []
-    : [];
+  const selectedGroup =
+    learningGroups.find((group) => group.id === selectedClassId) ??
+    learningGroups[0] ??
+    null;
+  const meetingSlots = useMemo(
+    () => buildMeetingSlots(selectedGroup?.tasks ?? []),
+    [selectedGroup],
+  );
+  const gradedSlots = meetingSlots.filter((slot) => typeof slot.score === "number");
+  const masteredSlots = gradedSlots.filter((slot) => slot.status === "mastered");
+  const remedialSlots = gradedSlots.filter((slot) => slot.status === "remedial");
+  const waitingSlots = meetingSlots.filter((slot) => slot.status === "waiting");
+  const averageScore = gradedSlots.length
+    ? Math.round(
+        gradedSlots.reduce((total, slot) => total + (slot.score ?? 0), 0) /
+          gradedSlots.length,
+      )
+    : null;
+  const progressPercent = Math.round(
+    (gradedSlots.length / REGULAR_MEETING_COUNT) * 100,
+  );
+  const masteryPercent = Math.round(
+    (masteredSlots.length / REGULAR_MEETING_COUNT) * 100,
+  );
+  const latestResultSlot =
+    [...gradedSlots].sort((left, right) => right.meetingNumber - left.meetingNumber)[0] ??
+    meetingSlots.find((slot) => slot.task) ??
+    meetingSlots[0];
+  const selectedResultSlot =
+    selectedResultKey === RESULT_DROPDOWN_LATEST
+      ? latestResultSlot
+      : meetingSlots.find(
+          (slot) => `p-${slot.meetingNumber}` === selectedResultKey,
+        ) ?? latestResultSlot;
+  const ringOffset = getProgressRingOffset(masteryPercent);
 
   if (!isLoading && isUtbkStudent) {
     return (
       <UtbkNilaiView
-        isLoading={isLoading || isWaitingForYear}
-        academicAccessMessage={
-          isWaitingForYear 
-            ? "Silakan pilih tahun akademik di dashboard utama untuk melihat nilai." 
-            : null
-        }
+        isLoading={isLoading}
+        academicAccessMessage={academicAccessMessage}
         profileLoadError={loadError}
       />
     );
@@ -452,259 +681,434 @@ function NilaiSiswaPageContent() {
       <div className="flex flex-col gap-4 rounded-[28px] border border-slate-100 bg-white p-5 shadow-sm md:flex-row md:items-center md:justify-between md:p-6">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-orange-600">
-            Rekapitulasi Nilai
+            Statistik Belajar
           </p>
           <h1 className="mt-2 text-xl font-semibold text-slate-900 md:text-2xl">
-            Nilai Tugas & Evaluasi
+            Progres Latihan P1-P24
           </h1>
           <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">
-            Pantau hasil belajarmu secara keseluruhan. Lihat detail nilai,
-            catatan dari guru, dan status evaluasi untuk setiap mata pelajaran.
+            Pantau hasil latihan CBT per pertemuan. Nilai di bawah 70 ditandai
+            remedial agar guru bisa memberi arahan pengerjaan ulang. Target ideal
+            peningkatan selama proses bimbel di Bina Cendekia adalah mencapai
+            rata-rata skor <strong>85%</strong> ke atas untuk menjamin kesiapan
+            yang optimal.
           </p>
         </div>
+        <Link
+          href="/dashboard-siswa/latihan"
+          className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-2xl bg-orange-600 px-4 text-sm font-semibold text-white transition hover:bg-orange-700"
+        >
+          <ListChecks className="h-4 w-4" />
+          Buka Latihan
+        </Link>
       </div>
 
       {isLoading ? (
         <section className="rounded-[26px] border border-slate-100 bg-white p-8 text-center shadow-sm">
           <p className="text-base font-semibold text-slate-800">
-            Data nilai sedang dimuat
+            Data progres sedang dimuat
           </p>
           <p className="mt-2 text-sm text-slate-500">
-            Sistem sedang mengambil rekapitulasi nilai terbaru kamu...
+            Sistem sedang mengambil hasil latihan CBT terbaru kamu...
           </p>
         </section>
-      ) : academicSummaries.length === 0 ? (
+      ) : learningGroups.length === 0 ? (
         <section className="rounded-[26px] border border-slate-100 bg-white p-8 text-center shadow-sm">
           <p className="text-base font-semibold text-slate-800">
-            Belum ada data nilai
+            Belum ada hasil latihan
           </p>
           <p className="mt-2 text-sm text-slate-500">
             {academicAccessMessage ??
               loadError ??
-              "Guru belum memberikan tugas atau evaluasi yang dinilai untuk kamu."}
+              "Guru belum memberikan latihan CBT untuk membership aktif kamu."}
           </p>
         </section>
-      ) : (
+      ) : selectedGroup ? (
         <>
-          {/* ======================= LEVEL 1: OVERVIEW & MAPEL CARDS ======================= */}
-          {!selectedSummary ? (
-            /* Mapel Cards */
-            <section className="rounded-[26px] border border-slate-100 bg-white p-5 shadow-sm md:p-6">
-              <div className="mb-5">
+          <section className="rounded-[26px] border border-slate-100 bg-white p-5 shadow-sm md:p-6">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.52fr)]">
+              <div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <p className="mb-2 text-xs font-semibold text-slate-500">
+                      Pilih mata pelajaran
+                    </p>
+                    <Select
+                      value={selectedGroup.id}
+                      onValueChange={(value) => {
+                        setSelectedClassId(value);
+                        setSelectedResultKey(RESULT_DROPDOWN_LATEST);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih mata pelajaran" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {learningGroups.map((group) => (
+                          <SelectItem key={group.id} value={group.id}>
+                            {group.subject} - {group.className}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <p className="mb-2 text-xs font-semibold text-slate-500">
+                      Pilih hasil latihan
+                    </p>
+                    <Select
+                      value={selectedResultKey}
+                      onValueChange={setSelectedResultKey}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih hasil latihan" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={RESULT_DROPDOWN_LATEST}>
+                          Hasil latihan terbaru
+                        </SelectItem>
+                        {meetingSlots.map((slot) => (
+                          <SelectItem
+                            key={slot.meetingNumber}
+                            value={`p-${slot.meetingNumber}`}
+                          >
+                            {slot.label} - {slot.task?.judul ?? slot.statusLabel}{" "}
+                            {slot.score !== null ? `(${slot.score})` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div
+                  className={`mt-5 rounded-[24px] border p-5 ${getResultPanelClassName(
+                    selectedResultSlot.status,
+                  )}`}
+                >
+                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                        {selectedResultSlot.label}
+                      </p>
+                      <h2 className="mt-2 text-lg font-semibold text-slate-900">
+                        {selectedResultSlot.task?.judul ??
+                          "Latihan belum tersedia"}
+                      </h2>
+                      <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                        {getResultAdvice(selectedResultSlot)}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3">
+                      <div className="text-right">
+                        <p className="text-xs font-semibold text-slate-500">
+                          Nilai
+                        </p>
+                        <p className="text-3xl font-black text-slate-950">
+                          {formatScoreLabel(selectedResultSlot.score)}
+                        </p>
+                      </div>
+                      <span
+                        className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-bold ${getSlotClassName(
+                          selectedResultSlot.status,
+                        )}`}
+                      >
+                        {selectedResultSlot.statusLabel}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid gap-3 md:grid-cols-3">
+                    <div className="rounded-2xl border border-white/80 bg-white/75 p-4">
+                      <p className="text-xs font-semibold text-slate-500">
+                        Dikerjakan
+                      </p>
+                      <p className="mt-2 text-xl font-black text-slate-900">
+                        {gradedSlots.length}/{REGULAR_MEETING_COUNT}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-white/80 bg-white/75 p-4">
+                      <p className="text-xs font-semibold text-slate-500">
+                        Tuntas
+                      </p>
+                      <p className="mt-2 text-xl font-black text-emerald-700">
+                        {masteredSlots.length}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-white/80 bg-white/75 p-4">
+                      <p className="text-xs font-semibold text-slate-500">
+                        Remedial
+                      </p>
+                      <p className="mt-2 text-xl font-black text-amber-700">
+                        {remedialSlots.length}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-[24px] border border-slate-100 bg-slate-50/70 p-5">
+                <div className="flex items-center justify-center">
+                  <div className="relative h-36 w-36">
+                    <svg
+                      className="h-full w-full -rotate-90 transform"
+                      viewBox="0 0 100 100"
+                    >
+                      <circle
+                        className="text-slate-100"
+                        strokeWidth="10"
+                        stroke="currentColor"
+                        fill="transparent"
+                        r="48"
+                        cx="50"
+                        cy="50"
+                      />
+                      <circle
+                        className="text-emerald-500 transition-all duration-1000 ease-in-out"
+                        strokeWidth="10"
+                        strokeDasharray={2 * Math.PI * 48}
+                        strokeLinecap="round"
+                        stroke="currentColor"
+                        fill="transparent"
+                        r="48"
+                        cx="50"
+                        cy="50"
+                        strokeDashoffset={ringOffset}
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                      <p className="text-3xl font-black text-slate-950">
+                        {masteryPercent}%
+                      </p>
+                      <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-600">
+                        Mastery
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-5 grid grid-cols-2 gap-3">
+                  <div className="rounded-2xl bg-white p-4">
+                    <p className="text-xs text-slate-500">Rata-rata</p>
+                    <p className="mt-1 text-2xl font-black text-slate-900">
+                      {averageScore ?? "-"}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-white p-4">
+                    <p className="text-xs text-slate-500">Total Latihan</p>
+                    <p className="mt-1 text-2xl font-black text-slate-900">
+                      {gradedSlots.length} <span className="text-sm font-medium text-slate-400">/ 24</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-[26px] border border-slate-100 bg-white p-5 shadow-sm md:p-6">
+            <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-orange-600">
-                  Mata Pelajaran
+                  Diagram Progres
                 </p>
                 <h2 className="mt-2 text-lg font-semibold text-slate-800">
-                  Daftar Nilai Berdasarkan Mata Pelajaran
+                  Jalur Belajar {selectedGroup.subject} P1-P24
                 </h2>
               </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {mapelSummaries.map((summary) => (
-                  <article
-                    key={summary.classId}
-                    onClick={() => setSelectedClassId(summary.classId)}
-                    className="group flex cursor-pointer flex-col justify-between gap-4 rounded-[22px] border border-slate-100 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-orange-100 hover:shadow-md"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
-                          <BookOpen className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-slate-800 transition-colors group-hover:text-orange-600">
-                            {summary.subject}
-                          </h3>
-                          <p className="mt-0.5 text-xs text-slate-500">
-                            {summary.gradedTaskCount} dari {summary.totalTasks}{" "}
-                            Tugas Dinilai
-                          </p>
-                        </div>
-                      </div>
-                      {summary.hasUngraded && (
-                        <span className="shrink-0 rounded-full bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-700">
-                          Menunggu Penilaian
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between border-t border-slate-50 pt-4">
-                      <div className="flex gap-6">
-                        <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                            Total Nilai
-                          </p>
-                          <p className="mt-1 text-lg font-bold text-slate-800">
-                            {summary.totalScore ?? "-"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                            Rata-Rata
-                          </p>
-                          <p className="mt-1 text-lg font-bold text-slate-800">
-                            {summary.finalAverage ?? "-"}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 text-slate-400 transition-colors group-hover:bg-orange-50 group-hover:text-orange-600">
-                        <ChevronRight className="h-4 w-4" />
-                      </div>
-                    </div>
-                  </article>
-                ))}
+              <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-700">
+                  Tuntas
+                </span>
+                <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-amber-800">
+                  Remedial
+                </span>
+                <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-sky-700">
+                  Menunggu
+                </span>
               </div>
-            </section>
-          ) : (
-            /* ======================= LEVEL 2: DETAILED TASKS TABLE ======================= */
-            <div className="flex flex-col gap-5">
-              <button
-                onClick={() => setSelectedClassId(null)}
-                className="inline-flex w-fit items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Kembali ke Daftar Mata Pelajaran
-              </button>
+            </div>
 
-              <section className="rounded-[26px] border border-slate-100 bg-white p-5 shadow-sm md:p-6">
-                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-orange-600">
-                      Rekap Evaluasi
-                    </p>
-                    <h2 className="mt-2 text-lg font-semibold text-slate-800">
-                      {selectedSummary.subject}
-                    </h2>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {selectedSummary.semester} {selectedSummary.academicYear}
-                    </p>
-                  </div>
-                  <div className="flex gap-8 text-right">
-                    <div>
-                      <p className="text-xs text-slate-500">Total Nilai</p>
-                      <p className="mt-1 text-2xl font-semibold text-slate-900">
-                        {selectedSummary.totalScore ?? "-"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Rata-rata tersedia</p>
-                      <p className="mt-1 text-2xl font-semibold text-slate-900">
-                        {selectedSummary.finalAverage ?? "-"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+            <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-12">
+              {meetingSlots.map((slot) => (
+                <button
+                  key={slot.meetingNumber}
+                  type="button"
+                  title={`${slot.label}: ${slot.task?.judul ?? slot.statusLabel}`}
+                  onClick={() => setSelectedResultKey(`p-${slot.meetingNumber}`)}
+                  className={`flex aspect-square min-h-16 flex-col items-center justify-center rounded-2xl border text-center transition hover:-translate-y-0.5 hover:shadow-sm ${getSlotClassName(
+                    slot.status,
+                  )}`}
+                >
+                  <span className="text-xs font-black">{slot.label}</span>
+                  <span className="mt-1 text-[11px] font-semibold">
+                    {formatScoreLabel(slot.score)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
 
-                <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
-                  {[
-                    { key: "tugas", label: "Tugas", value: selectedSummary.taskAverage },
-                    ...getAcademicScoreKeys(selectedSummary.scheme).map((scoreKey) => ({
-                      key: scoreKey,
-                      label: ACADEMIC_SCORE_LABELS[scoreKey],
-                      value: selectedSummary.scores[scoreKey],
-                    })),
-                  ].map((score) => (
-                    <div key={score.key} className="border border-slate-100 bg-slate-50 p-4">
-                      <p className="text-xs font-medium text-slate-500">{score.label}</p>
-                      <p className="mt-2 text-xl font-semibold text-slate-900">
-                        {score.value ?? "-"}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+          <section className="rounded-[26px] border border-slate-100 bg-white p-5 shadow-sm md:p-6">
+            <div className="mb-5 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-50 text-orange-600">
+                <BarChart3 className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-900">
+                  Grafik Nilai P1-P24
+                </p>
+                <p className="text-xs text-slate-500">
+                  Tinggi bar mengikuti nilai latihan. Kosong berarti latihan belum
+                  tersedia atau belum dinilai.
+                </p>
+              </div>
+            </div>
 
-                {selectedSummary.note ? (
-                  <p className="mt-4 border-l-2 border-orange-300 pl-3 text-sm leading-6 text-slate-600">
-                    {selectedSummary.note}
-                  </p>
-                ) : null}
-              </section>
+            <div className="overflow-x-auto">
+              <div className="flex min-w-[920px] items-end gap-2 border-b border-slate-100 pb-4">
+                {meetingSlots.map((slot) => {
+                  const barHeight = Math.max(slot.score ?? 8, 8);
 
-              <section className="overflow-hidden rounded-[26px] border border-slate-100 bg-white shadow-sm">
-                <div className="border-b border-slate-100 px-5 py-5 md:px-6">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-orange-600">
-                    Tugas Belajar
-                  </p>
-                  <h2 className="mt-2 text-lg font-semibold text-slate-800">
-                    Detail Nilai Tugas - {selectedSummary.subject}
-                  </h2>
-                </div>
+                  return (
+                    <button
+                      key={slot.meetingNumber}
+                      type="button"
+                      onClick={() => setSelectedResultKey(`p-${slot.meetingNumber}`)}
+                      className="flex h-44 w-8 shrink-0 flex-col items-center justify-end gap-2"
+                      title={`${slot.label}: ${formatScoreLabel(slot.score)}`}
+                    >
+                      <div className="flex h-32 w-full items-end rounded-full bg-slate-50 p-1">
+                        <div
+                          className={`w-full rounded-full transition-all ${getBarClassName(
+                            slot.status,
+                          )}`}
+                          style={{ height: `${barHeight}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-500">
+                        {slot.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[800px] text-left text-sm text-slate-600">
-                    <thead className="bg-slate-50/50 text-xs uppercase text-slate-500">
-                      <tr>
-                        <th className="w-1/3 px-6 py-4 font-semibold">Tugas</th>
-                        <th className="px-6 py-4 font-semibold">Pertemuan</th>
-                        <th className="px-6 py-4 font-semibold">Status</th>
-                        <th className="px-6 py-4 text-center font-semibold">
-                          Nilai Akhir
-                        </th>
-                        <th className="px-6 py-4 font-semibold">Catatan Guru</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {selectedTasks.map((task) => (
-                        <tr
-                          key={task.id}
-                          className="transition-colors hover:bg-slate-50/50"
-                        >
-                          <td className="px-6 py-4">
+          <section className="overflow-hidden rounded-[26px] border border-slate-100 bg-white shadow-sm">
+            <div className="border-b border-slate-100 px-5 py-5 md:px-6">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-orange-600">
+                Daftar Hasil
+              </p>
+              <h2 className="mt-2 text-lg font-semibold text-slate-800">
+                Detail Latihan {selectedGroup.subject}
+              </h2>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[940px] text-left text-sm text-slate-600">
+                <thead className="bg-slate-50/50 text-xs uppercase text-slate-500">
+                  <tr>
+                    <th className="px-6 py-4 font-semibold">Pertemuan</th>
+                    <th className="w-1/3 px-6 py-4 font-semibold">Latihan</th>
+                    <th className="px-6 py-4 font-semibold">Status</th>
+                    <th className="px-6 py-4 text-center font-semibold">Nilai</th>
+                    <th className="px-6 py-4 font-semibold">Catatan</th>
+                    <th className="px-6 py-4 text-center font-semibold">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {meetingSlots.map((slot) => {
+                    const submittedAttemptId = getSubmittedTaskAttemptId(slot.task);
+
+                    return (
+                      <tr key={slot.meetingNumber} className="transition-colors hover:bg-slate-50/50">
+                        <td className="px-6 py-4 font-semibold text-slate-800">
+                          {slot.label}
+                        </td>
+                        <td className="px-6 py-4">
+                          {slot.task ? (
                             <Link
-                              href={task.detailHref}
+                              href={slot.task.detailHref}
                               className="font-semibold text-slate-800 transition hover:text-orange-600"
                             >
-                              {task.judul}
+                              {slot.task.judul}
                             </Link>
-                            <p className="mt-1 line-clamp-1 text-xs text-slate-500">
-                              {task.deskripsi}
+                          ) : (
+                            <span className="text-slate-400">Belum ada latihan</span>
+                          )}
+                          <p className="mt-1 line-clamp-1 text-xs text-slate-500">
+                            {slot.task?.deskripsi ?? "-"}
+                          </p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${getSlotClassName(
+                              slot.status,
+                            )}`}
+                          >
+                            {slot.statusLabel}
+                          </span>
+                          {slot.task?.myGrade?.gradedAt ? (
+                            <p className="mt-1.5 text-xs text-slate-500">
+                              {formatGradedTime(slot.task.myGrade.gradedAt)}
                             </p>
-                          </td>
-                          <td className="px-6 py-4">
-                            <p className="text-xs text-slate-500">
-                              Pertemuan {task.pertemuan}
-                            </p>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span
-                              className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${getGradeStatusClass(
-                                task.myGrade?.status || "Belum Dinilai",
-                              )}`}
+                          ) : null}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span
+                            className={`inline-flex h-10 min-w-12 items-center justify-center rounded-xl border font-bold ${getSlotClassName(
+                              slot.status,
+                            )}`}
+                          >
+                            {formatScoreLabel(slot.score)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="line-clamp-3 text-xs leading-5 text-slate-600">
+                            {slot.task?.myGrade?.note || getResultAdvice(slot)}
+                          </p>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          {submittedAttemptId ? (
+                            <Link
+                              href={`/dashboard-siswa/latihan/${encodeURIComponent(
+                                submittedAttemptId,
+                              )}/cbt`}
+                              aria-label={`Lihat detail soal ${slot.label}`}
+                              title={`Lihat detail soal ${slot.label}`}
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-orange-200 bg-orange-50 text-orange-600 transition hover:bg-orange-100 hover:text-orange-700"
                             >
-                              {task.myGrade?.status || "Belum Dinilai"}
-                            </span>
-                            {task.myGrade?.gradedAt && (
-                              <p className="mt-1.5 text-xs text-slate-500">
-                                {formatGradedTime(task.myGrade.gradedAt)}
-                              </p>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 text-center">
+                              <Eye className="h-4 w-4" />
+                            </Link>
+                          ) : (
                             <span
-                              className={`inline-flex h-10 min-w-[3rem] items-center justify-center rounded-xl border font-bold ${
-                                task.myGrade?.graded
-                                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                                  : "border-slate-100 bg-slate-50 text-slate-400"
-                              }`}
+                              title="Detail soal tersedia setelah latihan dikerjakan."
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-100 bg-slate-50 text-slate-300"
                             >
-                              {task.myGrade?.score ?? "-"}
+                              <Eye className="h-4 w-4" />
                             </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <p className="line-clamp-3 text-xs leading-5 text-slate-600">
-                              {task.myGrade?.note || "-"}
-                            </p>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          )}
+          </section>
+
+          {waitingSlots.length > 0 ? (
+            <p className="rounded-[22px] border border-sky-100 bg-sky-50 px-5 py-4 text-sm font-medium leading-6 text-sky-800">
+              Ada {waitingSlots.length} latihan yang sudah dikerjakan dan sedang
+              menunggu hasil tersimpan ke progres.
+            </p>
+          ) : null}
         </>
-      )}
+      ) : null}
     </section>
   );
 }
+
+export { NilaiSiswaPageContent as NilaiSiswaPageView };

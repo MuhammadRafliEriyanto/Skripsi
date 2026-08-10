@@ -3,6 +3,7 @@ import { HydratedDocument, Model, Schema, model, models, type Types } from "mong
 export const TASK_GRADE_STATUSES = [
   "Belum Dinilai",
   "Sudah Dinilai",
+  "Perlu Remedial",
 ] as const;
 
 export type TaskGradeStatus = (typeof TASK_GRADE_STATUSES)[number];
@@ -18,6 +19,9 @@ export interface ITaskGrade {
   note: string;
   status: TaskGradeStatus;
   gradedAt: Date | null;
+  remedialRequestedAt: Date | null;
+  remedialCompletedAt: Date | null;
+  remedialCount: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -81,6 +85,19 @@ const taskGradeSchema = new Schema<ITaskGrade>(
     gradedAt: {
       type: Date,
       default: null,
+    },
+    remedialRequestedAt: {
+      type: Date,
+      default: null,
+    },
+    remedialCompletedAt: {
+      type: Date,
+      default: null,
+    },
+    remedialCount: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
   },
   {

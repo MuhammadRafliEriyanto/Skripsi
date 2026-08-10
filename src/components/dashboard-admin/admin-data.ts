@@ -40,10 +40,12 @@ export type AdminStudent = {
   className: string;
   birthDate: string;
   academicYear: string;
+  address: string;
   schoolOrigin?: string;
   difficultSubjects?: string;
   generatedPassword: string;
   status: "Aktif" | "Nonaktif";
+  isEmailVerified: boolean;
   membership?: {
     status: "active" | "pending" | "expired" | "none";
     packageKey?: string;
@@ -67,6 +69,9 @@ export type AdminTeacher = {
   branch: string;
   branches: string[];
   phone: string;
+  address: string;
+  education: string;
+  isEmailVerified: boolean;
   status: "Aktif" | "Nonaktif";
   availability: "Tersedia" | "Padat" | "Cuti";
 };

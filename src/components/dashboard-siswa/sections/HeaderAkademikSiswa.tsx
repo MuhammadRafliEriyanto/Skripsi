@@ -1,18 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import type { LucideIcon } from "lucide-react";
+import { useMemo } from "react";
 import {
   BookOpen,
   CalendarClock,
-  ChevronDown,
   FileText,
   Flame,
   Lock,
   Target,
   TimerReset,
-  Bookmark,
 } from "lucide-react";
 
 import type { StudentDashboardData } from "../data/useStudentDashboardData";
@@ -24,8 +21,6 @@ type HeaderAkademikSiswaProps = {
   dashboardData: StudentDashboardData | null;
   dashboardLoading: boolean;
   dashboardError: string | null;
-  academicYear?: string;
-  onYearChange?: (year: string) => void;
 };
 
 function EmptyState({ message }: { message: string }) {
@@ -46,8 +41,6 @@ export default function HeaderAkademikSiswa({
   dashboardData,
   dashboardLoading = false,
   dashboardError = null,
-  academicYear,
-  onYearChange,
 }: HeaderAkademikSiswaProps) {
   const academicAccessMessage = getStudentAcademicAccessMessage(
     dashboardData?.academicAccess,
@@ -71,7 +64,7 @@ export default function HeaderAkademikSiswa({
 
   const heroSubtitle = useMemo(() => {
     if (dashboardLoading) {
-      return "Sistem sedang menyiapkan materi, tugas, dan jadwal belajar terbaru untuk akun siswa kamu.";
+      return "Sistem sedang menyiapkan materi, latihan soal, dan jadwal belajar terbaru untuk akun siswa kamu.";
     }
 
     if (!dashboardData) {
@@ -93,46 +86,39 @@ export default function HeaderAkademikSiswa({
     return `Kamu punya ${academicSummary.materialCount} materi untuk dipelajari dan ${academicSummary.taskCount} latihan soal untuk diselesaikan. Semangat!`;
   }, [academicAccessMessage, dashboardData, dashboardError, dashboardLoading]);
 
+  const isUtbkDashboard = dashboardData
+    ? isUtbkStudentProfile(dashboardData.student)
+    : false;
+
   const emptyStateMessage = dashboardLoading
     ? "Memuat ringkasan belajar siswa..."
-    : !academicYear
-      ? "Silakan pilih tahun akademik terlebih dahulu untuk melihat dashboard belajar Anda."
-      : academicAccessMessage ??
-        dashboardError ??
-        "Data akademik siswa belum tersedia.";
+    : academicAccessMessage ??
+      dashboardError ??
+      "Data belajar siswa belum tersedia. Pastikan membership aktif dan kelas siswa sudah terhubung.";
 
   return (
     <div id="header-akademik-siswa" className="scroll-mt-24 space-y-4">
       <div className="flex overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
         <div className="flex w-16 shrink-0 items-center justify-center bg-gradient-to-br from-orange-400 to-orange-500 text-white md:w-20">
-          <Bookmark className="h-6 w-6 md:h-8 md:w-8" />
+          <CalendarClock className="h-6 w-6 md:h-8 md:w-8" />
         </div>
         <div className="flex flex-1 flex-col justify-center px-4 py-4 md:px-5">
-          <label
-            htmlFor="academicYearFilter"
-            className="text-[11px] font-semibold tracking-wide text-slate-500 md:text-xs"
-          >
-            TAHUN PEMBELAJARAN
-          </label>
-          <div className="relative mt-2 w-full">
-            <select
-              id="academicYearFilter"
-              className="w-full appearance-none rounded-md border border-slate-200 bg-white px-3 py-2.5 pr-10 text-sm font-medium text-slate-700 outline-none transition focus:border-slate-400 focus:ring-1 focus:ring-slate-400 cursor-pointer"
-              value={academicYear || ""}
-              onChange={(e) => onYearChange?.(e.target.value)}
-            >
-              <option value="" disabled>
-                -- Pilih Tahun Belajar --
-              </option>
-              <option value="2026/2027">2026/2027</option>
-              <option value="2027/2028">2027/2028</option>
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
-              <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
-                <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-              </svg>
-            </div>
+          <p className="text-[11px] font-semibold tracking-wide text-slate-500 md:text-xs">
+            MEMBERSHIP BELAJAR
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span className="text-sm font-semibold text-slate-800">
+              {dashboardLoading
+                ? "Memuat akses belajar..."
+                : dashboardData?.student.accessStatus || "Menunggu membership aktif"}
+            </span>
+            <span className="rounded-full bg-orange-50 px-2.5 py-1 text-[11px] font-semibold text-orange-700">
+              {dashboardData?.student.className || "Kelas belum tersedia"}
+            </span>
           </div>
+          <p className="mt-2 text-xs leading-5 text-slate-500">
+            Jadwal, materi, latihan, dan nilai mengikuti membership aktif siswa.
+          </p>
         </div>
       </div>
 
@@ -198,7 +184,7 @@ export default function HeaderAkademikSiswa({
                       {academicAccessMessage ?? "Mari lanjutkan materi dan selesaikan latihan soalmu hari ini."}
                     </p>
 
-                    <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <Link
                         href="/dashboard-siswa/materi"
                         className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700 hover:-translate-y-0.5"
@@ -206,13 +192,23 @@ export default function HeaderAkademikSiswa({
                         <BookOpen className="h-4 w-4" />
                         Buka Materi
                       </Link>
-                      <Link
-                        href="/dashboard-siswa/tugas"
-                        className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:border-orange-200"
-                      >
-                        <FileText className="h-4 w-4" />
-                        Kerjakan Latihan
-                      </Link>
+                      {isUtbkDashboard ? (
+                        <Link
+                          href="/dashboard-siswa/ujian"
+                          className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-orange-200 bg-white px-4 text-sm font-semibold text-orange-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-orange-50"
+                        >
+                          <TimerReset className="h-4 w-4" />
+                          Kerjakan Tryout
+                        </Link>
+                      ) : (
+                        <Link
+                          href="/dashboard-siswa/latihan"
+                          className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 hover:border-orange-200"
+                        >
+                          <FileText className="h-4 w-4" />
+                          Kerjakan Latihan
+                        </Link>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -142,6 +142,11 @@ export function createInitialTugas(activeClass: ClassDetailData): TugasPertemuan
     judulTugas: assignment.title,
     deskripsi: assignment.teacherNote,
     deadline: toIsoDate(assignment.deadline),
+    jamMulai: "",
+    jamSelesai: "",
+    durasiMenit: 60,
+    jumlahSoal: 0,
+    nilaiMinimum: 70,
     jumlahMengumpulkan: assignment.submittedCount,
     statusPenilaian:
       assignment.reviewStatus === "Selesai"
@@ -187,6 +192,7 @@ export function createEmptyMateri(
 export function createEmptyTugas(
   kelasId: string,
   pertemuanKe: number,
+  defaults: Partial<Pick<TugasPertemuan, "deadline" | "jamMulai" | "jamSelesai" | "durasiMenit">> = {},
 ): TugasPertemuan {
   return {
     id: createClientDraftId("tugas"),
@@ -194,7 +200,12 @@ export function createEmptyTugas(
     pertemuanKe,
     judulTugas: "",
     deskripsi: "",
-    deadline: "",
+    deadline: defaults.deadline ?? "",
+    jamMulai: defaults.jamMulai ?? "",
+    jamSelesai: defaults.jamSelesai ?? "",
+    durasiMenit: defaults.durasiMenit ?? 60,
+    jumlahSoal: 0,
+    nilaiMinimum: 70,
     jumlahMengumpulkan: 0,
     statusPenilaian: "Belum Ada Pengumpulan",
   };

@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 
 import { AttendanceRecord } from "../models/AttendanceRecord";
 import { AttendanceSession } from "../models/AttendanceSession";
+import { Schedule } from "../models/Schedule";
 import { Teacher } from "../models/Teacher";
 import { User } from "../models/User";
 import { AppError, sendSuccess } from "../utils/apiResponse";
@@ -19,12 +20,43 @@ import {
   parseValidDate,
 } from "../utils/studentAcademicStatus";
 import {
+  hasUtbkScheduleSignal,
   isUtbkStudent,
   matchesUtbkScheduleClassName,
 } from "../utils/studentProgram";
+import { buildStableTeacherClassId } from "../utils/teacherClassIdentity";
+
+type StudentAttendanceSchedule = {
+  scheduleId?: string | null;
+  className?: string | null;
+  branch?: string | null;
+  subject?: string | null;
+  room?: string | null;
+  status?: string | null;
+  teacherId?:
+    | {
+        teacherId?: string | null;
+        branch?: string | null;
+      }
+    | null;
+  createdAt?: Date | null;
+  updatedAt?: Date | null;
+};
+
+type StudentAttendanceProfile = {
+  branch: string;
+  program: string;
+  className: string;
+  utbkTrack?: string | null;
+};
 
 function normalizeText(value: string | null | undefined): string {
   return value?.trim().replace(/\s+/g, " ") ?? "";
+}
+
+function extractClassModifier(name: string) {
+  const match = normalizeText(name).match(/(?:^|\s)(?:1[0-2]|[2-9])\s*([A-Za-z]+)\b/);
+  return match?.[1]?.toUpperCase() ?? "";
 }
 
 function matchesStudentClass(sessionClassName: string, studentClassName: string) {
@@ -49,11 +81,18 @@ function matchesStudentClass(sessionClassName: string, studentClassName: string)
     normalizedStudentClassName,
   );
 
+  if (
+    !canonicalSessionClassName ||
+    !canonicalStudentClassName ||
+    canonicalSessionClassName.toLowerCase() !==
+      canonicalStudentClassName.toLowerCase()
+  ) {
+    return false;
+  }
+
   return (
-    Boolean(canonicalSessionClassName) &&
-    Boolean(canonicalStudentClassName) &&
-    canonicalSessionClassName?.toLowerCase() ===
-      canonicalStudentClassName?.toLowerCase()
+    extractClassModifier(normalizedSessionClassName) ===
+    extractClassModifier(normalizedStudentClassName)
   );
 }
 
@@ -62,10 +101,90 @@ function matchesStudentBranch(sessionBranch: string, studentBranch: string) {
   const normalizedStudentBranch = normalizeText(studentBranch).toLowerCase();
 
   if (!normalizedStudentBranch) {
+    return false;
+  }
+
+  return Boolean(
+    normalizedSessionBranch &&
+      normalizedSessionBranch === normalizedStudentBranch,
+  );
+}
+
+function inferStudentLevel(program: string, className: string) {
+  const normalizedProgram = normalizeText(program).toUpperCase();
+
+  if (
+    normalizedProgram === "SD" ||
+    normalizedProgram === "SMP" ||
+    normalizedProgram === "SMA"
+  ) {
+    return normalizedProgram;
+  }
+
+  const normalizedClassName = normalizeText(className).toUpperCase();
+
+  if (normalizedClassName.startsWith("SD")) {
+    return "SD";
+  }
+
+  if (normalizedClassName.startsWith("SMP")) {
+    return "SMP";
+  }
+
+  return "SMA";
+}
+
+function isRegularStudentSessionSubjectAllowed(
+  session: { subject?: string | null },
+  student: { program: string; className: string },
+) {
+  const normalizedSubject = normalizeText(session.subject).toLowerCase();
+
+  if (normalizedSubject !== "guru kelas sd") {
     return true;
   }
 
-  return !normalizedSessionBranch || normalizedSessionBranch === normalizedStudentBranch;
+  return inferStudentLevel(student.program, student.className) === "SD";
+}
+
+function matchesStudentSessionProgram(
+  session: {
+    sessionId?: string | null;
+    scheduleId?: string | null;
+    className?: string | null;
+    subject?: string | null;
+    room?: string | null;
+  },
+  student: {
+    program: string;
+    className: string;
+    utbkTrack?: string | null;
+  },
+) {
+  const sessionHasUtbkSignal =
+    hasUtbkScheduleSignal(session) ||
+    hasUtbkScheduleSignal({
+      scheduleId: session.sessionId,
+      className: session.className,
+      subject: session.subject,
+      room: session.room,
+    });
+
+  if (isUtbkStudent(student)) {
+    return (
+      sessionHasUtbkSignal ||
+      matchesUtbkScheduleClassName(session.className, student)
+    );
+  }
+
+  if (sessionHasUtbkSignal) {
+    return false;
+  }
+
+  return (
+    isRegularStudentSessionSubjectAllowed(session, student) &&
+    matchesStudentClass(session.className ?? "", student.className)
+  );
 }
 
 function getAttendanceHistoryOrderKey(date: string, startTime: string) {
@@ -77,6 +196,117 @@ function getAttendanceHistoryOrderKey(date: string, startTime: string) {
   }
 
   return `${normalizedDate}T${normalizedStartTime || "00:00"}`;
+}
+
+function getScheduleTeacherPublicId(schedule: StudentAttendanceSchedule) {
+  return normalizeText(schedule.teacherId?.teacherId);
+}
+
+function getScheduleBranch(schedule: StudentAttendanceSchedule) {
+  return (
+    normalizeText(schedule.branch) ||
+    normalizeText(schedule.teacherId?.branch)
+  );
+}
+
+function getSchedulePriorityTime(schedule: StudentAttendanceSchedule) {
+  return (
+    parseValidDate(schedule.updatedAt)?.getTime() ??
+    parseValidDate(schedule.createdAt)?.getTime() ??
+    0
+  );
+}
+
+function isPreferredSchedule(
+  candidate: StudentAttendanceSchedule,
+  current: StudentAttendanceSchedule | null,
+) {
+  if (!current) {
+    return true;
+  }
+
+  const candidateTime = getSchedulePriorityTime(candidate);
+  const currentTime = getSchedulePriorityTime(current);
+
+  if (candidateTime !== currentTime) {
+    return candidateTime > currentTime;
+  }
+
+  return normalizeText(candidate.scheduleId).localeCompare(
+    normalizeText(current.scheduleId),
+  ) > 0;
+}
+
+async function getEligibleAttendanceClassIds(
+  student: StudentAttendanceProfile,
+) {
+  const branch = normalizeText(student.branch);
+  const canonicalClassName =
+    normalizeCanonicalClassName(student.className)?.toLowerCase() ?? "";
+
+  if (!branch) {
+    return new Set<string>();
+  }
+
+  const rawSchedules = await Schedule.find({
+    branch,
+    status: { $ne: "Bentrok" },
+  })
+    .select(
+      "scheduleId className branch subject room status teacherId createdAt updatedAt",
+    )
+    .lean()
+    .exec();
+  const schedules = (await Schedule.populate(rawSchedules, {
+    path: "teacherId",
+    select: "teacherId branch",
+  })) as unknown as StudentAttendanceSchedule[];
+  const selectedScheduleBySubject = new Map<
+    string,
+    StudentAttendanceSchedule
+  >();
+
+  for (const schedule of schedules) {
+    if (
+      !matchesStudentBranch(getScheduleBranch(schedule), student.branch) ||
+      !matchesStudentSessionProgram(schedule, student)
+    ) {
+      continue;
+    }
+
+    if (!isUtbkStudent(student)) {
+      const scheduleCanonicalClassName =
+        normalizeCanonicalClassName(schedule.className)?.toLowerCase() ?? "";
+
+      if (
+        canonicalClassName &&
+        scheduleCanonicalClassName &&
+        scheduleCanonicalClassName !== canonicalClassName
+      ) {
+        continue;
+      }
+    }
+
+    const subjectKey =
+      normalizeText(schedule.subject).toLowerCase() || "mapel";
+    const currentSchedule = selectedScheduleBySubject.get(subjectKey) ?? null;
+
+    if (isPreferredSchedule(schedule, currentSchedule)) {
+      selectedScheduleBySubject.set(subjectKey, schedule);
+    }
+  }
+
+  return new Set(
+    Array.from(selectedScheduleBySubject.values())
+      .map((schedule) =>
+        buildStableTeacherClassId(
+          getScheduleTeacherPublicId(schedule),
+          getScheduleBranch(schedule),
+          normalizeText(schedule.className),
+        ),
+      )
+      .filter(Boolean),
+  );
 }
 
 export const getMyAttendanceHistory = asyncHandler(
@@ -139,6 +369,8 @@ export const getMyAttendanceHistory = asyncHandler(
     const subscriptionId = membershipSnapshot.subscription?._id ?? null;
     const subscriptionStartAt =
       parseValidDate(membershipSnapshot.subscription?.startDate) ?? academicJoinedAt;
+    const eligibleAttendanceClassIds =
+      await getEligibleAttendanceClassIds(student);
 
     const records = await AttendanceRecord.find({
       $and: [
@@ -173,14 +405,19 @@ export const getMyAttendanceHistory = asyncHandler(
       .lean()
       .exec();
 
-    const isUtbkProgram = isUtbkStudent(student);
     const matchedSessions = sessions.filter((session) => {
-      const matchesClass = isUtbkProgram
-        ? matchesUtbkScheduleClassName(session.className, student)
-        : matchesStudentClass(session.className, student.className);
+      const matchesProgram = matchesStudentSessionProgram(session, student);
+      const sessionClassId = normalizeText(session.classId);
+
+      if (
+        eligibleAttendanceClassIds.size > 0 &&
+        !eligibleAttendanceClassIds.has(sessionClassId)
+      ) {
+        return false;
+      }
 
       return (
-        matchesClass &&
+        matchesProgram &&
         matchesStudentBranch(session.branch, student.branch) &&
         isAttendanceSessionOnOrAfterAcademicJoin(session, subscriptionStartAt)
       );

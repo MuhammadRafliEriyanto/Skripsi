@@ -410,7 +410,7 @@ export default function RegisterOnlineView({
                   htmlFor="phone"
                   className="text-xs font-bold text-slate-500 uppercase tracking-wider"
                 >
-                  Nomor HP (WhatsApp)
+                  Nomor HP (Aktif)
                 </label>
                 <Input
                   id="phone"
@@ -494,7 +494,10 @@ export default function RegisterOnlineView({
                   htmlFor="difficultSubjects"
                   className="text-xs font-bold text-slate-500 uppercase tracking-wider"
                 >
-                  Target Peningkatan Belajar <span className="text-slate-400 font-normal lowercase capitalize-none">(Opsional)</span>
+                  Target Peningkatan Belajar{" "}
+                  <span className="text-slate-400 font-normal lowercase capitalize-none">
+                    (Opsional)
+                  </span>
                 </label>
                 <div className="relative group">
                   <div className="absolute left-3 top-3.5 text-slate-400 transition-colors group-focus-within:text-indigo-600">

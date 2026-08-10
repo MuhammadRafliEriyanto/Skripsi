@@ -1,14 +1,25 @@
 import { FilePenLine, Trophy } from "lucide-react";
 
-import {
-  ACADEMIC_SCORE_LABELS,
-  averageAvailableScores,
-  calculateTotalScores,
-  getAcademicScoreKeys,
-} from "@/lib/academic-grades";
-import type { GradeStatus, TabelNilaiTableProps } from "./types";
+import type {
+  GradeStatus,
+  TabelNilaiTableProps,
+  TaskSubmissionGradeStatus,
+} from "./types";
 
-function getGradeStatus(scoreAverage: number | null): GradeStatus {
+const MEETING_SCORE_COLUMN_COUNT = 24;
+const MEETING_COLUMNS = Array.from(
+  { length: MEETING_SCORE_COLUMN_COUNT },
+  (_, index) => index + 1,
+);
+
+function getGradeStatus(
+  scoreAverage: number | null,
+  hasRemedialScore: boolean,
+): GradeStatus {
+  if (hasRemedialScore) {
+    return "Perlu Remedial";
+  }
+
   if (scoreAverage === null) {
     return "Belum Dinilai";
   }
@@ -37,23 +48,66 @@ function getGradeStatusClass(status: GradeStatus) {
     return "border-sky-200 bg-sky-50 text-sky-700";
   }
 
-  return "border-slate-200 bg-slate-50 text-slate-700";
+  if (status === "Perlu Remedial") {
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+
+  return "border-rose-200 bg-rose-50 text-rose-700";
+}
+
+function getMeetingScoreClass(
+  score: number | null,
+  status: TaskSubmissionGradeStatus | undefined,
+) {
+  if (status === "Perlu Remedial") {
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+
+  if (typeof score === "number") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  return "border-slate-200 bg-slate-50 text-slate-400";
 }
 
 function formatScore(score: number | null) {
-  return score ?? "-";
+  return typeof score === "number" ? score : "-";
+}
+
+function averageScores(scores: Array<number | null>) {
+  const availableScores = scores.filter(
+    (score): score is number => typeof score === "number" && Number.isFinite(score),
+  );
+
+  if (availableScores.length === 0) {
+    return null;
+  }
+
+  return Math.round(
+    availableScores.reduce((total, score) => total + score, 0) /
+      availableScores.length,
+  );
+}
+
+function totalScores(scores: Array<number | null>) {
+  const availableScores = scores.filter(
+    (score): score is number => typeof score === "number" && Number.isFinite(score),
+  );
+
+  if (availableScores.length === 0) {
+    return null;
+  }
+
+  return availableScores.reduce((total, score) => total + score, 0);
 }
 
 export default function TabelNilaiTable({
-  includeTaskScore = true,
   nilaiRows,
   onEditNilai,
   participants,
   readOnly = false,
   readOnlyMessage,
-  scheme,
 }: TabelNilaiTableProps) {
-  const scoreKeys = getAcademicScoreKeys(scheme);
   const rows = participants.map((student) => {
     const currentScore =
       nilaiRows.find((nilai) => nilai.studentId === student.id) ?? {
@@ -70,22 +124,28 @@ export default function TabelNilaiTable({
           tryout3: null,
         },
         note: "",
+        pertemuanScores: {},
+        pertemuanStatuses: {},
       };
-    const scoreValues = [
-      ...(includeTaskScore ? [currentScore.tugas] : []),
-      ...scoreKeys.map((scoreKey) => currentScore.scores[scoreKey]),
-    ];
-
-    const average = averageAvailableScores(scoreValues);
-    const total = calculateTotalScores(scoreValues);
+    const meetingScores = MEETING_COLUMNS.map(
+      (meetingNumber) => currentScore.pertemuanScores?.[meetingNumber] ?? null,
+    );
+    const average = averageScores(meetingScores);
+    const total = totalScores(meetingScores);
+    const hasRemedialScore = MEETING_COLUMNS.some(
+      (meetingNumber) =>
+        currentScore.pertemuanStatuses?.[meetingNumber] === "Perlu Remedial",
+    );
 
     return {
       average,
-      total,
+      hasRemedialScore,
+      meetingScores,
       name: student.name,
       scores: currentScore,
-      status: getGradeStatus(average),
+      status: getGradeStatus(average, hasRemedialScore),
       studentId: student.id,
+      total,
     };
   });
 
@@ -99,7 +159,7 @@ export default function TabelNilaiTable({
           Belum ada nilai siswa yang ditampilkan.
         </p>
         <p className="mt-2 text-sm leading-6 text-slate-500">
-          Tabel nilai akan muncul setelah data evaluasi siswa tersedia di sistem.
+          Tabel nilai akan muncul setelah latihan siswa dinilai di sistem.
         </p>
       </div>
     );
@@ -110,16 +170,10 @@ export default function TabelNilaiTable({
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 bg-gradient-to-r from-orange-50/60 via-white to-amber-50/30 px-5 py-4 md:px-6">
         <div>
           <h2 className="text-lg font-semibold text-slate-800 md:text-xl">
-            Tabel Nilai
+            Tabel Nilai Pertemuan
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            {readOnly
-              ? readOnlyMessage ?? "Tahun ajaran ini sudah menjadi arsip. Nilai hanya bisa dilihat."
-              : scoreKeys.length > 0
-                ? "Rekap nilai latihan dan evaluasi kelas."
-                : includeTaskScore
-                  ? "Rekap nilai latihan siswa."
-                  : "Rekap nilai evaluasi siswa."}
+            Rekap nilai latihan siswa per pertemuan P1 sampai P24.
           </p>
         </div>
         <span className="inline-flex items-center border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700">
@@ -129,23 +183,27 @@ export default function TabelNilaiTable({
 
       <div className="px-5 py-5 md:px-6">
         <div className="overflow-x-auto border border-slate-200 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-slate-50 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300">
-          <table className={`${includeTaskScore ? "min-w-[900px]" : "min-w-[760px]"} w-full`}>
+          <table className="min-w-[2320px] table-fixed w-full">
             <thead className="bg-orange-50/50 text-left backdrop-blur-sm">
               <tr className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                <th className="px-4 py-4 font-semibold">No</th>
-                <th className="px-4 py-4 font-semibold">Nama Siswa</th>
-                {includeTaskScore ? (
-                  <th className="px-4 py-4 font-semibold">Tugas</th>
-                ) : null}
-                {scoreKeys.map((scoreKey) => (
-                  <th key={scoreKey} className="px-4 py-4 font-semibold">
-                    {ACADEMIC_SCORE_LABELS[scoreKey]}
+                <th className="w-16 px-4 py-4 font-semibold">No</th>
+                <th className="w-56 px-4 py-4 font-semibold">Nama Siswa</th>
+                {MEETING_COLUMNS.map((meetingNumber) => (
+                  <th
+                    key={meetingNumber}
+                    className="w-16 px-2 py-4 text-center font-semibold"
+                  >
+                    P{meetingNumber}
                   </th>
                 ))}
-                <th className="px-4 py-4 font-semibold">Total</th>
-                <th className="px-4 py-4 font-semibold">Rata-rata</th>
-                <th className="px-4 py-4 font-semibold">Status</th>
-                <th className="px-4 py-4 text-center font-semibold">Aksi</th>
+                <th className="w-24 px-4 py-4 text-center font-semibold">Total</th>
+                <th className="w-28 px-4 py-4 text-center font-semibold">
+                  Rata-rata
+                </th>
+                <th className="w-36 px-4 py-4 font-semibold">Status</th>
+                <th className="w-24 px-4 py-4 text-center font-semibold">
+                  Koreksi
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -160,20 +218,32 @@ export default function TabelNilaiTable({
                   <td className="px-4 py-4 font-semibold text-slate-800">
                     {row.name}
                   </td>
-                  {includeTaskScore ? (
-                    <td className="px-4 py-4 text-slate-600">
-                      {formatScore(row.scores.tugas)}
-                    </td>
-                  ) : null}
-                  {scoreKeys.map((scoreKey) => (
-                    <td key={scoreKey} className="px-4 py-4 text-slate-600">
-                      {formatScore(row.scores.scores[scoreKey])}
-                    </td>
-                  ))}
-                  <td className="px-4 py-4 font-semibold text-slate-800">
+                  {MEETING_COLUMNS.map((meetingNumber, meetingIndex) => {
+                    const score = row.meetingScores[meetingIndex];
+                    const status = row.scores.pertemuanStatuses?.[meetingNumber];
+
+                    return (
+                      <td
+                        key={`${row.studentId}-${meetingNumber}`}
+                        className="px-2 py-3 text-center"
+                      >
+                        <span
+                          className={`inline-flex h-8 min-w-10 items-center justify-center border px-2 text-xs font-semibold ${getMeetingScoreClass(score, status)}`}
+                          title={
+                            status === "Perlu Remedial"
+                              ? "Siswa perlu remedial untuk pertemuan ini"
+                              : undefined
+                          }
+                        >
+                          {formatScore(score)}
+                        </span>
+                      </td>
+                    );
+                  })}
+                  <td className="px-4 py-4 text-center font-semibold text-slate-800">
                     {formatScore(row.total)}
                   </td>
-                  <td className="px-4 py-4 font-semibold text-slate-800">
+                  <td className="px-4 py-4 text-center font-semibold text-slate-800">
                     {formatScore(row.average)}
                   </td>
                   <td className="px-4 py-4">
@@ -192,8 +262,12 @@ export default function TabelNilaiTable({
                       ) : (
                         <button
                           type="button"
-                          title="Edit Nilai"
-                          aria-label="Edit Nilai"
+                          title={
+                            readOnly
+                              ? readOnlyMessage
+                              : "Koreksi nilai dengan alasan"
+                          }
+                          aria-label="Koreksi nilai"
                           onClick={() => onEditNilai(row.studentId)}
                           className="inline-flex h-8 w-8 items-center justify-center border border-slate-200 bg-slate-50 text-slate-700 transition hover:border-orange-300 hover:bg-orange-100"
                         >

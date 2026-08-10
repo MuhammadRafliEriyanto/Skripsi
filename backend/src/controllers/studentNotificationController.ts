@@ -556,17 +556,17 @@ export const getMyStudentNotifications = asyncHandler(
       const primaryTask = overdueTasks[0];
       const overdueMessage =
         overdueTasks.length === 1
-          ? `Tugas "${normalizeText(primaryTask.title)}" sudah melewati deadline ${formatIndonesianDate(primaryTask.deadline)} dan belum dikirim.`
-          : `Ada ${overdueTasks.length} tugas yang sudah melewati deadline. Tugas terdekat berakhir pada ${formatIndonesianDate(primaryTask.deadline)}.`;
+          ? `Latihan "${normalizeText(primaryTask.title)}" sudah melewati deadline ${formatIndonesianDate(primaryTask.deadline)} dan belum dikerjakan.`
+          : `Ada ${overdueTasks.length} latihan yang sudah melewati deadline. Latihan terdekat berakhir pada ${formatIndonesianDate(primaryTask.deadline)}.`;
 
       notifications.push({
         id: "student-task-overdue",
-        title: "Tugas Terlewat",
+        title: "Latihan Terlewat",
         message: overdueMessage,
         type: "task",
         createdAt: toIsoDate(primaryTask.updatedAt ?? primaryTask.createdAt),
         read: false,
-        href: "/dashboard-siswa/tugas",
+        href: "/dashboard-siswa/latihan",
       });
     } else {
       const upcomingTasks = tasks.filter((task) => {
@@ -585,17 +585,17 @@ export const getMyStudentNotifications = asyncHandler(
         const primaryTask = upcomingTasks[0];
         const upcomingTaskMessage =
           upcomingTasks.length === 1
-            ? `Tugas "${normalizeText(primaryTask.title)}" perlu dikumpulkan paling lambat ${formatIndonesianDate(primaryTask.deadline)}.`
-            : `Ada ${upcomingTasks.length} tugas dengan deadline dalam ${UPCOMING_TASK_WINDOW_DAYS} hari ke depan.`;
+            ? `Latihan "${normalizeText(primaryTask.title)}" perlu dikerjakan paling lambat ${formatIndonesianDate(primaryTask.deadline)}.`
+            : `Ada ${upcomingTasks.length} latihan dengan deadline dalam ${UPCOMING_TASK_WINDOW_DAYS} hari ke depan.`;
 
         notifications.push({
           id: "student-task-upcoming",
-          title: "Deadline Tugas Dekat",
+          title: "Deadline Latihan Dekat",
           message: upcomingTaskMessage,
           type: "task",
           createdAt: toIsoDate(primaryTask.updatedAt ?? primaryTask.createdAt),
           read: false,
-          href: "/dashboard-siswa/tugas",
+          href: "/dashboard-siswa/latihan",
         });
       }
     }
@@ -638,7 +638,7 @@ export const getMyStudentNotifications = asyncHandler(
       const primaryGrade = recentGrades[0];
       const relatedTask = taskById.get(normalizeText(primaryGrade.taskId));
       const relatedTaskTitle =
-        normalizeText(relatedTask?.title) || "tugas terbaru";
+        normalizeText(relatedTask?.title) || "latihan terbaru";
       const scoreLabel =
         typeof primaryGrade.score === "number" && Number.isFinite(primaryGrade.score)
           ? `${primaryGrade.score}/100`
@@ -646,11 +646,11 @@ export const getMyStudentNotifications = asyncHandler(
       const gradeMessage =
         recentGrades.length === 1
           ? `Nilai untuk ${relatedTaskTitle} sudah tersedia dengan skor ${scoreLabel}.`
-          : `Ada ${recentGrades.length} tugas yang sudah dinilai. Nilai terbaru tercatat ${scoreLabel}.`;
+          : `Ada ${recentGrades.length} latihan yang sudah dinilai. Nilai terbaru tercatat ${scoreLabel}.`;
 
       notifications.push({
         id: "student-grade-updated",
-        title: "Nilai Tugas Terbit",
+        title: "Nilai Latihan Terbit",
         message: gradeMessage,
         type: "grade",
         createdAt: toIsoDate(

@@ -3,6 +3,22 @@ export const UTBK_GENERAL_SCHEDULE_CLASS_NAME = "UTBK";
 export const UTBK_KELAS_12_SCHEDULE_CLASS_NAME = "UTBK Kelas 12";
 export const UTBK_ALUMNI_SCHEDULE_CLASS_NAME = "UTBK Alumni / Gap Year";
 
+const UTBK_SCHEDULE_SUBJECTS = new Set([
+  "TPS",
+  "LITERASI BAHASA INDONESIA",
+  "LITERASI BAHASA INGGRIS",
+  "PENALARAN MATEMATIKA",
+  "PEMBAHASAN TRYOUT UTBK",
+  "STRATEGI SNBT",
+]);
+
+type ScheduleSignalSource = {
+  scheduleId?: string | null;
+  className?: string | null;
+  subject?: string | null;
+  room?: string | null;
+};
+
 function normalizeProgram(value: string | null | undefined) {
   return value?.trim().toUpperCase() ?? "";
 }
@@ -80,6 +96,30 @@ export function normalizeUtbkScheduleClassName(
 
 export function isUtbkScheduleClassName(value: string | null | undefined) {
   return Boolean(normalizeUtbkScheduleClassName(value));
+}
+
+export function isUtbkScheduleSubject(value: string | null | undefined) {
+  const normalizedSubject = normalizeText(value).toUpperCase();
+
+  return (
+    UTBK_SCHEDULE_SUBJECTS.has(normalizedSubject) ||
+    normalizedSubject.includes("UTBK") ||
+    normalizedSubject.includes("SNBT")
+  );
+}
+
+export function hasUtbkScheduleSignal(schedule: ScheduleSignalSource) {
+  const normalizedScheduleId = normalizeText(schedule.scheduleId).toUpperCase();
+  const normalizedRoom = normalizeText(schedule.room).toUpperCase();
+
+  return (
+    normalizedScheduleId.includes("UTBK") ||
+    normalizedScheduleId.includes("SNBT") ||
+    normalizedRoom.includes("UTBK") ||
+    normalizedRoom.includes("SNBT") ||
+    isUtbkScheduleClassName(schedule.className) ||
+    isUtbkScheduleSubject(schedule.subject)
+  );
 }
 
 export function getUtbkScheduleClassNames(

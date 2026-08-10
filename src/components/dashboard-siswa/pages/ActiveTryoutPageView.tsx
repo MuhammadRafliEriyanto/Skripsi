@@ -81,6 +81,12 @@ function ReviewBadge({
   );
 }
 
+function formatReviewOptionLabel(value: string | null | undefined) {
+  const normalizedValue = normalizeText(value);
+
+  return normalizedValue ? normalizedValue.toUpperCase() : "Belum dijawab";
+}
+
 function SectionHeader({
   icon: Icon,
   title,
@@ -553,79 +559,87 @@ export default function ActiveTryoutPageView({ attemptId }: ActiveTryoutPageView
           description="Sesi ujian belum siap atau belum bisa dimuat."
           onRetry={loadExamAttempt}
         />
-      ) : isSubmitted && displayResult ? (
-        <section className="rounded-[24px] border border-slate-100 bg-white p-5 shadow-sm md:p-6">
-          <SectionHeader
-            icon={CheckCircle2}
-            title={`Hasil ${activeSession.assessmentLabel}`}
-            description="Ringkasan hasil dari jawaban yang sudah dikirim."
-          />
+      ) : (
+        <>
+          {isSubmitted && displayResult ? (
+            <section className="rounded-[24px] border border-slate-100 bg-white p-5 shadow-sm md:p-6">
+              <SectionHeader
+                icon={CheckCircle2}
+                title={`Hasil ${activeSession.assessmentLabel}`}
+                description="Ringkasan hasil dari jawaban yang sudah dikirim."
+              />
 
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                <CheckCircle2 className="h-4 w-4" />
-                {submittedByTimer
-                  ? `${activeSession.assessmentLabel} terkirim otomatis`
-                  : `${activeSession.assessmentLabel} berhasil dikirim`}
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                    <CheckCircle2 className="h-4 w-4" />
+                    {submittedByTimer
+                      ? `${activeSession.assessmentLabel} terkirim otomatis`
+                      : `${activeSession.assessmentLabel} berhasil dikirim`}
+                  </div>
+                  <h2 className="mt-3 text-xl font-semibold text-slate-800">
+                    Ringkasan hasil {activeSession.assessmentLabel} kamu
+                  </h2>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleBackToDashboard}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-orange-200 bg-orange-50 px-5 text-sm font-semibold text-orange-700 transition hover:bg-orange-100"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Kembali ke Daftar
+                </button>
               </div>
-              <h2 className="mt-3 text-xl font-semibold text-slate-800">
-                Ringkasan hasil {activeSession.assessmentLabel} kamu
-              </h2>
-            </div>
 
-            <button
-              type="button"
-              onClick={handleBackToDashboard}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-orange-200 bg-orange-50 px-5 text-sm font-semibold text-orange-700 transition hover:bg-orange-100"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Kembali ke Daftar
-            </button>
-          </div>
+              <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-[20px] border border-slate-100 bg-slate-50/70 p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                    Skor
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-800">
+                    {displayResult.score}
+                  </p>
+                </div>
+                <div className="rounded-[20px] border border-slate-100 bg-slate-50/70 p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                    Jawaban Benar
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-800">
+                    {displayResult.correctCount}/{displayResult.totalQuestions}
+                  </p>
+                </div>
+                <div className="rounded-[20px] border border-slate-100 bg-slate-50/70 p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                    Waktu Terpakai
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-800">
+                    {formatTimer(timeUsedSeconds)}
+                  </p>
+                </div>
+                <div className="rounded-[20px] border border-slate-100 bg-slate-50/70 p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                    Belum Dijawab
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-800">
+                    {displayResult.unansweredCount}
+                  </p>
+                </div>
+              </div>
+            </section>
+          ) : null}
 
-          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-[20px] border border-slate-100 bg-slate-50/70 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-                Skor
-              </p>
-              <p className="mt-2 text-2xl font-semibold text-slate-800">
-                {displayResult.score}
-              </p>
-            </div>
-            <div className="rounded-[20px] border border-slate-100 bg-slate-50/70 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-                Jawaban Benar
-              </p>
-              <p className="mt-2 text-2xl font-semibold text-slate-800">
-                {displayResult.correctCount}/{displayResult.totalQuestions}
-              </p>
-            </div>
-            <div className="rounded-[20px] border border-slate-100 bg-slate-50/70 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-                Waktu Terpakai
-              </p>
-              <p className="mt-2 text-2xl font-semibold text-slate-800">
-                {formatTimer(timeUsedSeconds)}
-              </p>
-            </div>
-            <div className="rounded-[20px] border border-slate-100 bg-slate-50/70 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-                Belum Dijawab
-              </p>
-              <p className="mt-2 text-2xl font-semibold text-slate-800">
-                {displayResult.unansweredCount}
-              </p>
-            </div>
-          </div>
-        </section>
-      ) : currentQuestion ? (
-        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+          {currentQuestion ? (
+            <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
           <section className="rounded-[24px] border border-slate-100 bg-white p-5 shadow-sm md:p-6">
             <SectionHeader
               icon={ListChecks}
-              title="Area Pengerjaan"
-              description="Baca soal dengan teliti, pilih jawaban terbaik, lalu tandai bila ingin dicek ulang lagi."
+              title={isSubmitted ? "Review Soal" : "Area Pengerjaan"}
+              description={
+                isSubmitted
+                  ? "Lihat kembali soal, jawaban kamu, kunci jawaban, dan pembahasan yang tersedia."
+                  : "Baca soal dengan teliti, pilih jawaban terbaik, lalu tandai bila ingin dicek ulang lagi."
+              }
             />
 
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -729,6 +743,31 @@ export default function ActiveTryoutPageView({ attemptId }: ActiveTryoutPageView
                   );
                 })}
               </div>
+
+              {isSubmitted ? (
+                <div className="mt-5 rounded-[20px] border border-emerald-100 bg-white p-4">
+                  <div className="flex flex-wrap gap-2 text-xs font-semibold">
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600">
+                      Jawaban kamu:{" "}
+                      {formatReviewOptionLabel(
+                        answers[getQuestionKey(currentQuestion)],
+                      )}
+                    </span>
+                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">
+                      Kunci:{" "}
+                      {formatReviewOptionLabel(currentQuestion.correctOptionId)}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm font-semibold text-slate-800">
+                    Pembahasan
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">
+                    {currentQuestion.explanation ||
+                      currentQuestion.clue ||
+                      "Pembahasan belum tersedia untuk soal ini."}
+                  </p>
+                </div>
+              ) : null}
             </div>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -783,54 +822,60 @@ export default function ActiveTryoutPageView({ attemptId }: ActiveTryoutPageView
           </section>
 
           <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
-            <section className="rounded-[24px] border border-slate-100 bg-white p-5 shadow-sm md:p-6">
-              <SectionHeader
-                icon={Clock3}
-                title={`Timer ${activeSession.assessmentLabel}`}
-                description="Pantau sisa waktu dan ritme pengerjaan selama sesi berlangsung."
-              />
+            {!isSubmitted ? (
+              <section className="rounded-[24px] border border-slate-100 bg-white p-5 shadow-sm md:p-6">
+                <SectionHeader
+                  icon={Clock3}
+                  title={`Timer ${activeSession.assessmentLabel}`}
+                  description="Pantau sisa waktu dan ritme pengerjaan selama sesi berlangsung."
+                />
 
-              <div
-                className={cn(
-                  "rounded-[24px] border px-4 py-4",
-                  timerRatio <= 0.1 && "border-rose-200 bg-rose-50 text-rose-700",
-                  timerRatio > 0.1 &&
-                    timerRatio <= 0.25 &&
-                    "border-amber-200 bg-amber-50 text-amber-700",
-                  timerRatio > 0.25 &&
-                    "border-orange-100 bg-orange-50/70 text-orange-700",
-                )}
-              >
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em]">
-                      Sisa waktu
-                    </p>
-                    <p className="mt-2 text-3xl font-semibold tracking-[0.08em]">
-                      {formatTimer(secondsRemaining)}
-                    </p>
-                  </div>
-                </div>
-
-                <Progress
-                  value={Math.max(0, Math.round(timerRatio * 100))}
+                <div
                   className={cn(
-                    "mt-4 h-2.5 bg-white/90",
-                    timerRatio <= 0.1 && "[&>div]:bg-rose-500",
+                    "rounded-[24px] border px-4 py-4",
+                    timerRatio <= 0.1 && "border-rose-200 bg-rose-50 text-rose-700",
                     timerRatio > 0.1 &&
                       timerRatio <= 0.25 &&
-                      "[&>div]:bg-amber-500",
-                    timerRatio > 0.25 && "[&>div]:bg-orange-500",
+                      "border-amber-200 bg-amber-50 text-amber-700",
+                    timerRatio > 0.25 &&
+                      "border-orange-100 bg-orange-50/70 text-orange-700",
                   )}
-                />
-              </div>
-            </section>
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em]">
+                        Sisa waktu
+                      </p>
+                      <p className="mt-2 text-3xl font-semibold tracking-[0.08em]">
+                        {formatTimer(secondsRemaining)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <Progress
+                    value={Math.max(0, Math.round(timerRatio * 100))}
+                    className={cn(
+                      "mt-4 h-2.5 bg-white/90",
+                      timerRatio <= 0.1 && "[&>div]:bg-rose-500",
+                      timerRatio > 0.1 &&
+                        timerRatio <= 0.25 &&
+                        "[&>div]:bg-amber-500",
+                      timerRatio > 0.25 && "[&>div]:bg-orange-500",
+                    )}
+                  />
+                </div>
+              </section>
+            ) : null}
 
             <section className="rounded-[24px] border border-slate-100 bg-white p-5 shadow-sm md:p-6">
               <SectionHeader
                 icon={Target}
-                title="Progres Jawaban"
-                description="Lihat jumlah soal yang sudah terjawab, tertunda, dan masih perlu dicek ulang."
+                title={isSubmitted ? "Rekap Jawaban" : "Progres Jawaban"}
+                description={
+                  isSubmitted
+                    ? "Ringkasan status jawaban dari attempt yang sudah dikirim."
+                    : "Lihat jumlah soal yang sudah terjawab, tertunda, dan masih perlu dicek ulang."
+                }
               />
 
               <div className="grid grid-cols-2 gap-3">
@@ -888,7 +933,9 @@ export default function ActiveTryoutPageView({ attemptId }: ActiveTryoutPageView
             </section>
           </aside>
         </div>
-      ) : null}
+          ) : null}
+        </>
+      )}
     </StudentLearningShell>
   );
 }

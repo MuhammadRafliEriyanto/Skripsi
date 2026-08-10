@@ -20,11 +20,13 @@ export type PublicStudent = {
   className: string;
   birthDate: string;
   academicYear: string;
+  address: string;
   schoolOrigin?: string;
   difficultSubjects?: string;
   academicJoinedAt: string | null;
   generatedPassword: string;
   status: "Aktif" | "Nonaktif";
+  isEmailVerified: boolean;
   membership?: {
     status: "active" | "expiring" | "pending" | "expired" | "none";
     packageKey?: string;
@@ -49,6 +51,9 @@ export type PublicTeacher = {
   branch: string;
   branches: string[];
   phone: string;
+  address: string;
+  education: string;
+  isEmailVerified: boolean;
   status: "Aktif" | "Nonaktif";
   availability: "Tersedia" | "Padat" | "Cuti";
 };
@@ -127,6 +132,7 @@ export function toPublicStudent(
     className: student.className,
     birthDate,
     academicYear: student.academicYear || getCurrentAcademicPeriod().academicYear,
+    address: student.address,
     schoolOrigin: student.schoolOrigin,
     difficultSubjects: student.difficultSubjects,
     academicJoinedAt: student.academicJoinedAt?.toISOString() ?? null,
@@ -135,6 +141,7 @@ export function toPublicStudent(
       studentId: student.studentId,
     }),
     status: student.status,
+    isEmailVerified: user.isEmailVerified,
     membership,
     hasFinancialHistory,
   };
@@ -156,6 +163,9 @@ export function toPublicTeacher(teacher: TeacherDocument, user: UserDocument): P
       new Set([teacher.branch, ...(teacher.branches ?? [])].filter(Boolean)),
     ),
     phone: teacher.phone,
+    address: teacher.address || "",
+    education: teacher.education || "",
+    isEmailVerified: user.isEmailVerified,
     status: teacher.status,
     availability: teacher.availability,
   };

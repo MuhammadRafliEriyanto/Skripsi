@@ -1,6 +1,6 @@
 import type { AcademicGradeScheme, AcademicScores } from "@/lib/academic-grades";
 
-export type SubmissionMode = "file" | "text" | "drive";
+export type SubmissionMode = "file" | "text" | "drive" | "cbt";
 
 export type StudentAcademicSummary = {
   classId: string;
@@ -15,6 +15,7 @@ export type StudentAcademicSummary = {
   note: string;
   finalAverage: number | null;
   evaluatedAt: string | null;
+  targetMeetingCount: number;
 };
 
 export type StudentLearningProfile = {
@@ -52,9 +53,13 @@ export type StudentTaskStatus =
   | "Belum Dikerjakan"
   | "Menunggu Dikirim"
   | "Sudah Dikirim"
-  | "Sudah Dinilai";
+  | "Sudah Dinilai"
+  | "Perlu Remedial";
 
-export type StudentTaskGradeStatus = "Belum Dinilai" | "Sudah Dinilai";
+export type StudentTaskGradeStatus =
+  | "Belum Dinilai"
+  | "Sudah Dinilai"
+  | "Perlu Remedial";
 
 export type StudentTaskSubmissionSummary = {
   submitted: boolean;
@@ -73,6 +78,19 @@ export type StudentTaskGradeSummary = {
   note: string;
   status: StudentTaskGradeStatus;
   gradedAt: string | null;
+  remedialRequestedAt: string | null;
+  remedialCompletedAt: string | null;
+  remedialCount: number;
+};
+
+export type StudentTaskAttemptSummary = {
+  submitted: boolean;
+  attemptId: string | null;
+  status: string;
+  score: number | null;
+  submittedAt: string | null;
+  startedAt: string | null;
+  remedialCount: number;
 };
 
 export type StudentTaskSubmissionAttachment = {
@@ -107,6 +125,7 @@ export type StudentTask = {
   pertemuan: number;
   deadline: string;
   estimasi: string;
+  jadwalPengerjaan: string;
   poin: string;
   status: StudentTaskStatus;
   deskripsi: string;
@@ -114,8 +133,17 @@ export type StudentTask = {
   submitHref: string;
   attachmentName?: string;
   attachmentUrl?: string;
+  startAt: string | null;
+  endAt: string | null;
+  durationMinutes: number | null;
+  questionCount: number;
+  passingGrade: number | null;
+  isCbtReady: boolean;
+  isRemedial: boolean;
+  availabilityMessage: string;
   submissionModes: SubmissionMode[];
   instruksiPengumpulan: string[];
   mySubmission?: StudentTaskSubmissionSummary;
   myGrade?: StudentTaskGradeSummary;
+  myAttempt?: StudentTaskAttemptSummary;
 };

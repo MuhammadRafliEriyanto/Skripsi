@@ -12,6 +12,11 @@ import {
   deleteMyStudentTaskSubmission,
 } from "../controllers/studentLearningController";
 import {
+  getStudentClassTaskCbtSession,
+  startStudentClassTaskCbt,
+  submitStudentClassTaskCbt,
+} from "../controllers/studentTaskCbtController";
+import {
   getMyStudentAcademicHistory,
   getMyStudentAcademicHistoryDetail,
 } from "../controllers/academicHistoryController";
@@ -49,6 +54,12 @@ router.post(
 );
 router.get("/me/tryouts/:tryoutId", getMyStudentTryoutDetail);
 router.post("/me/tryouts/:tryoutId/submission", submitMyStudentTryout);
+router.post("/me/learning/tasks/:taskId/cbt/start", startStudentClassTaskCbt);
+router.get("/me/learning/tasks/cbt/:attemptId", getStudentClassTaskCbtSession);
+router.post(
+  "/me/learning/tasks/cbt/:attemptId/submission",
+  submitStudentClassTaskCbt,
+);
 router
   .route("/me/learning/tasks/:taskId/submission")
   .get(getMyStudentTaskSubmission)

@@ -1356,8 +1356,22 @@ async function getTeacherClassParticipants(
     .sort((left, right) => left.name.localeCompare(right.name, "id-ID"));
 }
 
-async function getTeacherSchedules(filters?: { academicYear?: string; semester?: string }) {
-  const query: FilterQuery<ISchedule> = buildAcademicPeriodOrLegacyFilter(filters);
+async function getTeacherSchedules(
+  filters?: { academicYear?: string; semester?: string },
+  teacherObjectId?: unknown,
+) {
+  const teacherId = toRecordId(teacherObjectId);
+  const periodQuery = buildAcademicPeriodOrLegacyFilter(filters);
+  const query: FilterQuery<ISchedule> = teacherId
+    ? {
+        $and: [
+          {
+            teacherId,
+          },
+          periodQuery,
+        ],
+      }
+    : periodQuery;
 
   return (await Schedule.find(query)
     .populate<{
@@ -1380,10 +1394,10 @@ async function getTeacherSchedules(filters?: { academicYear?: string; semester?:
 }
 
 async function getTeacherOwnedSchedules(
-  teacher: { teacherId: string },
+  teacher: { teacherId: string; _id?: unknown },
   filters?: { academicYear?: string; semester?: string },
 ) {
-  const schedules = await getTeacherSchedules(filters);
+  const schedules = await getTeacherSchedules(filters, teacher._id);
 
   return filterSchedulesForTeacher(
     buildSchedulePresentation(schedules),
@@ -1547,7 +1561,7 @@ export const getMyTeacherSchedules = asyncHandler(
     }
 
     const filters = resolveTeacherAcademicPeriodFilters(req.query);
-    const schedules = await getTeacherSchedules(filters);
+    const schedules = await getTeacherSchedules(filters, teacher._id);
 
     sendSuccess(res, {
       data: {

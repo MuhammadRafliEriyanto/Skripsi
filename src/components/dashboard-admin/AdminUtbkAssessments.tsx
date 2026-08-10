@@ -71,9 +71,11 @@ const programFilterOptions = [
 ] as const;
 const statusFilterOptions = [
   { value: allStatusesValue, label: "Semua" },
-  { value: "Aktif", label: "Aktif" },
-  { value: "Perlu dicek", label: "Perlu dicek" },
-  { value: "Belum ada", label: "Belum ada" },
+  { value: "Lengkap", label: "Lengkap" },
+  { value: "Menunggu Review", label: "Menunggu Review" },
+  { value: "Belum Latihan", label: "Belum Latihan" },
+  { value: "Belum Akses Materi", label: "Belum Akses Materi" },
+  { value: "Belum Hadir", label: "Belum Hadir" },
 ] as const;
 const monitoringPageSize = 10;
 
@@ -157,12 +159,13 @@ function getStatusBadgeClassName(status: AdminAcademicMonitoringStatus) {
   switch (status) {
     case "Data Lengkap":
       return "border-emerald-100 bg-emerald-50 text-emerald-700";
-    case "Aktif Belajar":
+    case "Menunggu Review":
       return "border-sky-100 bg-sky-50 text-sky-700";
-    case "Mulai Terpantau":
-      return "border-orange-100 bg-orange-50 text-orange-700";
-    case "Perlu Dipantau":
+    case "Belum Latihan":
+    case "Belum Akses Materi":
       return "border-amber-100 bg-amber-50 text-amber-700";
+    case "Belum Hadir":
+      return "border-rose-100 bg-rose-50 text-rose-700";
     case "Belum Ada Data":
     default:
       return "border-slate-200 bg-slate-100 text-slate-600";
@@ -170,19 +173,7 @@ function getStatusBadgeClassName(status: AdminAcademicMonitoringStatus) {
 }
 
 function getStatusLabel(status: AdminAcademicMonitoringStatus) {
-  switch (status) {
-    case "Data Lengkap":
-      return "Lengkap";
-    case "Aktif Belajar":
-      return "Aktif";
-    case "Mulai Terpantau":
-      return "Mulai berjalan";
-    case "Perlu Dipantau":
-      return "Perlu dicek";
-    case "Belum Ada Data":
-    default:
-      return "Belum ada data";
-  }
+  return status;
 }
 
 function getStudentNameText(student: AdminAcademicMonitoringStudent) {
@@ -423,7 +414,7 @@ function exportStudentPdf(student: AdminAcademicMonitoringStudent) {
     ["Nilai Terakhir", formatScore(student.latestScore)],
     ["Nilai Terbaik", formatScore(student.bestScore)],
     ["Rata-rata", formatScore(student.averageScore)],
-    ["Catatan Nilai", student.latestScoreLabel || "Belum ada nilai tercatat"],
+    ["Catatan Nilai", student.latestScoreLabel ? `${student.latestScoreLabel} - ${formatDateTime(student.latestScoreAt)}` : "Belum ada nilai tercatat"],
   ];
   const activityRows: string[][] = [
     ["Program", getProgramDisplayText(student)],
@@ -431,18 +422,10 @@ function exportStudentPdf(student: AdminAcademicMonitoringStudent) {
       ? [["Kelas", getProgramSubtitleText(student)]]
       : []),
     ["Status", getStatusLabel(student.learningStatus)],
-    ["Materi", `${formatNumber(student.materialCount)} materi`],
-    [
-      student.isUtbk ? "Tryout" : "Tugas",
-      student.isUtbk
-        ? getTryoutProgressText(student)
-        : `${formatNumber(student.gradedTaskCount)} tugas dinilai`,
-    ],
-    ["Absensi", getAttendanceText(student)],
-    [
-      "Kehadiran",
-      student.attendanceRate !== null ? formatPercent(student.attendanceRate) : "-",
-    ],
+    ["Kehadiran", `${formatNumber(student.attendancePresent)} / ${formatNumber(student.attendanceTotal)} (${formatPercent(student.attendanceRate)})`],
+    ["Materi", `${formatNumber(student.materialCount)} Bab Selesai`],
+    ["Latihan CBT", `${formatNumber(student.taskCount)} Selesai`],
+    ["Review Guru", `${formatNumber(student.gradedTaskCount)} Dinilai`],
   ];
   const utbkRows = student.isUtbk
     ? [
@@ -685,10 +668,10 @@ function MonitoringNoteCell({
 }) {
   const firstLine = student.isUtbk
     ? `Tryout UTBK ${getTryoutProgressText(student)}`
-    : `${formatNumber(student.materialCount)} materi - ${formatNumber(student.gradedTaskCount)} tugas dinilai`;
+    : `Kehadiran: ${student.attendancePresent}/${student.attendanceTotal} (${formatPercent(student.attendanceRate)})`;
   const secondLine = student.isUtbk
     ? getTargetText(student)
-    : getAttendanceText(student);
+    : `Materi: ${student.materialCount} | CBT: ${student.taskCount} | Review: ${student.gradedTaskCount}`;
 
   return (
     <div className="min-w-[230px] max-w-[320px] space-y-1">
@@ -834,26 +817,23 @@ function StudentDetailDialog({
             ) : null}
           </DetailPanel>
 
-          <DetailPanel title="Aktivitas">
+          <DetailPanel title="Alur Harian">
+            <DetailRow
+              label="Kehadiran"
+              value={`${formatNumber(student.attendancePresent)} / ${formatNumber(student.attendanceTotal)} (${formatPercent(student.attendanceRate)})`}
+            />
             <DetailRow
               label="Materi"
-              value={`${formatNumber(student.materialCount)} materi`}
+              value={`${formatNumber(student.materialCount)} Bab Selesai`}
             />
             <DetailRow
-              label={student.isUtbk ? "Tryout" : "Tugas"}
-              value={
-                student.isUtbk
-                  ? getTryoutProgressText(student)
-                  : `${formatNumber(student.gradedTaskCount)} tugas dinilai`
-              }
+              label="Latihan CBT"
+              value={`${formatNumber(student.taskCount)} Selesai`}
             />
-            <DetailRow label="Absensi" value={getAttendanceText(student)} />
-            {student.attendanceRate !== null ? (
-              <DetailRow
-                label="Kehadiran"
-                value={formatPercent(student.attendanceRate)}
-              />
-            ) : null}
+            <DetailRow
+              label="Review Guru"
+              value={`${formatNumber(student.gradedTaskCount)} Dinilai`}
+            />
           </DetailPanel>
 
           <DetailPanel title="Nilai">
@@ -1034,16 +1014,7 @@ export function AdminAcademicMonitoring({
         header: "Program",
         cell: (student) => <ProgramCell student={student} />,
       },
-      {
-        key: "status",
-        header: "Status",
-        cell: (student) => <SimpleStatusCell student={student} />,
-      },
-      {
-        key: "note",
-        header: "Ringkasan",
-        cell: (student) => <MonitoringNoteCell student={student} />,
-      },
+
       {
         key: "action",
         header: "Aksi",
@@ -1192,12 +1163,15 @@ export function AdminAcademicMonitoring({
           square
           minWidthClassName="min-w-[920px]"
           getRowClassName={(student) =>
-            student.learningStatus === "Perlu Dipantau"
+            student.learningStatus === "Belum Latihan" || student.learningStatus === "Belum Akses Materi"
               ? "bg-amber-50/35 hover:bg-amber-50/60"
-              : student.learningStatus === "Data Lengkap" ||
-                  student.learningStatus === "Aktif Belajar"
-                ? "bg-emerald-50/25 hover:bg-emerald-50/45"
-                : undefined
+              : student.learningStatus === "Belum Hadir"
+                ? "bg-rose-50/35 hover:bg-rose-50/60"
+                : student.learningStatus === "Data Lengkap"
+                  ? "bg-emerald-50/25 hover:bg-emerald-50/45"
+                  : student.learningStatus === "Menunggu Review"
+                    ? "bg-sky-50/25 hover:bg-sky-50/45"
+                    : undefined
           }
         />
 

@@ -9,6 +9,8 @@ import {
   RotateCcw,
   Trash2,
   Upload,
+  Mail,
+  LoaderCircle,
 } from "lucide-react";
 import type { ChangeEvent, FormEvent, ReactNode } from "react";
 import {
@@ -75,6 +77,8 @@ type TeacherFormValues = {
   subject: string;
   branch: string;
   phone: string;
+  address: string;
+  education: string;
   schedule: string;
   activeClasses: string;
   classList: string;
@@ -284,7 +288,9 @@ function createEmptyTeacherForm(
     password: "",
     subject: "",
     branch: defaultBranch,
-    phone: "-",
+    phone: "",
+    address: "",
+    education: "",
     schedule: "-",
     activeClasses: "0",
     classList: "",
@@ -306,7 +312,9 @@ function toTeacherFormValues(
       normalizeTeacherBranch(teacher.branch, availableBranches) ??
       teacher.branch ??
       getDefaultBranch(availableBranches),
-    phone: teacher.phone || "-",
+    phone: teacher.phone === "-" ? "" : (teacher.phone ?? ""),
+    address: teacher.address ?? "",
+    education: teacher.education ?? "",
     schedule: teacher.schedule || "-",
     activeClasses: String(teacher.activeClasses),
     classList: teacher.classList,
@@ -525,6 +533,9 @@ export function AdminTeachers({
   const [resetTeacherAccount, setResetTeacherAccount] =
     useState<TeacherPasswordResetNotice | null>(null);
   const [importInputVersion, setImportInputVersion] = useState(0);
+
+  const [resendingTeacherId, setResendingTeacherId] = useState<string | null>(null);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -764,6 +775,8 @@ export function AdminTeachers({
       formValues.activeClasses,
     );
     const normalizedClassList = normalizeClassList(formValues.classList);
+    const normalizedAddress = normalizeText(formValues.address);
+    const normalizedEducation = normalizeText(formValues.education);
     const resolvedPhone = normalizedPhone || "-";
     const resolvedSchedule = normalizedSchedule || "-";
     const resolvedActiveClasses = normalizedActiveClasses ?? 0;
@@ -847,6 +860,8 @@ export function AdminTeachers({
             subject: normalizedSubject,
             branch: normalizedBranch ?? "",
             phone: resolvedPhone,
+            address: normalizedAddress,
+            education: normalizedEducation,
             schedule: resolvedSchedule,
             activeClasses: resolvedActiveClasses,
             classList: normalizedClassList,
@@ -1019,6 +1034,31 @@ export function AdminTeachers({
     }
   };
 
+  const handleResendVerification = async (teacher: AdminTeacher) => {
+    setResendingTeacherId(teacher.id);
+    setFormError(null);
+
+    try {
+      await requestAdminApi(
+        `/api/teachers/${encodeURIComponent(teacher.id)}/resend-verification`,
+        {
+          method: "POST",
+        },
+      );
+      setSuccessMessage(
+        `Email verifikasi berhasil dikirim ulang ke ${teacher.email}`,
+      );
+    } catch (requestError) {
+      setFormError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Gagal mengirim ulang email verifikasi.",
+      );
+    } finally {
+      setResendingTeacherId(null);
+    }
+  };
+
   const columns: AdminColumnDefinition<AdminTeacher>[] = [
     {
       key: "number",
@@ -1077,23 +1117,86 @@ export function AdminTeachers({
     },
     {
       key: "loginCode",
-      header: "Kode Login",
+      header: "Kode Login & Email",
       cell: (teacher) => (
-        <div className="max-w-[220px]">
+        <div className="max-w-[180px] flex flex-col gap-1.5">
           <p className="truncate text-sm font-semibold text-slate-800">
             {teacher.loginCode || teacher.id}
           </p>
-          {!teacher.email.endsWith("@bimbel.local") && (
-            <p className="truncate text-xs text-slate-500">{teacher.email}</p>
+          {!teacher.email.endsWith("@bimbel.local") ? (
+            <div className="space-y-2 pt-1 border-t border-slate-100">
+              <p className="truncate text-xs text-slate-500 font-medium">
+                {teacher.email}
+              </p>
+              <Badge
+                variant={teacher.isEmailVerified ? "success" : "warning"}
+                className="rounded-full px-2 py-0.5 text-[10px] w-fit flex items-center"
+              >
+                <span
+                  className={cn(
+                    "size-1.5 rounded-full mr-1.5",
+                    teacher.isEmailVerified ? "bg-emerald-500" : "bg-amber-500",
+                  )}
+                />
+                {teacher.isEmailVerified ? "Terverifikasi" : "Menunggu Verifikasi"}
+              </Badge>
+
+              {!teacher.isEmailVerified ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="rounded-full h-7 text-xs px-3"
+                  onClick={() => handleResendVerification(teacher)}
+                  disabled={resendingTeacherId === teacher.id}
+                >
+                  {resendingTeacherId === teacher.id ? (
+                    <LoaderCircle className="size-3 animate-spin mr-1.5" />
+                  ) : (
+                    <Mail className="size-3 mr-1.5" />
+                  )}
+                  Kirim Ulang
+                </Button>
+              ) : null}
+            </div>
+          ) : (
+            <p className="truncate text-xs text-slate-500 mt-1">{teacher.email}</p>
           )}
         </div>
       ),
     },
     {
-      key: "classList",
+      key: "phone",
+      header: "No. HP",
+      cell: (teacher) => (
+        <p className="max-w-[120px] text-sm leading-6 text-slate-700">
+          {teacher.phone || "-"}
+        </p>
+      ),
+    },
+    {
+      key: "address",
+      header: "Alamat",
+      cell: (teacher) => (
+        <p className="max-w-[200px] text-sm leading-6 text-slate-700 truncate" title={teacher.address}>
+          {teacher.address || "-"}
+        </p>
+      ),
+    },
+    {
+      key: "education",
       header: "Pendidikan Terakhir",
       cell: (teacher) => (
-        <p className="max-w-[240px] text-sm leading-6 text-slate-700">
+        <p className="max-w-[180px] text-sm leading-6 text-slate-700">
+          {teacher.education || "-"}
+        </p>
+      ),
+    },
+    {
+      key: "classList",
+      header: "Kelas Diajar",
+      cell: (teacher) => (
+        <p className="max-w-[180px] text-sm leading-6 text-slate-700">
           {teacher.classList}
         </p>
       ),
@@ -1127,15 +1230,6 @@ export function AdminTeachers({
         action={
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <Button
-              variant="secondary"
-              className={warmPrimaryButtonClassName}
-              onClick={openCreateDialog}
-            >
-              <Plus className="size-4" />
-              <span className="hidden sm:inline">Tambah Data</span>
-              <span className="inline sm:hidden">Tambah</span>
-            </Button>
-            <Button
               variant="outline"
               className={warmOutlineButtonClassName}
               onClick={handleExport}
@@ -1151,6 +1245,15 @@ export function AdminTeachers({
             >
               <Upload className="size-4" />
               <span className="hidden sm:inline">Import</span>
+            </Button>
+            <Button
+              variant="secondary"
+              className={warmPrimaryButtonClassName}
+              onClick={openCreateDialog}
+            >
+              <Plus className="size-4" />
+              <span className="hidden sm:inline">Tambah Data</span>
+              <span className="inline sm:hidden">Tambah</span>
             </Button>
           </div>
         }
@@ -1348,6 +1451,41 @@ export function AdminTeachers({
                 />
               </TeacherField>
 
+              <TeacherField label="Email">
+                <Input
+                  type="email"
+                  className={warmFieldClassName}
+                  value={formValues.email}
+                  onChange={(event) =>
+                    updateFormValue("email", event.target.value)
+                  }
+                  placeholder="Opsional, email guru"
+                />
+              </TeacherField>
+
+              <TeacherField label="No. HP">
+                <Input
+                  type="tel"
+                  className={warmFieldClassName}
+                  value={formValues.phone}
+                  onChange={(event) =>
+                    updateFormValue("phone", event.target.value)
+                  }
+                  placeholder="08xxxxxxxxxx"
+                />
+              </TeacherField>
+
+              <TeacherField label="Alamat">
+                <Input
+                  className={warmFieldClassName}
+                  value={formValues.address}
+                  onChange={(event) =>
+                    updateFormValue("address", event.target.value)
+                  }
+                  placeholder="Opsional, alamat guru"
+                />
+              </TeacherField>
+
               <TeacherField label="Mapel">
                 <Select
                   value={formValues.subject}
@@ -1403,11 +1541,24 @@ export function AdminTeachers({
                 <TeacherField label="Pendidikan Terakhir">
                   <Input
                     className={warmFieldClassName}
+                    value={formValues.education}
+                    onChange={(event) =>
+                      updateFormValue("education", event.target.value)
+                    }
+                    placeholder="Contoh: S1 Matematika"
+                  />
+                </TeacherField>
+              </div>
+
+              <div className="sm:col-span-2">
+                <TeacherField label="Kelas Diajar">
+                  <Input
+                    className={warmFieldClassName}
                     value={formValues.classList}
                     onChange={(event) =>
                       updateFormValue("classList", event.target.value)
                     }
-                    placeholder="Contoh: S1 Matematika"
+                    placeholder="Contoh: 7,8,9"
                   />
                 </TeacherField>
               </div>

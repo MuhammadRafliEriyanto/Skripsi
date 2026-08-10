@@ -3,9 +3,8 @@ import { UTBK_PROGRAM_VALUE } from "@/lib/subscription";
 export const UTBK_STUDENT_DEFAULT_PATH = "/dashboard-siswa/materi";
 
 const UTBK_RESTRICTED_STUDENT_PATH_PREFIXES = [
-  "/dashboard-siswa/kirim-tugas",
+  "/dashboard-siswa/latihan",
   "/dashboard-siswa/riwayat-akademik",
-  "/dashboard-siswa/tugas",
 ] as const;
 
 export type StudentProgramProfile = {

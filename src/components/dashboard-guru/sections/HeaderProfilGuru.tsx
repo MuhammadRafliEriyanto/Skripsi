@@ -405,7 +405,7 @@ export default function HeaderProfilGuru() {
               {todaySchedules.length > 0
                 ? `${todaySchedules.length} sesi terjadwal untuk hari ini.`
                 : profile.totalClasses === 0
-                ? "Belum ada jadwal mengajar di tahun ajaran ini."
+                ? "Belum ada jadwal mengajar yang ditugaskan."
                 : "Belum ada jadwal mengajar untuk hari ini."}
             </p>
           </div>
@@ -458,12 +458,12 @@ export default function HeaderProfilGuru() {
               <CalendarDays className="mx-auto h-5 w-5 text-orange-400" />
               <p className="mt-2 text-xs font-semibold text-orange-600">
                 {profile.totalClasses === 0
-                  ? "Belum ada jadwal mengajar di tahun ajaran ini."
+                  ? "Belum ada jadwal mengajar yang ditugaskan."
                   : "Belum ada jadwal mengajar untuk hari ini."}
               </p>
               <p className="mt-1 text-[11px] text-slate-500">
                 {profile.totalClasses === 0
-                  ? "Silakan pilih periode akademik yang aktif."
+                  ? "Jadwal akan tampil setelah admin mengatur kelas dan jadwal guru."
                   : "Cek halaman jadwal untuk melihat sesi di hari lain."}
               </p>
             </div>

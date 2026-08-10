@@ -19,6 +19,8 @@ export interface ITeacher {
   capableGrades: string[];
   status: TeacherStatus;
   availability: TeacherAvailability;
+  address?: string;
+  education?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -86,6 +88,16 @@ const teacherSchema = new Schema<ITeacher>(
       type: String,
       enum: TEACHER_AVAILABILITIES,
       default: "Tersedia",
+    },
+    address: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    education: {
+      type: String,
+      default: "",
+      trim: true,
     },
   },
   {

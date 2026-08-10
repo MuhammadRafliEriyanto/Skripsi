@@ -51,27 +51,16 @@ export type StudentDashboardData = {
     scheduleCount: number;
     accessStatus: string;
   };
-  academicSummary: {
-    jenjang: string;
-    kelas: number | null;
-    kelasLabel: string;
-    materialCount: number;
-    taskCount: number;
-    tryoutCount: number;
-    todayScheduleCount: number;
-    scheduleCount: number;
-  };
   schedules: StudentDashboardSchedule[];
   todaySchedules: StudentDashboardSchedule[];
   academicAccess?: StudentAcademicAccess | null;
 };
 
-export function useStudentDashboardData(academicYear?: string) {
+export function useStudentDashboardData() {
   const [dashboardData, setDashboardData] = useState<StudentDashboardData | null>(
     null,
   );
-  const isWaitingForYear = academicYear === "";
-  const [isLoading, setIsLoading] = useState(!isWaitingForYear);
+  const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
@@ -79,19 +68,11 @@ export function useStudentDashboardData(academicYear?: string) {
     let isMounted = true;
 
     async function loadStudentDashboardData() {
-      if (!academicYear) {
-        setDashboardData(null);
-        setLoadError(null);
-        setIsLoading(false);
-        return;
-      }
-
       setIsLoading(true);
       setLoadError(null);
 
       try {
         const url = new URL("/api/student/me/dashboard", window.location.origin);
-        url.searchParams.set("academicYear", academicYear);
 
         const response = await fetch(url.toString(), {
           method: "GET",
@@ -152,7 +133,7 @@ export function useStudentDashboardData(academicYear?: string) {
     return () => {
       isMounted = false;
     };
-  }, [reloadToken, academicYear]);
+  }, [reloadToken]);
 
   useEffect(() => {
     return subscribeStudentDashboardRefresh(() => {
@@ -164,6 +145,5 @@ export function useStudentDashboardData(academicYear?: string) {
     dashboardData,
     isLoading,
     loadError,
-    isWaitingForYear,
   };
 }

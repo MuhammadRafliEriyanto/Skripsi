@@ -25,6 +25,7 @@ import {
 } from "../utils/scheduleAttendanceWindow";
 import { resolveStudentAcademicContentAccess } from "../utils/studentAcademicAccess";
 import { resolveStudentMembershipContentAccess } from "../utils/studentMembershipAccess";
+import { normalizeCanonicalClassName } from "../utils/studentClass";
 import {
   findActiveSubscriptionIdForAcademicRecord,
   getMembershipSnapshotByUserId,
@@ -42,6 +43,11 @@ import {
   ensureTeacherAcademicPeriodEditable,
   TEACHER_ACADEMIC_ARCHIVE_MESSAGE,
 } from "../utils/teacherAcademicArchive";
+import {
+  hasUtbkScheduleSignal,
+  isUtbkStudent,
+  matchesUtbkScheduleClassName,
+} from "../utils/studentProgram";
 import {
   resolveTeacherClassDetailContext,
   type TeacherClassDetailContext,
@@ -74,6 +80,142 @@ type AttendanceSummary = {
 
 function normalizeText(value: string | null | undefined): string {
   return value?.trim().replace(/\s+/g, " ") ?? "";
+}
+
+function extractClassModifier(name: string) {
+  const match = normalizeText(name).match(/(?:^|\s)(?:1[0-2]|[2-9])\s*([A-Za-z]+)\b/);
+  return match?.[1]?.toUpperCase() ?? "";
+}
+
+function matchesStudentClass(sessionClassName: string, studentClassName: string) {
+  const normalizedSessionClassName = normalizeText(sessionClassName);
+  const normalizedStudentClassName = normalizeText(studentClassName);
+
+  if (!normalizedSessionClassName || !normalizedStudentClassName) {
+    return false;
+  }
+
+  if (
+    normalizedSessionClassName.toLowerCase() ===
+    normalizedStudentClassName.toLowerCase()
+  ) {
+    return true;
+  }
+
+  const canonicalSessionClassName = normalizeCanonicalClassName(
+    normalizedSessionClassName,
+  );
+  const canonicalStudentClassName = normalizeCanonicalClassName(
+    normalizedStudentClassName,
+  );
+
+  if (
+    !canonicalSessionClassName ||
+    !canonicalStudentClassName ||
+    canonicalSessionClassName.toLowerCase() !==
+      canonicalStudentClassName.toLowerCase()
+  ) {
+    return false;
+  }
+
+  return (
+    extractClassModifier(normalizedSessionClassName) ===
+    extractClassModifier(normalizedStudentClassName)
+  );
+}
+
+function matchesStudentBranch(sessionBranch: string, studentBranch: string) {
+  const normalizedSessionBranch = normalizeText(sessionBranch).toLowerCase();
+  const normalizedStudentBranch = normalizeText(studentBranch).toLowerCase();
+
+  return Boolean(
+    normalizedStudentBranch &&
+      normalizedSessionBranch &&
+      normalizedSessionBranch === normalizedStudentBranch,
+  );
+}
+
+function inferStudentLevel(program: string, className: string) {
+  const normalizedProgram = normalizeText(program).toUpperCase();
+
+  if (
+    normalizedProgram === "SD" ||
+    normalizedProgram === "SMP" ||
+    normalizedProgram === "SMA"
+  ) {
+    return normalizedProgram;
+  }
+
+  const normalizedClassName = normalizeText(className).toUpperCase();
+
+  if (normalizedClassName.startsWith("SD")) {
+    return "SD";
+  }
+
+  if (normalizedClassName.startsWith("SMP")) {
+    return "SMP";
+  }
+
+  return "SMA";
+}
+
+function isRegularStudentAttendanceSubjectAllowed(
+  session: { subject?: string | null },
+  student: { program: string; className: string },
+) {
+  const normalizedSubject = normalizeText(session.subject).toLowerCase();
+
+  if (normalizedSubject !== "guru kelas sd") {
+    return true;
+  }
+
+  return inferStudentLevel(student.program, student.className) === "SD";
+}
+
+function matchesStudentAttendanceSession(
+  session: {
+    sessionId?: string | null;
+    scheduleId?: string | null;
+    className?: string | null;
+    subject?: string | null;
+    branch?: string | null;
+    room?: string | null;
+  },
+  student: {
+    branch: string;
+    program: string;
+    className: string;
+    utbkTrack?: string | null;
+  },
+) {
+  if (!matchesStudentBranch(session.branch ?? "", student.branch)) {
+    return false;
+  }
+
+  const sessionHasUtbkSignal =
+    hasUtbkScheduleSignal(session) ||
+    hasUtbkScheduleSignal({
+      scheduleId: session.sessionId,
+      className: session.className,
+      subject: session.subject,
+      room: session.room,
+    });
+
+  if (isUtbkStudent(student)) {
+    return (
+      sessionHasUtbkSignal ||
+      matchesUtbkScheduleClassName(session.className, student)
+    );
+  }
+
+  if (sessionHasUtbkSignal) {
+    return false;
+  }
+
+  return (
+    isRegularStudentAttendanceSubjectAllowed(session, student) &&
+    matchesStudentClass(session.className ?? "", student.className)
+  );
 }
 
 function getRequestedScheduleId(req: Request) {
@@ -231,7 +373,10 @@ async function getScheduleAttendanceWindowForSession(
   const shouldMatchBranch = Boolean(sessionBranch && sessionBranch !== "-");
   const scheduleSelectFields = "scheduleId day time className branch subject status";
   const schedules = scheduleId
-    ? await Schedule.find({ scheduleId })
+    ? await Schedule.find({
+        teacherId: session.teacherId,
+        scheduleId,
+      })
         .select(scheduleSelectFields)
         .lean()
         .exec()
@@ -958,6 +1103,11 @@ export const scanStudentAttendanceByQr = asyncHandler(
 
     if (normalizeText(session.date) !== getCurrentJakartaDate()) {
       next(new AppError(400, "QR absensi ini sudah tidak berlaku."));
+      return;
+    }
+
+    if (!matchesStudentAttendanceSession(session, student)) {
+      next(new AppError(403, "Siswa ini tidak terdaftar pada sesi absensi tersebut."));
       return;
     }
 

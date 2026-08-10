@@ -20,12 +20,14 @@ export type GradeStatus =
   | "Belum Dinilai"
   | "Sangat Baik"
   | "Baik"
-  | "Perlu Bimbingan";
+  | "Perlu Bimbingan"
+  | "Perlu Remedial";
 export type MateriStatus = "Draft" | "Dipublikasikan";
 export type TugasStatusPenilaian =
   | "Belum Ada Pengumpulan"
   | "Sudah Dinilai"
-  | "Belum Dinilai";
+  | "Belum Dinilai"
+  | "Perlu Remedial";
 export type DialogMode = "add" | "edit";
 
 export type LearningAttachmentMeta = {
@@ -53,12 +55,20 @@ export type TugasPertemuan = {
   judulTugas: string;
   deskripsi: string;
   deadline: string;
+  jamMulai: string;
+  jamSelesai: string;
+  durasiMenit: number;
+  jumlahSoal: number;
+  nilaiMinimum: number | null;
   jumlahMengumpulkan: number;
   statusPenilaian: TugasStatusPenilaian;
 } & LearningAttachmentMeta;
 
-export type TaskSubmissionMode = "file" | "text" | "drive";
-export type TaskSubmissionGradeStatus = "Belum Dinilai" | "Sudah Dinilai";
+export type TaskSubmissionMode = "file" | "text" | "drive" | "cbt";
+export type TaskSubmissionGradeStatus =
+  | "Belum Dinilai"
+  | "Sudah Dinilai"
+  | "Perlu Remedial";
 
 export type TaskSubmissionListItem = {
   id: string;
@@ -93,6 +103,8 @@ export type NilaiSiswa = {
   tugas: number | null;
   scores: AcademicScores;
   note: string;
+  pertemuanScores?: Record<number, number | null>;
+  pertemuanStatuses?: Record<number, TaskSubmissionGradeStatus>;
 };
 
 export type NilaiDraft = NilaiSiswa;

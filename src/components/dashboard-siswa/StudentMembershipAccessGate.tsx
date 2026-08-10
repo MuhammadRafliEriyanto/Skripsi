@@ -46,11 +46,10 @@ const TAGIHAN_PATH = "/dashboard-siswa/tagihan";
 const ACADEMIC_PATH_PREFIXES = [
   "/dashboard-siswa/absensi",
   "/dashboard-siswa/jadwal",
-  "/dashboard-siswa/kirim-tugas",
+  "/dashboard-siswa/latihan",
   "/dashboard-siswa/materi",
   "/dashboard-siswa/nilai",
   "/dashboard-siswa/scan-absen",
-  "/dashboard-siswa/tugas",
   "/dashboard-siswa/tryout",
   "/dashboard-siswa/ujian",
 ] as const;
@@ -127,7 +126,7 @@ function getGateCopy(
   const scheduledAccessDate = getScheduledAccessDate(membershipData);
   const learningScope = isUtbkStudentProfile(membershipData?.student)
     ? "materi, jadwal, absensi, dan tryout UTBK"
-    : "materi, tugas, jadwal, absensi, nilai, dan ujian";
+    : "materi, latihan soal, jadwal, absensi, dan nilai";
 
   if (pendingPayment) {
     return {
@@ -144,7 +143,7 @@ function getGateCopy(
   if (scheduledAccessDate) {
     return {
       badge: "Akses Terjadwal",
-      title: "Akses belajar dibuka mulai periode baru",
+      title: "Akses belajar dibuka saat membership aktif",
       description: `Paket belajar sudah tercatat dan pembayaran sudah selesai. Akses ${learningScope} akan dibuka mulai ${formatDateLabel(scheduledAccessDate)}.`,
       primaryLabel: "Lihat Tagihan",
       secondaryLabel: "Histori Pembayaran",

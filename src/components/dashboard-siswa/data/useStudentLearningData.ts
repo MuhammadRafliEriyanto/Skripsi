@@ -7,6 +7,7 @@ import { subscribeStudentDashboardRefresh } from "../student-dashboard-refresh-e
 import type { StudentAcademicAccess } from "./studentAcademicAccess";
 import type {
   StudentAcademicSummary,
+  StudentTaskAttemptSummary,
   StudentLearningProfile,
   StudentMaterial,
   StudentTaskGradeSummary,
@@ -43,10 +44,16 @@ type StudentLearningApiTaskItem = {
   meetingNumber?: number;
   description?: string;
   deadline?: string;
+  startAt?: string | null;
+  endAt?: string | null;
+  durationMinutes?: number | null;
+  questionCount?: number | null;
+  passingGrade?: number | null;
   reviewStatus?: string;
   attachment?: StudentLearningApiAttachmentItem | null;
   mySubmission?: StudentLearningApiTaskSubmissionItem | null;
   myGrade?: StudentLearningApiTaskGradeItem | null;
+  myAttempt?: StudentLearningApiTaskAttemptItem | null;
 };
 
 type StudentLearningApiAttachmentItem = {
@@ -72,6 +79,19 @@ type StudentLearningApiTaskGradeItem = {
   note?: string;
   status?: string;
   gradedAt?: string | null;
+  remedialRequestedAt?: string | null;
+  remedialCompletedAt?: string | null;
+  remedialCount?: number;
+};
+
+type StudentLearningApiTaskAttemptItem = {
+  submitted?: boolean;
+  attemptId?: string | null;
+  status?: string;
+  score?: number | null;
+  submittedAt?: string | null;
+  startedAt?: string | null;
+  remedialCount?: number;
 };
 
 type StudentLearningResponse = {
@@ -101,6 +121,7 @@ type StudentLearningApiAcademicSummaryItem = {
   note?: string;
   finalAverage?: number | null;
   evaluatedAt?: string | null;
+  targetMeetingCount?: number;
 };
 
 function normalizeText(value: string | null | undefined) {
@@ -125,6 +146,57 @@ function formatDisplayDate(value: string) {
     year: "numeric",
     timeZone: "UTC",
   }).format(new Date(`${value}T00:00:00Z`));
+}
+
+function formatTaskWindowLabel(
+  startAt: string | null,
+  endAt: string | null,
+) {
+  if (!startAt || !endAt) {
+    return "Jadwal mengikuti arahan guru";
+  }
+
+  const startDate = new Date(startAt);
+  const endDate = new Date(endAt);
+
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+    return "Jadwal mengikuti arahan guru";
+  }
+
+  const dateLabel = new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    timeZone: "Asia/Jakarta",
+  }).format(startDate);
+  const timeFormatter = new Intl.DateTimeFormat("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Jakarta",
+  });
+
+  return `${dateLabel}, ${timeFormatter.format(startDate)} - ${timeFormatter.format(endDate)} WIB`;
+}
+
+function formatDateTimeDeadlineLabel(value: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "long",
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+  }).format(date);
 }
 
 function buildTextDownloadUrl(title: string, sections: string[]) {
@@ -197,6 +269,10 @@ function deriveTaskStatus(
   grade: StudentLearningApiTaskGradeItem | null | undefined,
   submission: StudentLearningApiTaskSubmissionItem | null | undefined,
 ): StudentTaskStatus {
+  if (normalizeText(grade?.status).toLowerCase() === "perlu remedial") {
+    return "Perlu Remedial";
+  }
+
   if (normalizeText(grade?.status).toLowerCase() === "sudah dinilai") {
     return "Sudah Dinilai";
   }
@@ -245,10 +321,13 @@ function mapTaskGradeSummary(
     return undefined;
   }
 
+  const normalizedGradeStatus = normalizeText(grade.status).toLowerCase();
   const normalizedStatus =
-    normalizeText(grade.status).toLowerCase() === "sudah dinilai"
+    normalizedGradeStatus === "sudah dinilai"
       ? "Sudah Dinilai"
-      : "Belum Dinilai";
+      : normalizedGradeStatus === "perlu remedial"
+        ? "Perlu Remedial"
+        : "Belum Dinilai";
 
   return {
     graded: Boolean(grade.graded) || normalizedStatus === "Sudah Dinilai",
@@ -260,6 +339,38 @@ function mapTaskGradeSummary(
     note: normalizeText(grade.note),
     status: normalizedStatus,
     gradedAt: grade.gradedAt?.trim() || null,
+    remedialRequestedAt: grade.remedialRequestedAt?.trim() || null,
+    remedialCompletedAt: grade.remedialCompletedAt?.trim() || null,
+    remedialCount: Math.max(grade.remedialCount ?? 0, 0),
+  };
+}
+
+function mapTaskAttemptSummary(
+  attempt: StudentLearningApiTaskAttemptItem | null | undefined,
+): StudentTaskAttemptSummary | undefined {
+  if (!attempt) {
+    return undefined;
+  }
+
+  const normalizedStatus = normalizeText(attempt.status) || "not_started";
+  const isSubmitted =
+    Boolean(attempt.submitted) ||
+    normalizedStatus === "submitted" ||
+    Boolean(normalizeText(attempt.submittedAt));
+
+  return {
+    submitted: isSubmitted,
+    attemptId: normalizeText(attempt.attemptId) || null,
+    status: normalizedStatus,
+    score:
+      isSubmitted &&
+      typeof attempt.score === "number" &&
+      Number.isFinite(attempt.score)
+        ? attempt.score
+        : null,
+    submittedAt: attempt.submittedAt?.trim() || null,
+    startedAt: attempt.startedAt?.trim() || null,
+    remedialCount: Math.max(attempt.remedialCount ?? 0, 0),
   };
 }
 
@@ -317,17 +428,51 @@ function mapApiMaterialToStudentMaterial(
 }
 
 function mapApiTaskToStudentTask(task: StudentLearningApiTaskItem): StudentTask {
-  const title = normalizeText(task.title) || "Tugas belum diatur";
+  const title = normalizeText(task.title) || "Latihan belum diatur";
   const description =
-    normalizeText(task.description) || "Instruksi tugas belum tersedia.";
+    normalizeText(task.description) || "Instruksi latihan belum tersedia.";
   const deadline = normalizeText(task.deadline);
   const taskId =
     normalizeText(task.taskId) ||
     normalizeText(task.id) ||
-    `tugas-${Date.now()}`;
+    `latihan-${Date.now()}`;
   const encodedTaskId = encodeURIComponent(taskId);
   const attachmentFileName = normalizeText(task.attachment?.fileName);
   const myGrade = mapTaskGradeSummary(task.myGrade);
+  const startAt = normalizeText(task.startAt) || null;
+  const endAt = normalizeText(task.endAt) || null;
+  const durationMinutes =
+    typeof task.durationMinutes === "number" && task.durationMinutes > 0
+      ? task.durationMinutes
+      : null;
+  const questionCount = Math.max(task.questionCount ?? 0, 0);
+  const passingGrade =
+    typeof task.passingGrade === "number" && task.passingGrade >= 0
+      ? task.passingGrade
+      : null;
+  const now = new Date();
+  const parsedStartAt = startAt ? new Date(startAt) : null;
+  const parsedEndAt = endAt ? new Date(endAt) : null;
+  const isBeforeStart =
+    parsedStartAt !== null &&
+    !Number.isNaN(parsedStartAt.getTime()) &&
+    now < parsedStartAt;
+  const isAfterEnd =
+    parsedEndAt !== null &&
+    !Number.isNaN(parsedEndAt.getTime()) &&
+    now > parsedEndAt;
+  const hasCbtContent = questionCount > 0 && Boolean(durationMinutes);
+  const isRemedial = myGrade?.status === "Perlu Remedial";
+  const isCbtReady = hasCbtContent && !isBeforeStart && !isAfterEnd;
+  const availabilityMessage = !hasCbtContent
+    ? "Latihan belum memiliki soal CBT atau durasi yang valid."
+    : isBeforeStart
+      ? "Latihan belum dimulai sesuai jadwal guru."
+      : isAfterEnd
+        ? "Waktu pengerjaan latihan sudah berakhir."
+        : isRemedial
+          ? "Nilai belum mencapai KKM. Kerjakan remedial latihan ini."
+          : `${questionCount} soal CBT siap dikerjakan.`;
 
   return {
     id: taskId,
@@ -339,32 +484,50 @@ function mapApiTaskToStudentTask(task: StudentLearningApiTaskItem): StudentTask 
       typeof task.meetingNumber === "number" ? task.meetingNumber : 1,
       1,
     ),
-    deadline: deadline ? `${formatDisplayDate(deadline)}, 23.59 WIB` : "-",
-    estimasi: "Mandiri",
+    deadline:
+      formatDateTimeDeadlineLabel(endAt) ||
+      (deadline ? `${formatDisplayDate(deadline)}, 23.59 WIB` : "-"),
+    estimasi: durationMinutes ? `${durationMinutes} menit` : "Mandiri",
+    jadwalPengerjaan: formatTaskWindowLabel(startAt, endAt),
     poin:
-      myGrade?.graded && typeof myGrade.score === "number"
-        ? `${myGrade.score}/100`
-        : "Sesuai penilaian guru",
+      typeof myGrade?.score === "number"
+        ? `${myGrade.score}/100${passingGrade !== null ? ` (KKM ${passingGrade})` : ""}`
+        : passingGrade !== null
+          ? `Minimal ${passingGrade}`
+          : "Nilai latihan CBT",
     status: deriveTaskStatus(
       deadline,
       task.myGrade,
       task.mySubmission,
     ),
     deskripsi: description,
-    detailHref: `/dashboard-siswa/tugas?taskId=${encodedTaskId}`,
-    submitHref: `/dashboard-siswa/kirim-tugas?taskId=${encodedTaskId}`,
+    detailHref: `/dashboard-siswa/latihan?taskId=${encodedTaskId}`,
+    submitHref: `/dashboard-siswa/latihan?taskId=${encodedTaskId}`,
     attachmentName: attachmentFileName || undefined,
     attachmentUrl: attachmentFileName
       ? `/api/student/me/learning/tasks/${encodeURIComponent(taskId)}/attachment`
       : undefined,
-    submissionModes: ["text"] satisfies SubmissionMode[],
+    startAt,
+    endAt,
+    durationMinutes,
+    questionCount,
+    passingGrade,
+    isCbtReady,
+    isRemedial,
+    availabilityMessage,
+    submissionModes: ["cbt"] satisfies SubmissionMode[],
     instruksiPengumpulan: [
-      "Baca instruksi tugas dengan teliti sebelum mengirim jawaban.",
-      "Tulis jawaban langsung di kolom yang tersedia.",
-      "Jika jawaban berupa foto atau dokumen, tempel link Google Drive yang bisa dibuka guru.",
+      hasCbtContent
+        ? "Kerjakan latihan CBT sesuai durasi yang ditentukan guru."
+        : "Latihan CBT belum memiliki soal atau durasi yang lengkap dari guru.",
+      isRemedial
+        ? "Remedial dibuka khusus karena nilai sebelumnya belum mencapai KKM."
+        : "Hasil CBT langsung tersimpan ke nilai dan progres belajar.",
+      "Setelah selesai, pembahasan bisa digunakan guru untuk bahas singkat sebelum pulang.",
     ],
     mySubmission: mapTaskSubmissionSummary(task.mySubmission),
     myGrade,
+    myAttempt: mapTaskAttemptSummary(task.myAttempt),
   };
 }
 
@@ -389,10 +552,11 @@ function mapApiAcademicSummary(
     finalAverage:
       typeof summary.finalAverage === "number" ? summary.finalAverage : null,
     evaluatedAt: normalizeText(summary.evaluatedAt) || null,
+    targetMeetingCount: Math.max(summary.targetMeetingCount ?? 24, 1),
   };
 }
 
-export function useStudentLearningData(academicYear?: string) {
+export function useStudentLearningData() {
   const [student, setStudent] = useState<StudentLearningProfile | null>(null);
   const [materials, setMaterials] = useState<StudentMaterial[]>([]);
   const [tasks, setTasks] = useState<StudentTask[]>([]);
@@ -401,8 +565,7 @@ export function useStudentLearningData(academicYear?: string) {
   >([]);
   const [academicAccess, setAcademicAccess] =
     useState<StudentAcademicAccess | null>(null);
-  const isWaitingForYear = academicYear === "";
-  const [isLoading, setIsLoading] = useState(!isWaitingForYear);
+  const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
   const isMountedRef = useRef(true);
@@ -414,17 +577,6 @@ export function useStudentLearningData(academicYear?: string) {
     silentReloadRef.current = false;
 
     async function loadStudentLearningData() {
-      if (!academicYear) {
-        setMaterials([]);
-        setTasks([]);
-        setAcademicSummaries([]);
-        setStudent(null);
-        setAcademicAccess(null);
-        setLoadError(null);
-        setIsLoading(false);
-        return;
-      }
-
       if (showLoading && isMountedRef.current) {
         setIsLoading(true);
       }
@@ -435,7 +587,6 @@ export function useStudentLearningData(academicYear?: string) {
 
       try {
         const url = new URL("/api/student/me/learning", window.location.origin);
-        url.searchParams.set("academicYear", academicYear);
 
         const response = await fetch(url.toString(), {
           method: "GET",
@@ -468,7 +619,7 @@ export function useStudentLearningData(academicYear?: string) {
           setStudent(null);
           setAcademicAccess(null);
           setLoadError(
-            payload?.message || "Materi dan tugas siswa belum bisa dimuat saat ini.",
+            payload?.message || "Materi dan latihan siswa belum bisa dimuat saat ini.",
           );
           return;
         }
@@ -493,7 +644,7 @@ export function useStudentLearningData(academicYear?: string) {
         setAcademicSummaries([]);
         setStudent(null);
         setAcademicAccess(null);
-        setLoadError("Materi dan tugas siswa belum bisa dimuat saat ini.");
+        setLoadError("Materi dan latihan siswa belum bisa dimuat saat ini.");
       } finally {
         if (isMountedRef.current) {
           setIsLoading(false);
@@ -508,7 +659,7 @@ export function useStudentLearningData(academicYear?: string) {
     return () => {
       isMountedRef.current = false;
     };
-  }, [reloadToken, academicYear]);
+  }, [reloadToken]);
 
   function refreshLearningData() {
     silentReloadRef.current = true;
@@ -552,7 +703,6 @@ export function useStudentLearningData(academicYear?: string) {
     academicAccess,
     isLoading,
     loadError,
-    isWaitingForYear,
     refreshLearningData,
     updateTaskSubmissionSummary,
   };

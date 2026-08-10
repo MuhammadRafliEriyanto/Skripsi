@@ -48,7 +48,7 @@ type LiveAttendanceContext = {
 
 const DEMO_MARKER = "[utbk-demo-live-attendance]";
 const DEFAULT_DEMO_DATE = "2026-08-03";
-const DEFAULT_LIVE_TIME_RANGE = "08:00 - 10:00";
+const DEFAULT_LIVE_TIME_RANGE = "08:00 - 09:30";
 
 function normalizeText(value: string | null | undefined): string {
   return value?.trim().replace(/\s+/g, " ") ?? "";

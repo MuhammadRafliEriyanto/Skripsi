@@ -28,7 +28,7 @@ async function requestAcademicHistory<T>(url: string) {
   if (!response.ok || !payload?.success || !payload.data) {
     throw new Error(
       payload?.message ||
-        `Histori akademik belum bisa dimuat. (Status: ${response.status})`,
+        `Riwayat membership belum bisa dimuat. (Status: ${response.status})`,
     );
   }
 
@@ -63,12 +63,12 @@ export default function RiwayatAkademikSiswaPageView() {
 
       setSubscriptions(data.subscriptions ?? []);
     } catch (error) {
-      console.error("[riwayat-akademik-siswa] load_list_failed", error);
+      console.error("[riwayat-membership-siswa] load_list_failed", error);
       setSubscriptions([]);
       setListError(
         error instanceof Error && error.message
           ? error.message
-          : "Riwayat akademik belum bisa dimuat.",
+          : "Riwayat membership belum bisa dimuat.",
       );
     } finally {
       setIsLoadingList(false);
@@ -87,12 +87,12 @@ export default function RiwayatAkademikSiswaPageView() {
 
       setDetail(data);
     } catch (error) {
-      console.error("[riwayat-akademik-siswa] load_detail_failed", error);
+      console.error("[riwayat-membership-siswa] load_detail_failed", error);
       setDetail(null);
       setDetailError(
         error instanceof Error && error.message
           ? error.message
-          : "Detail histori akademik belum bisa dimuat.",
+          : "Detail riwayat membership belum bisa dimuat.",
       );
     } finally {
       setLoadingSubscriptionId(null);
@@ -110,14 +110,14 @@ export default function RiwayatAkademikSiswaPageView() {
       <div className="flex flex-col gap-4 rounded-[28px] border border-slate-100 bg-white p-5 shadow-sm md:flex-row md:items-center md:justify-between md:p-6">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-orange-600">
-            Histori Akademik
+            Histori Membership
           </p>
           <h1 className="mt-2 text-xl font-semibold text-slate-900 md:text-2xl">
-            Riwayat Akademik
+            Riwayat Membership
           </h1>
           <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">
-            Lihat seluruh periode akademik berdasarkan subscription. Halaman ini hanya
-            menampilkan data lama dan aktif secara read-only.
+            Lihat nilai, absensi, latihan, dan tryout berdasarkan membership siswa.
+            Data lama dan aktif ditampilkan secara read-only.
           </p>
         </div>
         <Button
@@ -141,16 +141,16 @@ export default function RiwayatAkademikSiswaPageView() {
         <section className="rounded-[26px] border border-slate-100 bg-white p-8 text-center shadow-sm">
           <Loader2 className="mx-auto h-6 w-6 animate-spin text-orange-500" />
           <p className="mt-3 text-base font-semibold text-slate-800">
-            Riwayat akademik sedang dimuat
+            Riwayat membership sedang dimuat
           </p>
           <p className="mt-2 text-sm text-slate-500">
-            Sistem sedang mengambil daftar subscription akademik kamu.
+            Sistem sedang mengambil daftar membership kamu.
           </p>
         </section>
       ) : listError ? (
         <section className="rounded-[26px] border border-rose-100 bg-white p-8 text-center shadow-sm">
           <p className="text-base font-semibold text-rose-700">
-            Riwayat akademik belum bisa dimuat
+            Riwayat membership belum bisa dimuat
           </p>
           <p className="mt-2 text-sm leading-6 text-slate-500">{listError}</p>
         </section>
@@ -159,10 +159,10 @@ export default function RiwayatAkademikSiswaPageView() {
           <section className="min-w-0 rounded-[26px] border border-slate-100 bg-white p-5 shadow-sm">
             <div className="mb-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-orange-600">
-                Daftar Periode
+                Daftar Membership
               </p>
               <h2 className="mt-2 text-lg font-semibold text-slate-900">
-                Subscription Akademik
+                Subscription Siswa
               </h2>
             </div>
             <AcademicHistoryPeriodList
@@ -183,7 +183,7 @@ export default function RiwayatAkademikSiswaPageView() {
                   Detail histori sedang dimuat
                 </p>
                 <p className="mt-2 text-sm text-slate-500">
-                  Mengambil nilai, absensi, tugas, dan tryout periode terpilih.
+                  Mengambil nilai, absensi, latihan, dan tryout membership terpilih.
                 </p>
               </div>
             ) : detailError ? (
@@ -201,16 +201,18 @@ export default function RiwayatAkademikSiswaPageView() {
                   <CalendarRange className="h-5 w-5" />
                 </div>
                 <p className="mt-4 text-base font-semibold text-slate-800">
-                  Pilih periode akademik
+                  Pilih membership
                 </p>
                 <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500">
                   Gunakan tombol Lihat Detail pada daftar subscription untuk membuka
-                  nilai, absensi, tryout, dan tugas periode tersebut.
+                  nilai, absensi, tryout, dan latihan membership tersebut.
                 </p>
                 {selectedSubscription ? (
                   <p className="mt-3 text-xs font-semibold text-orange-700">
                     Terakhir dipilih: {selectedSubscription.className}{" "}
-                    {selectedSubscription.semester} {selectedSubscription.academicYear}
+                    {selectedSubscription.packageName ||
+                      selectedSubscription.subscriptionCode ||
+                      "Membership"}
                   </p>
                 ) : null}
               </div>

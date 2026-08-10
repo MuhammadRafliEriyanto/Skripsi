@@ -153,11 +153,12 @@ type StudentUserSnapshot = {
 };
 
 type AcademicMonitoringStatus =
-  | "Belum Ada Data"
-  | "Mulai Terpantau"
-  | "Aktif Belajar"
-  | "Perlu Dipantau"
-  | "Data Lengkap";
+  | "Belum Hadir"
+  | "Belum Akses Materi"
+  | "Belum Latihan"
+  | "Menunggu Review"
+  | "Data Lengkap"
+  | "Belum Ada Data";
 
 type ScoreEntry = {
   score: number;
@@ -312,65 +313,60 @@ function getAcademicGradeScores(grade: {
 }
 
 function getMonitoringStatus(input: {
-  scoreCount: number;
+  attendanceTotal: number;
   materialCount: number;
   taskCount: number;
-  attendanceTotal: number;
-  attendanceRate: number | null;
-  bestScore: number | null;
-  completedMainTryoutCount: number;
-  isUtbk: boolean;
+  gradedTaskCount: number;
 }): AcademicMonitoringStatus {
-  const hasLearningData =
-    input.scoreCount > 0 ||
-    input.materialCount > 0 ||
-    input.taskCount > 0 ||
-    input.attendanceTotal > 0 ||
-    input.completedMainTryoutCount > 0;
-
-  if (!hasLearningData) {
+  if (input.attendanceTotal === 0 && input.materialCount === 0 && input.taskCount === 0) {
     return "Belum Ada Data";
   }
-
-  if (
-    (input.bestScore !== null && input.bestScore < 60) ||
-    (input.attendanceRate !== null && input.attendanceRate < 75)
-  ) {
-    return "Perlu Dipantau";
+  if (input.attendanceTotal === 0) {
+    return "Belum Hadir";
+  }
+  if (input.materialCount === 0) {
+    return "Belum Akses Materi";
+  }
+  if (input.taskCount === 0) {
+    return "Belum Latihan";
+  }
+  if (input.gradedTaskCount < input.taskCount) {
+    return "Menunggu Review";
   }
 
-  if (input.isUtbk && input.completedMainTryoutCount >= 3) {
-    return "Data Lengkap";
-  }
-
-  if (!input.isUtbk && input.materialCount > 0 && input.scoreCount > 0) {
-    return "Aktif Belajar";
-  }
-
-  return "Mulai Terpantau";
+  return "Data Lengkap";
 }
 
 function matchesMonitoringStatusFilter(
   rowStatus: AcademicMonitoringStatus,
-  filterValue: string,
+  statusFilter?: string,
 ) {
-  const normalizedFilter = normalizeText(filterValue).toLowerCase();
-  const normalizedRowStatus = rowStatus.toLowerCase();
+  const normalizedFilter = normalizeText(statusFilter).toLowerCase();
 
-  if (!normalizedFilter || normalizedFilter === "semua") {
+  if (!normalizedFilter || normalizedFilter === "semua" || normalizedFilter === "all") {
     return true;
   }
 
-  if (normalizedFilter === "aktif") {
-    return [
-      "aktif belajar",
-      "data lengkap",
-      "mulai terpantau",
-    ].includes(normalizedRowStatus);
+  const normalizedRowStatus = normalizeText(rowStatus).toLowerCase();
+
+  if (normalizedFilter === "lengkap" || normalizedFilter === "data lengkap") {
+    return normalizedRowStatus === "data lengkap";
   }
 
-  if (normalizedFilter === "perlu dicek") {
-    return normalizedRowStatus === "perlu dipantau";
+  if (normalizedFilter === "menunggu review") {
+    return normalizedRowStatus === "menunggu review";
+  }
+
+  if (normalizedFilter === "belum latihan") {
+    return normalizedRowStatus === "belum latihan";
+  }
+
+  if (normalizedFilter === "belum akses materi") {
+    return normalizedRowStatus === "belum akses materi";
+  }
+  
+  if (normalizedFilter === "belum hadir") {
+    return normalizedRowStatus === "belum hadir";
   }
 
   if (normalizedFilter === "belum ada") {
@@ -521,7 +517,7 @@ export const getAdminAcademicMonitoring = asyncHandler(
             .lean()
             .exec(),
           ClassTask.find({})
-            .select("taskId className canonicalClassName branch")
+            .select("taskId className canonicalClassName branch title")
             .lean()
             .exec(),
         ])
@@ -597,6 +593,7 @@ export const getAdminAcademicMonitoring = asyncHandler(
           : rawTasks.filter((task) =>
               matchesStudentClassContent(task, student, classNames),
             );
+        const taskById = new Map(tasks.map((t) => [normalizeText(t.taskId), t]));
         const taskIds = new Set(
           tasks.map((task) => normalizeText(task.taskId)).filter(Boolean),
         );
@@ -696,25 +693,19 @@ export const getAdminAcademicMonitoring = asyncHandler(
             },
           ];
         });
-        const taskScoreEntries: ScoreEntry[] = taskGrades.map((grade) => ({
-          score: grade.score,
-          label: "Tugas",
-          subject: "",
-          date: grade.gradedAt ?? grade.updatedAt ?? grade.createdAt,
-        }));
-        const academicScoreEntries: ScoreEntry[] = academicGrades.flatMap(
-          (grade) =>
-            getAcademicGradeScores(grade).map((score): ScoreEntry => ({
-              score,
-              label: grade.scheme === "tryout" ? "Tryout Akademik" : "UTS/UAS",
-              subject: "",
-              date: grade.evaluatedAt ?? grade.updatedAt ?? grade.createdAt,
-            })),
-        );
+        const taskScoreEntries: ScoreEntry[] = taskGrades.map((grade) => {
+          const task = taskById.get(normalizeText(grade.taskId));
+          return {
+            score: grade.score,
+            label: task?.title ? normalizeText(task.title) : "Latihan CBT",
+            subject: "",
+            date: grade.gradedAt ?? grade.updatedAt ?? grade.createdAt,
+          };
+        });
+        
         const scoreEntries: ScoreEntry[] = [
           ...tryoutScoreEntries,
           ...taskScoreEntries,
-          ...academicScoreEntries,
         ].sort(
           (left, right) =>
             toMonitoringDateOrder(right.date) - toMonitoringDateOrder(left.date),
@@ -728,14 +719,10 @@ export const getAdminAcademicMonitoring = asyncHandler(
         const latestStageMeta = getUtbkMainTryoutStageMeta(latestTryout?.stage);
         const bestScore = scores.length ? Math.max(...scores) : null;
         const learningStatus = getMonitoringStatus({
-          scoreCount: scores.length,
+          attendanceTotal,
           materialCount: materials.length,
           taskCount: tasks.length,
-          attendanceTotal,
-          attendanceRate,
-          bestScore,
-          completedMainTryoutCount,
-          isUtbk,
+          gradedTaskCount: taskGrades.length,
         });
 
         return {

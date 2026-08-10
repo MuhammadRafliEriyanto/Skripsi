@@ -49,8 +49,6 @@ import {
 import { clearAuthClientState } from "@/lib/auth";
 import {
   buildGuruApiUrl,
-  getGuruAcademicYearStatus,
-  getSelectedAcademicPeriod,
 } from "@/lib/guru-helpers";
 import { formatUtbkTryoutStageLabel } from "@/lib/utbk-tryout-stages";
 
@@ -1735,7 +1733,7 @@ function UploadSoalDialog({
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>
               {readOnly
-                ? readOnlyMessage ?? "Tahun ajaran ini sudah menjadi arsip. Soal hanya bisa dilihat."
+                ? readOnlyMessage ?? "Soal ini sedang dikunci oleh pengaturan jadwal admin."
                 : "Soal terkunci karena ujian sudah diterbitkan. Tarik publikasi ujian terlebih dahulu sebelum mengubah soal."}
             </span>
           </div>
@@ -2297,10 +2295,8 @@ function HasilTryoutDialog({
 
 export default function TryoutGuruSection() {
   const searchParams = useSearchParams();
-  const { academicYear } = getSelectedAcademicPeriod(searchParams);
-  const academicYearStatus = getGuruAcademicYearStatus(searchParams);
-  const isAcademicArchive = academicYearStatus.isArchive;
-  const archiveMessage = `Tahun ajaran ${academicYearStatus.academicYear} sudah menjadi arsip. Data ujian hanya bisa dilihat.`;
+  const isAcademicArchive = false;
+  const archiveMessage = "";
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedJenjang, setSelectedJenjang] =
     useState<TryoutJenjang>("SMA");
@@ -2520,7 +2516,7 @@ export default function TryoutGuruSection() {
       void loadTeacherTryouts();
       void loadTeacherBranches();
     });
-  }, [academicYear, tryoutReloadSignal]);
+  }, [tryoutReloadSignal]);
 
   useEffect(() => {
     if (!isAcademicArchive) {
@@ -3996,14 +3992,14 @@ export default function TryoutGuruSection() {
                     {loadError
                       ? "Data ujian guru belum berhasil dimuat."
                       : tryouts.length === 0
-                      ? "Tidak ada ujian di tahun ajaran ini."
+                      ? "Belum ada ujian yang dibuat."
                       : "Belum ada ujian yang cocok dengan filter saat ini."}
                   </p>
                   <p className="mt-2 text-sm leading-6 text-slate-500">
                     {loadError
                       ? loadError
                       : tryouts.length === 0
-                      ? "Silakan buat ujian baru atau pilih tahun yang aktif."
+                      ? "Silakan buat ujian baru untuk kelas yang diampu."
                       : "Ubah jenjang, status, atau kata kunci pencarian untuk melihat daftar ujian lain yang sudah tersimpan."}
                   </p>
                 </div>

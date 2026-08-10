@@ -1,5 +1,5 @@
-import KirimTugasSiswaPageView from "@/components/dashboard-siswa/pages/KirimTugasSiswaPageView";
+import { redirect } from "next/navigation";
 
-export default function DashboardSiswaKirimTugasPage() {
-  return <KirimTugasSiswaPageView />;
+export default function DashboardSiswaLegacyLatihanRedirectPage() {
+  redirect("/dashboard-siswa/latihan");
 }

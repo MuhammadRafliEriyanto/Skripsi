@@ -1,5 +1,5 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import Link from "next/link";
 import { useEffect, useEffectEvent, useState } from "react";
@@ -51,7 +51,6 @@ type HeaderProfilSiswaProps = {
   dashboardData: StudentDashboardData | null;
   dashboardLoading?: boolean;
   dashboardError?: string | null;
-  isWaitingForYear?: boolean;
 };
 
 type MembershipPaymentProfile = NonNullable<MembershipStatusData["payment"]>;
@@ -207,7 +206,6 @@ export default function HeaderProfilSiswa({
   dashboardData,
   dashboardLoading = false,
   dashboardError = null,
-  isWaitingForYear = false,
 }: HeaderProfilSiswaProps) {
   const [bgImage, setBgImage] = useState(profileBackgrounds[0]);
   const [profile, setProfile] = useState<StudentProfile>(fallbackStudentProfile);
@@ -460,17 +458,7 @@ export default function HeaderProfilSiswa({
               </Link>
             </div>
 
-            {isWaitingForYear ? (
-              <div className="rounded-2xl border border-dashed border-orange-200 bg-orange-50/50 p-5 text-center">
-                <CalendarDays className="mx-auto h-5 w-5 text-orange-400" />
-                <p className="mt-2 text-xs font-semibold text-orange-600">
-                  Pilih Tahun Pembelajaran
-                </p>
-                <p className="mt-1 text-[11px] text-slate-500">
-                  Silakan pilih tahun pembelajaran pada opsi di atas untuk memuat jadwal hari ini.
-                </p>
-              </div>
-            ) : dashboardLoading ? (
+            {dashboardLoading ? (
               <div className="space-y-3">
                 {Array.from({ length: 3 }).map((_, index) => (
                   <div

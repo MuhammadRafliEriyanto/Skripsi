@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, FileText, Send, TimerReset } from "lucide-react";
+import { BookOpen, FileText, TimerReset } from "lucide-react";
 
 const learningMenus = [
   {
@@ -11,19 +11,9 @@ const learningMenus = [
     icon: BookOpen,
   },
   {
-    label: "Tugas",
-    href: "/dashboard-siswa/tugas",
+    label: "Latihan Soal",
+    href: "/dashboard-siswa/latihan",
     icon: FileText,
-  },
-  {
-    label: "Kirim Jawaban",
-    href: "/dashboard-siswa/kirim-tugas",
-    icon: Send,
-  },
-  {
-    label: "Ujian",
-    href: "/dashboard-siswa/ujian",
-    icon: TimerReset,
   },
 ];
 

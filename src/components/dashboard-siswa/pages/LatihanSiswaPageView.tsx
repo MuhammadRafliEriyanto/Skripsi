@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useState, useEffect } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   BookOpen,
@@ -10,7 +9,6 @@ import {
   Download,
   Eye,
   Send,
-  TimerReset,
   FlaskConical,
   Calculator,
   Globe,
@@ -24,6 +22,7 @@ import { getStudentAcademicAccessMessage } from "../data/studentAcademicAccess";
 import { isUtbkStudentProfile } from "../data/studentProgram";
 import StudentLearningShell from "../learning/StudentLearningShell";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { withStoredAuthHeader } from "@/lib/auth";
 
 function formatSubmissionTime(value: string | null | undefined) {
   if (!value) {
@@ -51,10 +50,14 @@ function getTaskStatusClass(
     | "Belum Dikerjakan"
     | "Menunggu Dikirim"
     | "Sudah Dikirim"
-    | "Sudah Dinilai",
+    | "Sudah Dinilai"
+    | "Perlu Remedial",
 ) {
   if (status === "Sudah Dinilai") {
     return "bg-emerald-50 text-emerald-600";
+  }
+  if (status === "Perlu Remedial") {
+    return "bg-amber-50 text-amber-700";
   }
   if (status === "Sudah Dikirim") {
     return "bg-sky-50 text-sky-600";
@@ -82,12 +85,11 @@ function getSubjectStyle(subject: string) {
   return { bg: 'bg-slate-50', text: 'text-slate-500', icon: FileText };
 }
 
-function TugasSiswaPageContent() {
+function LatihanSiswaPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const academicYear = searchParams.get("academicYear") ?? "";
-  const { tasks, academicAccess, isLoading, loadError, student, isWaitingForYear } =
-    useStudentLearningData(academicYear);
+  const { tasks, academicAccess, isLoading, loadError, student } =
+    useStudentLearningData();
   const isUtbkStudent = isUtbkStudentProfile(student);
   const pendingTasks = tasks.filter((task) => task.status !== "Sudah Dinilai");
   const academicAccessMessage =
@@ -104,6 +106,38 @@ function TugasSiswaPageContent() {
     setIsDialogOpen(true);
   };
 
+  const handleStartLatihanCbt = async (taskId: string, e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+
+    try {
+      const response = await fetch(
+        `/api/student/me/learning/tasks/${encodeURIComponent(taskId)}/cbt/start`,
+        {
+          method: "POST",
+          ...withStoredAuthHeader(),
+          credentials: "include",
+          cache: "no-store",
+        },
+      );
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok || !payload?.success || !payload.data?.attemptId) {
+        throw new Error(payload?.message || "Latihan belum bisa dimulai.");
+      }
+
+      router.push(
+        `/dashboard-siswa/latihan/${encodeURIComponent(payload.data.attemptId)}/cbt`,
+      );
+    } catch (error) {
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : "Terjadi kesalahan saat memulai latihan.",
+      );
+    }
+  };
+
   useEffect(() => {
     if (isUtbkStudent) {
       router.replace("/dashboard-siswa/materi");
@@ -116,8 +150,10 @@ function TugasSiswaPageContent() {
     }
 
     if (tasks.some((task) => task.id === requestedTaskId)) {
-      setSelectedTaskId(requestedTaskId);
-      setIsDialogOpen(true);
+      queueMicrotask(() => {
+        setSelectedTaskId(requestedTaskId);
+        setIsDialogOpen(true);
+      });
     }
   }, [requestedTaskId, tasks]);
 
@@ -125,7 +161,7 @@ function TugasSiswaPageContent() {
     return (
       <StudentLearningShell
         title="Mengalihkan ke Materi UTBK"
-        description="Program UTBK tidak memakai tab tugas reguler."
+        description="Program UTBK tidak memakai latihan reguler."
         summary="Area UTBK"
         isUtbkStudent
       >
@@ -140,10 +176,10 @@ function TugasSiswaPageContent() {
 
   return (
     <StudentLearningShell
-      title="Tugas Siswa"
-      description="Pantau deadline, instruksi tugas, dan status pengerjaan dalam satu halaman supaya kamu lebih mudah menentukan prioritas belajar."
+      title="Latihan Soal"
+      description="Pilih latihan dari pertemuan kelas, lalu mulai CBT. Hasilnya langsung masuk ke nilai dan progres belajar."
       summary={
-        isLoading ? "Memuat tugas..." : `${pendingTasks.length} tugas aktif`
+        isLoading ? "Memuat latihan..." : `${pendingTasks.length} latihan aktif`
       }
       isNavigationLoading={isLoading && !student}
     >
@@ -153,10 +189,10 @@ function TugasSiswaPageContent() {
             <FileText className="h-8 w-8 animate-pulse" />
           </div>
           <p className="text-lg font-semibold text-slate-800">
-            Sedang Memuat Tugas
+            Sedang Memuat Latihan
           </p>
           <p className="mt-2 text-sm font-medium text-slate-500">
-            Sistem sedang mengambil tugas terbaru dari kelas kamu...
+            Sistem sedang mengambil latihan CBT terbaru dari kelas kamu...
           </p>
         </section>
       ) : tasks.length === 0 ? (
@@ -165,12 +201,12 @@ function TugasSiswaPageContent() {
             <FileText className="h-8 w-8" />
           </div>
           <p className="text-lg font-semibold text-slate-800">
-            Belum Ada Tugas Tersedia
+            Belum Ada Latihan Soal
           </p>
           <p className="mt-2 text-sm font-medium text-slate-500 max-w-md mx-auto">
             {academicAccessMessage ??
               loadError ??
-              "Guru belum menambahkan tugas untuk kelas kamu."}
+              "Guru belum menambahkan latihan CBT untuk kelas kamu."}
           </p>
         </section>
       ) : (
@@ -180,11 +216,11 @@ function TugasSiswaPageContent() {
               <div className="flex items-center">
                 <div className="w-1.5 h-6 bg-orange-500 rounded-full mr-3"></div>
                 <h3 className="text-xl font-semibold text-slate-800">
-                  Tugas aktif dan riwayat penilaian
+                  Latihan CBT dan riwayat hasil
                 </h3>
               </div>
               <p className="hidden md:block text-sm font-medium text-slate-500">
-                Gunakan halaman ini untuk cek instruksi sebelum mengirim jawaban.
+                Mulai latihan sesuai pertemuan, hasilnya langsung memperbarui progres belajar.
               </p>
             </div>
 
@@ -230,27 +266,44 @@ function TugasSiswaPageContent() {
                         </p>
                         
                         <p className="mt-2 text-xs font-medium text-slate-400">
-                          Deadline {task.deadline} | Estimasi {task.estimasi} | {task.poin}
+                          Batas {task.deadline} | Estimasi {task.estimasi} | {task.poin}
+                        </p>
+                        <p className="mt-1 text-xs font-semibold text-slate-500">
+                          Jadwal pengerjaan: {task.jadwalPengerjaan}
                         </p>
 
                         {task.mySubmission?.submittedAt ? (
                           <p className="mt-1.5 text-[11px] font-semibold text-sky-600">
-                            ✓ Dikumpulkan pada {formatSubmissionTime(task.mySubmission.submittedAt)}
+                            Selesai dikerjakan pada {formatSubmissionTime(task.mySubmission.submittedAt)}
                           </p>
                         ) : null}
 
-                        {task.myGrade?.graded ? (
+                        {task.isRemedial ? (
+                          <div className="mt-3 rounded-[16px] border border-amber-100 bg-amber-50/60 p-3 max-w-xl">
+                            <div className="flex flex-wrap items-center gap-2 text-xs mb-2">
+                              <span className="rounded-full bg-amber-100 px-2.5 py-1 font-semibold text-amber-800">
+                                Nilai {task.myGrade?.score ?? "-"}
+                              </span>
+                              <span className="font-semibold text-amber-700">
+                                Perlu Remedial
+                              </span>
+                            </div>
+                            <p className="text-sm font-medium leading-relaxed text-amber-800">
+                              {task.myGrade?.note || task.availabilityMessage}
+                            </p>
+                          </div>
+                        ) : task.myGrade?.graded ? (
                           <div className="mt-3 rounded-[16px] border border-emerald-100 bg-emerald-50/50 p-3 max-w-xl">
                             <div className="flex flex-wrap items-center gap-2 text-xs mb-2">
                               <span className="rounded-full bg-emerald-100 px-2.5 py-1 font-semibold text-emerald-800">
                                 Nilai {task.myGrade.score ?? "-"}
                               </span>
                               <span className="font-semibold text-emerald-600">
-                                Dinilai pada {formatSubmissionTime(task.myGrade.gradedAt)}
+                                Hasil tersimpan pada {formatSubmissionTime(task.myGrade.gradedAt)}
                               </span>
                             </div>
                             <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600">
-                              Catatan Guru
+                              Catatan Pembahasan
                             </p>
                             <p className="mt-1 text-sm font-medium text-slate-600 leading-relaxed">
                               {task.myGrade.note || "Tidak ada catatan."}
@@ -259,7 +312,7 @@ function TugasSiswaPageContent() {
                         ) : task.mySubmission?.submitted ? (
                           <div className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-amber-600">
                             <AlertCircle className="h-3.5 w-3.5" />
-                            Menunggu penilaian guru.
+                            Menunggu hasil latihan tersimpan.
                           </div>
                         ) : null}
                       </div>
@@ -275,16 +328,23 @@ function TugasSiswaPageContent() {
                         className="inline-flex h-11 flex-1 md:w-[120px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
                       >
                         <Eye className="h-[18px] w-[18px] text-slate-500" />
-                        Lihat Tugas
+                        Detail
                       </button>
-                      <Link
-                        href={task.submitHref}
-                        onClick={(e) => e.stopPropagation()}
-                        className="inline-flex h-11 flex-1 md:w-[130px] items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 text-[13px] font-semibold text-white shadow-sm transition-all hover:-translate-y-px hover:bg-orange-600 hover:shadow-md"
+                      <button
+                        type="button"
+                        onClick={(event) => handleStartLatihanCbt(task.id, event)}
+                        disabled={!task.isCbtReady || task.myGrade?.graded}
+                        className="inline-flex h-11 flex-1 md:w-[150px] items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 text-[13px] font-semibold text-white shadow-sm transition-all hover:-translate-y-px hover:bg-orange-600 hover:shadow-md disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none disabled:hover:translate-y-0"
                       >
                         <Send className="h-[18px] w-[18px]" />
-                        Kirim Jawaban
-                      </Link>
+                        {task.myGrade?.graded
+                          ? "Sudah Tuntas"
+                          : task.isRemedial
+                            ? "Kerjakan Remedial"
+                            : task.isCbtReady
+                              ? "Mulai Latihan"
+                              : "Belum Siap"}
+                      </button>
                     </div>
                   </article>
                 );
@@ -294,7 +354,7 @@ function TugasSiswaPageContent() {
         </>
       )}
 
-      {/* Detail Tugas Dialog */}
+      {/* Detail Latihan Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl gap-0 p-0 overflow-hidden rounded-[24px] border-slate-200 bg-white shadow-lg">
           {selectedTask && (
@@ -325,19 +385,22 @@ function TugasSiswaPageContent() {
               <div className="px-6 py-6">
                 <div className="flex flex-wrap items-center gap-3 mb-6">
                   <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
-                    <Clock className="h-4 w-4 text-rose-500" /> Deadline: {selectedTask.deadline}
+                    <Clock className="h-4 w-4 text-rose-500" /> Batas: {selectedTask.deadline}
                   </div>
                   <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
                     <Clock3 className="h-4 w-4 text-blue-500" /> Estimasi: {selectedTask.estimasi}
                   </div>
                   <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" /> Poin Maks: {selectedTask.poin}
+                    <Clock3 className="h-4 w-4 text-orange-500" /> Jadwal: {selectedTask.jadwalPengerjaan}
+                  </div>
+                  <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" /> Target: {selectedTask.poin}
                   </div>
                 </div>
 
                 <div className="rounded-[20px] bg-slate-50 border border-slate-100 p-6">
                   <h4 className="font-semibold text-slate-800 mb-3 text-base">
-                    Instruksi Pengerjaan
+                    Instruksi Latihan CBT
                   </h4>
                   <p className="text-sm leading-6 text-slate-600 mb-6">
                     {selectedTask.deskripsi}
@@ -359,16 +422,30 @@ function TugasSiswaPageContent() {
                 </div>
 
                 {/* Grade or Submission Status in Dialog */}
-                {selectedTask.myGrade?.graded ? (
+                {selectedTask.isRemedial ? (
+                  <div className="mt-6 rounded-[20px] border border-amber-100 bg-amber-50 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-semibold text-amber-800">
+                        Perlu Remedial
+                      </h4>
+                      <span className="rounded-full bg-amber-200 px-3 py-1 font-semibold text-amber-900 text-sm">
+                        Nilai {selectedTask.myGrade?.score ?? "-"}
+                      </span>
+                    </div>
+                    <p className="text-sm leading-6 text-amber-800">
+                      {selectedTask.myGrade?.note || selectedTask.availabilityMessage}
+                    </p>
+                  </div>
+                ) : selectedTask.myGrade?.graded ? (
                   <div className="mt-6 rounded-[20px] border border-emerald-100 bg-emerald-50 p-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-semibold text-emerald-800">Hasil Penilaian</h4>
+                      <h4 className="font-semibold text-emerald-800">Hasil Latihan</h4>
                       <span className="rounded-full bg-emerald-200 px-3 py-1 font-semibold text-emerald-900 text-sm">
                         Nilai {selectedTask.myGrade.score ?? "-"}
                       </span>
                     </div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700 mb-2">
-                      Catatan Guru
+                      Catatan Pembahasan
                     </p>
                     <p className="text-sm leading-6 text-slate-700">
                       {selectedTask.myGrade.note || "Tidak ada catatan tambahan."}
@@ -380,9 +457,9 @@ function TugasSiswaPageContent() {
                       <AlertCircle className="h-5 w-5" />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-amber-800">Menunggu Penilaian</h4>
+                      <h4 className="font-semibold text-amber-800">Menunggu Hasil</h4>
                       <p className="text-sm leading-6 text-amber-700 mt-1">
-                        Tugas sudah dikumpulkan pada {formatSubmissionTime(selectedTask.mySubmission.submittedAt)} dan sedang menunggu untuk dinilai oleh guru.
+                        Latihan sudah dikerjakan pada {formatSubmissionTime(selectedTask.mySubmission.submittedAt)} dan sedang menunggu hasil tersimpan.
                       </p>
                     </div>
                   </div>
@@ -401,13 +478,21 @@ function TugasSiswaPageContent() {
                     Lampiran Soal
                   </a>
                 ) : null}
-                <Link
-                  href={selectedTask.submitHref}
-                  className="flex-1 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-[15px] font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-md"
+                <button
+                  type="button"
+                  onClick={(event) => handleStartLatihanCbt(selectedTask.id, event)}
+                  disabled={!selectedTask.isCbtReady || selectedTask.myGrade?.graded}
+                  className="flex-1 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-[15px] font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-md disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none disabled:hover:translate-y-0"
                 >
                   <Send className="h-5 w-5" />
-                  Kirim Jawaban
-                </Link>
+                  {selectedTask.myGrade?.graded
+                    ? "Sudah Tuntas"
+                    : selectedTask.isRemedial
+                      ? "Kerjakan Remedial"
+                      : selectedTask.isCbtReady
+                        ? "Mulai Latihan"
+                        : "Belum Siap"}
+                </button>
               </div>
             </div>
           )}
@@ -417,10 +502,10 @@ function TugasSiswaPageContent() {
   );
 }
 
-export default function TugasSiswaPageView() {
+export default function LatihanSiswaPageView() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-sm text-slate-500">Memuat tugas...</div>}>
-      <TugasSiswaPageContent />
+    <Suspense fallback={<div className="p-8 text-center text-sm text-slate-500">Memuat latihan...</div>}>
+      <LatihanSiswaPageContent />
     </Suspense>
   );
 }

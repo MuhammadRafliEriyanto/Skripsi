@@ -465,6 +465,66 @@ function toPublicStudentTryout(
   };
 }
 
+async function getSubmittedTryoutHistoryForStudent(
+  student: StudentDocument,
+  excludedTryoutIds: string[] = [],
+) {
+  const excludedTryoutIdSet = new Set(
+    excludedTryoutIds.map((tryoutId) => normalizeText(tryoutId)).filter(Boolean),
+  );
+  const submittedAttempts = await StudentTryoutAttempt.find({
+    studentId: normalizeText(student.studentId),
+    status: "submitted",
+  })
+    .sort({ submittedAt: -1, startedAt: -1, createdAt: -1 })
+    .exec();
+  const historyAttemptByTryoutId = new Map<string, StudentTryoutAttemptDocument>();
+
+  for (const attempt of submittedAttempts) {
+    const tryoutId = normalizeText(attempt.tryoutId);
+
+    if (
+      !tryoutId ||
+      excludedTryoutIdSet.has(tryoutId) ||
+      historyAttemptByTryoutId.has(tryoutId)
+    ) {
+      continue;
+    }
+
+    historyAttemptByTryoutId.set(tryoutId, attempt);
+  }
+
+  const historyTryoutIds = Array.from(historyAttemptByTryoutId.keys());
+
+  if (historyTryoutIds.length === 0) {
+    return [];
+  }
+
+  const historyTryouts = await TeacherTryout.find({
+    tryoutId: {
+      $in: historyTryoutIds,
+    },
+    questionSource: {
+      $in: ["bank", "manual", "file"],
+    },
+    ...(isUtbkStudent(student) ? { assessmentType: "Tryout" } : {}),
+  }).exec();
+
+  return historyTryouts
+    .map((tryout) =>
+      toPublicStudentTryout(
+        tryout,
+        historyAttemptByTryoutId.get(normalizeText(tryout.tryoutId)) ?? null,
+      ),
+    )
+    .sort((left, right) => {
+      const leftTime = parseValidDate(left.myAttempt.submittedAt)?.getTime() ?? 0;
+      const rightTime = parseValidDate(right.myAttempt.submittedAt)?.getTime() ?? 0;
+
+      return rightTime - leftTime;
+    });
+}
+
 function toPublicTryoutQuestion(
   question: NormalizedTryoutQuestion,
   options: {
@@ -855,6 +915,8 @@ export const getMyStudentTryouts = asyncHandler(
     );
 
     if (!academicJoinedAt) {
+      const historyTryouts = await getSubmittedTryoutHistoryForStudent(student);
+
       sendSuccess(res, {
         message: "Daftar ujian siswa berhasil diambil.",
         data: {
@@ -862,7 +924,7 @@ export const getMyStudentTryouts = asyncHandler(
             student,
             membershipSnapshot.accessStatus,
           ),
-          tryouts: [],
+          tryouts: historyTryouts,
           academicAccess,
           membershipAccess,
         },
@@ -879,6 +941,8 @@ export const getMyStudentTryouts = asyncHandler(
     );
 
     if (!eligibleFilter) {
+      const historyTryouts = await getSubmittedTryoutHistoryForStudent(student);
+
       sendSuccess(res, {
         message: "Daftar ujian siswa berhasil diambil.",
         data: {
@@ -886,7 +950,7 @@ export const getMyStudentTryouts = asyncHandler(
             student,
             membershipSnapshot.accessStatus,
           ),
-          tryouts: [],
+          tryouts: historyTryouts,
           academicAccess,
           membershipAccess,
         },
@@ -912,6 +976,27 @@ export const getMyStudentTryouts = asyncHandler(
     const attemptByTryoutId = new Map(
       attempts.map((attempt) => [normalizeText(attempt.tryoutId), attempt]),
     );
+    const currentTryouts = tryouts.map((tryout) =>
+      toPublicStudentTryout(
+        tryout,
+        attemptByTryoutId.get(normalizeText(tryout.tryoutId)) ?? null,
+      ),
+    );
+    const historyTryouts = await getSubmittedTryoutHistoryForStudent(
+      student,
+      tryouts.map((tryout) => tryout.tryoutId),
+    );
+    const tryoutById = new Map(
+      currentTryouts.map((tryout) => [normalizeText(tryout.tryoutId), tryout]),
+    );
+
+    for (const historyTryout of historyTryouts) {
+      const tryoutId = normalizeText(historyTryout.tryoutId);
+
+      if (tryoutId && !tryoutById.has(tryoutId)) {
+        tryoutById.set(tryoutId, historyTryout);
+      }
+    }
 
     sendSuccess(res, {
       message: "Daftar ujian siswa berhasil diambil.",
@@ -920,12 +1005,7 @@ export const getMyStudentTryouts = asyncHandler(
           student,
           membershipSnapshot.accessStatus,
         ),
-        tryouts: tryouts.map((tryout) =>
-          toPublicStudentTryout(
-            tryout,
-            attemptByTryoutId.get(normalizeText(tryout.tryoutId)) ?? null,
-          ),
-        ),
+        tryouts: Array.from(tryoutById.values()),
         academicAccess,
         membershipAccess,
       },
@@ -1051,24 +1131,38 @@ export const getMyStudentExamAttempt = asyncHandler(
     const { student, subscriptionStartAt, subscriptionId } =
       await getAuthenticatedStudentTryoutContextOrThrow(req.user._id.toString());
     const attemptId = normalizeText(req.params.attemptId);
-    const attempt = attemptId
+    const scopedAttempt = attemptId
       ? await StudentTryoutAttempt.findOne({
           attemptId,
           studentId: normalizeText(student.studentId),
           ...buildAcademicRecordSubscriptionFilter(subscriptionId),
         }).exec()
       : null;
+    const attempt =
+      scopedAttempt ??
+      (attemptId
+        ? await StudentTryoutAttempt.findOne({
+            attemptId,
+            studentId: normalizeText(student.studentId),
+            status: "submitted",
+          }).exec()
+        : null);
 
     if (!attempt) {
       next(new AppError(404, "Sesi ujian siswa tidak ditemukan."));
       return;
     }
 
-    const tryout = await findEligibleStudentTryout(
-      attempt.tryoutId,
-      student,
-      subscriptionStartAt,
-    );
+    const tryout =
+      attempt.status === "submitted"
+        ? await TeacherTryout.findOne({
+            tryoutId: attempt.tryoutId,
+          }).exec()
+        : await findEligibleStudentTryout(
+            attempt.tryoutId,
+            student,
+            subscriptionStartAt,
+          );
 
     if (!tryout) {
       next(new AppError(404, "Sesi ujian siswa tidak ditemukan."));

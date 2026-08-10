@@ -1,6 +1,5 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import {
   BookOpen,
@@ -48,10 +47,8 @@ function getSubjectStyle(subject: string) {
 }
 
 function MateriSiswaPageContent() {
-  const searchParams = useSearchParams();
-  const academicYear = searchParams.get("academicYear") ?? "";
-  const { materials, student, academicAccess, isLoading, loadError, isWaitingForYear } =
-    useStudentLearningData(academicYear);
+  const { materials, student, academicAccess, isLoading, loadError } =
+    useStudentLearningData();
   const [selectedMaterialId, setSelectedMaterialId] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const isUtbkStudent = isUtbkStudentProfile(student);
@@ -74,13 +71,8 @@ function MateriSiswaPageContent() {
           ? "Pelajari materi persiapan UTBK yang disusun khusus untuk target jurusanmu."
           : "Temukan materi yang tepat untuk persiapan belajarmu hari ini."
       }
-      loading={isLoading || isWaitingForYear}
-      error={loadError}
-      academicAccessMessage={
-        isWaitingForYear
-          ? "Silakan pilih tahun akademik di dashboard utama untuk melihat materi."
-          : academicAccessMessage
-      }
+      
+            
       summary={
         isLoading
           ? "Memuat materi..."
@@ -218,7 +210,7 @@ function MateriSiswaPageContent() {
                 <p className="text-sm font-medium text-slate-600 mt-0.5">
                   {isUtbkStudent
                     ? "Pelajari materi secara bertahap dan gunakan sesi ujian/tryout untuk melihat capaian belajar UTBK."
-                    : "Pelajari materi secara bertahap dan kerjakan tugas untuk meningkatkan pemahamanmu."}
+                    : "Pelajari materi secara bertahap lalu kerjakan latihan soal untuk meningkatkan pemahamanmu."}
                 </p>
               </div>
             </div>

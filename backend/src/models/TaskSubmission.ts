@@ -4,6 +4,7 @@ export const TASK_SUBMISSION_MODES = [
   "file",
   "text",
   "drive",
+  "cbt",
 ] as const;
 
 export type TaskSubmissionMode = (typeof TASK_SUBMISSION_MODES)[number];

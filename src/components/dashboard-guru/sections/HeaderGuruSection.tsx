@@ -1,15 +1,14 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { useEffect, useEffectEvent, useMemo, useState } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
 import {
   BookOpen,
-  CalendarDays,
   FileText,
   Flame,
   Lock,
@@ -21,8 +20,6 @@ import {
 import {
   buildGuruApiUrl,
   buildGuruUrl,
-  getGuruAcademicYearOptions,
-  getSelectedAcademicPeriod,
 } from "@/lib/guru-helpers";
 
 import {
@@ -148,30 +145,13 @@ function EmptyProgramState({ message }: { message: string }) {
 export default function HeaderGuruSection() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const pathname = usePathname();
   const [profile, setProfile] = useState<HeaderGuruProfileState>(
     fallbackHeaderProfile,
   );
 
-  const { academicYear: selectedAcademicYear } =
-    getSelectedAcademicPeriod(searchParams);
-
-  const handlePeriodChange = (key: "academicYear", value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set(key, value);
-    router.push(`${pathname}?${params.toString()}`);
-  };
-
   const handleNavigation = (href: string) => {
     router.push(buildGuruUrl(href, searchParams));
   };
-
-  const academicYearOptions = useMemo(() => {
-    return getGuruAcademicYearOptions();
-  }, []);
-
-  const isCurrentPeriod =
-    academicYearOptions.includes(selectedAcademicYear);
 
   const guruConfig = useMemo<GuruProgram[]>(
     () => [
@@ -356,7 +336,7 @@ export default function HeaderGuruSection() {
 
       void loadTeacherProfile();
     });
-  }, [selectedAcademicYear]);
+  }, []);
 
   useEffect(() => {
     function handleAuthUserUpdated() {
@@ -401,42 +381,6 @@ export default function HeaderGuruSection() {
                 Kelola kelas, materi, penilaian, dan evaluasi dari satu panel kerja yang ringkas.
               </p>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm flex flex-col justify-center px-4 py-4 md:px-5">
-        <div className="mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CalendarDays className="h-4 w-4 text-orange-500" />
-            <h2 className="text-sm font-semibold text-slate-800">Tahun Ajaran</h2>
-          </div>
-          <span
-            className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
-              isCurrentPeriod
-                ? "bg-green-100 text-green-700"
-                : "bg-slate-100 text-slate-600"
-            }`}
-          >
-            {isCurrentPeriod ? "Aktif" : "Arsip"}
-          </span>
-        </div>
-        
-        <div className="grid grid-cols-1 gap-3">
-          <div className="relative">
-            <Select
-              value={selectedAcademicYear}
-              onValueChange={(value) => handlePeriodChange("academicYear", value)}
-            >
-              <SelectTrigger className="w-full rounded-xl border-gray-200 bg-gray-50 focus:ring-orange-400 h-9 text-xs">
-                <SelectValue placeholder="--Pilih Tahun Ajaran--" />
-              </SelectTrigger>
-              <SelectContent>
-                {academicYearOptions.map((opt) => (
-                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
         </div>
       </div>

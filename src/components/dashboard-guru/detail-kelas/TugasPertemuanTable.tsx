@@ -15,6 +15,14 @@ const ACTION_ICON_CLASS = "h-4 w-4 shrink-0";
 const ACTION_BUTTON_CLASS =
   "inline-flex h-8 w-8 shrink-0 items-center justify-center border text-xs transition";
 
+function formatTimeRange(startTime: string, endTime: string) {
+  if (!startTime || !endTime) {
+    return "";
+  }
+
+  return `${startTime.replace(/:/g, ".")} - ${endTime.replace(/:/g, ".")} WIB`;
+}
+
 function getTaskStatusClass(status: TugasPertemuanTableProps["tasks"][number]["statusPenilaian"]) {
   if (status === "Sudah Dinilai") {
     return "border-emerald-200 bg-emerald-50 text-emerald-700";
@@ -22,6 +30,10 @@ function getTaskStatusClass(status: TugasPertemuanTableProps["tasks"][number]["s
 
   if (status === "Belum Ada Pengumpulan") {
     return "border-slate-200 bg-slate-50 text-slate-600";
+  }
+
+  if (status === "Perlu Remedial") {
+    return "border-amber-200 bg-amber-50 text-amber-700";
   }
 
   return "border-slate-200 bg-slate-50 text-slate-700";
@@ -60,7 +72,7 @@ export default function TugasPertemuanTable({
 
             <p className="mt-1 text-sm text-slate-500">
               {readOnly
-                ? readOnlyMessage ?? "Tahun ajaran ini sudah menjadi arsip. Latihan hanya bisa dilihat."
+                ? readOnlyMessage ?? "Latihan ini sedang dikunci oleh pengaturan jadwal admin."
                 : `Kelola latihan dan status penilaian siswa untuk kelas ${kelasName}.`}
             </p>
           </div>
@@ -83,13 +95,14 @@ export default function TugasPertemuanTable({
 
         {sortedTasks.length > 0 ? (
           <div className="overflow-x-auto border border-slate-200 bg-white">
-            <table className="min-w-[1120px] w-full">
+            <table className="min-w-[1240px] w-full">
               <thead className="bg-orange-50/50 text-left backdrop-blur-sm">
                 <tr className="text-xs uppercase tracking-[0.16em] text-slate-500">
                   <th className="px-4 py-3 font-semibold">Pertemuan</th>
                   <th className="px-4 py-3 font-semibold">Judul Latihan</th>
                   <th className="px-4 py-3 font-semibold">Deskripsi</th>
                   <th className="px-4 py-3 font-semibold">Deadline</th>
+                  <th className="px-4 py-3 font-semibold">CBT</th>
                   <th className="px-4 py-3 font-semibold">Mengumpulkan</th>
                   <th className="px-4 py-3 font-semibold">Lampiran</th>
                   <th className="px-4 py-3 font-semibold">Status Penilaian</th>
@@ -111,6 +124,24 @@ export default function TugasPertemuanTable({
                     <td className="px-4 py-4 text-slate-600">{task.deskripsi}</td>
                     <td className="px-4 py-4 text-slate-600">
                       {formatDisplayDate(task.deadline)}
+                    </td>
+                    <td className="px-4 py-4 text-slate-600">
+                      <div className="flex flex-wrap gap-1.5">
+                        <span className="inline-flex border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700">
+                          {task.jumlahSoal} soal
+                        </span>
+                        <span className="inline-flex border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700">
+                          {task.durasiMenit} menit
+                        </span>
+                        {task.jamMulai && task.jamSelesai ? (
+                          <span className="inline-flex border border-sky-200 bg-sky-50 px-2 py-1 text-xs font-semibold text-sky-700">
+                            {formatTimeRange(task.jamMulai, task.jamSelesai)}
+                          </span>
+                        ) : null}
+                        <span className="inline-flex border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">
+                          KKM {task.nilaiMinimum ?? "-"}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-4 py-4 text-slate-600">
                       {task.jumlahMengumpulkan} siswa

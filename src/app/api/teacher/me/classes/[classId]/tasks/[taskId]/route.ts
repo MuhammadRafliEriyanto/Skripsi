@@ -23,6 +23,20 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   );
 }
 
+export async function POST(request: NextRequest, { params }: RouteContext) {
+  const { classId, taskId } = await params;
+  const body = await readRequestBody(request);
+
+  return proxyProtectedBackend(
+    request,
+    `/api/teacher/me/classes/${encodeURIComponent(classId)}/tasks/${encodeURIComponent(taskId)}/questions/xlsx`,
+    {
+      method: "POST",
+      body,
+    },
+  );
+}
+
 export async function DELETE(request: NextRequest, { params }: RouteContext) {
   const { classId, taskId } = await params;
 

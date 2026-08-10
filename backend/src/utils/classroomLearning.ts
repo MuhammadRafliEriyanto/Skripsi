@@ -39,6 +39,11 @@ type LearningClassScopedDocument = {
   meetingNumber?: number;
   date?: string;
   deadline?: string;
+  startAt?: Date | null;
+  endAt?: Date | null;
+  durationMinutes?: number | null;
+  questionCount?: number | null;
+  passingGrade?: number | null;
   title?: string;
   description?: string;
   linkUrl?: string;
@@ -52,6 +57,9 @@ type LearningClassScopedDocument = {
   score?: number;
   note?: string;
   gradedAt?: Date | null;
+  remedialRequestedAt?: Date | null;
+  remedialCompletedAt?: Date | null;
+  remedialCount?: number;
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -93,6 +101,11 @@ export type PublicClassTask = {
   title: string;
   description: string;
   deadline: string;
+  startAt: string | null;
+  endAt: string | null;
+  durationMinutes: number | null;
+  questionCount: number;
+  passingGrade: number | null;
   attachment: PublicClassAttachment | null;
   submittedCount: number;
   gradedCount: number;
@@ -117,6 +130,9 @@ export type PublicTaskGrade = {
   note: string;
   status: TaskGradeStatus;
   gradedAt: string | null;
+  remedialRequestedAt: string | null;
+  remedialCompletedAt: string | null;
+  remedialCount: number;
   createdAt: string | null;
   updatedAt: string | null;
 };
@@ -207,6 +223,8 @@ export function normalizeTaskGradeStatus(
   switch (normalizedValue) {
     case "sudah dinilai":
       return "Sudah Dinilai";
+    case "perlu remedial":
+      return "Perlu Remedial";
     case "belum dinilai":
       return "Belum Dinilai";
     default:
@@ -389,7 +407,9 @@ export async function getTeacherTaskMetricMaps(
       taskId: {
         $in: normalizedTaskIds,
       },
-      status: "Sudah Dinilai",
+      status: {
+        $in: ["Sudah Dinilai"],
+      },
       ...(subscriptionIds ? buildAcademicRecordSubscriptionFilter(subscriptionIds) : {}),
     })
       .select("taskId studentId status")
@@ -549,6 +569,20 @@ export function toPublicClassTask(
     title: normalizeText(task.title),
     description: normalizeText(task.description),
     deadline: normalizeText(task.deadline),
+    startAt: task.startAt?.toISOString() ?? null,
+    endAt: task.endAt?.toISOString() ?? null,
+    durationMinutes:
+      typeof task.durationMinutes === "number" && task.durationMinutes > 0
+        ? task.durationMinutes
+        : null,
+    questionCount:
+      typeof task.questionCount === "number" && task.questionCount >= 0
+        ? task.questionCount
+        : 0,
+    passingGrade:
+      typeof task.passingGrade === "number" && task.passingGrade >= 0
+        ? task.passingGrade
+        : null,
     attachment: toPublicAttachment(task.attachment),
     submittedCount:
       typeof task.submittedCount === "number" && task.submittedCount >= 0
@@ -584,6 +618,12 @@ export function toPublicTaskGrade(
       normalizeTaskGradeStatus(grade.status) ??
       TASK_GRADE_STATUSES[0],
     gradedAt: grade.gradedAt?.toISOString() ?? null,
+    remedialRequestedAt: grade.remedialRequestedAt?.toISOString() ?? null,
+    remedialCompletedAt: grade.remedialCompletedAt?.toISOString() ?? null,
+    remedialCount:
+      typeof grade.remedialCount === "number" && grade.remedialCount >= 0
+        ? grade.remedialCount
+        : 0,
     createdAt: grade.createdAt?.toISOString() ?? null,
     updatedAt: grade.updatedAt?.toISOString() ?? null,
   };

@@ -9,6 +9,8 @@ import {
   Power,
   PowerOff,
   RotateCcw,
+  Mail,
+  LoaderCircle,
   Trash2,
   Upload,
 } from "lucide-react";
@@ -91,6 +93,9 @@ type StudentFormValues = {
   name: string;
   email: string;
   phone: string;
+  address: string;
+  schoolOrigin: string;
+  difficultSubjects: string;
   branch: string;
   program: string;
   className: string;
@@ -209,7 +214,10 @@ function createEmptyStudentForm(
   return {
     name: "",
     email: "",
-    phone: "-",
+    phone: "",
+    address: "",
+    schoolOrigin: "",
+    difficultSubjects: "",
     branch: "",
     program: "-",
     className: defaultClassName,
@@ -352,7 +360,10 @@ function toStudentFormValues(student: AdminStudent): StudentFormValues {
   return {
     name: student.name,
     email: student.email,
-    phone: student.phone,
+    phone: student.phone || "",
+    address: student.address || "",
+    schoolOrigin: student.schoolOrigin || "",
+    difficultSubjects: student.difficultSubjects || "",
     branch: student.branch,
     program: student.program,
     className: student.className,
@@ -420,6 +431,8 @@ function StudentActions({
   onEdit,
   onDelete,
   onToggleStatus,
+  onResendVerification,
+  isResending = false,
 }: {
   student: AdminStudent;
   branchOptions: string[];
@@ -428,6 +441,8 @@ function StudentActions({
   onEdit: (student: AdminStudent) => void;
   onDelete: (student: AdminStudent) => void;
   onToggleStatus: (student: AdminStudent) => void;
+  onResendVerification: (student: AdminStudent) => void;
+  isResending?: boolean;
 }) {
   const status = student.membership?.status || "none";
   let label = "Belum Membership";
@@ -527,22 +542,18 @@ function StudentActions({
         <Pencil className="size-4" />
       </Button>
 
-
-
-      {student.hasFinancialHistory ? null : (
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className="size-9 rounded-xl border-rose-200 bg-white p-0 text-rose-600 shadow-sm transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 active:border-rose-300 active:bg-rose-100/80 focus-visible:ring-orange-500/10"
-          aria-label={`Hapus ${student.name}`}
-          title={readOnly ? readOnlyMessage : "Hapus"}
-          disabled={readOnly}
-          onClick={() => onDelete(student)}
-        >
-          <Trash2 className="size-4" />
-        </Button>
-      )}
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        className="size-9 rounded-xl border-rose-200 bg-white p-0 text-rose-600 shadow-sm transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 active:border-rose-300 active:bg-rose-100/80 focus-visible:ring-orange-500/10"
+        aria-label={`Hapus ${student.name}`}
+        title={readOnly ? readOnlyMessage : "Hapus"}
+        disabled={readOnly}
+        onClick={() => onDelete(student)}
+      >
+        <Trash2 className="size-4" />
+      </Button>
     </div>
   );
 }
@@ -610,6 +621,7 @@ export function AdminStudents({
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [resendingStudentId, setResendingStudentId] = useState<string | null>(null);
   const [branchOptions, setBranchOptions] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [pageLimit, setPageLimit] = useState(20);
@@ -915,6 +927,9 @@ export function AdminStudents({
     const normalizedName = formValues.name.trim();
     const normalizedEmail = normalizeEmail(formValues.email);
     const normalizedPhone = normalizePhone(formValues.phone);
+    const normalizedAddress = formValues.address.trim();
+    const normalizedSchoolOrigin = formValues.schoolOrigin.trim();
+    const normalizedDifficultSubjects = formValues.difficultSubjects.trim();
     const normalizedBranch = getRegisteredBranchName(
       formValues.branch,
       branchOptions,
@@ -991,6 +1006,9 @@ export function AdminStudents({
             program: normalizedProgram,
             className: normalizedClassName,
             ...(normalizedBirthDate ? { birthDate: normalizedBirthDate } : {}),
+            address: normalizedAddress,
+            schoolOrigin: normalizedSchoolOrigin,
+            difficultSubjects: normalizedDifficultSubjects,
             academicYear: formValues.academicYear,
             ...(formValues.password ? { password: formValues.password } : {}),
             status: formValues.status,
@@ -1162,6 +1180,28 @@ export function AdminStudents({
     }
   };
 
+  const handleResendVerification = async (student: AdminStudent) => {
+    if (resendingStudentId || isAcademicYearLocked) return;
+    setResendingStudentId(student.id);
+    try {
+      const response = await requestAdminApi<{ message: string }>(
+        `/api/students/${encodeURIComponent(student.id)}/resend-verification`,
+        { method: "POST" }
+      );
+      setActionFeedback({
+        tone: "success",
+        message: response.message || `Email verifikasi berhasil dikirim ulang ke ${student.email}`,
+      });
+    } catch (requestError) {
+      setActionFeedback({
+        tone: "warning",
+        message: requestError instanceof Error ? requestError.message : "Gagal mengirim ulang verifikasi",
+      });
+    } finally {
+      setResendingStudentId(null);
+    }
+  };
+
   const handleExport = async () => {
     if (!filteredStudents.length) {
       return;
@@ -1276,31 +1316,74 @@ export function AdminStudents({
     },
     {
       key: "loginCode",
-      header: "Kode Login",
+      header: "Kode Login & Email",
       cell: (student) => (
-        <div className="max-w-[240px]">
-          <p className="truncate text-sm font-semibold text-slate-800">
-            {student.loginCode || student.id}
-          </p>
-          {!student.email.endsWith("@bimbel.local") && (
-            <p className="truncate text-xs text-slate-500">{student.email}</p>
-          )}
+        <div className="max-w-[240px] space-y-2">
+          <div>
+            <p className="truncate text-sm font-semibold text-slate-800">
+              {student.loginCode || student.id}
+            </p>
+            <p className="truncate text-xs text-slate-500 mt-0.5">{student.email}</p>
+          </div>
+
+          {!student.email.endsWith("@bimbel.local") ? (
+            <div className="space-y-2 pt-1 border-t border-slate-100">
+              <Badge
+                variant={student.isEmailVerified ? "success" : "warning"}
+                className="rounded-full px-2 py-0.5 text-[10px] w-fit flex items-center"
+              >
+                <span
+                  className={cn(
+                    "size-1.5 rounded-full mr-1.5",
+                    student.isEmailVerified ? "bg-emerald-500" : "bg-amber-500",
+                  )}
+                />
+                {student.isEmailVerified ? "Terverifikasi" : "Menunggu Verifikasi"}
+              </Badge>
+
+              {!student.isEmailVerified ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="rounded-full h-7 text-xs px-3"
+                  onClick={() => handleResendVerification(student)}
+                  disabled={resendingStudentId === student.id}
+                >
+                  {resendingStudentId === student.id ? (
+                    <LoaderCircle className="size-3 animate-spin mr-1.5" />
+                  ) : (
+                    <Mail className="size-3 mr-1.5" />
+                  )}
+                  Kirim Ulang
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       ),
     },
     {
-      key: "branch",
-      header: "Cabang",
-      cell: (student) =>
-        getRegisteredBranchName(student.branch, branchOptions) || "Belum diatur",
+      key: "phone",
+      header: "No HP",
+      cell: (student) => student.phone || "-",
+    },
+    {
+      key: "address",
+      header: "Alamat",
+      cell: (student) => student.address || "-",
     },
     {
       key: "program",
-      header: "Program / Jenjang",
+      header: "Program & Asal Sekolah",
       cell: (student) => (
         <div>
-          <p className="font-medium text-slate-800">{student.program}</p>
-          <p className="text-sm text-slate-500">{student.level}</p>
+          {student.program && student.program !== "-" ? (
+            <p className="font-medium text-slate-800">{student.program}</p>
+          ) : null}
+          <p className="text-sm text-slate-500">
+            {student.level} {student.schoolOrigin && student.schoolOrigin !== "-" ? ` • ${student.schoolOrigin}` : ""}
+          </p>
         </div>
       ),
     },
@@ -1335,6 +1418,8 @@ export function AdminStudents({
           onEdit={openEditDialog}
           onDelete={setStudentToDelete}
           onToggleStatus={handleToggleStatus}
+          onResendVerification={handleResendVerification}
+          isResending={resendingStudentId === student.id}
         />
       ),
       className: "w-[196px] text-center",
@@ -1641,7 +1726,52 @@ export function AdminStudents({
                   />
                 </StudentField>
 
+                <StudentField label="Email">
+                  <Input
+                    className={warmFieldClassName}
+                    type="email"
+                    required
+                    value={formValues.email}
+                    onChange={(event) => updateFormValue("email", event.target.value)}
+                    placeholder="Email aktif"
+                  />
+                </StudentField>
 
+                <StudentField label="No. HP">
+                  <Input
+                    className={warmFieldClassName}
+                    value={formValues.phone}
+                    onChange={(event) => updateFormValue("phone", event.target.value)}
+                    placeholder="Contoh: 08123456789"
+                  />
+                </StudentField>
+
+                <StudentField label="Alamat">
+                  <Input
+                    className={warmFieldClassName}
+                    value={formValues.address}
+                    onChange={(event) => updateFormValue("address", event.target.value)}
+                    placeholder="Alamat lengkap"
+                  />
+                </StudentField>
+
+                <StudentField label="Asal Sekolah">
+                  <Input
+                    className={warmFieldClassName}
+                    value={formValues.schoolOrigin}
+                    onChange={(event) => updateFormValue("schoolOrigin", event.target.value)}
+                    placeholder="Asal sekolah siswa"
+                  />
+                </StudentField>
+
+                <StudentField label="Target Peningkatan (Mapel Sulit)">
+                  <Input
+                    className={warmFieldClassName}
+                    value={formValues.difficultSubjects}
+                    onChange={(event) => updateFormValue("difficultSubjects", event.target.value)}
+                    placeholder="Contoh: Matematika, Fisika"
+                  />
+                </StudentField>
               </div>
             </div>
 

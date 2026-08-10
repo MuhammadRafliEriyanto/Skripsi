@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -148,10 +148,8 @@ function ScheduleLoadingState() {
 }
 
 function JadwalSiswaPageContent() {
-  const searchParams = useSearchParams();
-  const academicYear = searchParams.get("academicYear") ?? "";
-  const { dashboardData, isLoading, loadError, isWaitingForYear } =
-    useStudentDashboardData(academicYear);
+  const { dashboardData, isLoading, loadError } =
+    useStudentDashboardData();
   const [selectedDay, setSelectedDay] = useState("Semua");
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(
     null,
@@ -270,7 +268,7 @@ function JadwalSiswaPageContent() {
           />
         </div>
 
-        {isLoading || isWaitingForYear ? (
+        {isLoading ? (
           <ScheduleLoadingState />
         ) : schedules.length === 0 ? (
           <section className="rounded-[26px] border border-dashed border-slate-200 bg-white px-6 py-14 text-center shadow-sm">
@@ -281,11 +279,9 @@ function JadwalSiswaPageContent() {
               Belum ada jadwal pelajaran
             </h2>
             <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500">
-              {isWaitingForYear
-                ? "Silakan pilih tahun akademik di dashboard utama untuk melihat jadwal."
-                : academicAccessMessage ??
-                  loadError ??
-                  "Jadwal akan tampil otomatis setelah kelas dan cabang siswa memiliki jadwal aktif."}
+              {academicAccessMessage ??
+                loadError ??
+                "Jadwal akan tampil otomatis setelah kelas dan cabang siswa memiliki jadwal aktif."}
             </p>
           </section>
         ) : (

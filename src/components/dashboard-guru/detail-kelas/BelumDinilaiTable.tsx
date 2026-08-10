@@ -23,7 +23,7 @@ export default function BelumDinilaiTable({
           </h2>
           <p className="mt-1 text-sm text-slate-500">
             {readOnly
-              ? readOnlyMessage ?? "Tahun ajaran ini sudah menjadi arsip. Latihan belum dinilai hanya bisa ditinjau."
+              ? readOnlyMessage ?? "Latihan ini sedang dikunci oleh pengaturan jadwal admin."
               : "Latihan yang sudah dikumpulkan siswa dan masih perlu diberi nilai."}
           </p>
         </div>

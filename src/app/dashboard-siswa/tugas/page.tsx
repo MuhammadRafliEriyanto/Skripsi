@@ -1,5 +1,5 @@
-import TugasSiswaPageView from "@/components/dashboard-siswa/pages/TugasSiswaPageView";
+import { redirect } from "next/navigation";
 
-export default function DashboardSiswaTugasPage() {
-  return <TugasSiswaPageView />;
+export default function DashboardSiswaLegacyLatihanRedirectPage() {
+  redirect("/dashboard-siswa/latihan");
 }

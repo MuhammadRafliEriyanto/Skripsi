@@ -22,7 +22,6 @@ import { clearAuthClientState } from "@/lib/auth";
 import {
   buildGuruApiUrl,
   buildGuruUrl,
-  getGuruAcademicYearStatus,
 } from "@/lib/guru-helpers";
 import { DEFAULT_SEMESTER_MEETING_TARGET } from "@/components/dashboard-guru/data/guruClassTypes";
 import {
@@ -889,9 +888,8 @@ export default function AbsensiKelasSection({
 }: AbsensiKelasSectionProps) {
   const searchParams = useSearchParams();
   const selectedScheduleId = normalizeText(searchParams.get("scheduleId"));
-  const academicYearStatus = getGuruAcademicYearStatus(searchParams);
-  const isAcademicArchive = academicYearStatus.isArchive;
-  const archiveMessage = `Tahun ajaran ${academicYearStatus.academicYear} sudah menjadi arsip. Data absensi hanya bisa dilihat.`;
+  const isAcademicArchive = false;
+  const archiveMessage = "";
   const [activeClass, setActiveClass] = useState<AttendanceClassData | null>(null);
   const [attendanceSession, setAttendanceSession] =
     useState<TeacherAttendanceSession | null>(null);
@@ -1390,7 +1388,7 @@ export default function AbsensiKelasSection({
     queueMicrotask(() => {
       void loadAttendanceClass();
     });
-  }, [academicYearStatus.academicYear, kelasId, selectedScheduleId]);
+  }, [kelasId, selectedScheduleId]);
 
   const refreshAttendanceSessionWhileOpen = useEffectEvent(async (rotateQr: boolean = false) => {
     if (isAcademicArchive || !attendanceSession || attendanceSession.status !== "open") {
@@ -1612,7 +1610,7 @@ export default function AbsensiKelasSection({
 
   const sessionStatusMeta = isAcademicArchive
     ? {
-        label: "Tahun ajaran arsip",
+        label: "Dikunci admin",
         className: "border-slate-200 bg-slate-100 text-slate-700",
       }
     : sessionLoading

@@ -84,7 +84,7 @@ export function resolveStudentMembershipContentAccess(
         accessStatus,
         isScheduledAccess,
         startsAt,
-        message: `${resolvePackageLabel(context)} sudah tercatat. Akses materi, tugas, jadwal, absensi, nilai, dan tryout dibuka mulai ${formatIndonesianDate(startDate)}.`,
+        message: `${resolvePackageLabel(context)} sudah tercatat. Akses materi, latihan soal, jadwal, absensi, nilai, dan tryout dibuka mulai ${formatIndonesianDate(startDate)}.`,
       };
     }
 
@@ -94,7 +94,7 @@ export function resolveStudentMembershipContentAccess(
       isScheduledAccess,
       startsAt,
       message:
-        "Pembayaran membership masih pending. Selesaikan pembayaran untuk membuka akses materi, tugas, jadwal, absensi, nilai, dan tryout.",
+        "Pembayaran membership masih pending. Selesaikan pembayaran untuk membuka akses materi, latihan soal, jadwal, absensi, nilai, dan tryout.",
     };
   }
 
@@ -105,7 +105,7 @@ export function resolveStudentMembershipContentAccess(
       isScheduledAccess: false,
       startsAt: null,
       message:
-        "Membership sudah berakhir. Perpanjang membership untuk membuka akses materi, tugas, jadwal, absensi, nilai, dan tryout.",
+        "Membership sudah berakhir. Perpanjang membership untuk membuka akses materi, latihan soal, jadwal, absensi, nilai, dan tryout.",
     };
   }
 
@@ -115,6 +115,6 @@ export function resolveStudentMembershipContentAccess(
     isScheduledAccess: false,
     startsAt: null,
     message:
-      "Membership belum aktif. Aktifkan membership untuk membuka akses materi, tugas, jadwal, absensi, nilai, dan tryout.",
+      "Membership belum aktif. Aktifkan membership untuk membuka akses materi, latihan soal, jadwal, absensi, nilai, dan tryout.",
   };
 }

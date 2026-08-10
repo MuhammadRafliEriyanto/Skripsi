@@ -18,7 +18,7 @@ import {
   User,
 } from "lucide-react";
 import { clearAuthClientState } from "@/lib/auth";
-import { buildGuruApiUrl, buildGuruUrl, getSelectedAcademicPeriod } from "@/lib/guru-helpers";
+import { buildGuruApiUrl, buildGuruUrl } from "@/lib/guru-helpers";
 
 import { DEFAULT_SEMESTER_MEETING_TARGET } from "@/components/dashboard-guru/data/guruClassTypes";
 
@@ -877,17 +877,15 @@ function LoadingStack({ count = 3 }: { count?: number }) {
 
 function JadwalCard({
   item,
-  academicYear,
 }: {
   item: JadwalGuruItem;
-  academicYear: string;
 }) {
   const cardClassName =
     "group rounded-xl border border-gray-200 bg-white p-3 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.01] hover:border-orange-300 hover:bg-orange-50/40 hover:shadow-lg hover:shadow-orange-200/35 hover:ring-1 hover:ring-orange-100";
   const attendanceHref = item.kelasId
     ? buildGuruUrl(
         "/dashboard-guru/absensi-kelas",
-        new URLSearchParams({ academicYear }),
+        new URLSearchParams(),
         {
           kelasId: item.kelasId,
           ...(item.scheduleId ? { scheduleId: item.scheduleId } : {}),
@@ -897,7 +895,7 @@ function JadwalCard({
   const detailHref = item.kelasId
     ? buildGuruUrl(
         "/dashboard-guru/detail-kelas",
-        new URLSearchParams({ academicYear }),
+        new URLSearchParams(),
         {
           kelasId: item.kelasId,
           ...(item.scheduleId ? { scheduleId: item.scheduleId } : {}),
@@ -1030,10 +1028,8 @@ function PerluDinilaiCard({ item }: { item: ReviewItem }) {
 
 function GuruClassCard({
   kelas,
-  academicYear,
 }: {
   kelas: GuruClassCardItem;
-  academicYear: string;
 }) {
   const gradClass =
     kelas.status === "Berjalan"
@@ -1099,7 +1095,7 @@ function GuruClassCard({
         <Link
           href={buildGuruUrl(
             "/dashboard-guru/detail-kelas",
-            new URLSearchParams({ academicYear }),
+            new URLSearchParams(),
             {
               kelasId: kelas.kelasId,
               ...(kelas.scheduleId ? { scheduleId: kelas.scheduleId } : {}),
@@ -1114,7 +1110,7 @@ function GuruClassCard({
         <Link
           href={buildGuruUrl(
             "/dashboard-guru/absensi-kelas",
-            new URLSearchParams({ academicYear }),
+            new URLSearchParams(),
             {
               kelasId: kelas.kelasId,
               ...(kelas.scheduleId ? { scheduleId: kelas.scheduleId } : {}),
@@ -1132,7 +1128,6 @@ function GuruClassCard({
 
 export default function JadwalGuruSection() {
   const searchParams = useSearchParams();
-  const { academicYear } = getSelectedAcademicPeriod(searchParams);
   
   const [selectedDay, setSelectedDay] = useState<GuruDay>(
     getCurrentIndonesianDay(),
@@ -1296,7 +1291,7 @@ export default function JadwalGuruSection() {
     queueMicrotask(() => {
       void loadTeacherScheduleData();
     });
-  }, [academicYear]);
+  }, []);
 
   const sortedJadwal = useMemo(
     () =>
@@ -1479,7 +1474,6 @@ export default function JadwalGuruSection() {
                   <JadwalCard
                     key={item.id}
                     item={item}
-                    academicYear={academicYear}
                   />
                 ))
               ) : (
@@ -1569,7 +1563,6 @@ export default function JadwalGuruSection() {
                   <GuruClassCard
                     key={`${kelas.kelasId}-${kelas.scheduleId ?? kelas.day}`}
                     kelas={kelas}
-                    academicYear={academicYear}
                   />
                 ))
             ) : (
