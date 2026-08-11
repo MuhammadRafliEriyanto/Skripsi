@@ -1150,14 +1150,18 @@ export async function replaceAdminPaymentSessionForStudent(params: {
     createdXenditPaymentSessionId = paymentSession.id;
 
     if (params.currentPayment.xenditPaymentSessionId) {
-      const canceledSession = await expireXenditInvoice(
-        params.currentPayment.xenditPaymentSessionId,
-      );
-      applyXenditSessionSnapshot(
-        params.currentPayment,
-        params.currentSubscription,
-        canceledSession,
-      );
+      try {
+        const canceledSession = await expireXenditInvoice(
+          params.currentPayment.xenditPaymentSessionId,
+        );
+        applyXenditSessionSnapshot(
+          params.currentPayment,
+          params.currentSubscription,
+          canceledSession,
+        );
+      } catch (err) {
+        console.warn("[payment] Ignored error when expiring old Xendit invoice:", err instanceof Error ? err.message : err);
+      }
     }
 
     await expirePendingPayment({
