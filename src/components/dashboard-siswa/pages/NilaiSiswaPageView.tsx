@@ -718,15 +718,6 @@ function NilaiSiswaPageContent() {
             />
           </div>
 
-          <div className="flex shrink-0 lg:absolute lg:right-8 lg:top-8">
-            <Link
-              href="/dashboard-siswa/laporan"
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-orange-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700"
-            >
-              <BarChart2 className="h-4 w-4" />
-              Lihat Laporan
-            </Link>
-          </div>
         </div>
       </div>
 
@@ -821,12 +812,13 @@ function NilaiSiswaPageContent() {
                   )}`}
                 >
                   <div className="flex flex-col gap-6 md:flex-row">
-                    <div className="hidden shrink-0 md:block w-32 relative">
+                    <div className="hidden shrink-0 md:flex md:w-36 md:items-end md:justify-center">
                       <Image
                         src="/images/girl-checklist.png"
                         alt="Progres Latihan"
-                        fill
-                        className="object-contain object-bottom"
+                        width={140}
+                        height={180}
+                        className="h-auto w-full object-contain"
                       />
                     </div>
                     <div className="flex-1">
