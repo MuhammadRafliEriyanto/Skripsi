@@ -56,6 +56,7 @@ import {
   matchesUtbkScheduleClassName,
   normalizeUtbkScheduleClassName,
 } from "../utils/studentProgram";
+import { buildStableTeacherClassId } from "../utils/teacherClassIdentity";
 
 type TeacherOwnedSchedule = Pick<
   ISchedule,
