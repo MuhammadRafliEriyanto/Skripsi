@@ -1215,6 +1215,7 @@ export const updateTeacher = asyncHandler(
     teacher.schedule = schedule;
     teacher.activeClasses = activeClasses;
     teacher.classList = classList;
+    teacher.capableGrades = classList.split(",").map(val => val.trim()).filter(Boolean);
     teacher.address = address;
     teacher.education = education;
     teacher.status = status as TeacherStatus;
