@@ -707,7 +707,7 @@ function NilaiSiswaPageContent() {
 
           <div className="hidden shrink-0 md:block">
             <Image 
-              src="/images/header-illustration.png" 
+              src="/images/header-illustration-v2.png" 
               alt="Ilustrasi Belajar" 
               width={260} 
               height={200} 
@@ -805,7 +805,7 @@ function NilaiSiswaPageContent() {
                   <div className="flex flex-col gap-6 md:flex-row">
                     <div className="hidden shrink-0 md:flex md:w-40 md:items-center md:justify-center">
                       <Image
-                        src="/images/girl-checklist.png"
+                        src="/images/girl-checklist-v2.png"
                         alt="Progres Latihan"
                         width={160}
                         height={160}
