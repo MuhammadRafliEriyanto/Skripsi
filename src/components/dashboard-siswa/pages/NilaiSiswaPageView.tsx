@@ -689,9 +689,7 @@ function NilaiSiswaPageContent() {
 
   return (
     <section className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 md:px-6 md:py-8">
-      <div className="relative overflow-hidden rounded-[28px] border border-slate-100 bg-white p-5 shadow-sm md:p-8">
-        <div className="absolute inset-0 bg-gradient-to-br from-white via-blue-50/20 to-orange-50/30"></div>
-        
+      <div className="relative rounded-[28px] border border-slate-100 bg-white p-5 shadow-sm md:p-8">
         <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div className="max-w-2xl">
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-orange-600">
@@ -707,19 +705,18 @@ function NilaiSiswaPageContent() {
             </p>
           </div>
 
-          <div className="hidden shrink-0 md:block lg:absolute lg:right-10 lg:bottom-0">
+          <div className="hidden shrink-0 md:block">
             <Image 
               src="/images/header-illustration.png" 
               alt="Ilustrasi Belajar" 
-              width={240} 
+              width={260} 
               height={200} 
-              className="h-auto w-48 object-contain lg:w-60"
+              className="h-auto w-48 rounded-xl object-contain lg:w-64"
               priority
             />
           </div>
-
         </div>
-      </div>
+      </div>iv>
 
       {isLoading ? (
         <section className="rounded-[26px] border border-slate-100 bg-white p-8 text-center shadow-sm">
@@ -758,10 +755,7 @@ function NilaiSiswaPageContent() {
                         setSelectedResultKey(RESULT_DROPDOWN_LATEST);
                       }}
                     >
-                      <SelectTrigger className="pl-10">
-                        <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
-                          <BookOpen className="h-4 w-4 text-blue-500" />
-                        </div>
+                      <SelectTrigger>
                         <SelectValue placeholder="Pilih mata pelajaran" />
                       </SelectTrigger>
                       <SelectContent>
@@ -782,10 +776,7 @@ function NilaiSiswaPageContent() {
                       value={selectedResultKey}
                       onValueChange={setSelectedResultKey}
                     >
-                      <SelectTrigger className="pl-10">
-                        <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
-                          <Star className="h-4 w-4 text-emerald-500" />
-                        </div>
+                      <SelectTrigger>
                         <SelectValue placeholder="Pilih hasil latihan" />
                       </SelectTrigger>
                       <SelectContent>
@@ -807,18 +798,18 @@ function NilaiSiswaPageContent() {
                 </div>
 
                 <div
-                  className={`mt-5 relative overflow-hidden rounded-[24px] border p-5 ${getResultPanelClassName(
+                  className={`mt-5 relative rounded-[24px] border p-5 ${getResultPanelClassName(
                     selectedResultSlot.status,
                   )}`}
                 >
                   <div className="flex flex-col gap-6 md:flex-row">
-                    <div className="hidden shrink-0 md:flex md:w-36 md:items-end md:justify-center">
+                    <div className="hidden shrink-0 md:flex md:w-40 md:items-center md:justify-center">
                       <Image
                         src="/images/girl-checklist.png"
                         alt="Progres Latihan"
-                        width={140}
-                        height={180}
-                        className="h-auto w-full object-contain"
+                        width={160}
+                        height={160}
+                        className="h-auto w-full rounded-[16px] object-cover"
                       />
                     </div>
                     <div className="flex-1">
@@ -828,7 +819,7 @@ function NilaiSiswaPageContent() {
                             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-lime-400 text-white">
                               <span className="h-2 w-2 rounded-full bg-white"></span>
                             </span>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-orange-600">
+                            <p className="text-[12px] font-bold uppercase text-orange-500">
                               {selectedResultSlot.label}
                             </p>
                           </div>
@@ -839,14 +830,14 @@ function NilaiSiswaPageContent() {
                             {getResultAdvice(selectedResultSlot)}
                           </p>
                         </div>
-                        <div className="flex shrink-0 items-center gap-4 sm:flex-col sm:items-end sm:gap-1">
-                          <p className="text-xs font-semibold text-slate-500">Nilai</p>
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          <p className="text-[11px] font-semibold text-slate-500">Nilai</p>
                           <div className="flex items-center gap-3">
-                            <p className="text-4xl font-black text-slate-950">
+                            <p className="text-[40px] font-black leading-none text-slate-900">
                               {formatScoreLabel(selectedResultSlot.score)}
                             </p>
                             <span
-                              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold ${getSlotClassName(
+                              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold shadow-sm ${getSlotClassName(
                                 selectedResultSlot.status,
                               )}`}
                             >
