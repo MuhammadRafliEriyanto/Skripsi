@@ -711,7 +711,7 @@ function NilaiSiswaPageContent() {
               alt="Ilustrasi Belajar" 
               width={260} 
               height={200} 
-              className="h-auto w-48 rounded-xl object-contain lg:w-64"
+              className="h-auto w-48 rounded-xl object-contain mix-blend-multiply lg:w-64"
               priority
             />
           </div>
@@ -809,7 +809,7 @@ function NilaiSiswaPageContent() {
                         alt="Progres Latihan"
                         width={160}
                         height={160}
-                        className="h-auto w-full rounded-[16px] object-cover"
+                        className="h-auto w-full rounded-[16px] object-cover mix-blend-multiply"
                       />
                     </div>
                     <div className="flex-1">
