@@ -13,6 +13,8 @@ import {
 } from "./studentClass";
 
 export const ADMIN_SCHEDULE_TIME_SLOT_OPTIONS = [
+  "09:00 - 10:30",
+  "10:30 - 12:00",
   "13:00 - 14:30",
   "14:00 - 15:30",
   "15:00 - 16:30",
