@@ -1437,13 +1437,39 @@ export async function resolveTeacherClassDetailContext(
     throw new AppError(404, "Profil guru tidak ditemukan.");
   }
 
-  const [ownedSchedules, students] = await Promise.all([
-    getTeacherOwnedSchedules(teacher, filters),
-    Student.find({ status: "Aktif" })
-      .select("_id branch className program utbkTrack")
-      .lean()
-      .exec() as Promise<StudentClassLookup[]>,
-  ]);
+  const ownedSchedules = await getTeacherOwnedSchedules(teacher, filters);
+  const fallbackBranch = normalizeText(teacher.branch);
+  let targetClassName: string | null = null;
+  let targetBranch: string | null = null;
+
+  for (const schedule of ownedSchedules) {
+    const className = normalizeText(schedule.className);
+    const branch = normalizeText(schedule.branch) || fallbackBranch;
+    const candidateClassId = buildStableTeacherClassId(
+      teacher.teacherId,
+      branch,
+      className,
+    );
+
+    if (candidateClassId === classId) {
+      targetClassName = className;
+      targetBranch = branch;
+      break;
+    }
+  }
+
+  if (!targetClassName || !targetBranch) {
+    throw new AppError(404, "Kelas guru tidak ditemukan.");
+  }
+
+  const students = (await Student.find({
+    status: "Aktif",
+    className: new RegExp(`^${escapeRegex(targetClassName)}$`, "i"),
+    branch: new RegExp(`^${escapeRegex(targetBranch)}$`, "i"),
+  })
+    .select("_id branch className program utbkTrack")
+    .lean()
+    .exec()) as StudentClassLookup[];
   const currentStudents = await filterStudentsWithActiveOrLegacySubscription(students);
   const studentCountMaps = buildStudentCountMaps(currentStudents);
   const classGroup = buildTeacherClassGroups(
