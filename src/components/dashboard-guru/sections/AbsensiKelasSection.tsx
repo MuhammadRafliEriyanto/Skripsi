@@ -258,7 +258,7 @@ const ABSENSI_STATUS_UPDATE_ERROR_MESSAGE =
 const ABSENSI_CLOSE_SESSION_ERROR_MESSAGE =
   "Sesi absensi belum bisa ditutup saat ini.";
 const AUTH_SESSION_EXPIRED_MESSAGE = "Sesi guru berakhir. Silakan login kembali.";
-const ATTENDANCE_SESSION_REFRESH_INTERVAL = 4000;
+const ATTENDANCE_SESSION_REFRESH_INTERVAL = 10000;
 const SELECTABLE_ATTENDANCE_STATUSES: AttendanceSelection[] = ["H", "S", "A"];
 
 const STATUS_META: Record<
@@ -1018,7 +1018,7 @@ export default function AbsensiKelasSection({
     }
 
     try {
-      const classResponse = await fetch(
+      const classResponsePromise = fetch(
         buildGuruApiUrl(`/api/teacher/me/classes/${encodeURIComponent(normalizedClassId)}`, searchParams),
         {
           method: "GET",
@@ -1026,6 +1026,14 @@ export default function AbsensiKelasSection({
           cache: "no-store",
         },
       );
+      
+      const sessionResultPromise = fetchAttendanceSession(normalizedClassId);
+
+      const [classResponse, sessionResult] = await Promise.all([
+        classResponsePromise,
+        sessionResultPromise,
+      ]);
+
       const classPayload = await readJsonResponse<TeacherClassDetailResponse>(
         classResponse,
       );
@@ -1058,42 +1066,34 @@ export default function AbsensiKelasSection({
         return;
       }
 
-      setSessionLoading(true);
-
-      try {
-        const sessionResult = await fetchAttendanceSession(normalizedClassId);
-
-        if (sessionResult.kind === "unauthorized") {
-          clearAuthClientState();
-          setLoadError(AUTH_SESSION_EXPIRED_MESSAGE);
-          return;
-        }
-
-        if (sessionResult.kind === "not_found") {
-          applyAttendanceSessionState(
-            null,
-            [],
-            ABSENSI_SESSION_NOT_STARTED_MESSAGE,
-          );
-          return;
-        }
-
-        if (sessionResult.kind === "error") {
-          applyAttendanceSessionState(
-            null,
-            [],
-            ABSENSI_SESSION_LOAD_ERROR_MESSAGE(false),
-          );
-          return;
-        }
-
-        applyAttendanceSessionState(
-          sessionResult.session,
-          sessionResult.records,
-        );
-      } finally {
-        setSessionLoading(false);
+      if (sessionResult.kind === "unauthorized") {
+        clearAuthClientState();
+        setLoadError(AUTH_SESSION_EXPIRED_MESSAGE);
+        return;
       }
+
+      if (sessionResult.kind === "not_found") {
+        applyAttendanceSessionState(
+          null,
+          [],
+          ABSENSI_SESSION_NOT_STARTED_MESSAGE,
+        );
+        return;
+      }
+
+      if (sessionResult.kind === "error") {
+        applyAttendanceSessionState(
+          null,
+          [],
+          ABSENSI_SESSION_LOAD_ERROR_MESSAGE(false),
+        );
+        return;
+      }
+
+      applyAttendanceSessionState(
+        sessionResult.session,
+        sessionResult.records,
+      );
     } catch (error) {
       console.error("[absensi-kelas-guru] load_class_detail_failed", {
         error,

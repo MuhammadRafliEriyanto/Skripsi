@@ -51,6 +51,7 @@ const studentSchema = new Schema<IStudent>(
       type: String,
       default: "",
       trim: true,
+      index: true,
     },
     program: {
       type: String,
@@ -109,6 +110,7 @@ const studentSchema = new Schema<IStudent>(
       type: String,
       enum: STUDENT_STATUSES,
       default: "Aktif",
+      index: true,
     },
     academicJoinedAt: {
       type: Date,
