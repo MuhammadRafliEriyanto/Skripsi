@@ -701,22 +701,23 @@ function NilaiSiswaPageContent() {
             <p className="mt-3 text-sm leading-relaxed text-slate-600">
               Pantau kemajuan belajar pertemuanmu. Nilai & status P10 dst akan tersedia
               setelah pertemuan berlangsung. Tetap konsisten belajar agar target penguasaan
-              materi tercapai dan kamu semakin siap meraih hasil terbaik! 💪
+              materi tercapai dan kamu semakin siap meraih hasil terbaik!
+              <br />
+              <span className="mt-1 block">💪</span>
             </p>
           </div>
 
-          <div className="hidden shrink-0 md:block">
+          <div className="hidden shrink-0 md:block relative h-[160px] w-[200px] lg:h-[200px] lg:w-[260px]">
             <Image 
               src="/images/header-illustration-v2.png" 
               alt="Ilustrasi Belajar" 
-              width={260} 
-              height={200} 
-              className="h-auto w-48 rounded-xl object-contain mix-blend-multiply lg:w-64"
+              fill
+              className="rounded-xl object-contain mix-blend-multiply"
               priority
             />
           </div>
         </div>
-      </div>iv>
+      </div>
 
       {isLoading ? (
         <section className="rounded-[26px] border border-slate-100 bg-white p-8 text-center shadow-sm">
