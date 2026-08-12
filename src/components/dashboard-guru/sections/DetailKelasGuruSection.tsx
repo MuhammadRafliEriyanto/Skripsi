@@ -2752,6 +2752,12 @@ export default function DetailKelasGuruSection({
       return;
     }
 
+    const todayDate = formatJakartaDateInput(new Date().toISOString());
+    if (materiDraft.tanggal !== todayDate) {
+      toast.error("Anda hanya dapat menyimpan materi pada hari jadwal kelas berlangsung (hari ini).");
+      return;
+    }
+
     try {
       const savedMaterial = await saveMaterialRequest(materiDraft, materiMode);
 
@@ -2964,6 +2970,12 @@ export default function DetailKelasGuruSection({
       !tugasDraft.deskripsi.trim()
     ) {
       toast.error("Mohon isi jadwal sesi, judul latihan, dan deskripsi terlebih dahulu.");
+      return;
+    }
+
+    const todayDate = formatJakartaDateInput(new Date().toISOString());
+    if (tugasDraft.deadline !== todayDate) {
+      toast.error("Anda hanya dapat menyimpan latihan pada hari jadwal kelas berlangsung (hari ini).");
       return;
     }
 
