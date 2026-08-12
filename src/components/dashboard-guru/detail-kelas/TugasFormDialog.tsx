@@ -64,9 +64,8 @@ export default function TugasFormDialog({
                 <input
                   type="date"
                   value={draft?.deadline ?? ""}
-                  readOnly
-                  title="Tanggal menyesuaikan jadwal pertemuan secara otomatis"
-                  className="border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-500 outline-none cursor-not-allowed"
+                  onChange={(event) => onChange("deadline", event.target.value)}
+                  className="border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
                 />
               </label>
             </div>
