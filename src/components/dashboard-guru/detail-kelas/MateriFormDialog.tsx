@@ -59,8 +59,9 @@ export default function MateriFormDialog({
                 <input
                   type="date"
                   value={draft?.tanggal ?? ""}
-                  onChange={(event) => onChange("tanggal", event.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition-all hover:border-orange-200 focus:border-orange-300 focus:ring-4 focus:ring-orange-500/10"
+                  readOnly
+                  title="Tanggal menyesuaikan jadwal pertemuan secara otomatis"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 outline-none cursor-not-allowed"
                 />
               </label>
             </div>
