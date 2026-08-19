@@ -189,7 +189,10 @@ export default function PelajaranSection({
                   Pertemuan {item.pertemuan}
                 </span>
                 <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-                  {item.durasi}
+                  {item.progressLabel}
+                </span>
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] text-slate-500">
+                  {item.status}
                 </span>
               </div>
 
@@ -197,7 +200,7 @@ export default function PelajaranSection({
                 {item.judul}
               </h4>
               <p className="mt-1 text-[11px] text-slate-500 md:text-xs">
-                Materi siap dibaca untuk penguatan konsep dan latihan mandiri.
+                Materi siap dipelajari sebelum latihan soal pertemuan ini.
               </p>
             </div>
 

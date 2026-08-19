@@ -10,6 +10,7 @@ import type {
   StudentTaskAttemptSummary,
   StudentLearningProfile,
   StudentMaterial,
+  StudentMaterialProgressStatus,
   StudentTaskGradeSummary,
   StudentTask,
   StudentTaskSubmissionSummary,
@@ -32,6 +33,7 @@ type StudentLearningApiMaterialItem = {
   linkUrl?: string;
   updatedAt?: string | null;
   attachment?: StudentLearningApiAttachmentItem | null;
+  myProgress?: StudentLearningApiMaterialProgressItem | null;
 };
 
 type StudentLearningApiTaskItem = {
@@ -60,6 +62,21 @@ type StudentLearningApiAttachmentItem = {
   fileName?: string;
   mimeType?: string;
   size?: number;
+};
+
+type StudentLearningApiMaterialProgressItem = {
+  status?: string;
+  completed?: boolean;
+  progressId?: string | null;
+  startedAt?: string | null;
+  lastOpenedAt?: string | null;
+  completedAt?: string | null;
+  durationSeconds?: number;
+  durationMinutes?: number;
+  targetDurationMinutes?: {
+    min?: number;
+    max?: number;
+  };
 };
 
 type StudentLearningApiTaskSubmissionItem = {
@@ -374,6 +391,39 @@ function mapTaskAttemptSummary(
   };
 }
 
+function normalizeMaterialProgressStatus(
+  status: string | null | undefined,
+): StudentMaterialProgressStatus {
+  const normalizedStatus = normalizeText(status).toLowerCase();
+
+  if (normalizedStatus === "selesai") {
+    return "Selesai";
+  }
+
+  if (normalizedStatus === "sedang dipelajari") {
+    return "Sedang Dipelajari";
+  }
+
+  return "Belum Dibuka";
+}
+
+function buildMaterialProgressLabel(params: {
+  status: StudentMaterialProgressStatus;
+  durationMinutes: number;
+}) {
+  if (params.status === "Selesai") {
+    return params.durationMinutes > 0
+      ? `${params.durationMinutes} menit belajar`
+      : "Materi selesai";
+  }
+
+  if (params.status === "Sedang Dipelajari") {
+    return "Sedang dipelajari";
+  }
+
+  return "Target 10-20 menit";
+}
+
 function mapApiMaterialToStudentMaterial(
   material: StudentLearningApiMaterialItem,
 ): StudentMaterial {
@@ -388,6 +438,17 @@ function mapApiMaterialToStudentMaterial(
   const attachment = material.attachment;
   const attachmentFileName = normalizeText(attachment?.fileName);
   const format = inferMaterialFormat({ linkUrl, attachment });
+  const progressStatus = normalizeMaterialProgressStatus(
+    material.myProgress?.status,
+  );
+  const durationSeconds = Math.max(
+    Math.round(material.myProgress?.durationSeconds ?? 0),
+    0,
+  );
+  const durationMinutes = Math.max(
+    Math.round(material.myProgress?.durationMinutes ?? 0),
+    durationSeconds > 0 ? Math.ceil(durationSeconds / 60) : 0,
+  );
   const previewPoints = description
     .split(".")
     .map((point) => normalizeText(point))
@@ -402,9 +463,23 @@ function mapApiMaterialToStudentMaterial(
       typeof material.meetingNumber === "number" ? material.meetingNumber : 1,
       1,
     ),
-    durasi: format === "Video" ? "Tonton Online" : "Materi Kelas",
+    durasi: progressStatus === "Selesai" ? buildMaterialProgressLabel({
+      status: progressStatus,
+      durationMinutes,
+    }) : "Target 10-20 menit",
     format,
-    status: "Baru",
+    status: progressStatus,
+    completed: Boolean(material.myProgress?.completed) || progressStatus === "Selesai",
+    progressId: normalizeText(material.myProgress?.progressId) || null,
+    startedAt: material.myProgress?.startedAt?.trim() || null,
+    lastOpenedAt: material.myProgress?.lastOpenedAt?.trim() || null,
+    completedAt: material.myProgress?.completedAt?.trim() || null,
+    durationSeconds,
+    durationMinutes,
+    progressLabel: buildMaterialProgressLabel({
+      status: progressStatus,
+      durationMinutes,
+    }),
     ringkasan: description,
     diperbarui: formatUpdatedLabel(material.updatedAt),
     href: "/dashboard-siswa/materi",

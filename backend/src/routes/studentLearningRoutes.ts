@@ -8,6 +8,7 @@ import {
   getMyStudentTaskSubmission,
   getMyStudentDashboardData,
   getMyStudentLearningData,
+  updateMyStudentMaterialProgress,
   updateMyStudentTaskSubmission,
   deleteMyStudentTaskSubmission,
 } from "../controllers/studentLearningController";
@@ -45,6 +46,10 @@ router.get(
   getMyStudentAcademicHistoryDetail,
 );
 router.get("/me/learning", getMyStudentLearningData);
+router.post(
+  "/me/learning/materials/:materialId/progress",
+  updateMyStudentMaterialProgress,
+);
 router.get("/me/tryouts", getMyStudentTryouts);
 router.post("/me/exams/:tryoutId/start", startMyStudentExam);
 router.get("/me/exam-attempts/:attemptId", getMyStudentExamAttempt);

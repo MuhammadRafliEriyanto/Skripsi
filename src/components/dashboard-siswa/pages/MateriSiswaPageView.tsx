@@ -12,6 +12,7 @@ import {
   Calculator,
   Globe,
   Lightbulb,
+  Loader2,
 } from "lucide-react";
 
 import { useStudentLearningData } from "../data/useStudentLearningData";
@@ -20,10 +21,16 @@ import { isUtbkStudentProfile } from "../data/studentProgram";
 import StudentLearningShell from "../learning/StudentLearningShell";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { formatUtbkSubjectLabel } from "@/lib/utbk-subjects";
+import { withStoredAuthHeader } from "@/lib/auth";
+import type { StudentMaterial } from "../data/learning-types";
 
-function getMaterialStatusClass(status: "Baru" | "Dipelajari") {
-  if (status === "Baru") {
+function getMaterialStatusClass(status: StudentMaterial["status"]) {
+  if (status === "Selesai") {
     return "bg-emerald-50 text-emerald-600";
+  }
+
+  if (status === "Sedang Dipelajari") {
+    return "bg-sky-50 text-sky-600";
   }
 
   return "bg-slate-100 text-slate-500";
@@ -47,20 +54,79 @@ function getSubjectStyle(subject: string) {
 }
 
 function MateriSiswaPageContent() {
-  const { materials, student, academicAccess, isLoading, loadError } =
+  const {
+    materials,
+    student,
+    academicAccess,
+    isLoading,
+    loadError,
+    refreshLearningData,
+  } =
     useStudentLearningData();
   const [selectedMaterialId, setSelectedMaterialId] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [progressNotice, setProgressNotice] = useState("");
+  const [updatingProgressMaterialId, setUpdatingProgressMaterialId] = useState("");
   const isUtbkStudent = isUtbkStudentProfile(student);
   
   const academicAccessMessage =
     getStudentAcademicAccessMessage(academicAccess);
     
   const selectedMaterial = materials.find((material) => material.id === selectedMaterialId);
+  const isUpdatingSelectedMaterial =
+    Boolean(selectedMaterial) && updatingProgressMaterialId === selectedMaterial?.id;
+
+  async function updateMaterialProgress(
+    materialId: string,
+    action: "start" | "complete",
+    options: { silent?: boolean } = {},
+  ) {
+    setUpdatingProgressMaterialId(materialId);
+
+    try {
+      const response = await fetch(
+        `/api/student/me/learning/materials/${encodeURIComponent(materialId)}/progress`,
+        {
+          method: "POST",
+          ...withStoredAuthHeader(),
+          credentials: "include",
+          cache: "no-store",
+          body: JSON.stringify({ action }),
+        },
+      );
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.message || "Progress materi belum bisa disimpan.");
+      }
+
+      if (!options.silent) {
+        setProgressNotice(payload.message || "Progress materi berhasil disimpan.");
+      }
+
+      refreshLearningData();
+    } catch (error) {
+      if (!options.silent) {
+        window.alert(
+          error instanceof Error
+            ? error.message
+            : "Terjadi kesalahan saat menyimpan progress materi.",
+        );
+      }
+    } finally {
+      setUpdatingProgressMaterialId("");
+    }
+  }
 
   const handleOpenMaterial = (id: string) => {
     setSelectedMaterialId(id);
     setIsDialogOpen(true);
+    setProgressNotice("");
+
+    const material = materials.find((item) => item.id === id);
+    if (material?.status === "Belum Dibuka") {
+      void updateMaterialProgress(id, "start", { silent: true });
+    }
   };
 
   return (
@@ -167,7 +233,7 @@ function MateriSiswaPageContent() {
                   <div className="flex items-center gap-4 mt-4 md:mt-0 ml-[88px] md:ml-0">
                     <div className="hidden flex-col items-center justify-center sm:flex w-24">
                       <p className="text-sm font-semibold text-slate-800">{material.format}</p>
-                      <p className="text-xs font-semibold text-blue-500 mt-1">{material.durasi}</p>
+                      <p className="text-xs font-semibold text-blue-500 mt-1">{material.progressLabel}</p>
                     </div>
                     
                     <div className="hidden h-12 w-px bg-slate-100 lg:block mx-2"></div>
@@ -248,7 +314,7 @@ function MateriSiswaPageContent() {
 
                 <div className="flex flex-wrap items-center gap-3 mb-8">
                   <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
-                    <Clock className="h-4 w-4 text-blue-500" /> {selectedMaterial.durasi}
+                    <Clock className="h-4 w-4 text-blue-500" /> {selectedMaterial.progressLabel}
                   </div>
                   <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
                     <FileText className="h-4 w-4 text-emerald-500" /> {selectedMaterial.format}
@@ -257,6 +323,12 @@ function MateriSiswaPageContent() {
                     Status: {selectedMaterial.status}
                   </div>
                 </div>
+
+                {progressNotice ? (
+                  <div className="mb-5 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+                    {progressNotice}
+                  </div>
+                ) : null}
 
                 <div className="rounded-[20px] bg-slate-50 border border-slate-100 p-6">
                   <h4 className="font-semibold text-slate-800 mb-3 text-base">
@@ -284,10 +356,42 @@ function MateriSiswaPageContent() {
 
               {/* Footer */}
               <div className="bg-white px-6 py-5 border-t border-slate-100 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    void updateMaterialProgress(selectedMaterial.id, "start");
+                  }}
+                  disabled={isUpdatingSelectedMaterial}
+                  className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 text-[15px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isUpdatingSelectedMaterial ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <BookOpen className="h-5 w-5" />
+                  )}
+                  {selectedMaterial.status === "Belum Dibuka"
+                    ? "Mulai Belajar"
+                    : "Lanjut Belajar"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void updateMaterialProgress(selectedMaterial.id, "complete");
+                  }}
+                  disabled={selectedMaterial.completed || isUpdatingSelectedMaterial}
+                  className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-500 px-6 text-[15px] font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-md disabled:translate-y-0 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none"
+                >
+                  {isUpdatingSelectedMaterial ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="h-5 w-5" />
+                  )}
+                  {selectedMaterial.completed ? "Materi Selesai" : "Tandai Selesai"}
+                </button>
                 <a
                   href={selectedMaterial.downloadUrl}
                   download={selectedMaterial.downloadName}
-                  className="flex-1 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-[15px] font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-md"
+                  className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-[15px] font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-md"
                 >
                   <Download className="h-5 w-5" />
                   Unduh Materi

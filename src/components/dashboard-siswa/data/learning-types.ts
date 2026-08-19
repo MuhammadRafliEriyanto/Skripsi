@@ -31,6 +31,11 @@ export type StudentLearningProfile = {
   accessStatus: string;
 };
 
+export type StudentMaterialProgressStatus =
+  | "Belum Dibuka"
+  | "Sedang Dipelajari"
+  | "Selesai";
+
 export type StudentMaterial = {
   id: string;
   mapel: string;
@@ -38,7 +43,15 @@ export type StudentMaterial = {
   pertemuan: number;
   durasi: string;
   format: "PDF" | "Video" | "Modul";
-  status: "Baru" | "Dipelajari";
+  status: StudentMaterialProgressStatus;
+  completed: boolean;
+  progressId: string | null;
+  startedAt: string | null;
+  lastOpenedAt: string | null;
+  completedAt: string | null;
+  durationSeconds: number;
+  durationMinutes: number;
+  progressLabel: string;
   ringkasan: string;
   diperbarui: string;
   href: string;

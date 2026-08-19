@@ -5,6 +5,7 @@ import { AcademicGrade } from "../models/AcademicGrade";
 import { ClassMaterial } from "../models/ClassMaterial";
 import { ClassTask } from "../models/ClassTask";
 import { Schedule } from "../models/Schedule";
+import { StudentMaterialProgress } from "../models/StudentMaterialProgress";
 import { TaskGrade } from "../models/TaskGrade";
 import {
   TaskSubmission,
@@ -12,6 +13,7 @@ import {
   type TaskSubmissionMode,
 } from "../models/TaskSubmission";
 import { StudentTaskAttempt } from "../models/StudentTaskAttempt";
+import { TeacherClassSetting } from "../models/TeacherClassSetting";
 import { User } from "../models/User";
 import asyncHandler from "../utils/asyncHandler";
 import { TeacherTryout } from "../models/TeacherTryout";
@@ -94,6 +96,60 @@ function toPublicStudentLearningProfile(
     targetJurusan: normalizeText(student.targetJurusan),
     status: student.status,
     accessStatus,
+  };
+}
+
+function toIsoString(value: Date | null | undefined) {
+  return value?.toISOString() ?? null;
+}
+
+function normalizeMaterialProgressStatus(
+  value: string | null | undefined,
+): StudentMaterialProgressSummary["status"] {
+  const normalizedValue = normalizeText(value).toLowerCase();
+
+  if (normalizedValue === "selesai") {
+    return "Selesai";
+  }
+
+  if (normalizedValue === "sedang dipelajari") {
+    return "Sedang Dipelajari";
+  }
+
+  return "Belum Dibuka";
+}
+
+function toPublicStudentMaterialProgressSummary(
+  progress: {
+    progressId?: string;
+    status?: string;
+    startedAt?: Date | null;
+    lastOpenedAt?: Date | null;
+    completedAt?: Date | null;
+    durationSeconds?: number;
+  } | null,
+): StudentMaterialProgressSummary {
+  const durationSeconds =
+    typeof progress?.durationSeconds === "number" &&
+    Number.isFinite(progress.durationSeconds) &&
+    progress.durationSeconds > 0
+      ? Math.round(progress.durationSeconds)
+      : 0;
+  const status = normalizeMaterialProgressStatus(progress?.status);
+
+  return {
+    status,
+    completed: status === "Selesai",
+    progressId: normalizeText(progress?.progressId) || null,
+    startedAt: toIsoString(progress?.startedAt),
+    lastOpenedAt: toIsoString(progress?.lastOpenedAt),
+    completedAt: toIsoString(progress?.completedAt),
+    durationSeconds,
+    durationMinutes: durationSeconds > 0 ? Math.max(Math.ceil(durationSeconds / 60), 1) : 0,
+    targetDurationMinutes: {
+      min: 10,
+      max: 20,
+    },
   };
 }
 
@@ -186,6 +242,25 @@ type StudentTaskSubmissionRequestBody = {
   attachmentMimeType?: string;
   attachmentFileDataBase64?: string;
   removeAttachment?: boolean | string;
+};
+
+type StudentMaterialProgressRequestBody = {
+  action?: string;
+};
+
+type StudentMaterialProgressSummary = {
+  status: "Belum Dibuka" | "Sedang Dipelajari" | "Selesai";
+  completed: boolean;
+  progressId: string | null;
+  startedAt: string | null;
+  lastOpenedAt: string | null;
+  completedAt: string | null;
+  durationSeconds: number;
+  durationMinutes: number;
+  targetDurationMinutes: {
+    min: number;
+    max: number;
+  };
 };
 
 type StudentTaskSubmissionSummary = {
@@ -1088,6 +1163,18 @@ async function findStudentMaterialByParam(
   }).exec();
 }
 
+async function findStudentMaterialProgress(
+  materialId: string,
+  studentId: string,
+  subscriptionId?: Types.ObjectId | null,
+) {
+  return StudentMaterialProgress.findOne({
+    materialId,
+    studentId,
+    ...buildAcademicRecordSubscriptionFilter(subscriptionId),
+  }).exec();
+}
+
 async function findStudentTaskByParam(
   taskId: string,
   student: StudentWithUser,
@@ -1278,6 +1365,9 @@ export const getMyStudentLearningData = asyncHandler(
     const normalizedTaskIds = visibleTasks
       .map((task) => normalizeText(task.taskId))
       .filter(Boolean);
+    const normalizedMaterialIds = visibleMaterials
+      .map((material) => normalizeText(material.materialId))
+      .filter(Boolean);
     const normalizedTaskClassIds = Array.from(
       new Set(visibleTasks.map((task) => normalizeText(task.classId)).filter(Boolean)),
     );
@@ -1294,7 +1384,19 @@ export const getMyStudentLearningData = asyncHandler(
           .lean()
           .exec()
       : [];
-    const [grades, rawAcademicGrades, attempts] = await Promise.all([
+    const [materialProgresses, grades, rawAcademicGrades, attempts] = await Promise.all([
+      normalizedMaterialIds.length
+        ? StudentMaterialProgress.find({
+            studentId: normalizeText(student.studentId),
+            materialId: {
+              $in: normalizedMaterialIds,
+            },
+            ...buildAcademicRecordSubscriptionFilter(subscriptionId),
+          })
+            .sort({ updatedAt: -1, createdAt: -1 })
+            .lean()
+            .exec()
+        : Promise.resolve([]),
       normalizedTaskIds.length && normalizedTaskClassIds.length
         ? TaskGrade.find({
             studentId: normalizeText(student.studentId),
@@ -1350,6 +1452,20 @@ export const getMyStudentLearningData = asyncHandler(
         toPublicStudentTaskSubmissionSummary(submission),
       ]),
     );
+    const materialProgressMap = new Map<string, StudentMaterialProgressSummary>();
+
+    for (const progress of materialProgresses) {
+      const materialId = normalizeText(progress.materialId);
+
+      if (!materialId || materialProgressMap.has(materialId)) {
+        continue;
+      }
+
+      materialProgressMap.set(
+        materialId,
+        toPublicStudentMaterialProgressSummary(progress),
+      );
+    }
     const gradeMap = new Map(
       grades.map((grade) => [
         normalizeText(grade.taskId),
@@ -1391,6 +1507,41 @@ export const getMyStudentLearningData = asyncHandler(
         ...academicGrades.map((grade) => normalizeText(grade.classId)),
       ]),
     ).filter(Boolean);
+    const taskMeetingCountByClassId = new Map<string, number>();
+
+    for (const task of visibleTasks) {
+      const classId = normalizeText(task.classId);
+      const meetingNumber =
+        typeof task.meetingNumber === "number" && task.meetingNumber > 0
+          ? Math.round(task.meetingNumber)
+          : 0;
+
+      if (!classId || meetingNumber <= 0) {
+        continue;
+      }
+
+      taskMeetingCountByClassId.set(
+        classId,
+        Math.max(taskMeetingCountByClassId.get(classId) ?? 0, meetingNumber),
+      );
+    }
+
+    const classSettings = summaryClassIds.length
+      ? await TeacherClassSetting.find({
+          classId: {
+            $in: summaryClassIds,
+          },
+        })
+          .select("classId targetMeetingCount")
+          .lean()
+          .exec()
+      : [];
+    const targetMeetingCountByClassId = new Map(
+      classSettings.map((setting) => [
+        normalizeText(setting.classId),
+        Math.max(Number(setting.targetMeetingCount) || 0, 0),
+      ]),
+    );
     const academicSummaries = summaryClassIds.map((classId) => {
       const classMetadata = classMetadataById.get(classId);
       const academicGrade = academicGradeByClassId.get(classId) ?? null;
@@ -1441,6 +1592,11 @@ export const getMyStudentLearningData = asyncHandler(
             )
           : null,
         evaluatedAt: publicAcademicGrade?.evaluatedAt ?? null,
+        targetMeetingCount: Math.max(
+          targetMeetingCountByClassId.get(classId) ?? 0,
+          taskMeetingCountByClassId.get(classId) ?? 0,
+          24,
+        ),
       };
     });
 
@@ -1451,7 +1607,12 @@ export const getMyStudentLearningData = asyncHandler(
           student,
           membershipSnapshot.accessStatus,
         ),
-        materials: visibleMaterials.map(toPublicClassMaterial),
+        materials: visibleMaterials.map((material) => ({
+          ...toPublicClassMaterial(material),
+          myProgress:
+            materialProgressMap.get(normalizeText(material.materialId)) ??
+            toPublicStudentMaterialProgressSummary(null),
+        })),
         tasks: visibleTasks.map((task) => ({
           ...toPublicClassTask(task),
           mySubmission:
@@ -1573,6 +1734,115 @@ export const getMyStudentDashboardData = asyncHandler(
         todaySchedules,
         academicAccess,
         membershipAccess,
+      },
+    });
+  },
+);
+
+export const updateMyStudentMaterialProgress = asyncHandler(
+  async (
+    req: Request<
+      { materialId: string },
+      Record<string, never>,
+      StudentMaterialProgressRequestBody
+    >,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    if (!req.user) {
+      next(new AppError(401, "User belum terautentikasi."));
+      return;
+    }
+
+    const materialId = normalizeText(req.params.materialId);
+    const action = normalizeText(req.body.action).toLowerCase();
+
+    if (!materialId) {
+      next(new AppError(404, "Materi siswa tidak ditemukan."));
+      return;
+    }
+
+    if (action !== "start" && action !== "open" && action !== "complete") {
+      next(new AppError(400, "Aksi progress materi tidak valid."));
+      return;
+    }
+
+    const { student, subscriptionStartAt, subscriptionEndAt, subscriptionId } =
+      await getAuthenticatedStudentAcademicLearningContextOrThrow(
+        req.user._id.toString(),
+      );
+    const material = await findStudentMaterialByParam(
+      materialId,
+      student,
+      subscriptionStartAt,
+      subscriptionEndAt,
+    );
+
+    if (!material) {
+      next(new AppError(404, "Materi siswa tidak ditemukan."));
+      return;
+    }
+
+    const normalizedMaterialId = normalizeText(material.materialId);
+    const normalizedStudentId = normalizeText(student.studentId);
+    let progress = await findStudentMaterialProgress(
+      normalizedMaterialId,
+      normalizedStudentId,
+      subscriptionId,
+    );
+
+    if (!progress) {
+      const progressId = await getNextPublicId(
+        StudentMaterialProgress,
+        "progressId",
+        "MPR",
+      );
+
+      progress = await StudentMaterialProgress.create({
+        progressId,
+        materialId: normalizedMaterialId,
+        classId: normalizeText(material.classId),
+        studentId: normalizedStudentId,
+        studentObjectId: student._id,
+        subscriptionId,
+        status: "Belum Dibuka",
+        startedAt: null,
+        lastOpenedAt: null,
+        completedAt: null,
+        durationSeconds: 0,
+      });
+    }
+
+    const now = new Date();
+
+    if (!progress.startedAt) {
+      progress.startedAt = now;
+    }
+
+    progress.lastOpenedAt = now;
+
+    if (action === "complete") {
+      progress.completedAt = now;
+      progress.status = "Selesai";
+      progress.durationSeconds = Math.max(
+        progress.durationSeconds ?? 0,
+        Math.round((now.getTime() - progress.startedAt.getTime()) / 1000),
+        0,
+      );
+    } else if (progress.status !== "Selesai") {
+      progress.status = "Sedang Dipelajari";
+    }
+
+    await progress.save();
+
+    sendSuccess(res, {
+      message:
+        action === "complete"
+          ? "Materi berhasil ditandai selesai."
+          : "Progress belajar materi berhasil diperbarui.",
+      data: {
+        materialId: normalizedMaterialId,
+        progress: toPublicStudentMaterialProgressSummary(progress),
       },
     });
   },

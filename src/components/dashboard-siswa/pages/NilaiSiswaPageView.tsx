@@ -2,9 +2,7 @@
 
 import { useMemo, useState } from "react";
 import {
-  BarChart2,
   BarChart3,
-  BookOpen,
   Check,
   CheckCircle2,
   CheckSquare,
@@ -390,7 +388,7 @@ function UtbkNilaiView({
   );
 }
 
-const REGULAR_MEETING_COUNT = 24;
+const DEFAULT_REGULAR_MEETING_COUNT = 24;
 const RESULT_DROPDOWN_LATEST = "latest";
 
 type MeetingStatus = "mastered" | "remedial" | "waiting" | "available" | "empty";
@@ -399,6 +397,7 @@ type LearningProgressGroup = {
   id: string;
   subject: string;
   className: string;
+  targetMeetingCount: number;
   tasks: StudentTask[];
 };
 
@@ -411,9 +410,15 @@ type MeetingSlot = {
   statusLabel: string;
 };
 
-function toSafeMeetingNumber(value: number) {
+function normalizeTargetMeetingCount(value: number | null | undefined) {
+  return Number.isFinite(value ?? NaN)
+    ? Math.max(Math.round(value ?? DEFAULT_REGULAR_MEETING_COUNT), 1)
+    : DEFAULT_REGULAR_MEETING_COUNT;
+}
+
+function toSafeMeetingNumber(value: number, targetMeetingCount: number) {
   return Number.isFinite(value)
-    ? Math.min(Math.max(Math.round(value), 1), REGULAR_MEETING_COUNT)
+    ? Math.min(Math.max(Math.round(value), 1), targetMeetingCount)
     : 1;
 }
 
@@ -463,11 +468,15 @@ function getMeetingStatusLabel(status: MeetingStatus) {
   }
 }
 
-function buildMeetingSlots(tasks: StudentTask[]) {
+function buildMeetingSlots(
+  tasks: StudentTask[],
+  targetMeetingCount: number | null | undefined,
+) {
+  const resolvedMeetingCount = normalizeTargetMeetingCount(targetMeetingCount);
   const taskByMeeting = new Map<number, StudentTask>();
 
   for (const task of tasks) {
-    const meetingNumber = toSafeMeetingNumber(task.pertemuan);
+    const meetingNumber = toSafeMeetingNumber(task.pertemuan, resolvedMeetingCount);
     const currentTask = taskByMeeting.get(meetingNumber);
     const currentTime = currentTask?.myGrade?.gradedAt
       ? new Date(currentTask.myGrade.gradedAt).getTime()
@@ -481,7 +490,7 @@ function buildMeetingSlots(tasks: StudentTask[]) {
     }
   }
 
-  return Array.from({ length: REGULAR_MEETING_COUNT }, (_, index) => {
+  return Array.from({ length: resolvedMeetingCount }, (_, index) => {
     const meetingNumber = index + 1;
     const task = taskByMeeting.get(meetingNumber) ?? null;
     const status = getMeetingStatus(task);
@@ -514,21 +523,6 @@ function getSlotClassName(status: MeetingStatus) {
       return "border-slate-200 bg-white text-slate-600";
     default:
       return "border-slate-100 bg-slate-50 text-slate-300";
-  }
-}
-
-function getBarClassName(status: MeetingStatus) {
-  switch (status) {
-    case "mastered":
-      return "bg-emerald-500";
-    case "remedial":
-      return "bg-amber-500";
-    case "waiting":
-      return "bg-sky-400";
-    case "available":
-      return "bg-slate-300";
-    default:
-      return "bg-slate-100";
   }
 }
 
@@ -598,6 +592,7 @@ function buildLearningGroups(
         id: normalizeText(summary.classId) || key,
         subject: normalizeText(summary.subject) || "Mapel belum diatur",
         className: normalizeText(summary.className) || "Kelas belum diatur",
+        targetMeetingCount: normalizeTargetMeetingCount(summary.targetMeetingCount),
         tasks: [],
       });
     }
@@ -612,10 +607,19 @@ function buildLearningGroups(
         id: normalizeText(task.classId) || key,
         subject: normalizeText(task.mapel) || "Mapel belum diatur",
         className: normalizeText(task.className) || "Kelas belum diatur",
+        targetMeetingCount: Math.max(
+          DEFAULT_REGULAR_MEETING_COUNT,
+          Math.round(task.pertemuan || 1),
+        ),
         tasks: [],
       };
       groupsBySubjectAndClass.set(key, currentGroup);
     }
+
+    currentGroup.targetMeetingCount = Math.max(
+      currentGroup.targetMeetingCount,
+      Math.round(task.pertemuan || 1),
+    );
     
     currentGroup.tasks.push(task);
   }
@@ -645,9 +649,12 @@ function NilaiSiswaPageContent() {
     learningGroups.find((group) => group.id === selectedClassId) ??
     learningGroups[0] ??
     null;
+  const targetMeetingCount = normalizeTargetMeetingCount(
+    selectedGroup?.targetMeetingCount,
+  );
   const meetingSlots = useMemo(
-    () => buildMeetingSlots(selectedGroup?.tasks ?? []),
-    [selectedGroup],
+    () => buildMeetingSlots(selectedGroup?.tasks ?? [], targetMeetingCount),
+    [selectedGroup, targetMeetingCount],
   );
   const gradedSlots = meetingSlots.filter((slot) => typeof slot.score === "number");
   const masteredSlots = gradedSlots.filter((slot) => slot.status === "mastered");
@@ -659,11 +666,8 @@ function NilaiSiswaPageContent() {
           gradedSlots.length,
       )
     : null;
-  const progressPercent = Math.round(
-    (gradedSlots.length / REGULAR_MEETING_COUNT) * 100,
-  );
   const masteryPercent = Math.round(
-    (masteredSlots.length / REGULAR_MEETING_COUNT) * 100,
+    (masteredSlots.length / targetMeetingCount) * 100,
   );
   const latestResultSlot =
     [...gradedSlots].sort((left, right) => right.meetingNumber - left.meetingNumber)[0] ??
@@ -696,14 +700,12 @@ function NilaiSiswaPageContent() {
               STATISTIK BELAJAR
             </p>
             <h1 className="mt-2 text-2xl font-bold text-slate-900 md:text-3xl">
-              Progres Latihan P1-P24
+              Progres Latihan P1-P{targetMeetingCount}
             </h1>
             <p className="mt-3 text-sm leading-relaxed text-slate-600">
-              Pantau kemajuan belajar pertemuanmu. Nilai & status P10 dst akan tersedia
-              setelah pertemuan berlangsung. Tetap konsisten belajar agar target penguasaan
-              materi tercapai dan kamu semakin siap meraih hasil terbaik!
-              <br />
-              <span className="mt-1 block">💪</span>
+              Pantau kemajuan belajar pertemuanmu. Nilai dan status pertemuan berikutnya
+              akan tersedia setelah latihan berlangsung. Tetap konsisten belajar agar
+              target penguasaan materi tercapai dan kamu semakin siap meraih hasil terbaik.
             </p>
           </div>
 
@@ -856,7 +858,7 @@ function NilaiSiswaPageContent() {
                             <ClipboardList className="h-5 w-5 text-orange-400 opacity-50" />
                           </div>
                           <p className="mt-3 text-xl font-black text-slate-900">
-                            {gradedSlots.length}/{REGULAR_MEETING_COUNT}
+                            {gradedSlots.length}/{targetMeetingCount}
                           </p>
                         </div>
                         <div className="flex flex-col justify-between rounded-2xl border border-white/80 bg-white/75 p-4 shadow-sm">
