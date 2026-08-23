@@ -1,16 +1,11 @@
-import express, {
-  type Express,
-  type NextFunction,
-  type Request,
-  type Response,
-} from "express";
+const express = require("express");
 
 const app = express();
 const BACKEND_ROUTE_PREFIX = "/api/backend";
 
-let backendAppPromise: Promise<Express> | null = null;
+let backendAppPromise = null;
 
-function stripBackendRoutePrefix(req: Request) {
+function stripBackendRoutePrefix(req) {
   if (req.url === BACKEND_ROUTE_PREFIX || req.url.startsWith(`${BACKEND_ROUTE_PREFIX}/`)) {
     req.url = req.url.slice(BACKEND_ROUTE_PREFIX.length) || "/";
   }
@@ -18,8 +13,9 @@ function stripBackendRoutePrefix(req: Request) {
 
 function getBackendApp() {
   if (!backendAppPromise) {
-    backendAppPromise = import("./src/app")
-      .then((module) => module.default)
+    backendAppPromise = Promise.resolve()
+      .then(() => require("./dist/app.js"))
+      .then((module) => module.default || module)
       .catch((error) => {
         backendAppPromise = null;
         throw error;
@@ -35,14 +31,14 @@ app.use((req, _res, next) => {
   next();
 });
 
-app.get("/api/health", (_req: Request, res: Response) => {
+app.get("/api/health", (_req, res) => {
   res.status(200).json({
     success: true,
     message: "Backend service berjalan normal.",
   });
 });
 
-app.use(async (req: Request, res: Response, next: NextFunction) => {
+app.use(async (req, res, next) => {
   try {
     const backendApp = await getBackendApp();
     return backendApp(req, res, next);
@@ -71,8 +67,6 @@ app.use(async (req: Request, res: Response, next: NextFunction) => {
     });
   }
 });
-
-export default app;
 
 module.exports = app;
 module.exports.default = app;

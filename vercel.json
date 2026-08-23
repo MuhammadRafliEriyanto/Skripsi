@@ -16,7 +16,8 @@
     "backend": {
       "root": "backend",
       "framework": "express",
-      "entrypoint": "app.ts"
+      "entrypoint": "app.js",
+      "buildCommand": "npm run build"
     }
   },
   "rewrites": [
