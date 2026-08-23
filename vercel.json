@@ -16,7 +16,7 @@
     "backend": {
       "root": "backend",
       "framework": "express",
-      "entrypoint": "src/vercel.ts"
+      "entrypoint": "app.ts"
     }
   },
   "rewrites": [

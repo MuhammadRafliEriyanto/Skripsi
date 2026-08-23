@@ -18,7 +18,7 @@ function stripBackendRoutePrefix(req: Request) {
 
 function getBackendApp() {
   if (!backendAppPromise) {
-    backendAppPromise = import("./app")
+    backendAppPromise = import("./src/app")
       .then((module) => module.default)
       .catch((error) => {
         backendAppPromise = null;
@@ -73,3 +73,6 @@ app.use(async (req: Request, res: Response, next: NextFunction) => {
 });
 
 export default app;
+
+module.exports = app;
+module.exports.default = app;
