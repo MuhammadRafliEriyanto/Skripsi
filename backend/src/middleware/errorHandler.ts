@@ -62,6 +62,10 @@ const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     errorCode = "REQUEST_ENTITY_TOO_LARGE";
   }
 
+  if (statusCode === 500) {
+    console.error("[Backend Error]", err);
+  }
+
   sendError(res, {
     statusCode,
     message,

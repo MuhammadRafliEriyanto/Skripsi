@@ -57,11 +57,9 @@ function isProductionRuntime() {
 }
 
 function shouldSkipLoopbackBaseUrl(value: string) {
-  return (
-    isProductionRuntime() &&
-    !getBooleanEnvFlag(LOOPBACK_BACKEND_OVERRIDE_ENV) &&
-    isLoopbackBaseUrl(value)
-  );
+  // Allow loopback backend URLs in production so Next.js can connect to
+  // the Express backend when both are hosted on the same server.
+  return false;
 }
 
 function getEnvBackendBaseUrls() {
