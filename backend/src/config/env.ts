@@ -5,15 +5,6 @@ dotenv.config({
   path: path.resolve(__dirname, "../../.env"),
 });
 
-export const REQUIRED_ENV_KEYS = [
-  "PORT",
-  "MONGO_URI",
-  "JWT_SECRET",
-  "JWT_EXPIRES_IN",
-  "API_KEY",
-  "CLIENT_URL",
-] as const;
-
 const PLACEHOLDER_PATTERNS = [
   /ganti/i,
   /placeholder/i,
@@ -40,6 +31,30 @@ export interface EnvConfig {
 
 let cachedEnv: EnvConfig | null = null;
 
+function getOptionalEnv(...keys: string[]): string | null {
+  for (const key of keys) {
+    const value = sanitizeOptionalEnv(process.env[key]);
+
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function getVercelUrlEnv(...keys: string[]) {
+  const value = getOptionalEnv(...keys);
+
+  if (!value) {
+    return null;
+  }
+
+  return value.startsWith("http://") || value.startsWith("https://")
+    ? value
+    : `https://${value}`;
+}
+
 function sanitizeOptionalEnv(value: string | undefined): string | null {
   if (typeof value !== "string") {
     return null;
@@ -63,12 +78,22 @@ export function validateEnv(): EnvConfig {
     return cachedEnv;
   }
 
-  const missingKeys = REQUIRED_ENV_KEYS.filter((key) => {
-    const value = process.env[key];
-    return typeof value !== "string" || !value.trim();
-  });
+  const mongoUri = getOptionalEnv("MONGO_URI", "MONGODB_URI");
+  const jwtSecret = getOptionalEnv("JWT_SECRET");
+  const jwtExpiresIn = getOptionalEnv("JWT_EXPIRES_IN") ?? "7d";
+  const apiKey = getOptionalEnv("API_KEY", "AUTH_API_KEY");
+  const clientUrl =
+    getOptionalEnv("CLIENT_URL", "FRONTEND_URL") ??
+    getVercelUrlEnv("VERCEL_PROJECT_PRODUCTION_URL", "VERCEL_URL") ??
+    "http://localhost:3000";
 
-  if (missingKeys.length > 0) {
+  const missingKeys = [
+    ...(!mongoUri ? ["MONGO_URI atau MONGODB_URI"] : []),
+    ...(!jwtSecret ? ["JWT_SECRET"] : []),
+    ...(!apiKey ? ["API_KEY atau AUTH_API_KEY"] : []),
+  ];
+
+  if (!mongoUri || !jwtSecret || !apiKey) {
     throw new Error(`Environment backend belum lengkap: ${missingKeys.join(", ")}`);
   }
 
@@ -77,11 +102,11 @@ export function validateEnv(): EnvConfig {
 
   cachedEnv = {
     port: Number(process.env.PORT) || 5000,
-    mongoUri: process.env.MONGO_URI!.trim(),
-    jwtSecret: process.env.JWT_SECRET!.trim(),
-    jwtExpiresIn: process.env.JWT_EXPIRES_IN!.trim(),
-    apiKey: process.env.API_KEY!.trim(),
-    clientUrl: process.env.CLIENT_URL!.trim(),
+    mongoUri,
+    jwtSecret,
+    jwtExpiresIn,
+    apiKey,
+    clientUrl,
     googleClientId: sanitizeOptionalEnv(process.env.GOOGLE_CLIENT_ID),
     emailUser,
     emailPass,

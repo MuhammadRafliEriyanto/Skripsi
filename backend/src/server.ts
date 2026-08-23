@@ -6,6 +6,10 @@ import { validateEnv } from "./config/env";
 import { startMembershipExpiryReminderJob } from "./jobs/membershipExpiryReminderJob";
 import { verifyEmailTransport } from "./utils/email";
 
+function isManagedServerlessRuntime() {
+  return Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+}
+
 async function startServer(): Promise<void> {
   try {
     const env = validateEnv();
@@ -25,4 +29,8 @@ async function startServer(): Promise<void> {
   }
 }
 
-void startServer();
+if (!isManagedServerlessRuntime()) {
+  void startServer();
+}
+
+export default app;

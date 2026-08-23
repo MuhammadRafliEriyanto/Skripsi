@@ -105,15 +105,27 @@ app.use(
 app.use(express.json({ limit: REQUEST_BODY_LIMIT }));
 app.use(express.urlencoded({ extended: true, limit: REQUEST_BODY_LIMIT }));
 app.use(sanitizeRequestBody);
-app.use((_, __, next) => {
-  void ensureBackendReady()
-    .then(() => next())
-    .catch(next);
-});
 
 app.get("/api/health", (_req: Request, res: Response) => {
   return sendSuccess(res, {
     message: "Backend auth berjalan normal.",
+  });
+});
+
+app.use((_, __, next) => {
+  void ensureBackendReady()
+    .then(() => next())
+    .catch((error) => {
+      console.error("[backend-init] ready_failed", {
+        message: error instanceof Error ? error.message : "Unknown backend init error",
+      });
+      next(error);
+    });
+});
+
+app.get("/api/ready", (_req: Request, res: Response) => {
+  return sendSuccess(res, {
+    message: "Backend auth dan database siap.",
   });
 });
 
