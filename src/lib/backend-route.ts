@@ -63,6 +63,10 @@ async function readBackendPayload(response: Response, fallbackMessage: string) {
   };
 }
 
+function isInvalidBackendPayload(payload: BackendPayload | null | undefined) {
+  return payload?.errorCode === "BACKEND_INVALID_RESPONSE";
+}
+
 function buildAuthErrorResponse() {
   return NextResponse.json(
     {
@@ -180,6 +184,16 @@ async function requestBackendJson({
           targetUrl,
           source: target.source,
           status: response.status,
+        });
+        continue;
+      }
+
+      if (hasFallbackTarget && isInvalidBackendPayload(payload)) {
+        logBackendFallback("invalid_response_fallback", {
+          targetUrl,
+          source: target.source,
+          status: response.status,
+          contentType: response.headers.get("content-type")?.trim() || "unknown",
         });
         continue;
       }

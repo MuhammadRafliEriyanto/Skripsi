@@ -43,6 +43,10 @@ function getPayloadMessage(payload: BackendPayload | null | undefined) {
   return typeof payload?.message === "string" ? payload.message : null;
 }
 
+function isInvalidAuthBackendPayload(payload: BackendPayload | null | undefined) {
+  return payload?.errorCode === "AUTH_BACKEND_INVALID_RESPONSE";
+}
+
 function getAuthBackendTargets(request?: Request) {
   try {
     return getBackendTargets({
@@ -195,6 +199,18 @@ export async function callAuthBackend<T extends BackendPayload>(
         method,
         source: target.source,
         status: response.status,
+      });
+      continue;
+    }
+
+    if (hasFallbackTarget && isInvalidAuthBackendPayload(payload)) {
+      logAuthProxy("error", "invalid_response_fallback", {
+        authApiUrl: target.baseUrl,
+        targetUrl,
+        method,
+        source: target.source,
+        status: response.status,
+        contentType: response.headers.get("content-type")?.trim() || "unknown",
       });
       continue;
     }

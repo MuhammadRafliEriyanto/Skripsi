@@ -141,6 +141,22 @@ export function isUserRole(value: unknown): value is UserRole {
   return typeof value === "string" && USER_ROLES.includes(value as UserRole);
 }
 
+export function getAuthResponseRole(
+  data:
+    | {
+        role?: unknown;
+        user?: {
+          role?: unknown;
+        } | null;
+      }
+    | null
+    | undefined,
+) {
+  const role = data?.role ?? data?.user?.role;
+
+  return isUserRole(role) ? role : null;
+}
+
 export function getRedirectPathForRole(role: UserRole) {
   return ROLE_REDIRECT_MAP[role];
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import type { LoginResponse } from "@/lib/auth";
-import { isUserRole } from "@/lib/auth";
+import { getAuthResponseRole, getRedirectPathForRole } from "@/lib/auth";
 import { callAuthBackend, setAuthCookies } from "@/lib/auth-server";
 
 export async function POST(request: Request) {
@@ -19,19 +19,41 @@ export async function POST(request: Request) {
       }),
     }, request);
 
-    const nextResponse = NextResponse.json(payload, {
+    const responseRole = getAuthResponseRole(payload.data);
+    const normalizedPayload =
+      response.ok && payload.success && payload.data && responseRole
+        ? {
+            ...payload,
+            data: {
+              ...payload.data,
+              role: responseRole,
+              redirectPath:
+                typeof payload.data.redirectPath === "string" && payload.data.redirectPath
+                  ? payload.data.redirectPath
+                  : getRedirectPathForRole(responseRole),
+              user: payload.data.user
+                ? {
+                    ...payload.data.user,
+                    role: responseRole,
+                  }
+                : payload.data.user,
+            },
+          }
+        : payload;
+
+    const nextResponse = NextResponse.json(normalizedPayload, {
       status: response.status,
     });
 
     if (
       response.ok &&
-      payload.success &&
-      typeof payload.data?.token === "string" &&
-      isUserRole(payload.data?.role)
+      normalizedPayload.success &&
+      typeof normalizedPayload.data?.token === "string" &&
+      responseRole
     ) {
       setAuthCookies(nextResponse, {
-        token: payload.data.token,
-        role: payload.data.role,
+        token: normalizedPayload.data.token,
+        role: responseRole,
         rememberMe,
       });
     } else if (!response.ok) {
