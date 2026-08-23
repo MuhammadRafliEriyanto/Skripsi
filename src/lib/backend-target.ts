@@ -28,6 +28,48 @@ function getSameOriginBackendBaseUrl(request?: Request) {
   }
 }
 
+function normalizeEnvBackendTarget(value: string, request?: Request): BackendTarget {
+  const normalizedBaseUrl = normalizeBaseUrl(value);
+  const sameOriginBaseUrl = getSameOriginBackendBaseUrl(request);
+
+  if (!sameOriginBaseUrl) {
+    return {
+      baseUrl: normalizedBaseUrl,
+      source: "env",
+      forwardRequestCookies: false,
+    };
+  }
+
+  try {
+    const envUrl = new URL(normalizedBaseUrl);
+    const sameOriginUrl = new URL(sameOriginBaseUrl);
+
+    if (envUrl.origin !== sameOriginUrl.origin) {
+      return {
+        baseUrl: normalizedBaseUrl,
+        source: "env",
+        forwardRequestCookies: false,
+      };
+    }
+
+    const envPath = envUrl.pathname.replace(/\/+$/, "") || "/";
+    const pointsToFrontendApi = envPath === "/" || envPath === "/api" || envPath === "/api/auth";
+
+    // Prevent auth proxy recursion when a deployed env URL points to the frontend origin.
+    return {
+      baseUrl: pointsToFrontendApi ? sameOriginBaseUrl : normalizedBaseUrl,
+      source: "env",
+      forwardRequestCookies: true,
+    };
+  } catch {
+    return {
+      baseUrl: normalizedBaseUrl,
+      source: "env",
+      forwardRequestCookies: false,
+    };
+  }
+}
+
 function addTarget(targets: BackendTarget[], target: BackendTarget) {
   if (!target.baseUrl || targets.some((current) => current.baseUrl === target.baseUrl)) {
     return;
@@ -46,11 +88,7 @@ export function getBackendTargets({
   const targets: BackendTarget[] = [];
 
   if (envBaseUrl) {
-    addTarget(targets, {
-      baseUrl: normalizeBaseUrl(envBaseUrl),
-      source: "env",
-      forwardRequestCookies: false,
-    });
+    addTarget(targets, normalizeEnvBackendTarget(envBaseUrl, request));
   }
 
   const sameOriginBaseUrl = getSameOriginBackendBaseUrl(request);
