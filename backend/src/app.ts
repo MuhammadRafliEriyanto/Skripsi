@@ -33,6 +33,10 @@ const app = express();
 const REQUEST_BODY_LIMIT = "20mb";
 let backendInitPromise: Promise<void> | null = null;
 
+function getBackendRoutePrefix() {
+  return (process.env.BACKEND_ROUTE_PREFIX?.trim() || "/api/backend").replace(/\/+$/, "");
+}
+
 function getAllowedCorsOrigins() {
   const configuredOrigins = (process.env.CLIENT_URL ?? "")
     .split(",")
@@ -64,6 +68,19 @@ function ensureBackendReady() {
 }
 
 app.set("trust proxy", 1);
+app.use((req, _res, next) => {
+  const backendRoutePrefix = getBackendRoutePrefix();
+
+  if (
+    backendRoutePrefix &&
+    backendRoutePrefix !== "/" &&
+    (req.url === backendRoutePrefix || req.url.startsWith(`${backendRoutePrefix}/`))
+  ) {
+    req.url = req.url.slice(backendRoutePrefix.length) || "/";
+  }
+
+  next();
+});
 app.use(securityHeaders);
 app.use(
   cors({

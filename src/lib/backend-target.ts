@@ -28,6 +28,30 @@ function getSameOriginBackendBaseUrl(request?: Request) {
   }
 }
 
+function isLoopbackBaseUrl(value: string) {
+  try {
+    const hostname = new URL(value).hostname.toLowerCase();
+
+    return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+  } catch {
+    return false;
+  }
+}
+
+function getEnvBackendBaseUrls() {
+  const authApiUrl = process.env.AUTH_API_URL?.trim();
+  const backendUrl = process.env.BACKEND_URL?.trim();
+  const preferredUrls = process.env.VERCEL ? [backendUrl, authApiUrl] : [authApiUrl, backendUrl];
+
+  return preferredUrls.filter((value): value is string => {
+    if (!value) {
+      return false;
+    }
+
+    return !(process.env.VERCEL && isLoopbackBaseUrl(value));
+  });
+}
+
 function normalizeEnvBackendTarget(value: string, request?: Request): BackendTarget {
   const normalizedBaseUrl = normalizeBaseUrl(value);
   const sameOriginBaseUrl = getSameOriginBackendBaseUrl(request);
@@ -83,11 +107,10 @@ export function getBackendTargets({
   missingBaseUrlMessage,
   missingApiKeyMessage,
 }: BackendTargetOptions) {
-  const envBaseUrl = process.env.AUTH_API_URL?.trim() || process.env.BACKEND_URL?.trim();
   const apiKey = process.env.AUTH_API_KEY?.trim();
   const targets: BackendTarget[] = [];
 
-  if (envBaseUrl) {
+  for (const envBaseUrl of getEnvBackendBaseUrls()) {
     addTarget(targets, normalizeEnvBackendTarget(envBaseUrl, request));
   }
 
