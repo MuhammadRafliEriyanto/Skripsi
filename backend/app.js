@@ -14,7 +14,24 @@ function stripBackendRoutePrefix(req) {
 function getBackendApp() {
   if (!backendAppPromise) {
     backendAppPromise = Promise.resolve()
-      .then(() => require("./dist/app.js"))
+      .then(() => {
+        try {
+          return require("./dist/app.js");
+        } catch (distError) {
+          try {
+            return require("./src/app.ts");
+          } catch (sourceError) {
+            const distMessage =
+              distError instanceof Error ? distError.message : String(distError);
+            const sourceMessage =
+              sourceError instanceof Error ? sourceError.message : String(sourceError);
+
+            throw new Error(
+              `Gagal memuat backend app. dist/app.js: ${distMessage}; src/app.ts: ${sourceMessage}`,
+            );
+          }
+        }
+      })
       .then((module) => module.default || module)
       .catch((error) => {
         backendAppPromise = null;
