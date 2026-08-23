@@ -2,7 +2,7 @@
   "name": "bimbel-new-backend",
   "version": "1.0.0",
   "description": "Backend authentication service for Bimbel LMS",
-  "main": "dist/server.js",
+  "main": "dist/app.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",

@@ -10,6 +10,10 @@ function isManagedServerlessRuntime() {
   return Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
 }
 
+function shouldStartStandaloneServer() {
+  return !isManagedServerlessRuntime() && process.env.NODE_ENV !== "production";
+}
+
 async function startServer(): Promise<void> {
   try {
     const env = validateEnv();
@@ -29,7 +33,7 @@ async function startServer(): Promise<void> {
   }
 }
 
-if (!isManagedServerlessRuntime()) {
+if (shouldStartStandaloneServer()) {
   void startServer();
 }
 
