@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import type { LoginResponse } from "@/lib/auth";
 import { getAuthResponseRole, getRedirectPathForRole } from "@/lib/auth";
-import { callAuthBackend, setAuthCookies } from "@/lib/auth-server";
+import { AuthBackendProxyError, callAuthBackend, setAuthCookies } from "@/lib/auth-server";
 
 export async function POST(request: Request) {
   try {
@@ -62,7 +62,27 @@ export async function POST(request: Request) {
     }
 
     return nextResponse;
-  } catch {
+  } catch (error) {
+    if (error instanceof AuthBackendProxyError) {
+      console.error("[auth-login] proxy_error", {
+        status: error.status,
+        message: error.message,
+        errorCode: error.errorCode ?? null,
+      });
+
+      return NextResponse.json(
+        {
+          success: false,
+          message: error.message,
+          ...(error.errorCode ? { errorCode: error.errorCode } : {}),
+          ...(error.errors ? { errors: error.errors } : {}),
+        },
+        {
+          status: error.status,
+        },
+      );
+    }
+
     return NextResponse.json(
       {
         success: false,

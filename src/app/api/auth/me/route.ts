@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import type { MeResponse } from "@/lib/auth";
 import { AUTH_TOKEN_COOKIE_NAME } from "@/lib/auth";
-import { callAuthBackend, clearAuthCookies } from "@/lib/auth-server";
+import { AuthBackendProxyError, callAuthBackend, clearAuthCookies } from "@/lib/auth-server";
 import { proxyProtectedBackend, readRequestBody } from "@/lib/backend-route";
 
 export async function GET(request: NextRequest) {
@@ -41,7 +41,27 @@ export async function GET(request: NextRequest) {
     }
 
     return nextResponse;
-  } catch {
+  } catch (error) {
+    if (error instanceof AuthBackendProxyError) {
+      console.error("[auth-me] proxy_error", {
+        status: error.status,
+        message: error.message,
+        errorCode: error.errorCode ?? null,
+      });
+
+      return NextResponse.json(
+        {
+          success: false,
+          message: error.message,
+          ...(error.errorCode ? { errorCode: error.errorCode } : {}),
+          ...(error.errors ? { errors: error.errors } : {}),
+        },
+        {
+          status: error.status,
+        },
+      );
+    }
+
     return NextResponse.json(
       {
         success: false,

@@ -12,6 +12,8 @@ type BackendTargetOptions = {
   missingApiKeyMessage: string;
 };
 
+const LOOPBACK_BACKEND_OVERRIDE_ENV = "ALLOW_LOOPBACK_BACKEND_URL";
+
 function normalizeBaseUrl(value: string) {
   return value.trim().replace(/\/+$/, "");
 }
@@ -32,23 +34,50 @@ function isLoopbackBaseUrl(value: string) {
   try {
     const hostname = new URL(value).hostname.toLowerCase();
 
-    return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+    return (
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname === "0.0.0.0" ||
+      hostname === "::1" ||
+      hostname === "[::1]"
+    );
   } catch {
     return false;
   }
 }
 
+function getBooleanEnvFlag(name: string) {
+  const value = process.env[name]?.trim().toLowerCase();
+
+  return value === "1" || value === "true" || value === "yes";
+}
+
+function isProductionRuntime() {
+  return process.env.NODE_ENV === "production" || Boolean(process.env.VERCEL);
+}
+
+function shouldSkipLoopbackBaseUrl(value: string) {
+  return (
+    isProductionRuntime() &&
+    !getBooleanEnvFlag(LOOPBACK_BACKEND_OVERRIDE_ENV) &&
+    isLoopbackBaseUrl(value)
+  );
+}
+
 function getEnvBackendBaseUrls() {
+  const backendInternalUrl = process.env.BACKEND_INTERNAL_URL?.trim();
   const authApiUrl = process.env.AUTH_API_URL?.trim();
   const backendUrl = process.env.BACKEND_URL?.trim();
-  const preferredUrls = process.env.VERCEL ? [backendUrl, authApiUrl] : [authApiUrl, backendUrl];
+  const preferredUrls = isProductionRuntime()
+    ? [backendInternalUrl, backendUrl, authApiUrl]
+    : [authApiUrl, backendUrl, backendInternalUrl];
 
   return preferredUrls.filter((value): value is string => {
     if (!value) {
       return false;
     }
 
-    return !(process.env.VERCEL && isLoopbackBaseUrl(value));
+    return !shouldSkipLoopbackBaseUrl(value);
   });
 }
 
