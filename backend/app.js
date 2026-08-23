@@ -16,18 +16,18 @@ function getBackendApp() {
     backendAppPromise = Promise.resolve()
       .then(() => {
         try {
-          return require("./dist/app.js");
-        } catch (distError) {
+          return require("./src/app.ts");
+        } catch (sourceError) {
           try {
-            return require("./src/app.ts");
-          } catch (sourceError) {
-            const distMessage =
-              distError instanceof Error ? distError.message : String(distError);
+            return require("./dist/app.js");
+          } catch (distError) {
             const sourceMessage =
               sourceError instanceof Error ? sourceError.message : String(sourceError);
+            const distMessage =
+              distError instanceof Error ? distError.message : String(distError);
 
             throw new Error(
-              `Gagal memuat backend app. dist/app.js: ${distMessage}; src/app.ts: ${sourceMessage}`,
+              `Gagal memuat backend app. src/app.ts: ${sourceMessage}; dist/app.js: ${distMessage}`,
             );
           }
         }
