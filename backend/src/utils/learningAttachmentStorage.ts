@@ -3,7 +3,6 @@ import { promises as fs } from "fs";
 import os from "os";
 import path from "path";
 import mongoose from "mongoose";
-import { GridFSBucket, ObjectId } from "mongodb";
 
 type LearningAttachmentKind = "materials" | "tasks" | "task-submissions";
 
@@ -85,7 +84,7 @@ function getGridFsBucket() {
     throw new Error("Database belum siap untuk menyimpan lampiran.");
   }
 
-  return new GridFSBucket(db, {
+  return new mongoose.mongo.GridFSBucket(db, {
     bucketName: GRIDFS_BUCKET_NAME,
   });
 }
@@ -93,11 +92,11 @@ function getGridFsBucket() {
 function getGridFsObjectId(storagePath: string) {
   const fileId = normalizeText(storagePath).replace(GRIDFS_STORAGE_PREFIX, "");
 
-  if (!ObjectId.isValid(fileId)) {
+  if (!mongoose.mongo.ObjectId.isValid(fileId)) {
     return null;
   }
 
-  return new ObjectId(fileId);
+  return new mongoose.mongo.ObjectId(fileId);
 }
 
 function isGridFsStoragePath(storagePath: string | null | undefined) {
