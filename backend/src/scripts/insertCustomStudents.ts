@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { User } from "../models/User";
 import { Student } from "../models/Student";
 import { getNextPublicId } from "../utils/publicId";

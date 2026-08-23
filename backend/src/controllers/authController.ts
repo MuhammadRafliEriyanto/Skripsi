@@ -1,4 +1,4 @@
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import type { NextFunction, Request, Response } from "express";
 import { OAuth2Client } from "google-auth-library";

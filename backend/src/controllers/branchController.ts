@@ -1,4 +1,4 @@
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { Types } from "mongoose";
 import type { NextFunction, Request, Response } from "express";

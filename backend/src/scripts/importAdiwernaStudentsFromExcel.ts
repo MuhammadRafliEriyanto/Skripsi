@@ -1,4 +1,4 @@
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import fs from "node:fs";
 import path from "node:path";
 import mongoose from "mongoose";
