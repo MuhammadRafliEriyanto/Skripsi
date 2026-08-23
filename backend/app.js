@@ -1,6 +1,3 @@
-const express = require("express");
-
-const app = express();
 const BACKEND_ROUTE_PREFIX = "/api/backend";
 
 let backendAppPromise = null;
@@ -9,6 +6,20 @@ function stripBackendRoutePrefix(req) {
   if (req.url === BACKEND_ROUTE_PREFIX || req.url.startsWith(`${BACKEND_ROUTE_PREFIX}/`)) {
     req.url = req.url.slice(BACKEND_ROUTE_PREFIX.length) || "/";
   }
+}
+
+function getRequestPath(req) {
+  try {
+    return new URL(req.url || "/", "http://127.0.0.1").pathname;
+  } catch {
+    return req.url || "/";
+  }
+}
+
+function sendJson(res, status, payload) {
+  res.statusCode = status;
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.end(JSON.stringify(payload));
 }
 
 function getBackendApp() {
@@ -42,23 +53,20 @@ function getBackendApp() {
   return backendAppPromise;
 }
 
-app.disable("x-powered-by");
-app.use((req, _res, next) => {
+async function handler(req, res) {
   stripBackendRoutePrefix(req);
-  next();
-});
 
-app.get("/api/health", (_req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "Backend service berjalan normal.",
-  });
-});
+  if (req.method === "GET" && getRequestPath(req) === "/api/health") {
+    sendJson(res, 200, {
+      success: true,
+      message: "Backend service berjalan normal.",
+    });
+    return;
+  }
 
-app.use(async (req, res, next) => {
   try {
     const backendApp = await getBackendApp();
-    return backendApp(req, res, next);
+    return backendApp(req, res);
   } catch (error) {
     const message =
       error instanceof Error && error.message
@@ -69,12 +77,11 @@ app.use(async (req, res, next) => {
       message,
     });
 
-    if (res.headersSent) {
-      next(error);
+    if (res.headersSent || res.writableEnded) {
       return;
     }
 
-    res.status(500).json({
+    sendJson(res, 500, {
       success: false,
       message: "Backend auth gagal dimuat pada runtime deploy.",
       errorCode: "BACKEND_APP_LOAD_FAILED",
@@ -83,7 +90,7 @@ app.use(async (req, res, next) => {
       },
     });
   }
-});
+}
 
-module.exports = app;
-module.exports.default = app;
+module.exports = handler;
+module.exports.default = handler;
