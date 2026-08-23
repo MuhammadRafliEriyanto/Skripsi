@@ -27,7 +27,7 @@ export function OwnerDashboardSidebar({
   onNavigate,
   onToggle,
 }: OwnerDashboardSidebarProps) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const isCompact = collapsed && !mobile;
 
   return (

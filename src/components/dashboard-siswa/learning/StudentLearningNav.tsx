@@ -37,7 +37,7 @@ type StudentLearningNavProps = {
 export default function StudentLearningNav({
   isUtbkStudent = false,
 }: StudentLearningNavProps) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const visibleMenus = isUtbkStudent ? utbkLearningMenus : learningMenus;
 
   return (

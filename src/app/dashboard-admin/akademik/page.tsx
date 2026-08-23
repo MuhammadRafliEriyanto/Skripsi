@@ -6,7 +6,7 @@ import { AdminAcademicMonitoring } from "@/components/dashboard-admin/AdminAcade
 
 function AcademicMonitoringContent() {
   const searchParams = useSearchParams();
-  const globalSearchQuery = searchParams.get("q") || "";
+  const globalSearchQuery = searchParams?.get("q") || "";
 
   return <AdminAcademicMonitoring globalSearchQuery={globalSearchQuery} />;
 }

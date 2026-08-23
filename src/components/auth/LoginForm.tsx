@@ -85,8 +85,8 @@ export function LoginForm() {
 
   function resolveRedirectPath(defaultRedirectPath: string) {
     const redirectCandidates = [
-      searchParams.get("redirect") ?? "",
-      searchParams.get("next") ?? "",
+      searchParams?.get("redirect") ?? "",
+      searchParams?.get("next") ?? "",
     ];
 
     for (const candidate of redirectCandidates) {

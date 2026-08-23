@@ -14,7 +14,7 @@ type SidebarProps = {
 };
 
 export function Sidebar({ role, mobile = false }: SidebarProps) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const config = dashboardConfigs[role];
   const hasDescription = config.description.trim().length > 0;
   const hasInsight =

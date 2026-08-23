@@ -10,7 +10,7 @@ import {
 
 export default function AdminSiswaPage() {
   const searchParams = useSearchParams();
-  const globalSearchQuery = searchParams.get("q") || "";
+  const globalSearchQuery = searchParams?.get("q") || "";
   const [dashboardConfig, setDashboardConfig] = useState(defaultAdminDashboardConfig);
 
   useEffect(() => {

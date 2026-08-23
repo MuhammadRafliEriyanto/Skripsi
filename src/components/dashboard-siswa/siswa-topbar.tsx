@@ -430,7 +430,7 @@ function isMenuActive(menu: SiswaTopbarMenu, pathname: string) {
 }
 
 export default function SiswaTopbar() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [mobileOpen, setMobileOpen] = useState(false);

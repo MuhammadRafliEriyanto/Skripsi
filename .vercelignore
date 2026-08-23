@@ -1,6 +1,7 @@
 /.git
 /.next
 /node_modules
+/backend/.env
 /backend/dist
 /backend/storage
 /backend/backups

@@ -2254,7 +2254,7 @@ export default function DetailKelasGuruSection({
     }
 
     try {
-      const selectedScheduleId = normalizeText(searchParams.get("scheduleId"));
+      const selectedScheduleId = normalizeText(searchParams?.get("scheduleId"));
       const [detailResponse, gradesResponse] = await Promise.all([
         fetch(buildGuruApiUrl(`/api/teacher/me/classes/${encodeURIComponent(normalizedClassId)}`, searchParams), {
           method: "GET",

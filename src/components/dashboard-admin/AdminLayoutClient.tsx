@@ -18,7 +18,7 @@ import type { AdminTab } from "./admin-data";
 
 function AdminLayoutClientInner({ children }: { children: React.ReactNode }) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentAcademicYear = getCurrentAdminAcademicYear();

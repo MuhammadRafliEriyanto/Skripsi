@@ -156,7 +156,7 @@ function ScannerGateCard({
 export default function ScanAbsenClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const scheduleId = normalizeText(searchParams.get("scheduleId"));
+  const scheduleId = normalizeText(searchParams?.get("scheduleId"));
   const {
     dashboardData,
     isLoading: isScheduleLoading,

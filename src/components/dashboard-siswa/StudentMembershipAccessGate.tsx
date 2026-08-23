@@ -477,7 +477,7 @@ export default function StudentMembershipAccessGate({
 }: {
   children: ReactNode;
 }) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const router = useRouter();
   const [membershipData, setMembershipData] =
     useState<MembershipStatusData | null>(null);

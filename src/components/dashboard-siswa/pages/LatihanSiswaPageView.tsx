@@ -97,7 +97,7 @@ function LatihanSiswaPageContent() {
 
   const [selectedTaskId, setSelectedTaskId] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const requestedTaskId = searchParams.get("taskId")?.trim() ?? "";
+  const requestedTaskId = searchParams?.get("taskId")?.trim() ?? "";
 
   const selectedTask = tasks.find((task) => task.id === selectedTaskId);
 

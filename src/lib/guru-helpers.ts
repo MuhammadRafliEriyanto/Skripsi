@@ -2,12 +2,16 @@ import { type ReadonlyURLSearchParams } from "next/navigation";
 
 const GURU_CONTEXT_QUERY_KEYS = ["academicYear", "semester"] as const;
 
-type GuruSearchParams = ReadonlyURLSearchParams | URLSearchParams;
+type GuruSearchParams = ReadonlyURLSearchParams | URLSearchParams | null | undefined;
 
 function appendGuruContextParams(
   params: URLSearchParams,
   searchParams: GuruSearchParams,
 ) {
+  if (!searchParams) {
+    return;
+  }
+
   GURU_CONTEXT_QUERY_KEYS.forEach((key) => {
     const value = searchParams.get(key)?.trim();
 

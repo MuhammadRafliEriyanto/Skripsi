@@ -1086,7 +1086,7 @@ function OverviewSearchResultsSection({
 export function AdminDashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const globalSearchQuery = searchParams.get("q") || "";
+  const globalSearchQuery = searchParams?.get("q") || "";
   const currentAcademicYear = getCurrentAdminAcademicYear();
   
   const [, setDashboardConfig] = useState<AdminDashboardConfigData>(

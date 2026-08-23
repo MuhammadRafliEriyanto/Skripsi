@@ -887,7 +887,7 @@ export default function AbsensiKelasSection({
   kelasId,
 }: AbsensiKelasSectionProps) {
   const searchParams = useSearchParams();
-  const selectedScheduleId = normalizeText(searchParams.get("scheduleId"));
+  const selectedScheduleId = normalizeText(searchParams?.get("scheduleId"));
   const isAcademicArchive = false;
   const archiveMessage = "";
   const [activeClass, setActiveClass] = useState<AttendanceClassData | null>(null);

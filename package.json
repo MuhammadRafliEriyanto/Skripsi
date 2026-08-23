@@ -2,6 +2,9 @@
   "name": "bimbel-new",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "backend"
+  ],
   "scripts": {
     "dev": "concurrently -n FRONTEND,BACKEND -c blue,green \"npm run dev:frontend\" \"npm run dev:backend\"",
     "dev:frontend": "next dev",

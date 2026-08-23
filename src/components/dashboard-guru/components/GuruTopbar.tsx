@@ -248,7 +248,7 @@ function getNotificationBadgeVariant(type: TeacherNotificationItem["type"]) {
 }
 
 export default function GuruTopbar() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const router = useRouter();
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
