@@ -1,3 +1,6 @@
+const express = require("express");
+
+const app = express();
 const BACKEND_ROUTE_PREFIX = "/api/backend";
 
 let backendAppPromise = null;
@@ -6,20 +9,6 @@ function stripBackendRoutePrefix(req) {
   if (req.url === BACKEND_ROUTE_PREFIX || req.url.startsWith(`${BACKEND_ROUTE_PREFIX}/`)) {
     req.url = req.url.slice(BACKEND_ROUTE_PREFIX.length) || "/";
   }
-}
-
-function getRequestPath(req) {
-  try {
-    return new URL(req.url || "/", "http://127.0.0.1").pathname;
-  } catch {
-    return req.url || "/";
-  }
-}
-
-function sendJson(res, status, payload) {
-  res.statusCode = status;
-  res.setHeader("Content-Type", "application/json; charset=utf-8");
-  res.end(JSON.stringify(payload));
 }
 
 function getBackendApp() {
@@ -53,20 +42,23 @@ function getBackendApp() {
   return backendAppPromise;
 }
 
-async function handler(req, res) {
+app.disable("x-powered-by");
+app.use((req, _res, next) => {
   stripBackendRoutePrefix(req);
+  next();
+});
 
-  if (req.method === "GET" && getRequestPath(req) === "/api/health") {
-    sendJson(res, 200, {
-      success: true,
-      message: "Backend service berjalan normal.",
-    });
-    return;
-  }
+app.get("/api/health", (_req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Backend service berjalan normal.",
+  });
+});
 
+app.use(async (req, res, next) => {
   try {
     const backendApp = await getBackendApp();
-    return backendApp(req, res);
+    return backendApp(req, res, next);
   } catch (error) {
     const message =
       error instanceof Error && error.message
@@ -78,10 +70,11 @@ async function handler(req, res) {
     });
 
     if (res.headersSent || res.writableEnded) {
+      next(error);
       return;
     }
 
-    sendJson(res, 500, {
+    res.status(500).json({
       success: false,
       message: "Backend auth gagal dimuat pada runtime deploy.",
       errorCode: "BACKEND_APP_LOAD_FAILED",
@@ -90,7 +83,7 @@ async function handler(req, res) {
       },
     });
   }
-}
+});
 
-module.exports = handler;
-module.exports.default = handler;
+module.exports = app;
+module.exports.default = app;

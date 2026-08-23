@@ -19,18 +19,6 @@
       "entrypoint": "app.js"
     }
   },
-  "experimentalServices": {
-    "frontend": {
-      "entrypoint": ".",
-      "framework": "nextjs",
-      "routePrefix": "/"
-    },
-    "backend": {
-      "entrypoint": "backend/app.js",
-      "framework": "express",
-      "routePrefix": "/api/backend"
-    }
-  },
   "rewrites": [
     {
       "source": "/api/backend/(.*)",
