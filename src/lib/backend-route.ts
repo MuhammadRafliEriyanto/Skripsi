@@ -17,23 +17,29 @@ function buildInvalidBackendResponse(
   rawBody?: string,
 ) {
   const contentType = response?.headers.get("content-type")?.trim() || "unknown";
+  const vercelError = response?.headers.get("x-vercel-error")?.trim() || null;
   const responseStatus = response
     ? `${response.status}${response.statusText ? ` ${response.statusText}` : ""}`
     : "unknown";
   const bodyPreview = rawBody?.trim().slice(0, 500) || "";
+  const functionInvocationFailed =
+    vercelError?.toUpperCase() === "FUNCTION_INVOCATION_FAILED" ||
+    bodyPreview.toUpperCase().includes("FUNCTION_INVOCATION_FAILED");
 
   return {
     success: false,
-    message:
-      bodyPreview && bodyPreview.startsWith("<")
+    message: functionInvocationFailed
+      ? "Server backend sedang bermasalah. Backend gagal dijalankan di Vercel."
+      : bodyPreview && bodyPreview.startsWith("<")
         ? `${fallbackMessage} (backend mengembalikan HTML ${responseStatus}).`
         : bodyPreview
           ? `${fallbackMessage} (${responseStatus}).`
           : fallbackMessage,
-    errorCode: "BACKEND_INVALID_RESPONSE",
+    errorCode: functionInvocationFailed ? "BACKEND_FUNCTION_FAILED" : "BACKEND_INVALID_RESPONSE",
     errors: {
       contentType,
       status: responseStatus,
+      xVercelError: vercelError || "none",
       bodyPreview,
     },
   } satisfies BackendPayload;
@@ -64,7 +70,10 @@ async function readBackendPayload(response: Response, fallbackMessage: string) {
 }
 
 function isInvalidBackendPayload(payload: BackendPayload | null | undefined) {
-  return payload?.errorCode === "BACKEND_INVALID_RESPONSE";
+  return (
+    payload?.errorCode === "BACKEND_INVALID_RESPONSE" ||
+    payload?.errorCode === "BACKEND_FUNCTION_FAILED"
+  );
 }
 
 function buildAuthErrorResponse() {

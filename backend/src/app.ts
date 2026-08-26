@@ -1,28 +1,14 @@
 import cors from "cors";
-import express, { type NextFunction, type Request, type Response } from "express";
+import express, {
+  type NextFunction,
+  type Request,
+  type RequestHandler,
+  type Response,
+} from "express";
 
 import "./types/express";
 
-import branchFinanceRoutes from "./routes/branchFinanceRoutes";
-import branchIncomeRoutes from "./routes/branchIncomeRoutes";
-import branchRoutes from "./routes/branchRoutes";
 import errorHandler from "./middleware/errorHandler";
-import expenseRoutes from "./routes/expenseRoutes";
-import adminRoutes from "./routes/adminRoutes";
-import authRoutes from "./routes/authRoutes";
-import adminNotificationRoutes from "./routes/adminNotificationRoutes";
-import ownerNotificationRoutes from "./routes/ownerNotificationRoutes";
-import ownerSearchRoutes from "./routes/ownerSearchRoutes";
-import paymentRoutes from "./routes/paymentRoutes";
-import roomRoutes from "./routes/roomRoutes";
-import scheduleRoutes from "./routes/scheduleRoutes";
-import studentAttendanceRoutes from "./routes/studentAttendanceRoutes";
-import studentLearningRoutes from "./routes/studentLearningRoutes";
-import studentRoutes from "./routes/studentRoutes";
-import subscriptionRoutes from "./routes/subscriptionRoutes";
-import teacherRoutes from "./routes/teacherRoutes";
-import teacherScheduleRoutes from "./routes/teacherScheduleRoutes";
-import teacherTryoutRoutes from "./routes/teacherTryoutRoutes";
 import connectDB from "./config/db";
 import sanitizeRequestBody from "./middleware/sanitizeRequest";
 import securityHeaders from "./middleware/securityHeaders";
@@ -32,6 +18,31 @@ import { verifyEmailTransport } from "./utils/email";
 const app = express();
 const REQUEST_BODY_LIMIT = "20mb";
 let backendInitPromise: Promise<void> | null = null;
+
+type RouteModule = {
+  default?: unknown;
+};
+
+function lazyRouter(loadRoute: () => Promise<RouteModule>): RequestHandler {
+  let routePromise: Promise<RequestHandler> | null = null;
+
+  return (req, res, next) => {
+    routePromise ??= loadRoute().then((routeModule) => {
+      if (typeof routeModule.default !== "function") {
+        throw new Error("Route backend tidak mengekspor Express router.");
+      }
+
+      return routeModule.default as RequestHandler;
+    });
+
+    void routePromise
+      .then((router) => router(req, res, next))
+      .catch((error) => {
+        routePromise = null;
+        next(error);
+      });
+  };
+}
 
 function getBackendRoutePrefix() {
   return (process.env.BACKEND_ROUTE_PREFIX?.trim() || "/api/backend").replace(/\/+$/, "");
@@ -129,25 +140,37 @@ app.get("/api/ready", (_req: Request, res: Response) => {
   });
 });
 
-app.use("/api/auth", authRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/branch-finances", branchFinanceRoutes);
-app.use("/api/branch-incomes", branchIncomeRoutes);
-app.use("/api/branches", branchRoutes);
-app.use("/api/expenses", expenseRoutes);
-app.use("/api/admin/notifications", adminNotificationRoutes);
-app.use("/api/owner/notifications", ownerNotificationRoutes);
-app.use("/api/owner/search", ownerSearchRoutes);
-app.use("/api/subscriptions", subscriptionRoutes);
-app.use("/api/payments", paymentRoutes);
-app.use("/api/student", studentAttendanceRoutes);
-app.use("/api/student", studentLearningRoutes);
-app.use("/api/students", studentRoutes);
-app.use("/api/teachers", teacherRoutes);
-app.use("/api/rooms", roomRoutes);
-app.use("/api/schedules", scheduleRoutes);
-app.use("/api/teacher", teacherScheduleRoutes);
-app.use("/api/teacher", teacherTryoutRoutes);
+app.use("/api/auth", lazyRouter(() => import("./routes/authRoutes")));
+app.use("/api/admin", lazyRouter(() => import("./routes/adminRoutes")));
+app.use(
+  "/api/branch-finances",
+  lazyRouter(() => import("./routes/branchFinanceRoutes")),
+);
+app.use(
+  "/api/branch-incomes",
+  lazyRouter(() => import("./routes/branchIncomeRoutes")),
+);
+app.use("/api/branches", lazyRouter(() => import("./routes/branchRoutes")));
+app.use("/api/expenses", lazyRouter(() => import("./routes/expenseRoutes")));
+app.use(
+  "/api/admin/notifications",
+  lazyRouter(() => import("./routes/adminNotificationRoutes")),
+);
+app.use(
+  "/api/owner/notifications",
+  lazyRouter(() => import("./routes/ownerNotificationRoutes")),
+);
+app.use("/api/owner/search", lazyRouter(() => import("./routes/ownerSearchRoutes")));
+app.use("/api/subscriptions", lazyRouter(() => import("./routes/subscriptionRoutes")));
+app.use("/api/payments", lazyRouter(() => import("./routes/paymentRoutes")));
+app.use("/api/student", lazyRouter(() => import("./routes/studentAttendanceRoutes")));
+app.use("/api/student", lazyRouter(() => import("./routes/studentLearningRoutes")));
+app.use("/api/students", lazyRouter(() => import("./routes/studentRoutes")));
+app.use("/api/teachers", lazyRouter(() => import("./routes/teacherRoutes")));
+app.use("/api/rooms", lazyRouter(() => import("./routes/roomRoutes")));
+app.use("/api/schedules", lazyRouter(() => import("./routes/scheduleRoutes")));
+app.use("/api/teacher", lazyRouter(() => import("./routes/teacherScheduleRoutes")));
+app.use("/api/teacher", lazyRouter(() => import("./routes/teacherTryoutRoutes")));
 
 app.use((req: Request, _res: Response, next: NextFunction) => {
   next(new AppError(404, `Route ${req.originalUrl} tidak ditemukan.`));

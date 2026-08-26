@@ -123,6 +123,10 @@ function normalizeEnvBackendTarget(value: string, request?: Request): BackendTar
   }
 }
 
+function shouldPreferSameOriginBackendTarget() {
+  return isProductionRuntime() && Boolean(process.env.VERCEL) && !process.env.BACKEND_INTERNAL_URL;
+}
+
 function addTarget(targets: BackendTarget[], target: BackendTarget) {
   if (!target.baseUrl || targets.some((current) => current.baseUrl === target.baseUrl)) {
     return;
@@ -138,12 +142,19 @@ export function getBackendTargets({
 }: BackendTargetOptions) {
   const apiKey = process.env.AUTH_API_KEY?.trim();
   const targets: BackendTarget[] = [];
+  const sameOriginBaseUrl = getSameOriginBackendBaseUrl(request);
+
+  if (sameOriginBaseUrl && shouldPreferSameOriginBackendTarget()) {
+    addTarget(targets, {
+      baseUrl: sameOriginBaseUrl,
+      source: "same-origin",
+      forwardRequestCookies: true,
+    });
+  }
 
   for (const envBaseUrl of getEnvBackendBaseUrls()) {
     addTarget(targets, normalizeEnvBackendTarget(envBaseUrl, request));
   }
-
-  const sameOriginBaseUrl = getSameOriginBackendBaseUrl(request);
 
   if (sameOriginBaseUrl) {
     addTarget(targets, {

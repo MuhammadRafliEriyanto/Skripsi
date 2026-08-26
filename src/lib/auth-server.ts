@@ -43,8 +43,21 @@ function getPayloadMessage(payload: BackendPayload | null | undefined) {
   return typeof payload?.message === "string" ? payload.message : null;
 }
 
+function isVercelFunctionInvocationFailed(response: Response, rawBody: string) {
+  const vercelError = response.headers.get("x-vercel-error")?.trim().toUpperCase();
+  const normalizedBody = rawBody.trim().toUpperCase();
+
+  return (
+    vercelError === "FUNCTION_INVOCATION_FAILED" ||
+    normalizedBody.includes("FUNCTION_INVOCATION_FAILED")
+  );
+}
+
 function isInvalidAuthBackendPayload(payload: BackendPayload | null | undefined) {
-  return payload?.errorCode === "AUTH_BACKEND_INVALID_RESPONSE";
+  return (
+    payload?.errorCode === "AUTH_BACKEND_INVALID_RESPONSE" ||
+    payload?.errorCode === "AUTH_BACKEND_FUNCTION_FAILED"
+  );
 }
 
 function getAuthBackendTargets(request?: Request) {
@@ -116,17 +129,24 @@ async function readAuthBackendPayload<T extends BackendPayload>(
     }
   }
 
+  const functionInvocationFailed = isVercelFunctionInvocationFailed(response, rawBody);
+
   return {
     payload: {
       success: false,
-      message: "Backend auth mengembalikan respons yang tidak valid.",
-      errorCode: "AUTH_BACKEND_INVALID_RESPONSE",
+      message: functionInvocationFailed
+        ? "Server login sedang bermasalah. Backend auth gagal dijalankan di Vercel."
+        : "Backend auth mengembalikan respons yang tidak valid.",
+      errorCode: functionInvocationFailed
+        ? "AUTH_BACKEND_FUNCTION_FAILED"
+        : "AUTH_BACKEND_INVALID_RESPONSE",
       errors: {
         contentType: response.headers.get("content-type")?.trim() || "unknown",
         status: `${response.status}${response.statusText ? ` ${response.statusText}` : ""}`,
+        xVercelError: response.headers.get("x-vercel-error")?.trim() || null,
         bodyPreview: trimmedBody.slice(0, 500),
       },
-      } as unknown as T,
+    } as unknown as T,
     rawBody,
   };
 }
