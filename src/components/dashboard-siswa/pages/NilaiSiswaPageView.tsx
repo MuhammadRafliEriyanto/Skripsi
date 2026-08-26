@@ -955,6 +955,32 @@ function NilaiSiswaPageContent() {
                     </div>
                   </div>
                 </div>
+
+                {gradedSlots.length > 0 ? (
+                  <div className="mt-4">
+                    {averageScore !== null && averageScore >= 85 ? (
+                      gradedSlots.length >= targetMeetingCount ? (
+                        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3.5 text-center shadow-sm">
+                          <p className="text-xs font-medium leading-relaxed text-emerald-700">
+                            🎉 Selamat! Kamu mencapai status <span className="font-bold text-emerald-800 uppercase tracking-wide">Siswa Layak</span>.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="rounded-xl border border-orange-200 bg-orange-50 p-3.5 text-center shadow-sm">
+                          <p className="text-xs font-medium leading-relaxed text-orange-700">
+                            🚀 Luar biasa! Ada peningkatan belajar. Pertahankan rata-rata 85+ sampai P24 untuk menjadi <span className="font-bold text-orange-800 uppercase tracking-wide">Siswa Layak</span>.
+                          </p>
+                        </div>
+                      )
+                    ) : (
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-center shadow-sm">
+                        <p className="text-xs font-medium leading-relaxed text-slate-600">
+                          💡 Tingkatkan terus belajarmu! Capai rata-rata 85+ di akhir pertemuan (P24) untuk meraih status <span className="font-bold text-slate-800 uppercase tracking-wide">Siswa Layak</span>.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
               </div>
             </div>
           </section>
