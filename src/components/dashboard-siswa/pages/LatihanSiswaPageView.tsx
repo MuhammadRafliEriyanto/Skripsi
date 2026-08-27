@@ -330,21 +330,35 @@ function LatihanSiswaPageContent() {
                         <Eye className="h-[18px] w-[18px] text-slate-500" />
                         Detail
                       </button>
-                      <button
-                        type="button"
-                        onClick={(event) => handleStartLatihanCbt(task.id, event)}
-                        disabled={!task.isCbtReady || task.myGrade?.graded}
-                        className="inline-flex h-11 flex-1 md:w-[150px] items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 text-[13px] font-semibold text-white shadow-sm transition-all hover:-translate-y-px hover:bg-orange-600 hover:shadow-md disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none disabled:hover:translate-y-0"
-                      >
-                        <Send className="h-[18px] w-[18px]" />
-                        {task.myGrade?.graded
-                          ? "Sudah Tuntas"
-                          : task.isRemedial
+                      {task.myGrade?.graded || task.mySubmission?.submitted ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (task.myAttempt?.attemptId) {
+                              router.push(`/dashboard-siswa/latihan/${encodeURIComponent(task.myAttempt.attemptId)}/cbt`);
+                            }
+                          }}
+                          disabled={!task.myAttempt?.attemptId}
+                          className="inline-flex h-11 flex-1 md:w-[150px] items-center justify-center gap-2 rounded-xl border border-emerald-500 bg-emerald-50 px-4 text-[13px] font-semibold text-emerald-700 shadow-sm transition-all hover:bg-emerald-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
+                        >
+                          <Eye className="h-[18px] w-[18px]" />
+                          Review Hasil
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={(event) => handleStartLatihanCbt(task.id, event)}
+                          disabled={!task.isCbtReady}
+                          className="inline-flex h-11 flex-1 md:w-[150px] items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 text-[13px] font-semibold text-white shadow-sm transition-all hover:-translate-y-px hover:bg-orange-600 hover:shadow-md disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none disabled:hover:translate-y-0"
+                        >
+                          <Send className="h-[18px] w-[18px]" />
+                          {task.isRemedial
                             ? "Kerjakan Remedial"
                             : task.isCbtReady
                               ? "Mulai Latihan"
                               : "Belum Siap"}
-                      </button>
+                        </button>
+                      )}
                     </div>
                   </article>
                 );
@@ -478,21 +492,35 @@ function LatihanSiswaPageContent() {
                     Lampiran Soal
                   </a>
                 ) : null}
-                <button
-                  type="button"
-                  onClick={(event) => handleStartLatihanCbt(selectedTask.id, event)}
-                  disabled={!selectedTask.isCbtReady || selectedTask.myGrade?.graded}
-                  className="flex-1 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-[15px] font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-md disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none disabled:hover:translate-y-0"
-                >
-                  <Send className="h-5 w-5" />
-                  {selectedTask.myGrade?.graded
-                    ? "Sudah Tuntas"
-                    : selectedTask.isRemedial
+                {selectedTask.myGrade?.graded || selectedTask.mySubmission?.submitted ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedTask.myAttempt?.attemptId) {
+                        router.push(`/dashboard-siswa/latihan/${encodeURIComponent(selectedTask.myAttempt.attemptId)}/cbt`);
+                      }
+                    }}
+                    disabled={!selectedTask.myAttempt?.attemptId}
+                    className="flex-1 inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-emerald-500 bg-emerald-50 px-6 text-[15px] font-semibold text-emerald-700 shadow-sm transition-all hover:bg-emerald-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
+                  >
+                    <Eye className="h-5 w-5" />
+                    Review Hasil
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={(event) => handleStartLatihanCbt(selectedTask.id, event)}
+                    disabled={!selectedTask.isCbtReady}
+                    className="flex-1 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-[15px] font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-md disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none disabled:hover:translate-y-0"
+                  >
+                    <Send className="h-5 w-5" />
+                    {selectedTask.isRemedial
                       ? "Kerjakan Remedial"
                       : selectedTask.isCbtReady
                         ? "Mulai Latihan"
                         : "Belum Siap"}
-                </button>
+                  </button>
+                )}
               </div>
             </div>
           )}
