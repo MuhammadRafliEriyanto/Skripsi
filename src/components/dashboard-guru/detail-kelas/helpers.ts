@@ -146,6 +146,7 @@ export function createInitialTugas(activeClass: ClassDetailData): TugasPertemuan
     jamSelesai: "",
     durasiMenit: 60,
     jumlahSoal: 0,
+    isCbt: false,
     nilaiMinimum: 70,
     jumlahMengumpulkan: assignment.submittedCount,
     statusPenilaian:
@@ -205,6 +206,7 @@ export function createEmptyTugas(
     jamSelesai: defaults.jamSelesai ?? "",
     durasiMenit: defaults.durasiMenit ?? 60,
     jumlahSoal: 0,
+    isCbt: false,
     nilaiMinimum: 70,
     jumlahMengumpulkan: 0,
     statusPenilaian: "Belum Ada Pengumpulan",

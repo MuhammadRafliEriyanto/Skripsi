@@ -906,6 +906,7 @@ function mapTeacherApiTaskToFormItem(
     jamSelesai: endTime,
     durasiMenit: sessionDuration,
     jumlahSoal: Math.max(toSafeNumber(task.questionCount), 0),
+    isCbt: Math.max(toSafeNumber(task.questionCount), 0) > 0,
     nilaiMinimum: Math.min(
       Math.max(toSafeNumber(task.passingGrade) || 70, 1),
       100,
@@ -2980,7 +2981,7 @@ export default function DetailKelasGuruSection({
     }
 
     try {
-      const isCbt = tugasDraft.submissionMode === "cbt";
+      const isCbt = tugasDraft.isCbt;
       const savedTask = await saveTaskRequest(
         tugasDraft,
         tugasMode,

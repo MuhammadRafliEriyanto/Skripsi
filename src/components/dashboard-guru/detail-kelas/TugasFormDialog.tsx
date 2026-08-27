@@ -127,6 +127,22 @@ export default function TugasFormDialog({
 
             <div className="grid gap-4 md:grid-cols-2">
               <label className="grid gap-2 text-sm font-medium text-slate-700">
+                Mode Latihan
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="checkbox"
+                    id="isCbtToggle"
+                    checked={draft?.isCbt ?? false}
+                    onChange={(e) => onChange("isCbt", e.target.checked)}
+                    className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="isCbtToggle" className="text-sm text-slate-600 cursor-pointer">
+                    Gunakan Mode CBT Otomatis (Otomatis generate soal)
+                  </label>
+                </div>
+              </label>
+
+              <label className="grid gap-2 text-sm font-medium text-slate-700">
                 KKM
                 <input
                   type="number"
@@ -147,15 +163,15 @@ export default function TugasFormDialog({
                   min={0}
                   value={draft?.jumlahSoal ?? 0}
                   onChange={(e) => onChange("jumlahSoal", parseInt(e.target.value) || 0)}
-                  readOnly={draft?.submissionMode !== "cbt"}
+                  readOnly={!draft?.isCbt}
                   className={`border border-slate-200 px-3 py-3 text-sm outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100 ${
-                    draft?.submissionMode !== "cbt" ? "bg-slate-50 text-slate-500" : "bg-white text-slate-700"
+                    !draft?.isCbt ? "bg-slate-50 text-slate-500" : "bg-white text-slate-700"
                   }`}
                 />
               </label>
             </div>
 
-            {draft?.submissionMode !== "cbt" && (
+            {!draft?.isCbt && (
               <div className="grid gap-3 border border-slate-200 bg-slate-50/40 p-4 text-sm font-medium text-slate-700">
                 <span>Lampiran</span>
                 <input

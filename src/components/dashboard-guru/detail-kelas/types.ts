@@ -59,6 +59,7 @@ export type TugasPertemuan = {
   jamSelesai: string;
   durasiMenit: number;
   jumlahSoal: number;
+  isCbt: boolean;
   nilaiMinimum: number | null;
   jumlahMengumpulkan: number;
   statusPenilaian: TugasStatusPenilaian;
