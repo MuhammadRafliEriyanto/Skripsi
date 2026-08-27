@@ -146,55 +146,55 @@ export default function TugasFormDialog({
                   type="number"
                   min={0}
                   value={draft?.jumlahSoal ?? 0}
-                  readOnly
-                  className="border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-500 outline-none"
+            {draft?.submissionMode !== "cbt" && (
+              <div className="grid gap-3 border border-slate-200 bg-slate-50/40 p-4 text-sm font-medium text-slate-700">
+                <span>Lampiran</span>
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png,.webp,.txt,.csv"
+                  onChange={(event) =>
+                    onAttachmentChange(event.target.files?.[0] ?? null)
+                  }
+                  className="border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 file:mr-3 file:border-0 file:bg-slate-50 file:px-3 file:py-2 file:font-semibold file:text-slate-700 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
                 />
-              </label>
-            </div>
-
-            <div className="grid gap-3 border border-slate-200 bg-slate-50/40 p-4 text-sm font-medium text-slate-700">
-              <span>Lampiran / Bank Soal CBT</span>
-              <input
-                type="file"
-                accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png,.webp,.txt,.csv"
-                onChange={(event) =>
-                  onAttachmentChange(event.target.files?.[0] ?? null)
-                }
-                className="border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 file:mr-3 file:border-0 file:bg-slate-50 file:px-3 file:py-2 file:font-semibold file:text-slate-700 outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
-              />
-              {selectedAttachmentName ? (
-                <div className="flex flex-col gap-2 text-xs text-slate-500 sm:flex-row sm:flex-wrap sm:items-center">
-                  <span className="break-all">
-                    {isSelectedWorkbook ? "Bank soal baru" : "File baru"}:{" "}
-                    {selectedAttachmentName}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={onClearSelectedAttachment}
-                    className="w-fit font-semibold text-slate-600 hover:underline"
-                  >
-                    Batalkan file baru
-                  </button>
-                </div>
-              ) : existingAttachmentName && !attachmentMarkedForRemoval ? (
-                <div className="flex flex-col gap-2 text-xs text-slate-500 sm:flex-row sm:flex-wrap sm:items-center">
-                  <span className="break-all">Lampiran tersimpan: {existingAttachmentName}</span>
-                  <button
-                    type="button"
-                    onClick={onRemoveExistingAttachment}
-                    className="w-fit font-semibold text-rose-600 hover:underline"
-                  >
-                    Hapus lampiran
-                  </button>
-                </div>
-              ) : attachmentMarkedForRemoval ? (
-                <p className="text-xs text-rose-600">
-                  Lampiran lama akan dihapus saat latihan disimpan.
-                </p>
-              ) : (
-                <p className="text-xs text-slate-400">Opsional, maksimal 10 MB.</p>
-              )}
-            </div>
+                {selectedAttachmentName ? (
+                  <div className="flex flex-col gap-2 text-xs text-slate-500 sm:flex-row sm:flex-wrap sm:items-center">
+                    <span className="break-all">
+                      File baru: {selectedAttachmentName}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={onClearSelectedAttachment}
+                      className="w-fit font-semibold text-slate-600 hover:underline"
+                    >
+                      Batalkan file baru
+                    </button>
+                  </div>
+                ) : existingAttachmentName && !attachmentMarkedForRemoval ? (
+                  <div className="flex flex-col gap-2 text-xs text-slate-500 sm:flex-row sm:flex-wrap sm:items-center">
+                    <span className="break-all">File saat ini: {existingAttachmentName}</span>
+                    <button
+                      type="button"
+                      onClick={onRemoveExistingAttachment}
+                      className="w-fit font-semibold text-slate-600 hover:underline"
+                    >
+                      Hapus file
+                    </button>
+                  </div>
+                ) : existingAttachmentName && attachmentMarkedForRemoval ? (
+                  <div className="flex flex-col gap-2 text-xs text-orange-600 sm:flex-row sm:flex-wrap sm:items-center">
+                    <span>File akan dihapus</span>
+                    <button
+                      type="button"
+                      onClick={onCancelRemoveAttachment}
+                      className="w-fit font-semibold text-orange-700 hover:underline"
+                    >
+                      Batal hapus
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            )}
           </div>
         </div>
 

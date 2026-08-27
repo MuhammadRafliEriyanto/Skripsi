@@ -1884,7 +1884,7 @@ export default function DetailKelasGuruSection({
     return mapTeacherApiTaskToFormItem(payload.data.task, normalizedClassId);
   }
 
-  async function uploadTaskQuestionsRequest(taskId: string, file: File) {
+  async function uploadTaskQuestionsRequest(taskId: string, file: File | null) {
     const normalizedClassId = normalizeText(activeClass.kelasId);
     const normalizedTaskId = normalizeText(taskId);
 
@@ -1894,20 +1894,13 @@ export default function DetailKelasGuruSection({
 
     const response = await fetch(
       buildGuruApiUrl(
-        `/api/teacher/me/classes/${encodeURIComponent(normalizedClassId)}/tasks/${encodeURIComponent(normalizedTaskId)}`,
+        `/api/teacher/me/classes/${encodeURIComponent(normalizedClassId)}/tasks/${encodeURIComponent(normalizedTaskId)}/questions/auto-generate`,
         searchParams,
       ),
       {
         method: "POST",
         credentials: "include",
         cache: "no-store",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          attachmentFileName: file.name,
-          attachmentFileDataBase64: await readFileAsBase64(file),
-        }),
       },
     );
     const payload = (await response.json().catch(() => null)) as
@@ -2987,20 +2980,18 @@ export default function DetailKelasGuruSection({
     }
 
     try {
-      const questionWorkbook = isTaskQuestionWorkbook(tugasAttachmentFile)
-        ? tugasAttachmentFile
-        : null;
+      const isCbt = tugasDraft.submissionMode === "cbt";
       const savedTask = await saveTaskRequest(
         tugasDraft,
         tugasMode,
-        questionWorkbook ? null : tugasAttachmentFile,
+        isCbt ? null : tugasAttachmentFile,
       );
-      const taskWithQuestions = questionWorkbook
+      const taskWithQuestions = isCbt
         ? {
             ...savedTask,
             jumlahSoal: await uploadTaskQuestionsRequest(
               savedTask.id,
-              questionWorkbook,
+              null,
             ),
           }
         : savedTask;

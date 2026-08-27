@@ -36,7 +36,7 @@ import {
 } from "../controllers/teacherTaskSubmissionController";
 import {
   getTeacherClassTaskQuestions,
-  uploadTeacherClassTaskQuestionsFromXlsx,
+  generateTeacherClassTaskQuestionsAuto,
 } from "../controllers/teacherTaskCbtController";
 import {
   getMyTeacherClasses,
@@ -92,8 +92,8 @@ router.get(
   getTeacherClassTaskQuestions,
 );
 router.post(
-  "/me/classes/:classId/tasks/:taskId/questions/xlsx",
-  uploadTeacherClassTaskQuestionsFromXlsx,
+  "/me/classes/:classId/tasks/:taskId/questions/auto-generate",
+  generateTeacherClassTaskQuestionsAuto,
 );
 router.patch("/me/classes/:classId/settings", updateTeacherClassSetting);
 router.get(

@@ -15,7 +15,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
 
   return proxyProtectedBackend(
     request,
-    `/api/teacher/me/classes/${encodeURIComponent(classId)}/tasks/${encodeURIComponent(taskId)}/questions/xlsx`,
+    `/api/teacher/me/classes/${encodeURIComponent(classId)}/tasks/${encodeURIComponent(taskId)}/questions/auto-generate`,
     {
       method: "POST",
       body,

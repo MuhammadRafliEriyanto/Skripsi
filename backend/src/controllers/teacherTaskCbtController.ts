@@ -37,7 +37,7 @@ function buildTeacherTaskLookupFilter(
   };
 }
 
-export const uploadTeacherClassTaskQuestionsFromXlsx = asyncHandler(
+export const generateTeacherClassTaskQuestionsAuto = asyncHandler(
   async (
     req: Request<{ classId: string; taskId: string }>,
     res: Response,
@@ -98,24 +98,25 @@ export const uploadTeacherClassTaskQuestionsFromXlsx = asyncHandler(
     ) {
       throw new AppError(
         400,
-        "Tidak bisa mengunggah soal: Latihan ini sudah mulai dikerjakan oleh siswa.",
+        "Tidak bisa men-generate soal: Latihan ini sudah mulai dikerjakan oleh siswa.",
       );
     }
 
-    const upload =
-      (req.body as any).attachmentFileDataBase64 ||
-      (req.body as any).base64Data ||
-      (req.body as any).fileDataBase64;
+    // Auto-generate 30 questions from QuestionBank
+    const QuestionBank = (await import("../models/QuestionBank")).QuestionBank;
     
-    if (!upload) {
-       throw new AppError(400, "File XLSX tidak ditemukan dalam payload.");
-    }
-    
-    const buffer = Buffer.from(upload.split(",").pop() || upload, "base64");
-    const parsedUpload = parseTryoutXlsxBuffer(buffer);
-    const parsedQuestions = parsedUpload.questions;
+    // Find questions matching the subject
+    // We can also match program based on class name if needed, but for now we match subject.
+    // To make it more robust, we match Subject exactly.
+    const availableQuestions = await QuestionBank.aggregate([
+      { $match: { subject: task.subject } },
+      { $sample: { size: 30 } }
+    ]);
 
-    // Save to database
+    if (!availableQuestions || availableQuestions.length === 0) {
+      throw new AppError(404, `Belum ada bank soal tersedia untuk mata pelajaran: ${task.subject}`);
+    }
+
     const session = await ClassTaskQuestion.startSession();
     session.startTransaction();
 
@@ -125,7 +126,7 @@ export const uploadTeacherClassTaskQuestionsFromXlsx = asyncHandler(
         { session },
       );
 
-      const newQuestions = parsedQuestions.map((q, index) => ({
+      const newQuestions = availableQuestions.map((q, index) => ({
         questionId: `ctq-${new Types.ObjectId().toString()}`,
         teacherId: teacher._id,
         taskId: task.taskId,
@@ -151,7 +152,7 @@ export const uploadTeacherClassTaskQuestionsFromXlsx = asyncHandler(
 
       sendSuccess(res, {
         statusCode: 200,
-        message: "Soal Latihan berhasil diunggah dan disimpan.",
+        message: "30 Soal Latihan CBT berhasil di-generate secara otomatis.",
         data: {
           questionCount: newQuestions.length,
         } as any,
