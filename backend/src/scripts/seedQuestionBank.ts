@@ -19,7 +19,7 @@ async function main() {
   await mongoose.connect(mongoUri);
   console.log("Berhasil terhubung ke MongoDB.");
 
-  const inputPath = path.resolve(__dirname, "../../../outputs/assessment-bank-rekap/rekap-bank-soal-bimbel-bina-cendekia-ber-sumber-V2.xlsx");
+  const inputPath = path.resolve(__dirname, "../../../outputs/assessment-bank-rekap/rekap-bank-soal-bimbel-bina-cendekia-ber-sumber-V3.xlsx");
   if (!fs.existsSync(inputPath)) {
     throw new Error(`File tidak ditemukan: ${inputPath}`);
   }
@@ -39,7 +39,7 @@ async function main() {
 
   for (let i = 0; i < data.length; i += BATCH_SIZE) {
     const batch = data.slice(i, i + BATCH_SIZE).map((row) => ({
-      questionId: `QB-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
+      questionId: `QB-${crypto.randomUUID().split("-")[0]}-${crypto.randomUUID().split("-")[1]}`,
       program: row["Program/Kelas"],
       subject: row["Mata Pelajaran"],
       topic: row["Topik/Materi"],

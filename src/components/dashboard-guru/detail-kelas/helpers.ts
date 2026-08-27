@@ -205,14 +205,13 @@ export function createEmptyTugas(
     jamMulai: defaults.jamMulai ?? "",
     jamSelesai: defaults.jamSelesai ?? "",
     durasiMenit: defaults.durasiMenit ?? 60,
-    jumlahSoal: 0,
-    isCbt: false,
+    jumlahSoal: 30,
+    isCbt: true,
     nilaiMinimum: 70,
     jumlahMengumpulkan: 0,
     statusPenilaian: "Belum Ada Pengumpulan",
   };
 }
-
 export function createEmptyNilai(studentId: string): NilaiSiswa {
   return {
     studentId,

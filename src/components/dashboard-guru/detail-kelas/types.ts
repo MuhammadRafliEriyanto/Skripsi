@@ -193,10 +193,11 @@ export type MateriFormDialogProps = {
 export type TugasFormDialogProps = {
   draft: TugasPertemuan | null;
   mode: DialogMode;
-  onChange: (field: keyof TugasPertemuan, value: string | number) => void;
+  onChange: (field: keyof TugasPertemuan, value: string | number | boolean) => void;
   onAttachmentChange: (file: File | null) => void;
   onClearSelectedAttachment: () => void;
   onRemoveExistingAttachment: () => void;
+  onCancelRemoveAttachment?: () => void;
   onOpenChange: (open: boolean) => void;
   onSubmit: () => void;
   open: boolean;

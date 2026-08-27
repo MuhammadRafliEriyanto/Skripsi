@@ -136,49 +136,15 @@ export const generateTeacherClassTaskQuestionsAuto = asyncHandler(
       availableQuestions.splice(targetCount); // ensure we don't exceed targetCount
     }
 
-    const session = await ClassTaskQuestion.startSession();
-    session.startTransaction();
-
     try {
-      await ClassTaskQuestion.deleteMany(
-        { taskId: task.taskId, teacherId: teacher._id },
-        { session },
-      );
+      task.questionCount = targetCount;
+      await task.save();
 
-      const newQuestions = availableQuestions.map((q, index) => ({
-        questionId: `ctq-${new Types.ObjectId().toString()}`,
-        teacherId: teacher._id,
-        taskId: task.taskId,
-        questionText: q.questionText,
-        optionA: q.optionA,
-        optionB: q.optionB,
-        optionC: q.optionC,
-        optionD: q.optionD,
-        correctAnswer: q.correctAnswer,
-        explanation: q.explanation,
-        topic: q.topic,
-        difficulty: q.difficulty,
-        order: index + 1,
-      }));
-
-      await ClassTaskQuestion.insertMany(newQuestions, { session });
-
-      task.questionCount = newQuestions.length;
-      await task.save({ session });
-
-      await session.commitTransaction();
-      session.endSession();
-
-      sendSuccess(res, {
-        statusCode: 200,
-        message: `${newQuestions.length} Soal Latihan CBT berhasil di-generate secara otomatis berdasarkan topik P${task.meetingNumber}.`,
-        data: {
-          questionCount: newQuestions.length,
-        } as any,
+      res.status(200).json({
+        success: true,
+        message: `${targetCount} soal CBT siap ditarik secara acak untuk masing-masing siswa.`,
       });
     } catch (error) {
-      await session.abortTransaction();
-      session.endSession();
       throw error;
     }
   },
@@ -201,31 +167,60 @@ export const getTeacherClassTaskQuestions = asyncHandler(
       return;
     }
 
+    const classIdParam = normalizeText(req.params.classId);
     const taskIdParam = normalizeText(req.params.taskId);
+    const period = resolveAcademicPeriodFromQuery(req.query);
+
+    const task = await ClassTask.findOne(
+      buildTeacherTaskLookupFilter(taskIdParam, classIdParam, teacher._id, period),
+    );
+
+    if (!task) {
+      next(new AppError(404, "Latihan tidak ditemukan."));
+      return;
+    }
     
-    const questions = await ClassTaskQuestion.find({
-      taskId: taskIdParam,
-      teacherId: teacher._id,
-    }).sort({ order: 1 });
+    const targetCount = task.questionCount && task.questionCount > 0 ? task.questionCount : 30;
+    
+    // Preview questions by pulling random sample
+    const QuestionBank = (await import("../models/QuestionBank")).QuestionBank;
+    const topicPattern = new RegExp(`Bab ${task.meetingNumber}:`, "i");
+
+    let availableQuestions = await QuestionBank.aggregate([
+      { 
+        $match: { 
+          subject: task.subject,
+          topic: { $regex: topicPattern }
+        } 
+      },
+      { $sample: { size: targetCount } }
+    ]);
+
+    if (!availableQuestions || availableQuestions.length === 0) {
+      availableQuestions = await QuestionBank.aggregate([
+        { $match: { subject: task.subject } },
+        { $sample: { size: targetCount } }
+      ]);
+    }
+
+    const previewQuestions = availableQuestions.map((q, index) => ({
+      questionId: q.questionId || q._id.toString(),
+      questionText: q.questionText,
+      optionA: q.optionA,
+      optionB: q.optionB,
+      optionC: q.optionC,
+      optionD: q.optionD,
+      correctAnswer: q.correctAnswer,
+      explanation: q.explanation,
+      topic: q.topic,
+      difficulty: q.difficulty,
+      order: index + 1,
+    }));
 
     sendSuccess(res, {
       statusCode: 200,
-      message: "Soal Latihan berhasil diambil.",
-      data: {
-      questions: questions.map((q) => ({
-        id: q.questionId,
-        questionText: q.questionText,
-        optionA: q.optionA,
-        optionB: q.optionB,
-        optionC: q.optionC,
-        optionD: q.optionD,
-        correctAnswer: q.correctAnswer,
-        explanation: q.explanation,
-        topic: q.topic,
-        difficulty: q.difficulty,
-        order: q.order,
-      })),
-    } as any,
+      message: "Preview soal berhasil diambil.",
+      data: previewQuestions as any,
     });
   }
 );

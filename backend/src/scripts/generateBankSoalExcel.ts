@@ -25,20 +25,9 @@ const PROGRAMS = [
   },
 ];
 
-const TOPICS = [
-  "Bab 1: Konsep Dasar",
-  "Bab 2: Pendalaman Materi",
-  "Bab 3: Analisis Lanjut",
-  "Bab 4: Evaluasi Menengah",
-  "Bab 5: Pengayaan",
-  "Bab 6: Pemecahan Masalah",
-  "Bab 7: Studi Kasus Lanjutan",
-  "Bab 8: Review Menyeluruh",
-  "Bab 9: Persiapan Ujian Akhir",
-  "Bab 10: Kapita Selekta",
-];
+const TOPICS = Array.from({ length: 24 }, (_, i) => `Bab ${i + 1}: Topik Pembahasan ${i + 1}`);
 
-const QUESTIONS_PER_TOPIC = 50; // 10 topics * 50 questions = 500 questions per subject per program
+const QUESTIONS_PER_TOPIC = 150; // 24 topics * 150 questions = 3600 questions per subject per program
 const OPTIONS = ["A", "B", "C", "D"];
 
 async function main() {
@@ -98,7 +87,7 @@ async function main() {
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  const outputPath = path.join(outputDir, "rekap-bank-soal-bimbel-bina-cendekia-ber-sumber-V2.xlsx");
+  const outputPath = path.join(outputDir, "rekap-bank-soal-bimbel-bina-cendekia-ber-sumber-V3.xlsx");
   xlsx.writeFile(wb, outputPath);
   
   console.log(`File Excel berhasil disimpan di: ${outputPath}`);

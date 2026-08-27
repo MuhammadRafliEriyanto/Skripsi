@@ -22,6 +22,7 @@ export default function TugasFormDialog({
   onClearSelectedAttachment,
   onOpenChange,
   onRemoveExistingAttachment,
+  onCancelRemoveAttachment,
   onSubmit,
   open,
   selectedAttachmentName,

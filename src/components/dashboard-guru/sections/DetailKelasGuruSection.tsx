@@ -2838,12 +2838,16 @@ export default function DetailKelasGuruSection({
 
   function handleTugasDraftChange(
     field: keyof TugasPertemuan,
-    value: string | number,
+    value: string | number | boolean,
   ) {
     setTugasDraft((current) =>
       current
         ? (() => {
             const nextValue = (() => {
+              if (typeof value === "boolean") {
+                return value;
+              }
+
               if (
                 field === "pertemuanKe" ||
                 field === "jumlahMengumpulkan" ||
@@ -3595,6 +3599,7 @@ export default function DetailKelasGuruSection({
         onClearSelectedAttachment={handleClearSelectedTugasAttachment}
         onOpenChange={handleTugasDialogOpenChange}
         onRemoveExistingAttachment={handleRemoveExistingTugasAttachment}
+        onCancelRemoveAttachment={() => setTugasAttachmentMarkedForRemoval(false)}
         onSubmit={handleSaveTugas}
         open={isTugasDialogOpen}
         selectedAttachmentName={tugasAttachmentFile?.name}

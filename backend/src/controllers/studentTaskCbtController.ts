@@ -192,33 +192,71 @@ function findAttemptAnswer(
   );
 }
 
+import { getSeededOptionMapping } from "../utils/shuffle";
+
 function toPublicTaskCbtQuestion(
-  question: ClassTaskQuestionDocument,
+  question: any,
   attempt: StudentTaskAttemptDocument,
+  index: number
 ) {
   const questionId = normalizeText(question.questionId);
   const answer = findAttemptAnswer(attempt, questionId);
   const includeCorrectAnswer = attempt.status === "submitted";
 
+  // Shuffle options based on studentId and questionId
+  const optionMapping = getSeededOptionMapping(attempt.studentId, questionId);
+  
+  // originalOptions maps "A", "B", "C", "D" to their respective contents
+  const originalOptions: Record<string, string> = {
+    A: normalizeText(question.optionA),
+    B: normalizeText(question.optionB),
+    C: normalizeText(question.optionC),
+    D: normalizeText(question.optionD),
+  };
+
+  // mappedOptions is the shuffled array presented to the student
+  const mappedOptions = optionMapping.map((originalLetter, i) => {
+    const newLetter = String.fromCharCode(65 + i); // 0 -> A, 1 -> B, etc.
+    return {
+      id: newLetter,
+      content: originalOptions[originalLetter],
+      originalId: originalLetter // we keep this internally to map back if needed
+    };
+  });
+
+  let selectedOptionId = null;
+  if (answer?.selectedAnswer) {
+    // Student's selectedAnswer in DB is the ORIGINAL letter (we map it back during submit).
+    // So we must map it FORWARD to the new letter to show them what they clicked.
+    const newLetterIndex = optionMapping.indexOf(answer.selectedAnswer);
+    if (newLetterIndex !== -1) {
+      selectedOptionId = String.fromCharCode(65 + newLetterIndex);
+    }
+  }
+
+  let correctOptionId = null;
+  if (includeCorrectAnswer && question.correctAnswer) {
+    // Map the original correct answer to the new letter
+    const newLetterIndex = optionMapping.indexOf(question.correctAnswer);
+    if (newLetterIndex !== -1) {
+      correctOptionId = String.fromCharCode(65 + newLetterIndex);
+    }
+  }
+
   return {
     id: questionId,
     questionId,
-    order: question.order,
-    number: question.order,
+    order: index + 1,
+    number: index + 1,
     section: "Latihan Soal",
-    topic: normalizeText(question.topic) || `Soal ${question.order}`,
+    topic: normalizeText(question.topic) || `Soal ${index + 1}`,
     prompt: normalizeText(question.questionText),
-    options: [
-      { id: "A", content: normalizeText(question.optionA) },
-      { id: "B", content: normalizeText(question.optionB) },
-      { id: "C", content: normalizeText(question.optionC) },
-      { id: "D", content: normalizeText(question.optionD) },
-    ],
+    options: mappedOptions.map(o => ({ id: o.id, content: o.content })),
     difficulty: normalizeText(question.difficulty) || "Sedang",
     clue: "",
-    selectedOptionId: normalizeText(answer?.selectedAnswer) || null,
+    selectedOptionId,
     isCorrect: includeCorrectAnswer ? answer?.isCorrect ?? null : null,
-    correctOptionId: includeCorrectAnswer ? question.correctAnswer : null,
+    correctOptionId,
     explanation: includeCorrectAnswer
       ? normalizeText(question.explanation) ||
         "Pembahasan singkat bisa dilanjutkan bersama guru setelah latihan."
@@ -228,12 +266,12 @@ function toPublicTaskCbtQuestion(
 
 function buildTaskCbtResponsePayload(
   task: ClassTaskDocument,
-  questions: ClassTaskQuestionDocument[],
+  questions: any[],
   attempt: StudentTaskAttemptDocument,
 ) {
   const publicAttempt = toPublicTaskCbtAttempt(task, attempt);
-  const publicQuestions = questions.map((question) =>
-    toPublicTaskCbtQuestion(question, attempt),
+  const publicQuestions = questions.map((question, index) =>
+    toPublicTaskCbtQuestion(question, attempt, index),
   );
   const result =
     attempt.status === "submitted"
@@ -320,12 +358,9 @@ export const startStudentClassTaskCbt = asyncHandler(
       return;
     }
 
-    const questionCount = await ClassTaskQuestion.countDocuments({
-      taskId: task.taskId,
-      teacherId: task.teacherId,
-    });
+    const targetCount = task.questionCount && task.questionCount > 0 ? task.questionCount : 30;
 
-    if (questionCount <= 0 || !task.durationMinutes) {
+    if (targetCount <= 0 || !task.durationMinutes) {
        next(new AppError(400, "Latihan ini belum memiliki soal CBT atau durasi yang valid."));
        return;
     }
@@ -347,6 +382,26 @@ export const startStudentClassTaskCbt = asyncHandler(
     });
 
     if (!attempt) {
+      const QuestionBank = (await import("../models/QuestionBank")).QuestionBank;
+      const topicPattern = new RegExp(`Bab ${task.meetingNumber}:`, "i");
+      
+      let sampledQuestions = await QuestionBank.aggregate([
+        { 
+          $match: { 
+            subject: task.subject,
+            topic: { $regex: topicPattern }
+          } 
+        },
+        { $sample: { size: targetCount } }
+      ]);
+      
+      if (!sampledQuestions || sampledQuestions.length === 0) {
+        sampledQuestions = await QuestionBank.aggregate([
+          { $match: { subject: task.subject } },
+          { $sample: { size: targetCount } }
+        ]);
+      }
+
       const attemptId = await getNextPublicId(StudentTaskAttempt as any, "attemptId", "attempt");
       attempt = new StudentTaskAttempt({
         attemptId,
@@ -358,6 +413,11 @@ export const startStudentClassTaskCbt = asyncHandler(
         subscriptionId,
         startedAt: now,
         status: "in_progress",
+        answers: sampledQuestions.map(q => ({
+          questionId: q.questionId || q._id.toString(),
+          selectedAnswer: "",
+          isCorrect: null,
+        })),
       });
 
       await attempt.save();
@@ -377,6 +437,26 @@ export const startStudentClassTaskCbt = asyncHandler(
         `Nilai sebelumnya belum mencapai KKM ${getTaskPassingGrade(task) ?? "-"}.`;
 
       archiveAttemptForRemedial(attempt, remedialReason, now);
+      
+      // Re-sample questions for remedial
+      const QuestionBank = (await import("../models/QuestionBank")).QuestionBank;
+      const topicPattern = new RegExp(`Bab ${task.meetingNumber}:`, "i");
+      let sampledQuestions = await QuestionBank.aggregate([
+        { $match: { subject: task.subject, topic: { $regex: topicPattern } } },
+        { $sample: { size: targetCount } }
+      ]);
+      if (!sampledQuestions || sampledQuestions.length === 0) {
+        sampledQuestions = await QuestionBank.aggregate([
+          { $match: { subject: task.subject } },
+          { $sample: { size: targetCount } }
+        ]);
+      }
+      attempt.answers = sampledQuestions.map(q => ({
+        questionId: q.questionId || q._id.toString(),
+        selectedAnswer: "",
+        isCorrect: null,
+      }));
+
       if (!attempt.subscriptionId && subscriptionId) {
         attempt.subscriptionId = subscriptionId;
       }
@@ -433,10 +513,18 @@ export const getStudentClassTaskCbtSession = asyncHandler(
       return;
     }
 
-    const questions = await ClassTaskQuestion.find({
-      taskId: task.taskId,
-      teacherId: task.teacherId,
-    }).sort({ order: 1 });
+    const QuestionBank = (await import("../models/QuestionBank")).QuestionBank;
+    const questionIds = attempt.answers.map(a => a.questionId);
+    
+    // Fetch all questions required by this attempt
+    const fetchedQuestions = await QuestionBank.find({
+      questionId: { $in: questionIds }
+    });
+
+    // We must return them in the exact order they were sampled (stored in attempt.answers)
+    const questions = questionIds.map(id => 
+      fetchedQuestions.find(q => q.questionId === id)
+    ).filter((q) => q !== undefined) as any[]; // Filter out any undefined just in case
 
     sendSuccess(res, {
       statusCode: 200,
@@ -491,10 +579,18 @@ export const submitStudentClassTaskCbt = asyncHandler(
       return;
     }
 
-    const questions = await ClassTaskQuestion.find({
-      taskId: task.taskId,
-      teacherId: task.teacherId,
-    }).sort({ order: 1 });
+    const QuestionBank = (await import("../models/QuestionBank")).QuestionBank;
+    const questionIds = attempt.answers.map(a => a.questionId);
+    
+    // Fetch all questions required by this attempt
+    const fetchedQuestions = await QuestionBank.find({
+      questionId: { $in: questionIds }
+    });
+
+    // Order them exactly as sampled
+    const questions = questionIds.map(id => 
+      fetchedQuestions.find(q => q.questionId === id)
+    ).filter((q) => q !== undefined) as any[]; // Filter out any undefined just in case
 
     const payloadAnswers = req.body.answers || [];
     let correctCount = 0;
@@ -504,13 +600,20 @@ export const submitStudentClassTaskCbt = asyncHandler(
     const validatedAnswers: IStudentTaskAttemptAnswer[] = questions.map((q) => {
       const submitted = payloadAnswers.find((a) => a.questionId === q.questionId);
       const selectedAnswerInput = normalizeText(submitted?.selectedAnswer).toUpperCase();
-      const selectedAnswer = ["A", "B", "C", "D"].includes(selectedAnswerInput)
-        ? selectedAnswerInput
-        : "";
+      
+      // Map the shuffled letter back to the original letter
+      // selectedAnswerInput is the letter the student saw on their screen (A, B, C, D)
+      let originalSelectedAnswer = "";
+      if (["A", "B", "C", "D"].includes(selectedAnswerInput)) {
+        const optionMapping = getSeededOptionMapping(attempt.studentId, q.questionId);
+        const clickedIndex = selectedAnswerInput.charCodeAt(0) - 65; // A=0, B=1, etc.
+        originalSelectedAnswer = optionMapping[clickedIndex];
+      }
+
       let isCorrect = null;
 
-      if (selectedAnswer) {
-        if (selectedAnswer === q.correctAnswer) {
+      if (originalSelectedAnswer) {
+        if (originalSelectedAnswer === q.correctAnswer) {
           isCorrect = true;
           correctCount++;
         } else {
@@ -523,7 +626,7 @@ export const submitStudentClassTaskCbt = asyncHandler(
 
       return {
         questionId: q.questionId,
-        selectedAnswer: selectedAnswer as any,
+        selectedAnswer: originalSelectedAnswer as any,
         isCorrect,
       };
     });
