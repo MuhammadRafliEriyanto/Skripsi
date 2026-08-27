@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import TryoutGuruSection from "@/components/dashboard-guru/sections/TryoutGuruSection";
 
 export const metadata: Metadata = {
-  title: "Manajemen Ujian Guru",
+  title: "Hasil Ujian Pusat",
   description:
-    "Halaman guru untuk mengelola UTS, UAS, dan Tryout beserta soal dan hasil siswa.",
+    "Halaman guru untuk memantau hasil UTS, UAS, dan Tryout yang dikelola oleh pusat.",
 };
 
 export default function DashboardGuruUjianPage() {

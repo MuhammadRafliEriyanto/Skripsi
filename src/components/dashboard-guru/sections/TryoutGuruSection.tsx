@@ -1344,40 +1344,9 @@ function TryoutActionControls({
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-[13rem]">
-          <DropdownMenuItem disabled={isAcademicArchive} onSelect={onEdit}>
-            <Pencil className="h-4 w-4" />
-            Edit Ujian
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={onManageQuestions}>
-            <UploadCloud className="h-4 w-4" />
-            {isPublished ? "Lihat Soal" : "Kelola Soal"}
-          </DropdownMenuItem>
           <DropdownMenuItem onSelect={onViewResults}>
             <BarChart3 className="h-4 w-4" />
             Lihat Hasil
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            disabled={
-              isAcademicArchive ||
-              (!isPublished && !isReadyToPublish)
-            }
-            onSelect={onTogglePublish}
-          >
-            {isPublished ? (
-              <EyeOff className="h-4 w-4" />
-            ) : (
-              <Eye className="h-4 w-4" />
-            )}
-            {isPublished ? "Tarik Publikasi" : "Terbitkan"}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            disabled={isAcademicArchive || isPublished}
-            onSelect={onDelete}
-            className="text-rose-700 focus:text-rose-700 data-[highlighted]:text-rose-700"
-          >
-            <Trash2 className="h-4 w-4" />
-            Hapus Ujian
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -3675,30 +3644,16 @@ export default function TryoutGuruSection() {
 
           <section className="overflow-hidden rounded-[24px] border border-orange-100 bg-white shadow-[0_24px_52px_-40px_rgba(15,23,42,0.28)]">
             <div className="flex flex-col gap-4 border-b border-orange-100 bg-gradient-to-r from-orange-50/70 via-white to-amber-50/50 px-5 py-4 md:flex-row md:items-center md:justify-between md:px-6">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-800">
-                  Daftar Ujian
-                </h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  Pantau UTS/UAS dan Tryout aktif, progress soal, dan jadwal
-                  terbit sesuai kelas yang diajar guru.
-                </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-800">
+                    Daftar Ujian & Hasil Pusat
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Pantau UTS/UAS dan Tryout aktif beserta nilai siswa di kelas Anda. (Dikelola oleh Pusat)
+                  </p>
+                </div>
               </div>
-
-              <button
-                type="button"
-                onClick={openAddDialog}
-                disabled={isAcademicArchive}
-                title={isAcademicArchive ? archiveMessage : "Tambah Ujian"}
-                className={`inline-flex items-center justify-center gap-2 border px-4 py-2 text-sm font-semibold transition ${
-                  isAcademicArchive
-                    ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
-                    : "border-orange-500 bg-orange-500 text-white hover:bg-orange-600"
-                }`}
-              >
-                <Plus className="h-4 w-4" />
-                Tambah Ujian
-              </button>
             </div>
 
             <div className="px-5 py-5 md:px-6">
