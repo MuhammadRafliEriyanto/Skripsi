@@ -146,6 +146,15 @@ export default function TugasFormDialog({
                   type="number"
                   min={0}
                   value={draft?.jumlahSoal ?? 0}
+                  onChange={(e) => onChange("jumlahSoal", parseInt(e.target.value) || 0)}
+                  readOnly={draft?.submissionMode !== "cbt"}
+                  className={`border border-slate-200 px-3 py-3 text-sm outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100 ${
+                    draft?.submissionMode !== "cbt" ? "bg-slate-50 text-slate-500" : "bg-white text-slate-700"
+                  }`}
+                />
+              </label>
+            </div>
+
             {draft?.submissionMode !== "cbt" && (
               <div className="grid gap-3 border border-slate-200 bg-slate-50/40 p-4 text-sm font-medium text-slate-700">
                 <span>Lampiran</span>

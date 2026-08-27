@@ -102,19 +102,38 @@ export const generateTeacherClassTaskQuestionsAuto = asyncHandler(
       );
     }
 
-    // Auto-generate 30 questions from QuestionBank
+    // Auto-generate questions from QuestionBank
     const QuestionBank = (await import("../models/QuestionBank")).QuestionBank;
     
-    // Find questions matching the subject
-    // We can also match program based on class name if needed, but for now we match subject.
-    // To make it more robust, we match Subject exactly.
+    // Default to 30 if somehow not specified
+    const targetCount = task.questionCount && task.questionCount > 0 ? task.questionCount : 30;
+    
+    // Match by subject and topic (mapping meetingNumber to Bab)
+    const topicPattern = new RegExp(`Bab ${task.meetingNumber}:`, "i");
+
     const availableQuestions = await QuestionBank.aggregate([
-      { $match: { subject: task.subject } },
-      { $sample: { size: 30 } }
+      { 
+        $match: { 
+          subject: task.subject,
+          topic: { $regex: topicPattern }
+        } 
+      },
+      { $sample: { size: targetCount } }
     ]);
 
     if (!availableQuestions || availableQuestions.length === 0) {
-      throw new AppError(404, `Belum ada bank soal tersedia untuk mata pelajaran: ${task.subject}`);
+      // Fallback: if no questions found for this specific chapter, just pick by subject
+      const fallbackQuestions = await QuestionBank.aggregate([
+        { $match: { subject: task.subject } },
+        { $sample: { size: targetCount } }
+      ]);
+      
+      if (!fallbackQuestions || fallbackQuestions.length === 0) {
+        throw new AppError(404, `Belum ada bank soal tersedia untuk mata pelajaran: ${task.subject}`);
+      }
+      
+      availableQuestions.push(...fallbackQuestions);
+      availableQuestions.splice(targetCount); // ensure we don't exceed targetCount
     }
 
     const session = await ClassTaskQuestion.startSession();
@@ -152,7 +171,7 @@ export const generateTeacherClassTaskQuestionsAuto = asyncHandler(
 
       sendSuccess(res, {
         statusCode: 200,
-        message: "30 Soal Latihan CBT berhasil di-generate secara otomatis.",
+        message: `${newQuestions.length} Soal Latihan CBT berhasil di-generate secara otomatis berdasarkan topik P${task.meetingNumber}.`,
         data: {
           questionCount: newQuestions.length,
         } as any,
