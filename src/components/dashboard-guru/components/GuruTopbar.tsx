@@ -44,7 +44,6 @@ import {
 
 const menus = [
   { name: "Beranda", path: "/dashboard-guru", exact: true },
-  { name: "Ujian", path: "/dashboard-guru/ujian", exact: false },
 ] as const;
 
 type GuruTopbarProfile = {
