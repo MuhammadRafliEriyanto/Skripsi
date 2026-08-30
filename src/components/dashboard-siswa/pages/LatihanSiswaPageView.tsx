@@ -14,7 +14,7 @@ import {
   Globe,
   FileText,
   Clock,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react";
 
 import { useStudentLearningData } from "../data/useStudentLearningData";
@@ -70,19 +70,28 @@ function getTaskStatusClass(
 
 function getSubjectStyle(subject: string) {
   const lower = subject.toLowerCase();
-  if (lower.includes('ipa') || lower.includes('sains') || lower.includes('biologi') || lower.includes('fisika')) {
-    return { bg: 'bg-orange-50', text: 'text-orange-500', icon: FlaskConical };
+  if (
+    lower.includes("ipa") ||
+    lower.includes("sains") ||
+    lower.includes("biologi") ||
+    lower.includes("fisika")
+  ) {
+    return { bg: "bg-orange-50", text: "text-orange-500", icon: FlaskConical };
   }
-  if (lower.includes('bahasa') || lower.includes('english')) {
-    return { bg: 'bg-purple-50', text: 'text-purple-500', icon: BookOpen };
+  if (lower.includes("bahasa") || lower.includes("english")) {
+    return { bg: "bg-purple-50", text: "text-purple-500", icon: BookOpen };
   }
-  if (lower.includes('matematika') || lower.includes('math')) {
-    return { bg: 'bg-blue-50', text: 'text-blue-500', icon: Calculator };
+  if (lower.includes("matematika") || lower.includes("math")) {
+    return { bg: "bg-blue-50", text: "text-blue-500", icon: Calculator };
   }
-  if (lower.includes('ips') || lower.includes('sejarah') || lower.includes('geografi')) {
-    return { bg: 'bg-emerald-50', text: 'text-emerald-500', icon: Globe };
+  if (
+    lower.includes("ips") ||
+    lower.includes("sejarah") ||
+    lower.includes("geografi")
+  ) {
+    return { bg: "bg-emerald-50", text: "text-emerald-500", icon: Globe };
   }
-  return { bg: 'bg-slate-50', text: 'text-slate-500', icon: FileText };
+  return { bg: "bg-slate-50", text: "text-slate-500", icon: FileText };
 }
 
 function LatihanSiswaPageContent() {
@@ -92,8 +101,7 @@ function LatihanSiswaPageContent() {
     useStudentLearningData();
   const isUtbkStudent = isUtbkStudentProfile(student);
   const pendingTasks = tasks.filter((task) => task.status !== "Sudah Dinilai");
-  const academicAccessMessage =
-    getStudentAcademicAccessMessage(academicAccess);
+  const academicAccessMessage = getStudentAcademicAccessMessage(academicAccess);
 
   const [selectedTaskId, setSelectedTaskId] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -106,7 +114,10 @@ function LatihanSiswaPageContent() {
     setIsDialogOpen(true);
   };
 
-  const handleStartLatihanCbt = async (taskId: string, e?: React.MouseEvent) => {
+  const handleStartLatihanCbt = async (
+    taskId: string,
+    e?: React.MouseEvent,
+  ) => {
     e?.preventDefault();
     e?.stopPropagation();
 
@@ -220,7 +231,8 @@ function LatihanSiswaPageContent() {
                 </h3>
               </div>
               <p className="hidden md:block text-sm font-medium text-slate-500">
-                Mulai latihan sesuai pertemuan, hasilnya langsung memperbarui progres belajar.
+                Mulai latihan sesuai pertemuan, hasilnya langsung memperbarui
+                progres belajar.
               </p>
             </div>
 
@@ -237,7 +249,9 @@ function LatihanSiswaPageContent() {
                     className="group cursor-pointer flex flex-col gap-4 rounded-[20px] border border-slate-200 bg-white p-5 transition-all md:flex-row md:items-center md:justify-between hover:border-orange-300 hover:shadow-sm"
                   >
                     <div className="flex flex-1 items-start gap-5">
-                      <div className={`flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-full ${subjectBg} ${subjectText}`}>
+                      <div
+                        className={`flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-full ${subjectBg} ${subjectText}`}
+                      >
                         <SubjectIcon className="h-8 w-8" />
                       </div>
 
@@ -264,9 +278,11 @@ function LatihanSiswaPageContent() {
                         <p className="mt-1 text-sm font-medium leading-relaxed text-slate-500 line-clamp-2 pr-4">
                           {task.deskripsi}
                         </p>
-                        
+
                         <p className="mt-2 text-xs font-medium text-slate-400">
-                          Batas {task.deadline} | Estimasi {task.estimasi} | {task.poin}
+                          {task.questionCount || 30} soal CBT | Batas{" "}
+                          {task.deadline} | Estimasi {task.estimasi} |{" "}
+                          {task.poin}
                         </p>
                         <p className="mt-1 text-xs font-semibold text-slate-500">
                           Jadwal pengerjaan: {task.jadwalPengerjaan}
@@ -274,7 +290,10 @@ function LatihanSiswaPageContent() {
 
                         {task.mySubmission?.submittedAt ? (
                           <p className="mt-1.5 text-[11px] font-semibold text-sky-600">
-                            Selesai dikerjakan pada {formatSubmissionTime(task.mySubmission.submittedAt)}
+                            Selesai dikerjakan pada{" "}
+                            {formatSubmissionTime(
+                              task.mySubmission.submittedAt,
+                            )}
                           </p>
                         ) : null}
 
@@ -299,7 +318,8 @@ function LatihanSiswaPageContent() {
                                 Nilai {task.myGrade.score ?? "-"}
                               </span>
                               <span className="font-semibold text-emerald-600">
-                                Hasil tersimpan pada {formatSubmissionTime(task.myGrade.gradedAt)}
+                                Hasil tersimpan pada{" "}
+                                {formatSubmissionTime(task.myGrade.gradedAt)}
                               </span>
                             </div>
                             <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600">
@@ -335,7 +355,9 @@ function LatihanSiswaPageContent() {
                           type="button"
                           onClick={() => {
                             if (task.myAttempt?.attemptId) {
-                              router.push(`/dashboard-siswa/latihan/${encodeURIComponent(task.myAttempt.attemptId)}/cbt`);
+                              router.push(
+                                `/dashboard-siswa/latihan/${encodeURIComponent(task.myAttempt.attemptId)}/cbt`,
+                              );
                             }
                           }}
                           disabled={!task.myAttempt?.attemptId}
@@ -347,7 +369,9 @@ function LatihanSiswaPageContent() {
                       ) : (
                         <button
                           type="button"
-                          onClick={(event) => handleStartLatihanCbt(task.id, event)}
+                          onClick={(event) =>
+                            handleStartLatihanCbt(task.id, event)
+                          }
                           disabled={!task.isCbtReady}
                           className="inline-flex h-11 flex-1 md:w-[150px] items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 text-[13px] font-semibold text-white shadow-sm transition-all hover:-translate-y-px hover:bg-orange-600 hover:shadow-md disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none disabled:hover:translate-y-0"
                         >
@@ -376,39 +400,47 @@ function LatihanSiswaPageContent() {
               {/* Header */}
               <div className="bg-slate-50 px-6 py-6 border-b border-slate-100 pr-12">
                 <div className="flex flex-wrap items-center gap-2 mb-3">
-                    <span className="rounded-full bg-orange-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-orange-600">
-                      {selectedTask.mapel}
-                    </span>
-                    <span className="rounded-full bg-blue-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-blue-500">
-                      Pertemuan {selectedTask.pertemuan}
-                    </span>
-                    <span
-                      className={`rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider ${getTaskStatusClass(
-                        selectedTask.status,
-                      )}`}
-                    >
-                      {selectedTask.status}
-                    </span>
-                  </div>
-                  <DialogTitle className="text-xl font-semibold text-slate-800 leading-tight">
-                    {selectedTask.judul}
-                  </DialogTitle>
+                  <span className="rounded-full bg-orange-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-orange-600">
+                    {selectedTask.mapel}
+                  </span>
+                  <span className="rounded-full bg-blue-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-blue-500">
+                    Pertemuan {selectedTask.pertemuan}
+                  </span>
+                  <span
+                    className={`rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider ${getTaskStatusClass(
+                      selectedTask.status,
+                    )}`}
+                  >
+                    {selectedTask.status}
+                  </span>
+                </div>
+                <DialogTitle className="text-xl font-semibold text-slate-800 leading-tight">
+                  {selectedTask.judul}
+                </DialogTitle>
               </div>
 
               {/* Content */}
               <div className="px-6 py-6">
                 <div className="flex flex-wrap items-center gap-3 mb-6">
                   <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
-                    <Clock className="h-4 w-4 text-rose-500" /> Batas: {selectedTask.deadline}
+                    <Clock className="h-4 w-4 text-rose-500" /> Batas:{" "}
+                    {selectedTask.deadline}
                   </div>
                   <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
-                    <Clock3 className="h-4 w-4 text-blue-500" /> Estimasi: {selectedTask.estimasi}
+                    <Clock3 className="h-4 w-4 text-blue-500" /> Estimasi:{" "}
+                    {selectedTask.estimasi}
                   </div>
                   <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
-                    <Clock3 className="h-4 w-4 text-orange-500" /> Jadwal: {selectedTask.jadwalPengerjaan}
+                    <Clock3 className="h-4 w-4 text-orange-500" /> Jadwal:{" "}
+                    {selectedTask.jadwalPengerjaan}
                   </div>
                   <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" /> Target: {selectedTask.poin}
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />{" "}
+                    Target: {selectedTask.poin}
+                  </div>
+                  <div className="flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3.5 py-1.5 text-xs font-semibold text-orange-700">
+                    <FileText className="h-4 w-4" />{" "}
+                    {selectedTask.questionCount || 30} soal CBT
                   </div>
                 </div>
 
@@ -422,14 +454,13 @@ function LatihanSiswaPageContent() {
 
                   <div className="space-y-4">
                     {selectedTask.instruksiPengumpulan?.map((point, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-start gap-3"
-                      >
+                      <div key={idx} className="flex items-start gap-3">
                         <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
                           <CheckCircle2 className="h-3.5 w-3.5" />
                         </div>
-                        <p className="text-sm leading-6 text-slate-700">{point}</p>
+                        <p className="text-sm leading-6 text-slate-700">
+                          {point}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -447,13 +478,16 @@ function LatihanSiswaPageContent() {
                       </span>
                     </div>
                     <p className="text-sm leading-6 text-amber-800">
-                      {selectedTask.myGrade?.note || selectedTask.availabilityMessage}
+                      {selectedTask.myGrade?.note ||
+                        selectedTask.availabilityMessage}
                     </p>
                   </div>
                 ) : selectedTask.myGrade?.graded ? (
                   <div className="mt-6 rounded-[20px] border border-emerald-100 bg-emerald-50 p-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-semibold text-emerald-800">Hasil Latihan</h4>
+                      <h4 className="font-semibold text-emerald-800">
+                        Hasil Latihan
+                      </h4>
                       <span className="rounded-full bg-emerald-200 px-3 py-1 font-semibold text-emerald-900 text-sm">
                         Nilai {selectedTask.myGrade.score ?? "-"}
                       </span>
@@ -462,7 +496,8 @@ function LatihanSiswaPageContent() {
                       Catatan Pembahasan
                     </p>
                     <p className="text-sm leading-6 text-slate-700">
-                      {selectedTask.myGrade.note || "Tidak ada catatan tambahan."}
+                      {selectedTask.myGrade.note ||
+                        "Tidak ada catatan tambahan."}
                     </p>
                   </div>
                 ) : selectedTask.mySubmission?.submitted ? (
@@ -471,9 +506,15 @@ function LatihanSiswaPageContent() {
                       <AlertCircle className="h-5 w-5" />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-amber-800">Menunggu Hasil</h4>
+                      <h4 className="font-semibold text-amber-800">
+                        Menunggu Hasil
+                      </h4>
                       <p className="text-sm leading-6 text-amber-700 mt-1">
-                        Latihan sudah dikerjakan pada {formatSubmissionTime(selectedTask.mySubmission.submittedAt)} dan sedang menunggu hasil tersimpan.
+                        Latihan sudah dikerjakan pada{" "}
+                        {formatSubmissionTime(
+                          selectedTask.mySubmission.submittedAt,
+                        )}{" "}
+                        dan sedang menunggu hasil tersimpan.
                       </p>
                     </div>
                   </div>
@@ -492,12 +533,15 @@ function LatihanSiswaPageContent() {
                     Lampiran Soal
                   </a>
                 ) : null}
-                {selectedTask.myGrade?.graded || selectedTask.mySubmission?.submitted ? (
+                {selectedTask.myGrade?.graded ||
+                selectedTask.mySubmission?.submitted ? (
                   <button
                     type="button"
                     onClick={() => {
                       if (selectedTask.myAttempt?.attemptId) {
-                        router.push(`/dashboard-siswa/latihan/${encodeURIComponent(selectedTask.myAttempt.attemptId)}/cbt`);
+                        router.push(
+                          `/dashboard-siswa/latihan/${encodeURIComponent(selectedTask.myAttempt.attemptId)}/cbt`,
+                        );
                       }
                     }}
                     disabled={!selectedTask.myAttempt?.attemptId}
@@ -509,7 +553,9 @@ function LatihanSiswaPageContent() {
                 ) : (
                   <button
                     type="button"
-                    onClick={(event) => handleStartLatihanCbt(selectedTask.id, event)}
+                    onClick={(event) =>
+                      handleStartLatihanCbt(selectedTask.id, event)
+                    }
                     disabled={!selectedTask.isCbtReady}
                     className="flex-1 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-[15px] font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-md disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none disabled:hover:translate-y-0"
                   >
@@ -532,7 +578,13 @@ function LatihanSiswaPageContent() {
 
 export default function LatihanSiswaPageView() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-sm text-slate-500">Memuat latihan...</div>}>
+    <Suspense
+      fallback={
+        <div className="p-8 text-center text-sm text-slate-500">
+          Memuat latihan...
+        </div>
+      }
+    >
       <LatihanSiswaPageContent />
     </Suspense>
   );

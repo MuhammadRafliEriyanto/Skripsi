@@ -26,6 +26,23 @@ export type StudentTryoutAttempt = {
   expiresAt: string | null;
   remainingSeconds: number | null;
   submittedAt: string | null;
+  history?: {
+    remedialNumber: number;
+    reason: string;
+    score: number;
+    correctCount: number;
+    wrongCount: number;
+    unansweredCount: number;
+    timeUsedSeconds: number;
+    startedAt: string;
+    submittedAt: string | null;
+    archivedAt: string;
+    answers: {
+      questionId: string;
+      selectedAnswer: string;
+      isCorrect: boolean | null;
+    }[];
+  }[];
 };
 
 export type StudentTryoutItem = {

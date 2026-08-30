@@ -25,10 +25,7 @@ import {
   isUtbkScheduleSubject,
   isUtbkStudent,
 } from "../utils/studentProgram";
-import {
-  parseTryoutXlsxBuffer,
-  type ParsedTryoutXlsxQuestion,
-} from "../utils/tryoutXlsxParser";
+import { QuestionBank } from "../models/QuestionBank";
 
 type SeedOptions = {
   apply: boolean;
@@ -145,10 +142,7 @@ const DEFAULT_BRANCHES = ["Slawi", "Adiwerna"];
 const DEFAULT_MEETING_COUNT = 9;
 const PASSING_GRADE = 70;
 const DURATION_MINUTES = 45;
-const QUESTION_BANK_ROOT = path.resolve(
-  __dirname,
-  "../../../data/assessment-bank-xlsx/latihan",
-);
+
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 const SEED_LAST_FEBRUARY_DATE = "2026-02-28";
 const SEED_MEETING_DATES = [
@@ -461,39 +455,7 @@ function resolveBankSubject(subject: string) {
   return normalizedSubject || "Matematika";
 }
 
-function resolveLearningBankFile(group: SeedClassGroup, plan: MeetingPlan) {
-  const bankSubject = resolveBankSubject(group.subject);
-  const relativePath = path.join(
-    "regular",
-    slugify(group.canonicalClassName),
-    slugify(bankSubject),
-    `${slugify(bankSubject)}-p${String(plan.meetingNumber).padStart(2, "0")}.xlsx`,
-  );
-  const filePath = path.join(QUESTION_BANK_ROOT, relativePath);
 
-  return {
-    bankSubject,
-    filePath,
-    relativePath: relativePath.replace(/\\/g, "/"),
-  };
-}
-
-function loadLearningBankQuestions(group: SeedClassGroup, plan: MeetingPlan) {
-  const bankFile = resolveLearningBankFile(group, plan);
-
-  if (!fs.existsSync(bankFile.filePath)) {
-    throw new Error(
-      `Bank soal tidak ditemukan untuk ${group.branch} ${group.className} ${group.subject} P${plan.meetingNumber}: ${bankFile.relativePath}`,
-    );
-  }
-
-  const parsed = parseTryoutXlsxBuffer(fs.readFileSync(bankFile.filePath));
-
-  return {
-    ...bankFile,
-    questions: parsed.questions,
-  };
-}
 
 function getBranchStats(stats: SeedStats, branch: string) {
   const normalizedBranch = normalizeText(branch) || "-";
@@ -891,104 +853,7 @@ async function upsertTask(
   };
 }
 
-async function ensureQuestions(
-  taskId: string,
-  group: SeedClassGroup,
-  bankQuestions: ParsedTryoutXlsxQuestion[],
-  apply: boolean,
-) {
-  const existingQuestions = await ClassTaskQuestion.find({
-    taskId,
-    teacherId: group.teacher._id,
-  })
-    .sort({ order: 1 })
-    .exec();
-  const existingByOrder = new Map(
-    existingQuestions.map((question) => [question.order, question]),
-  );
-  let created = 0;
-  let updated = 0;
-  const writes: Array<{
-    questionId: string;
-    teacherId: Types.ObjectId;
-    taskId: string;
-    questionText: string;
-    optionA: string;
-    optionB: string;
-    optionC: string;
-    optionD: string;
-    correctAnswer: ClassTaskQuestionAnswer;
-    explanation: string;
-    topic: string;
-    difficulty: string;
-    order: number;
-  }> = [];
 
-  for (const [index, bankQuestion] of bankQuestions.entries()) {
-    const order = index + 1;
-    const payload = {
-      questionId:
-        existingByOrder.get(order)?.questionId ??
-        stablePublicId("CTQ", taskId, String(order)),
-      teacherId: group.teacher._id,
-      taskId,
-      questionText: bankQuestion.questionText,
-      optionA: bankQuestion.optionA,
-      optionB: bankQuestion.optionB,
-      optionC: bankQuestion.optionC,
-      optionD: bankQuestion.optionD,
-      correctAnswer: bankQuestion.correctAnswer,
-      explanation: bankQuestion.explanation,
-      topic: bankQuestion.topic,
-      difficulty: bankQuestion.difficulty,
-      order,
-    };
-
-    if (existingByOrder.has(order)) {
-      updated += 1;
-    } else {
-      created += 1;
-    }
-
-    writes.push(payload);
-  }
-
-  if (apply) {
-    await Promise.all(
-      writes.map((payload) =>
-        ClassTaskQuestion.findOneAndUpdate(
-          { questionId: payload.questionId },
-          { $set: payload },
-          {
-            new: true,
-            upsert: true,
-            runValidators: true,
-            setDefaultsOnInsert: true,
-          },
-        ).exec(),
-      ),
-    );
-    await ClassTaskQuestion.deleteMany({
-      taskId,
-      teacherId: group.teacher._id,
-      order: { $gt: writes.length },
-    }).exec();
-  }
-
-  if (apply) {
-    const questionCount = await ClassTaskQuestion.countDocuments({
-      taskId,
-      teacherId: group.teacher._id,
-    }).exec();
-
-    await ClassTask.updateOne(
-      { taskId, teacherId: group.teacher._id },
-      { $set: { questionCount } },
-    ).exec();
-  }
-
-  return { created, updated };
-}
 
 async function upsertSession(
   group: SeedClassGroup,
@@ -1408,7 +1273,23 @@ async function run() {
       .exec();
 
     for (const plan of plans) {
-      const bank = loadLearningBankQuestions(group, plan);
+      const topicPattern = new RegExp(`Bab ${plan.meetingNumber}:`, "i");
+      let bankQuestions = await QuestionBank.aggregate([
+        { $match: { subject: group.subject, topic: { $regex: topicPattern } } },
+        { $sample: { size: 30 } },
+      ]);
+      
+      if (bankQuestions.length < 30) {
+        bankQuestions = await QuestionBank.aggregate([
+          { $match: { subject: group.subject } },
+          { $sample: { size: 30 } },
+        ]);
+      }
+      
+      if (bankQuestions.length < 30) {
+        console.warn(`Bank soal kurang untuk mapel ${group.subject}. Ditemukan: ${bankQuestions.length}`);
+      }
+
       const materialAction = await upsertMaterial(group, plan, options.apply);
       stats.materialsCreated += materialAction === "created" ? 1 : 0;
       stats.materialsUpdated += materialAction === "updated" ? 1 : 0;
@@ -1416,20 +1297,11 @@ async function run() {
       const taskResult = await upsertTask(
         group,
         plan,
-        bank.questions.length,
+        bankQuestions.length,
         options.apply,
       );
       stats.tasksCreated += taskResult.action === "created" ? 1 : 0;
       stats.tasksUpdated += taskResult.action === "updated" ? 1 : 0;
-
-      const questionResult = await ensureQuestions(
-        taskResult.taskId,
-        group,
-        bank.questions,
-        options.apply,
-      );
-      stats.questionsCreated += questionResult.created;
-      stats.questionsUpdated += questionResult.updated;
 
       const sessionResult = await upsertSession(
         group,
@@ -1440,26 +1312,11 @@ async function run() {
       stats.sessionsCreated += sessionResult.action === "created" ? 1 : 0;
       stats.sessionsUpdated += sessionResult.action === "updated" ? 1 : 0;
 
-      const questions = (await ClassTaskQuestion.find({
-        taskId: taskResult.taskId,
-        teacherId: group.teacher._id,
-      })
-        .select("questionId correctAnswer order")
-        .sort({ order: 1 })
-        .lean()
-        .exec()) as Array<{
-        questionId: string;
-        correctAnswer: ClassTaskQuestionAnswer;
-        order: number;
-      }>;
-      const activeQuestions =
-        questions.length > 0
-          ? questions
-          : bank.questions.map((question, index) => ({
-              questionId: stablePublicId("CTQ", taskResult.taskId, String(index + 1)),
-              correctAnswer: question.correctAnswer,
-              order: index + 1,
-            }));
+      const activeQuestions = bankQuestions.map((question, index) => ({
+        questionId: question.questionId || question._id.toString(),
+        correctAnswer: question.correctAnswer,
+        order: index + 1,
+      }));
       const studentIds = group.students.map((student) => student.studentId);
       const [
         existingRecordStudentIds,

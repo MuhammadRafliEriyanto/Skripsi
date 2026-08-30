@@ -104,6 +104,25 @@ export type StudentTaskAttemptSummary = {
   submittedAt: string | null;
   startedAt: string | null;
   remedialCount: number;
+  history?: StudentTaskAttemptHistorySummary[];
+};
+
+export type StudentTaskAttemptHistorySummary = {
+  remedialNumber: number;
+  reason: string;
+  score: number;
+  correctCount: number;
+  wrongCount: number;
+  unansweredCount: number;
+  timeUsedSeconds: number;
+  startedAt: string;
+  submittedAt: string | null;
+  archivedAt: string;
+  answers: {
+    questionId: string;
+    selectedAnswer: string;
+    isCorrect: boolean | null;
+  }[];
 };
 
 export type StudentTaskSubmissionAttachment = {

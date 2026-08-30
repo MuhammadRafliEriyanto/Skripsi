@@ -13,6 +13,7 @@ import { normalizeText } from "../utils/classroomLearning";
 import { ensureTeacherAcademicPeriodEditable } from "../utils/teacherAcademicArchive";
 import { resolveAcademicPeriodFromQuery } from "../utils/academicGrade";
 import { buildTeacherAcademicPeriodOrLegacyFilter } from "../utils/teacherAcademicPeriod";
+import { createOriginalOptions } from "../lib/question-option-compat";
 
 function buildTeacherTaskLookupFilter(
   taskId: string,
@@ -106,7 +107,7 @@ export const generateTeacherClassTaskQuestionsAuto = asyncHandler(
     const QuestionBank = (await import("../models/QuestionBank")).QuestionBank;
     
     // Default to 30 if somehow not specified
-    const targetCount = task.questionCount && task.questionCount > 0 ? task.questionCount : 30;
+    const targetCount = 30;
     
     // Match by subject and topic (mapping meetingNumber to Bab)
     const topicPattern = new RegExp(`Bab ${task.meetingNumber}:`, "i");
@@ -180,7 +181,7 @@ export const getTeacherClassTaskQuestions = asyncHandler(
       return;
     }
     
-    const targetCount = task.questionCount && task.questionCount > 0 ? task.questionCount : 30;
+    const targetCount = 30;
     
     // Preview questions by pulling random sample
     const QuestionBank = (await import("../models/QuestionBank")).QuestionBank;
@@ -203,19 +204,22 @@ export const getTeacherClassTaskQuestions = asyncHandler(
       ]);
     }
 
-    const previewQuestions = availableQuestions.map((q, index) => ({
-      questionId: q.questionId || q._id.toString(),
-      questionText: q.questionText,
-      optionA: q.optionA,
-      optionB: q.optionB,
-      optionC: q.optionC,
-      optionD: q.optionD,
-      correctAnswer: q.correctAnswer,
-      explanation: q.explanation,
-      topic: q.topic,
-      difficulty: q.difficulty,
-      order: index + 1,
-    }));
+    const previewQuestions = availableQuestions.map((q, index) => {
+      const originalOptions = createOriginalOptions(q);
+      return {
+        questionId: q.questionId || q._id.toString(),
+        questionText: q.questionText,
+        optionA: originalOptions.A,
+        optionB: originalOptions.B,
+        optionC: originalOptions.C,
+        optionD: originalOptions.D,
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation,
+        topic: q.topic,
+        difficulty: q.difficulty,
+        order: index + 1,
+      };
+    });
 
     sendSuccess(res, {
       statusCode: 200,

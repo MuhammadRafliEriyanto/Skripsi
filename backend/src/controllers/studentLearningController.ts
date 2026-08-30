@@ -1425,16 +1425,31 @@ export const getMyStudentLearningData = asyncHandler(
             .exec()
         : Promise.resolve([]),
       normalizedTaskIds.length
-        ? StudentTaskAttempt.find({
-            studentId: normalizeText(student.studentId),
-            taskId: {
-              $in: normalizedTaskIds,
+        ? StudentTaskAttempt.aggregate([
+            {
+              $match: {
+                studentId: normalizeText(student.studentId),
+                taskId: { $in: normalizedTaskIds },
+                ...buildAcademicRecordSubscriptionFilter(subscriptionId),
+              },
             },
-            ...buildAcademicRecordSubscriptionFilter(subscriptionId),
-          })
-            .sort({ updatedAt: -1, createdAt: -1 })
-            .lean()
-            .exec()
+            // Prioritize attempts: in_progress > submitted, then by newest first
+            {
+              $sort: {
+                status: 1,           // in_progress comes before submitted
+                updatedAt: -1,       // Newest within same status
+              },
+            },
+            // Group by taskId to get ONE primary attempt per task
+            {
+              $group: {
+                _id: "$taskId",
+                primaryAttempt: { $first: "$$ROOT" },
+              },
+            },
+            // Replace root with primary attempt
+            { $replaceRoot: { newRoot: "$primaryAttempt" } },
+          ]).exec()
         : Promise.resolve([]),
     ]);
     const academicGrades = rawAcademicGrades.filter((grade) => {
@@ -1472,6 +1487,8 @@ export const getMyStudentLearningData = asyncHandler(
         toPublicStudentTaskGradeSummary(grade),
       ]),
     );
+    // ✅ FIXED: Ensure we map attempts correctly, preserving only the best attempt per taskId
+    // The aggregation above already returns ONE attempt per taskId, prioritizing complete/in-progress attempts
     const attemptMap = new Map(
       attempts.map((attempt) => [
         normalizeText(attempt.taskId),

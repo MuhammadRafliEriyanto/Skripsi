@@ -43,6 +43,9 @@ import {
 import { resolveStudentAcademicContentAccess } from "../utils/studentAcademicAccess";
 import { resolveStudentMembershipContentAccess } from "../utils/studentMembershipAccess";
 import {
+  createOriginalOptions,
+} from "../lib/question-option-compat";
+import {
   buildStudentAcademicTryoutFilter,
   getStudentEffectiveAcademicJoinedAt,
   parseValidDate,
@@ -604,12 +607,12 @@ function toNormalizedManualQuestion(question: {
     topic: "Soal manual",
     difficulty: "Sedang",
     question: normalizeText(question.questionText),
-    options: {
-      A: normalizeText(question.optionA),
-      B: normalizeText(question.optionB),
-      C: normalizeText(question.optionC),
-      D: normalizeText(question.optionD),
-    },
+    options: createOriginalOptions({
+      optionA: question.optionA,
+      optionB: question.optionB,
+      optionC: question.optionC,
+      optionD: question.optionD,
+    }),
     correctAnswer,
     explanation: "Pembahasan manual belum tersedia.",
   };

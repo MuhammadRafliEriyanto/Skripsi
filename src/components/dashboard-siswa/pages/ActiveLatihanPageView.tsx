@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -147,10 +154,13 @@ type ActiveLatihanPageViewProps = {
   taskId: string;
 };
 
-export default function ActiveLatihanPageView({ taskId }: ActiveLatihanPageViewProps) {
+export default function ActiveLatihanPageView({
+  taskId,
+}: ActiveLatihanPageViewProps) {
   const router = useRouter();
   const attemptId = taskId;
-  const [activeSession, setActiveSession] = useState<ActiveTryoutSession | null>(null);
+  const [activeSession, setActiveSession] =
+    useState<ActiveTryoutSession | null>(null);
   const [result, setResult] = useState<StudentTryoutResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -169,15 +179,13 @@ export default function ActiveLatihanPageView({ taskId }: ActiveLatihanPageViewP
   const [cheatModalMessage, setCheatModalMessage] = useState("");
   const lastCheatRef = useRef<number>(0);
 
-  const totalDurationSeconds = Math.max(
-    activeSession?.durationMinutes ?? 0,
-    1,
-  ) * 60;
+  const totalDurationSeconds =
+    Math.max(activeSession?.durationMinutes ?? 0, 1) * 60;
   const totalQuestions = getTotalQuestions(activeSession);
   const currentQuestion =
     activeSession?.questions[currentQuestionIndex] ?? null;
-  const answeredCount = Object.keys(answers).filter(
-    (questionId) => Boolean(answers[questionId]),
+  const answeredCount = Object.keys(answers).filter((questionId) =>
+    Boolean(answers[questionId]),
   ).length;
   const unansweredCount = Math.max(totalQuestions - answeredCount, 0);
   const progressValue = totalQuestions
@@ -191,49 +199,54 @@ export default function ActiveLatihanPageView({ taskId }: ActiveLatihanPageViewP
     ? secondsRemaining / totalDurationSeconds
     : 0;
 
-  const resetTryoutSessionState = useCallback((
-    session: ActiveTryoutSession | null,
-    initialRemainingSeconds?: number | null,
-  ) => {
-    if (!session) {
-      setResult(null);
-      setIsSubmitted(false);
+  const resetTryoutSessionState = useCallback(
+    (
+      session: ActiveTryoutSession | null,
+      initialRemainingSeconds?: number | null,
+    ) => {
+      if (!session) {
+        setResult(null);
+        setIsSubmitted(false);
+        setHasStarted(false);
+        setSubmittedByTimer(false);
+        setCurrentQuestionIndex(0);
+        setSecondsRemaining(0);
+        setAnswers({});
+        setBookmarkedIds([]);
+        return;
+      }
+
+      const sessionTotalDurationSeconds =
+        Math.max(session.durationMinutes, 1) * 60;
+      const sessionTotalQuestions = getTotalQuestions(session);
+      const submittedAttempt = session.myAttempt;
+
+      setSecondsRemaining(
+        typeof initialRemainingSeconds === "number"
+          ? Math.max(initialRemainingSeconds, 0)
+          : sessionTotalDurationSeconds,
+      );
+      setResult(
+        submittedAttempt?.submitted &&
+          typeof submittedAttempt.score === "number"
+          ? {
+              score: submittedAttempt.score,
+              correctCount: submittedAttempt.correctCount ?? 0,
+              wrongCount: submittedAttempt.wrongCount ?? 0,
+              unansweredCount: submittedAttempt.unansweredCount ?? 0,
+              totalQuestions: sessionTotalQuestions,
+            }
+          : null,
+      );
+      setIsSubmitted(submittedAttempt?.submitted === true);
       setHasStarted(false);
       setSubmittedByTimer(false);
       setCurrentQuestionIndex(0);
-      setSecondsRemaining(0);
       setAnswers({});
       setBookmarkedIds([]);
-      return;
-    }
-
-    const sessionTotalDurationSeconds = Math.max(session.durationMinutes, 1) * 60;
-    const sessionTotalQuestions = getTotalQuestions(session);
-    const submittedAttempt = session.myAttempt;
-
-    setSecondsRemaining(
-      typeof initialRemainingSeconds === "number"
-        ? Math.max(initialRemainingSeconds, 0)
-        : sessionTotalDurationSeconds,
-    );
-    setResult(
-      submittedAttempt?.submitted && typeof submittedAttempt.score === "number"
-        ? {
-            score: submittedAttempt.score,
-            correctCount: submittedAttempt.correctCount ?? 0,
-            wrongCount: submittedAttempt.wrongCount ?? 0,
-            unansweredCount: submittedAttempt.unansweredCount ?? 0,
-            totalQuestions: sessionTotalQuestions,
-          }
-        : null,
-    );
-    setIsSubmitted(submittedAttempt?.submitted === true);
-    setHasStarted(false);
-    setSubmittedByTimer(false);
-    setCurrentQuestionIndex(0);
-    setAnswers({});
-    setBookmarkedIds([]);
-  }, []);
+    },
+    [],
+  );
 
   const loadExamAttempt = useCallback(async () => {
     try {
@@ -256,14 +269,74 @@ export default function ActiveLatihanPageView({ taskId }: ActiveLatihanPageViewP
         throw new Error(payload?.message || "Sesi latihan belum bisa dimuat.");
       }
 
+      // DIAGNOSTIC: Log raw API response
+      console.log("\n" + "=".repeat(80));
+      console.log("🔍 CBT DATA FLOW DIAGNOSTIC - START");
+      console.log("=".repeat(80));
+      console.log("[CBT STEP 1/6] RAW API RESPONSE:");
+      console.log(
+        "  • payload.data.questions.length:",
+        payload.data?.questions?.length,
+      );
+      console.log(
+        "  • payload.data.tryout.totalQuestions:",
+        payload.data?.tryout?.totalQuestions,
+      );
+      console.log(
+        "  • payload.data.tryout.questionCount:",
+        payload.data?.tryout?.questionCount,
+      );
+      console.log("  • Attempt ID used:", attemptId);
+      if (payload.data?.questions && payload.data.questions.length > 0) {
+        console.log(
+          "  • First 5 questionIds:",
+          payload.data.questions
+            .slice(0, 5)
+            .map((q) => getQuestionKey(q))
+            .join(", "),
+        );
+        if (payload.data.questions.length > 5) {
+          console.log(`  • ... and ${payload.data.questions.length - 5} more`);
+        }
+      }
+
       const tryout = {
         ...payload.data.tryout,
         myAttempt: payload.data.attempt ?? payload.data.tryout.myAttempt,
       };
+
+      // DIAGNOSTIC: Log before buildSessionFromTryout
+      console.log("\n[CBT STEP 2/6] BEFORE buildSessionFromTryout:");
+      console.log(
+        "  • Input questions.length:",
+        payload.data.questions?.length || 0,
+      );
+
       const nextSession = buildSessionFromTryout(
         tryout,
         payload.data.questions ?? [],
       );
+
+      // DIAGNOSTIC: Log after buildSessionFromTryout
+      console.log("\n[CBT STEP 3/6] AFTER buildSessionFromTryout:");
+      console.log(
+        "  • nextSession.questions.length:",
+        nextSession.questions?.length,
+      );
+      console.log(
+        "  • nextSession.totalQuestions:",
+        nextSession.totalQuestions,
+      );
+      if (nextSession.questions && nextSession.questions.length > 0) {
+        console.log(
+          "  • First 5 questionIds:",
+          nextSession.questions
+            .slice(0, 5)
+            .map((q) => getQuestionKey(q))
+            .join(", "),
+        );
+      }
+
       const restoredAnswers: AnswerMap = {};
 
       for (const question of nextSession.questions) {
@@ -274,7 +347,30 @@ export default function ActiveLatihanPageView({ taskId }: ActiveLatihanPageViewP
         }
       }
 
+      // DIAGNOSTIC: Log before setting state
+      console.log("\n[CBT STEP 4/6] BEFORE setActiveSession():");
+      console.log(
+        "  • nextSession.questions.length:",
+        nextSession.questions?.length,
+      );
+      console.log(
+        "  • Will set activeSession with count:",
+        nextSession.questions?.length,
+      );
+
       setActiveSession(nextSession);
+
+      // DIAGNOSTIC: Log immediately after state set (may not reflect yet due to async)
+      setTimeout(() => {
+        console.log("\n[CBT STEP 5/6] IMMEDIATELY AFTER setActiveSession():");
+        console.log(
+          "  • activeSession.state?.questions.length:",
+          activeSession?.questions?.length,
+        );
+        console.log(
+          "  • WARNING: This may show old value due to React batched updates",
+        );
+      }, 0);
       resetTryoutSessionState(
         nextSession,
         payload.data.remainingSeconds ??
@@ -346,7 +442,9 @@ export default function ActiveLatihanPageView({ taskId }: ActiveLatihanPageViewP
       }
 
       if (!response.ok || !payload?.success || !payload.data?.tryout) {
-        throw new Error(payload?.message || "Jawaban latihan belum bisa dikirim.");
+        throw new Error(
+          payload?.message || "Jawaban latihan belum bisa dikirim.",
+        );
       }
 
       const nextSession = buildSessionFromTryout(
@@ -427,15 +525,21 @@ export default function ActiveLatihanPageView({ taskId }: ActiveLatihanPageViewP
 
       setCheatWarnings((prev) => {
         const nextCount = prev + 1;
-        
+
         if (nextCount === 1) {
-          setCheatModalMessage("Anda terdeteksi meninggalkan layar latihan (berpindah tab atau window). Harap fokus pada layar latihan. Ini adalah peringatan pertama. Jika mencapai 3 pelanggaran, latihan akan diakhiri secara otomatis.");
+          setCheatModalMessage(
+            "Anda terdeteksi meninggalkan layar latihan (berpindah tab atau window). Harap fokus pada layar latihan. Ini adalah peringatan pertama. Jika mencapai 3 pelanggaran, latihan akan diakhiri secara otomatis.",
+          );
           setIsCheatModalOpen(true);
         } else if (nextCount === 2) {
-          setCheatModalMessage("Peringatan ke-2! Anda terdeteksi kembali meninggalkan layar latihan. Jika Anda melakukannya sekali lagi, latihan akan langsung diakhiri otomatis dan jawaban akan dikirimkan.");
+          setCheatModalMessage(
+            "Peringatan ke-2! Anda terdeteksi kembali meninggalkan layar latihan. Jika Anda melakukannya sekali lagi, latihan akan langsung diakhiri otomatis dan jawaban akan dikirimkan.",
+          );
           setIsCheatModalOpen(true);
         } else if (nextCount >= 3) {
-          setCheatModalMessage("Pelanggaran maksimal! Anda telah meninggalkan layar latihan sebanyak 3 kali. Latihan telah diakhiri otomatis.");
+          setCheatModalMessage(
+            "Pelanggaran maksimal! Anda telah meninggalkan layar latihan sebanyak 3 kali. Latihan telah diakhiri otomatis.",
+          );
           setIsCheatModalOpen(true);
           submitTryoutFromCheating();
         }
@@ -563,375 +667,622 @@ export default function ActiveLatihanPageView({ taskId }: ActiveLatihanPageViewP
         <>
           {isSubmitted && displayResult ? (
             <section className="rounded-[24px] border border-slate-100 bg-white p-5 shadow-sm md:p-6">
-          <SectionHeader
-            icon={CheckCircle2}
-            title={`Hasil ${activeSession.assessmentLabel}`}
-            description="Ringkasan hasil dari jawaban yang sudah dikirim."
-          />
+              <SectionHeader
+                icon={CheckCircle2}
+                title={`Hasil ${activeSession.assessmentLabel}`}
+                description="Ringkasan hasil dari jawaban yang sudah dikirim."
+              />
 
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                <CheckCircle2 className="h-4 w-4" />
-                {submittedByTimer
-                  ? `${activeSession.assessmentLabel} terkirim otomatis`
-                  : `${activeSession.assessmentLabel} berhasil dikirim`}
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                    <CheckCircle2 className="h-4 w-4" />
+                    {submittedByTimer
+                      ? `${activeSession.assessmentLabel} terkirim otomatis`
+                      : `${activeSession.assessmentLabel} berhasil dikirim`}
+                  </div>
+                  <h2 className="mt-3 text-xl font-semibold text-slate-800">
+                    Ringkasan hasil {activeSession.assessmentLabel} kamu
+                  </h2>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleBackToDashboard}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-orange-200 bg-orange-50 px-5 text-sm font-semibold text-orange-700 transition hover:bg-orange-100"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Kembali ke Daftar
+                </button>
               </div>
-              <h2 className="mt-3 text-xl font-semibold text-slate-800">
-                Ringkasan hasil {activeSession.assessmentLabel} kamu
-              </h2>
-            </div>
 
-            <button
-              type="button"
-              onClick={handleBackToDashboard}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-orange-200 bg-orange-50 px-5 text-sm font-semibold text-orange-700 transition hover:bg-orange-100"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Kembali ke Daftar
-            </button>
-          </div>
+              <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-[20px] border border-slate-100 bg-slate-50/70 p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                    Skor
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-800">
+                    {displayResult.score}
+                  </p>
+                </div>
+                <div className="rounded-[20px] border border-slate-100 bg-slate-50/70 p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                    Jawaban Benar
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-800">
+                    {displayResult.correctCount}/{displayResult.totalQuestions}
+                  </p>
+                </div>
+                <div className="rounded-[20px] border border-slate-100 bg-slate-50/70 p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                    Waktu Terpakai
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-800">
+                    {formatTimer(timeUsedSeconds)}
+                  </p>
+                </div>
+                <div className="rounded-[20px] border border-slate-100 bg-slate-50/70 p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                    Belum Dijawab
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-800">
+                    {displayResult.unansweredCount}
+                  </p>
+                </div>
+              </div>
 
-          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-[20px] border border-slate-100 bg-slate-50/70 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-                Skor
-              </p>
-              <p className="mt-2 text-2xl font-semibold text-slate-800">
-                {displayResult.score}
-              </p>
-            </div>
-            <div className="rounded-[20px] border border-slate-100 bg-slate-50/70 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-                Jawaban Benar
-              </p>
-              <p className="mt-2 text-2xl font-semibold text-slate-800">
-                {displayResult.correctCount}/{displayResult.totalQuestions}
-              </p>
-            </div>
-            <div className="rounded-[20px] border border-slate-100 bg-slate-50/70 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-                Waktu Terpakai
-              </p>
-              <p className="mt-2 text-2xl font-semibold text-slate-800">
-                {formatTimer(timeUsedSeconds)}
-              </p>
-            </div>
-            <div className="rounded-[20px] border border-slate-100 bg-slate-50/70 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-                Belum Dijawab
-              </p>
-              <p className="mt-2 text-2xl font-semibold text-slate-800">
-                {displayResult.unansweredCount}
-              </p>
-            </div>
-          </div>
+              <div className="mt-5 rounded-[20px] border border-amber-100 bg-amber-50/60 p-4">
+                <p className="text-sm font-semibold text-amber-800">
+                  Histori soal dan pengerjaan
+                </p>
+                <div className="mt-3 rounded-[16px] border border-orange-100 bg-white p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-slate-800">
+                      Percobaan terakhir
+                    </p>
+                    <span className="rounded-full bg-orange-100 px-2.5 py-1 text-xs font-semibold text-orange-700">
+                      {activeSession.questions.length ||
+                        displayResult.totalQuestions}{" "}
+                      soal
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs leading-5 text-slate-600">
+                    Nilai {displayResult.score}, {displayResult.correctCount}{" "}
+                    benar, {displayResult.wrongCount} salah,{" "}
+                    {displayResult.unansweredCount} belum dijawab. Detail semua
+                    soal ada di bagian Review Soal di bawah.
+                  </p>
+                </div>
+                {activeSession.myAttempt?.history?.length ? (
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    {activeSession.myAttempt.history.map((entry) => (
+                      <div
+                        key={`${entry.remedialNumber}-${entry.archivedAt}`}
+                        className="rounded-[16px] border border-amber-100 bg-white p-4"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-semibold text-slate-800">
+                            Percobaan {entry.remedialNumber}
+                          </p>
+                          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                            Nilai {entry.score}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-xs font-medium text-slate-600">
+                          {entry.answers.length} soal, {entry.correctCount}{" "}
+                          benar, {entry.wrongCount} salah,{" "}
+                          {entry.unansweredCount} belum dijawab
+                        </p>
+                        {entry.reason ? (
+                          <p className="mt-2 text-xs leading-5 text-amber-800">
+                            {entry.reason}
+                          </p>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-3 text-xs leading-5 text-amber-800">
+                    Belum ada percobaan sebelumnya atau remedial. Histori baru
+                    akan muncul setelah siswa mengerjakan remedial.
+                  </p>
+                )}
+              </div>
             </section>
           ) : null}
 
           {currentQuestion ? (
             <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
-          <section className="rounded-[24px] border border-slate-100 bg-white p-5 shadow-sm md:p-6">
-            <SectionHeader
-              icon={ListChecks}
-              title={isSubmitted ? "Review Soal" : "Area Pengerjaan"}
-              description={
-                isSubmitted
-                  ? "Lihat kembali soal, jawaban kamu, kunci jawaban, dan pembahasan yang tersedia."
-                  : "Baca soal dengan teliti, pilih jawaban terbaik, lalu tandai bila ingin dicek ulang lagi."
-              }
-            />
+              <section className="rounded-[24px] border border-slate-100 bg-white p-5 shadow-sm md:p-6">
+                <SectionHeader
+                  icon={ListChecks}
+                  title={isSubmitted ? "Review Soal" : "Area Pengerjaan"}
+                  description={
+                    isSubmitted
+                      ? "Lihat kembali soal, jawaban kamu, kunci jawaban, dan pembahasan yang tersedia."
+                      : "Baca soal dengan teliti, pilih jawaban terbaik, lalu tandai bila ingin dicek ulang lagi."
+                  }
+                />
 
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">
-                    {currentQuestion.section}
-                  </span>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                    {currentQuestion.topic}
-                  </span>
-                  <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
-                    {currentQuestion.difficulty}
-                  </span>
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">
+                        {currentQuestion.section}
+                      </span>
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                        {currentQuestion.topic}
+                      </span>
+                      <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                        {currentQuestion.difficulty}
+                      </span>
+                    </div>
+
+                    <h2 className="mt-4 text-xl font-semibold text-slate-800">
+                      Soal {currentQuestionIndex + 1} dari {totalQuestions}
+                    </h2>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    {isSubmitted ? (
+                      <ReviewBadge
+                        question={currentQuestion}
+                        selectedOptionId={
+                          answers[getQuestionKey(currentQuestion)]
+                        }
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleToggleBookmark(getQuestionKey(currentQuestion))
+                        }
+                        className={cn(
+                          "inline-flex h-11 items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-semibold transition",
+                          bookmarkedIds.includes(
+                            getQuestionKey(currentQuestion),
+                          )
+                            ? "border-amber-200 bg-amber-50 text-amber-700"
+                            : "border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100",
+                        )}
+                      >
+                        <Flag className="h-4 w-4" />
+                        {bookmarkedIds.includes(getQuestionKey(currentQuestion))
+                          ? "Ditandai"
+                          : "Tandai Cek Ulang"}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                <h2 className="mt-4 text-xl font-semibold text-slate-800">
-                  Soal {currentQuestionIndex + 1} dari {totalQuestions}
-                </h2>
-              </div>
+                <div className="mt-6 rounded-[24px] border border-slate-100 bg-slate-50/55 p-5">
+                  <p className="text-base leading-8 text-slate-700">
+                    {currentQuestion.prompt}
+                  </p>
 
-              <div className="flex flex-wrap items-center gap-3">
-                {isSubmitted ? (
-                  <ReviewBadge
-                    question={currentQuestion}
-                    selectedOptionId={answers[getQuestionKey(currentQuestion)]}
-                  />
-                ) : (
+                  <div className="mt-6 space-y-3">
+                    {currentQuestion.options.map((option) => {
+                      const questionId = getQuestionKey(currentQuestion);
+                      const selectedOptionId = answers[questionId];
+                      const isSelected = selectedOptionId === option.id;
+                      const isCorrect =
+                        isSubmitted &&
+                        currentQuestion.correctOptionId === option.id;
+                      const isIncorrectSelected =
+                        isSubmitted && isSelected && !isCorrect;
+
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          disabled={isSubmitted || isSubmitting}
+                          onClick={() =>
+                            handleSelectAnswer(questionId, option.id)
+                          }
+                          className={getOptionClass({
+                            isSelected,
+                            isSubmitted,
+                            isCorrect,
+                            isIncorrectSelected,
+                          })}
+                        >
+                          <span
+                            className={cn(
+                              "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-sm font-semibold",
+                              isCorrect &&
+                                "border-emerald-200 bg-white text-emerald-700",
+                              isIncorrectSelected &&
+                                "border-rose-200 bg-white text-rose-700",
+                              isSelected &&
+                                !isSubmitted &&
+                                "border-orange-200 bg-white text-orange-700",
+                              !isSelected &&
+                                !isCorrect &&
+                                !isIncorrectSelected &&
+                                "border-slate-200 bg-slate-50 text-slate-500",
+                            )}
+                          >
+                            {option.id.toUpperCase()}
+                          </span>
+
+                          <span className="flex-1 pt-1 text-sm leading-6">
+                            {option.content}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {isSubmitted ? (
+                    <div className="mt-5 rounded-[20px] border border-emerald-100 bg-white p-4">
+                      <div className="flex flex-wrap gap-2 text-xs font-semibold">
+                        <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600">
+                          Jawaban kamu:{" "}
+                          {formatReviewOptionLabel(
+                            answers[getQuestionKey(currentQuestion)],
+                          )}
+                        </span>
+                        <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">
+                          Kunci:{" "}
+                          {formatReviewOptionLabel(
+                            currentQuestion.correctOptionId,
+                          )}
+                        </span>
+                      </div>
+                      <p className="mt-3 text-sm font-semibold text-slate-800">
+                        Pembahasan
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-slate-600">
+                        {currentQuestion.explanation ||
+                          currentQuestion.clue ||
+                          "Pembahasan belum tersedia untuk soal ini."}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <button
                     type="button"
                     onClick={() =>
-                      handleToggleBookmark(getQuestionKey(currentQuestion))
+                      setCurrentQuestionIndex((currentIndex) =>
+                        Math.max(currentIndex - 1, 0),
+                      )
                     }
-                    className={cn(
-                      "inline-flex h-11 items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-semibold transition",
-                      bookmarkedIds.includes(getQuestionKey(currentQuestion))
-                        ? "border-amber-200 bg-amber-50 text-amber-700"
-                        : "border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100",
-                    )}
+                    disabled={currentQuestionIndex === 0}
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-orange-200 bg-orange-50 px-4 text-sm font-semibold text-orange-700 transition hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-45"
                   >
-                    <Flag className="h-4 w-4" />
-                    {bookmarkedIds.includes(getQuestionKey(currentQuestion))
-                      ? "Ditandai"
-                      : "Tandai Cek Ulang"}
+                    <ArrowLeft className="h-4 w-4" />
+                    Soal Sebelumnya
                   </button>
-                )}
-              </div>
-            </div>
 
-            <div className="mt-6 rounded-[24px] border border-slate-100 bg-slate-50/55 p-5">
-              <p className="text-base leading-8 text-slate-700">
-                {currentQuestion.prompt}
-              </p>
-
-              <div className="mt-6 space-y-3">
-                {currentQuestion.options.map((option) => {
-                  const questionId = getQuestionKey(currentQuestion);
-                  const selectedOptionId = answers[questionId];
-                  const isSelected = selectedOptionId === option.id;
-                  const isCorrect =
-                    isSubmitted && currentQuestion.correctOptionId === option.id;
-                  const isIncorrectSelected =
-                    isSubmitted && isSelected && !isCorrect;
-
-                  return (
-                    <button
-                      key={option.id}
-                      type="button"
-                      disabled={isSubmitted || isSubmitting}
-                      onClick={() => handleSelectAnswer(questionId, option.id)}
-                      className={getOptionClass({
-                        isSelected,
-                        isSubmitted,
-                        isCorrect,
-                        isIncorrectSelected,
-                      })}
-                    >
-                      <span
-                        className={cn(
-                          "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-sm font-semibold",
-                          isCorrect &&
-                            "border-emerald-200 bg-white text-emerald-700",
-                          isIncorrectSelected &&
-                            "border-rose-200 bg-white text-rose-700",
-                          isSelected &&
-                            !isSubmitted &&
-                            "border-orange-200 bg-white text-orange-700",
-                          !isSelected &&
-                            !isCorrect &&
-                            !isIncorrectSelected &&
-                            "border-slate-200 bg-slate-50 text-slate-500",
-                        )}
+                  <div className="flex flex-wrap gap-3">
+                    {!isSubmitted ? (
+                      <button
+                        type="button"
+                        onClick={() => void handleSubmitTryout(false)}
+                        disabled={isSubmitting}
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-orange-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:bg-orange-200"
                       >
-                        {option.id.toUpperCase()}
-                      </span>
+                        {isSubmitting ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <SendHorizontal className="h-4 w-4" />
+                        )}
+                        {isSubmitting
+                          ? "Mengirim..."
+                          : `Kirim ${activeSession.assessmentLabel}`}
+                      </button>
+                    ) : null}
 
-                      <span className="flex-1 pt-1 text-sm leading-6">
-                        {option.content}
-                      </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCurrentQuestionIndex((currentIndex) =>
+                          Math.min(currentIndex + 1, totalQuestions - 1),
+                        )
+                      }
+                      disabled={currentQuestionIndex === totalQuestions - 1}
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-orange-200 bg-orange-50 px-4 text-sm font-semibold text-orange-700 transition hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-45"
+                    >
+                      Soal Berikutnya
+                      <ArrowRight className="h-4 w-4" />
                     </button>
-                  );
-                })}
-              </div>
-
-              {isSubmitted ? (
-                <div className="mt-5 rounded-[20px] border border-emerald-100 bg-white p-4">
-                  <div className="flex flex-wrap gap-2 text-xs font-semibold">
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600">
-                      Jawaban kamu:{" "}
-                      {formatReviewOptionLabel(
-                        answers[getQuestionKey(currentQuestion)],
-                      )}
-                    </span>
-                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">
-                      Kunci:{" "}
-                      {formatReviewOptionLabel(currentQuestion.correctOptionId)}
-                    </span>
                   </div>
-                  <p className="mt-3 text-sm font-semibold text-slate-800">
-                    Pembahasan
-                  </p>
-                  <p className="mt-1 text-sm leading-6 text-slate-600">
-                    {currentQuestion.explanation ||
-                      currentQuestion.clue ||
-                      "Pembahasan belum tersedia untuk soal ini."}
-                  </p>
                 </div>
-              ) : null}
-            </div>
+              </section>
 
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <button
-                type="button"
-                onClick={() =>
-                  setCurrentQuestionIndex((currentIndex) =>
-                    Math.max(currentIndex - 1, 0),
-                  )
-                }
-                disabled={currentQuestionIndex === 0}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-orange-200 bg-orange-50 px-4 text-sm font-semibold text-orange-700 transition hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-45"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Soal Sebelumnya
-              </button>
-
-              <div className="flex flex-wrap gap-3">
+              <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
                 {!isSubmitted ? (
-                  <button
-                    type="button"
-                    onClick={() => void handleSubmitTryout(false)}
-                    disabled={isSubmitting}
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-orange-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:bg-orange-200"
-                  >
-                    {isSubmitting ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <SendHorizontal className="h-4 w-4" />
-                    )}
-                    {isSubmitting
-                      ? "Mengirim..."
-                      : `Kirim ${activeSession.assessmentLabel}`}
-                  </button>
+                  <section className="rounded-[24px] border border-slate-100 bg-white p-5 shadow-sm md:p-6">
+                    <SectionHeader
+                      icon={Clock3}
+                      title={`Timer ${activeSession.assessmentLabel}`}
+                      description="Pantau sisa waktu dan ritme pengerjaan selama sesi berlangsung."
+                    />
+
+                    <div
+                      className={cn(
+                        "rounded-[24px] border px-4 py-4",
+                        timerRatio <= 0.1 &&
+                          "border-rose-200 bg-rose-50 text-rose-700",
+                        timerRatio > 0.1 &&
+                          timerRatio <= 0.25 &&
+                          "border-amber-200 bg-amber-50 text-amber-700",
+                        timerRatio > 0.25 &&
+                          "border-orange-100 bg-orange-50/70 text-orange-700",
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.14em]">
+                            Sisa waktu
+                          </p>
+                          <p className="mt-2 text-3xl font-semibold tracking-[0.08em]">
+                            {formatTimer(secondsRemaining)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <Progress
+                        value={Math.max(0, Math.round(timerRatio * 100))}
+                        className={cn(
+                          "mt-4 h-2.5 bg-white/90",
+                          timerRatio <= 0.1 && "[&>div]:bg-rose-500",
+                          timerRatio > 0.1 &&
+                            timerRatio <= 0.25 &&
+                            "[&>div]:bg-amber-500",
+                          timerRatio > 0.25 && "[&>div]:bg-orange-500",
+                        )}
+                      />
+                    </div>
+                  </section>
                 ) : null}
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    setCurrentQuestionIndex((currentIndex) =>
-                      Math.min(currentIndex + 1, totalQuestions - 1),
-                    )
-                  }
-                  disabled={currentQuestionIndex === totalQuestions - 1}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-orange-200 bg-orange-50 px-4 text-sm font-semibold text-orange-700 transition hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-45"
-                >
-                  Soal Berikutnya
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </section>
+                <section className="rounded-[24px] border border-slate-100 bg-white p-5 shadow-sm md:p-6">
+                  <SectionHeader
+                    icon={Target}
+                    title={isSubmitted ? "Rekap Jawaban" : "Progres Jawaban"}
+                    description={
+                      isSubmitted
+                        ? "Ringkasan status jawaban dari attempt yang sudah dikirim."
+                        : "Lihat jumlah soal yang sudah terjawab, tertunda, dan masih perlu dicek ulang."
+                    }
+                  />
 
-          <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
-            {!isSubmitted ? (
-              <section className="rounded-[24px] border border-slate-100 bg-white p-5 shadow-sm md:p-6">
-              <SectionHeader
-                icon={Clock3}
-                title={`Timer ${activeSession.assessmentLabel}`}
-                description="Pantau sisa waktu dan ritme pengerjaan selama sesi berlangsung."
-              />
-
-              <div
-                className={cn(
-                  "rounded-[24px] border px-4 py-4",
-                  timerRatio <= 0.1 && "border-rose-200 bg-rose-50 text-rose-700",
-                  timerRatio > 0.1 &&
-                    timerRatio <= 0.25 &&
-                    "border-amber-200 bg-amber-50 text-amber-700",
-                  timerRatio > 0.25 &&
-                    "border-orange-100 bg-orange-50/70 text-orange-700",
-                )}
-              >
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em]">
-                      Sisa waktu
-                    </p>
-                    <p className="mt-2 text-3xl font-semibold tracking-[0.08em]">
-                      {formatTimer(secondsRemaining)}
-                    </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                        Terjawab
+                      </p>
+                      <p className="mt-2 text-xl font-semibold text-slate-800">
+                        {answeredCount}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                        Belum
+                      </p>
+                      <p className="mt-2 text-xl font-semibold text-slate-800">
+                        {unansweredCount}
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                <Progress
-                  value={Math.max(0, Math.round(timerRatio * 100))}
-                  className={cn(
-                    "mt-4 h-2.5 bg-white/90",
-                    timerRatio <= 0.1 && "[&>div]:bg-rose-500",
-                    timerRatio > 0.1 &&
-                      timerRatio <= 0.25 &&
-                      "[&>div]:bg-amber-500",
-                    timerRatio > 0.25 && "[&>div]:bg-orange-500",
-                  )}
-                />
-              </div>
-              </section>
-            ) : null}
+                  <Progress
+                    value={progressValue}
+                    className="mt-4 h-2.5 bg-slate-100"
+                  />
+                </section>
 
-            <section className="rounded-[24px] border border-slate-100 bg-white p-5 shadow-sm md:p-6">
-              <SectionHeader
-                icon={Target}
-                title={isSubmitted ? "Rekap Jawaban" : "Progres Jawaban"}
-                description={
-                  isSubmitted
-                    ? "Ringkasan status jawaban dari attempt yang sudah dikirim."
-                    : "Lihat jumlah soal yang sudah terjawab, tertunda, dan masih perlu dicek ulang."
-                }
-              />
+                <section className="rounded-[24px] border border-slate-100 bg-white p-5 shadow-sm md:p-6">
+                  <SectionHeader
+                    icon={Flag}
+                    title="Navigasi Soal"
+                    description="Pindah antar nomor soal dengan cepat sambil tetap memantau status jawabannya."
+                  />
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                    Terjawab
-                  </p>
-                  <p className="mt-2 text-xl font-semibold text-slate-800">
-                    {answeredCount}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                    Belum
-                  </p>
-                  <p className="mt-2 text-xl font-semibold text-slate-800">
-                    {unansweredCount}
-                  </p>
-                </div>
-              </div>
+                  <div className="grid grid-cols-4 gap-2.5">
+                    {/* DIAGNOSTIC: Final navigator check - BEHAVIORAL TEST */}
+                    {(() => {
+                      const questionsLen =
+                        activeSession?.questions?.length || 0;
+                      const totalQ = activeSession?.totalQuestions || 0;
+                      const questionIds =
+                        activeSession?.questions?.map((q) =>
+                          getQuestionKey(q),
+                        ) || [];
 
-              <Progress value={progressValue} className="mt-4 h-2.5 bg-slate-100" />
-            </section>
+                      // ULTRA-SPECIFIC FINAL LOG
+                      console.log("\n" + "=".repeat(80));
+                      console.log(
+                        "🛑 NAVIGATOR FINAL DEBUG - BEHAVIORAL VERIFICATION",
+                      );
+                      console.log("=".repeat(80));
+                      console.log("[NAVIGATOR STATE]");
+                      console.log("  questionsLength:", questionsLen);
+                      console.log("  totalQuestions:", totalQ);
+                      console.log(
+                        "  questionIds:",
+                        JSON.stringify(questionIds),
+                      );
 
-            <section className="rounded-[24px] border border-slate-100 bg-white p-5 shadow-sm md:p-6">
-              <SectionHeader
-                icon={Flag}
-                title="Navigasi Soal"
-                description="Pindah antar nomor soal dengan cepat sambil tetap memantau status jawabannya."
-              />
+                      // IMMEDIATELY AFTER MAP WILL START
+                      console.log("\n[MAPPING PHASE - WHAT WILL RENDER]");
+                      console.log(`  Will iterate ${questionsLen} items`);
+                      console.log(
+                        `  Button numbers will be: 1 to ${questionsLen}`,
+                      );
+                      console.log(`  First 15 button labels preview:`);
+                      for (let i = 0; i < Math.min(15, questionsLen); i++) {
+                        console.log(
+                          `    [${i + 1}] questionId="${questionIds[i]}"`,
+                        );
+                      }
+                      if (questionsLen > 15) {
+                        console.log(
+                          `    ... and ${questionsLen - 15} more (up to ${questionsLen})`,
+                        );
+                      }
 
-              <div className="grid grid-cols-4 gap-2.5">
-                {activeSession.questions.map((question, index) => {
-                  const questionId = getQuestionKey(question);
+                      // POST-RENDER DOM VERIFICATION
+                      setTimeout(() => {
+                        try {
+                          // Find navigator section by title
+                          const navSection = Array.from(
+                            document.querySelectorAll("section"),
+                          ).find((el) =>
+                            el.textContent.includes("Navigasi Soal"),
+                          );
 
-                  return (
-                    <button
-                      key={questionId}
-                      type="button"
-                      onClick={() => setCurrentQuestionIndex(index)}
-                      className={cn(
-                        "inline-flex h-11 items-center justify-center rounded-2xl border text-sm font-semibold transition",
-                        getPaletteClass({
-                          isCurrent: currentQuestionIndex === index,
-                          isAnswered: Boolean(answers[questionId]),
-                          isBookmarked: bookmarkedIds.includes(questionId),
-                        }),
-                      )}
-                    >
-                      {index + 1}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          </aside>
+                          if (navSection) {
+                            const grid = navSection.querySelector(
+                              '.grid-cols-4, [class*="cols-4"]',
+                            );
+
+                            if (grid) {
+                              const actualButtons =
+                                grid.querySelectorAll("button");
+
+                              console.log("\n[PREDICTED vs ACTUAL DOM]");
+                              console.log(
+                                `  Predicted buttons to render: ${questionsLen}`,
+                              );
+                              console.log(
+                                `  Actual buttons found in DOM: ${actualButtons.length}`,
+                              );
+
+                              if (actualButtons.length !== questionsLen) {
+                                console.log("\n⚠️️  MISMATCH DETECTED! ⚠️️");
+                                console.log(
+                                  `  React map says: ${questionsLen} items`,
+                                );
+                                console.log(
+                                  `  But DOM has: ${actualButtons.length} elements`,
+                                );
+                              }
+
+                              // Get all button text contents
+                              const buttonLabels = Array.from(
+                                actualButtons,
+                              ).map((btn) => ({
+                                textContent: btn.textContent?.trim(),
+                                classPreview:
+                                  btn.className.substring(0, 80) + "...",
+                                isVisible:
+                                  window.getComputedStyle(btn).display !==
+                                    "none" &&
+                                  window.getComputedStyle(btn).visibility !==
+                                    "hidden",
+                              }));
+
+                              console.log("\n[ALL BUTTON LABELS IN DOM]");
+                              console.log(
+                                "  Labels:",
+                                buttonLabels.map((b) => b.textContent),
+                              );
+
+                              // Check if buttons 11-30 exist
+                              const hasButton11to30 = buttonLabels.some((b) => {
+                                const num = parseInt(b.textContent);
+                                return num >= 11 && num <= 30;
+                              });
+
+                              console.log("\n[BUTTON RANGE CHECK]");
+                              console.log(
+                                `  Has button labeled "11"? ${buttonLabels.some((b) => b.textContent === "11") ? "YES" : "NO"}`,
+                              );
+                              console.log(
+                                `  Has button labeled "30"? ${buttonLabels.some((b) => b.textContent === "30") ? "YES" : "NO"}`,
+                              );
+                              console.log(
+                                `  Has any button 11-30? ${hasButton11to30 ? "YES ✅" : "NO ❌"}`,
+                              );
+
+                              // Check container styles
+                              const containerStyle =
+                                window.getComputedStyle(grid);
+
+                              console.log("\n[CONTAINER STYLES]");
+                              console.log(
+                                `  overflow: ${containerStyle.overflow}`,
+                              );
+                              console.log(
+                                `  overflow-x: ${containerStyle.overflowX}`,
+                              );
+                              console.log(
+                                `  overflow-y: ${containerStyle.overflowY}`,
+                              );
+                              console.log(`  height: ${containerStyle.height}`);
+                              console.log(
+                                `  maxHeight: ${containerStyle.maxHeight}`,
+                              );
+                              console.log(
+                                `  display: ${containerStyle.display}`,
+                              );
+
+                              // Calculate expected rows (grid-cols-4)
+                              const cols = 4;
+                              const rows = Math.ceil(
+                                actualButtons.length / cols,
+                              );
+
+                              console.log("\n[GRID LAYOUT CALCULATION]");
+                              console.log(`  Grid columns: 4`);
+                              console.log(
+                                `  Total buttons: ${actualButtons.length}`,
+                              );
+                              console.log(
+                                `  Expected rows: ${rows} (${Math.ceil(rows / 2)} full rows of 4)`,
+                              );
+
+                              console.log("\n" + "=".repeat(80));
+                              console.log(
+                                "🛑 NAVIGATOR FINAL DEBUG - COMPLETE",
+                              );
+                              console.log("=".repeat(80));
+                            } else {
+                              console.log(
+                                "❌ Navigator grid container not found in DOM!",
+                              );
+                            }
+                          } else {
+                            console.log(
+                              "❌ Navigator section not found in DOM!",
+                            );
+                          }
+                        } catch (err) {
+                          console.error("Error during post-render check:", err);
+                        }
+                      }, 100);
+
+                      return null;
+                    })()}
+
+                    {activeSession.questions.map((question, index) => {
+                      const questionId = getQuestionKey(question);
+
+                      return (
+                        <button
+                          key={questionId}
+                          type="button"
+                          onClick={() => setCurrentQuestionIndex(index)}
+                          className={cn(
+                            "inline-flex h-11 items-center justify-center rounded-2xl border text-sm font-semibold transition",
+                            getPaletteClass({
+                              isCurrent: currentQuestionIndex === index,
+                              isAnswered: Boolean(answers[questionId]),
+                              isBookmarked: bookmarkedIds.includes(questionId),
+                            }),
+                          )}
+                        >
+                          {index + 1}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+              </aside>
             </div>
           ) : null}
         </>

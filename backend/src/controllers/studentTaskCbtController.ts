@@ -2,14 +2,11 @@ import type { NextFunction, Request, Response } from "express";
 
 import { ClassTask, type ClassTaskDocument } from "../models/ClassTask";
 import {
-  ClassTaskQuestion,
-  type ClassTaskQuestionDocument,
-} from "../models/ClassTaskQuestion";
-import {
   StudentTaskAttempt,
   type IStudentTaskAttemptAnswer,
   type StudentTaskAttemptDocument,
 } from "../models/StudentTaskAttempt";
+import { ClassTaskQuestion } from "../models/ClassTaskQuestion";
 import { TaskSubmission } from "../models/TaskSubmission";
 import { TaskGrade } from "../models/TaskGrade";
 import asyncHandler from "../utils/asyncHandler";
@@ -23,6 +20,10 @@ import { getNextPublicId } from "../utils/publicId";
 import { getMembershipSnapshotByUserId } from "../utils/subscription";
 import { getStudentEffectiveAcademicJoinedAt } from "../utils/studentAcademicStatus";
 import { resolveStudentMembershipContentAccess } from "../utils/studentMembershipAccess";
+import {
+  createOriginalOptions,
+  getOptionContent,
+} from "../lib/question-option-compat";
 
 async function getAuthenticatedStudentCbtContextOrThrow(userId: string) {
   const membershipSnapshot = await getMembershipSnapshotByUserId(userId);
@@ -118,6 +119,98 @@ function isTaskScoreBelowPassingGrade(
   return passingGrade !== null && score < passingGrade;
 }
 
+function getQuestionBankProgram(task: ClassTaskDocument) {
+  const className = normalizeText(task.className).toLowerCase();
+  const subject = normalizeText(task.subject).toLowerCase();
+
+  if (className.includes("utbk") || className.includes("snbt")) {
+    return "UTBK / SNBT";
+  }
+  if (className.includes("smp")) {
+    return "SMP Kelas 7-9";
+  }
+  if (className.includes("sd")) {
+    return "SD Kelas 4-6";
+  }
+  if (
+    className.includes("ipa") ||
+    ["biologi", "fisika", "kimia"].some((value) => subject.includes(value))
+  ) {
+    return "SMA IPA";
+  }
+  if (className.includes("sma")) {
+    return "SMA IPS";
+  }
+
+  return null;
+}
+
+async function sampleStudentTaskQuestions(
+  task: ClassTaskDocument,
+  targetCount: number,
+) {
+  const QuestionBank = (await import("../models/QuestionBank")).QuestionBank;
+  const topicPattern = new RegExp(`Bab ${task.meetingNumber}:`, "i");
+  const program = getQuestionBankProgram(task);
+  const scopedMatch = {
+    subject: task.subject,
+    ...(program ? { program } : {}),
+    topic: { $regex: topicPattern },
+  };
+
+  let questions = await QuestionBank.aggregate([
+    { $match: scopedMatch },
+    { $sample: { size: targetCount } },
+  ]);
+
+  if (questions.length < targetCount) {
+    questions = await QuestionBank.aggregate([
+      {
+        $match: {
+          subject: task.subject,
+          ...(program ? { program } : {}),
+        },
+      },
+      { $sample: { size: targetCount } },
+    ]);
+  }
+
+  if (questions.length < targetCount) {
+    questions = await QuestionBank.aggregate([
+      { $match: { subject: task.subject, topic: { $regex: topicPattern } } },
+      { $sample: { size: targetCount } },
+    ]);
+  }
+
+  if (questions.length < targetCount) {
+    throw new AppError(
+      409,
+      `Bank soal ${task.subject} untuk pertemuan ${task.meetingNumber} belum mencukupi 30 soal.`,
+    );
+  }
+
+  return questions;
+}
+
+async function getAttemptQuestions(attempt: StudentTaskAttemptDocument) {
+  const QuestionBank = (await import("../models/QuestionBank")).QuestionBank;
+  const questionIds = attempt.answers.map((answer) => answer.questionId);
+  const [bankQuestions, classTaskQuestions] = await Promise.all([
+    QuestionBank.find({ questionId: { $in: questionIds } }).lean().exec(),
+    ClassTaskQuestion.find({ questionId: { $in: questionIds } }).lean().exec(),
+  ]);
+  const questionsById = new Map(
+    [...bankQuestions, ...classTaskQuestions].map((question) => [
+      question.questionId,
+      question,
+    ]),
+  );
+
+  return questionIds
+    .map((questionId) => questionsById.get(questionId))
+    .filter((question): question is NonNullable<typeof question> => Boolean(question));
+}
+
 function archiveAttemptForRemedial(
   attempt: StudentTaskAttemptDocument,
   reason: string,
@@ -180,6 +273,23 @@ function toPublicTaskCbtAttempt(
     submittedAt: attempt.submittedAt?.toISOString() ?? null,
     remedialCount: Math.max(Number(attempt.remedialCount) || 0, 0),
     remedialReason: normalizeText(attempt.remedialReason),
+    history: (attempt.history ?? []).map((entry) => ({
+      remedialNumber: entry.remedialNumber,
+      reason: normalizeText(entry.reason),
+      score: entry.score,
+      correctCount: entry.correctCount,
+      wrongCount: entry.wrongCount,
+      unansweredCount: entry.unansweredCount,
+      timeUsedSeconds: entry.timeUsedSeconds,
+      startedAt: entry.startedAt.toISOString(),
+      submittedAt: entry.submittedAt?.toISOString() ?? null,
+      archivedAt: entry.archivedAt.toISOString(),
+      answers: entry.answers.map((answer) => ({
+        questionId: normalizeText(answer.questionId),
+        selectedAnswer: answer.selectedAnswer,
+        isCorrect: answer.isCorrect,
+      })),
+    })),
   };
 }
 
@@ -206,20 +316,15 @@ function toPublicTaskCbtQuestion(
   // Shuffle options based on studentId and questionId
   const optionMapping = getSeededOptionMapping(attempt.studentId, questionId);
   
-  // originalOptions maps "A", "B", "C", "D" to their respective contents
-  const originalOptions: Record<string, string> = {
-    A: normalizeText(question.optionA),
-    B: normalizeText(question.optionB),
-    C: normalizeText(question.optionC),
-    D: normalizeText(question.optionD),
-  };
+  // Get originalOptions using compatibility helper - works for both V6 (options[]) and legacy (optionA-D)
+  const originalOptions = createOriginalOptions(question);
 
   // mappedOptions is the shuffled array presented to the student
   const mappedOptions = optionMapping.map((originalLetter, i) => {
     const newLetter = String.fromCharCode(65 + i); // 0 -> A, 1 -> B, etc.
     return {
       id: newLetter,
-      content: originalOptions[originalLetter],
+      content: originalOptions[originalLetter as keyof typeof originalOptions],
       originalId: originalLetter // we keep this internally to map back if needed
     };
   });
@@ -280,7 +385,11 @@ function buildTaskCbtResponsePayload(
           correctCount: attempt.correctCount,
           wrongCount: attempt.wrongCount,
           unansweredCount: attempt.unansweredCount,
-          totalQuestions: questions.length,
+          totalQuestions: Math.max(
+            questions.length,
+            attempt.answers.length,
+            attempt.correctCount + attempt.wrongCount + attempt.unansweredCount,
+          ),
         }
       : null;
 
@@ -358,10 +467,10 @@ export const startStudentClassTaskCbt = asyncHandler(
       return;
     }
 
-    const targetCount = task.questionCount && task.questionCount > 0 ? task.questionCount : 30;
+    const targetCount = 30;
 
-    if (targetCount <= 0 || !task.durationMinutes) {
-       next(new AppError(400, "Latihan ini belum memiliki soal CBT atau durasi yang valid."));
+    if (!task.durationMinutes) {
+       next(new AppError(400, "Latihan ini belum memiliki durasi yang valid."));
        return;
     }
 
@@ -376,30 +485,26 @@ export const startStudentClassTaskCbt = asyncHandler(
       return;
     }
 
+    // 🎯 FIXED: Prioritize finding in_progress attempts first (newest first)
+    // If incomplete attempt exists, handle it separately below
     let attempt = await StudentTaskAttempt.findOne({
       taskId: task.taskId,
       studentId: student.studentId,
-    });
+      status: "in_progress",
+    })
+    .sort({ createdAt: -1 }); // Prefer newest active attempt
 
     if (!attempt) {
-      const QuestionBank = (await import("../models/QuestionBank")).QuestionBank;
-      const topicPattern = new RegExp(`Bab ${task.meetingNumber}:`, "i");
-      
-      let sampledQuestions = await QuestionBank.aggregate([
-        { 
-          $match: { 
-            subject: task.subject,
-            topic: { $regex: topicPattern }
-          } 
-        },
-        { $sample: { size: targetCount } }
-      ]);
-      
-      if (!sampledQuestions || sampledQuestions.length === 0) {
-        sampledQuestions = await QuestionBank.aggregate([
-          { $match: { subject: task.subject } },
-          { $sample: { size: targetCount } }
-        ]);
+      // No in_progress attempt found - create brand new one
+      const sampledQuestions = await sampleStudentTaskQuestions(task, targetCount);
+
+      // ✅ VALIDATION: Fail fast if we cannot get exactly 30 questions
+      if (sampledQuestions.length !== targetCount) {
+        next(new AppError(
+          409,
+          `Bank soal untuk latihan ini belum mencukupi ${targetCount} soal. Diminta: ${targetCount}, tersedia: ${sampledQuestions.length}`
+        ));
+        return;
       }
 
       const attemptId = await getNextPublicId(StudentTaskAttempt as any, "attemptId", "attempt");
@@ -421,6 +526,85 @@ export const startStudentClassTaskCbt = asyncHandler(
       });
 
       await attempt.save();
+
+      // 🛡️ SAFETY CHECK: Double-verify after save (should never fail)
+      if (attempt.answers.length !== targetCount) {
+        console.error(
+          `[VALIDATION ERROR] Attempt ${attempt.attemptId} saved with only ${attempt.answers.length} answers. Expected ${targetCount}. This should NEVER happen.`
+        );
+        throw new AppError(500, "Terjadi kesalahan saat membuat sesi latihan. Silakan coba lagi.");
+      }
+    } else if (attempt.answers.length < targetCount) {
+      // 🛑 CRITICAL FIX: Found incomplete in_progress attempt
+      // DO NOT reuse this incomplete attempt. Archive it and create new one.
+      console.log(
+        `[ATTENTION] Found incomplete attempt ${attempt.attemptId} with ${attempt.answers.length} answers for task ${task.taskId}. Archiving and creating new complete attempt.`
+      );
+
+      // Archive the incomplete attempt by moving it to history
+      const archiveReason = "Membuat sesi latihan baru (attempt sebelumnya tidak lengkap)";
+      attempt.history = [
+        ...(attempt.history ?? []),
+        {
+          remedialNumber: Math.max(Number(attempt.remedialCount) || 0, 0) + 1,
+          reason: archiveReason,
+          answers: attempt.answers.map((answer) => ({
+            questionId: answer.questionId,
+            selectedAnswer: answer.selectedAnswer,
+            isCorrect: answer.isCorrect,
+          })),
+          correctCount: attempt.correctCount,
+          wrongCount: attempt.wrongCount,
+          unansweredCount: attempt.unansweredCount,
+          score: attempt.score,
+          timeUsedSeconds: attempt.timeUsedSeconds,
+          startedAt: attempt.startedAt,
+          submittedAt: attempt.submittedAt,
+          archivedAt: now,
+        },
+      ];
+
+      // Now create fresh attempt with 30 questions
+      const newAttemptId = await getNextPublicId(StudentTaskAttempt as any, "attemptId", "attempt");
+      const newAttempt = new StudentTaskAttempt({
+        attemptId: newAttemptId,
+        taskId: task.taskId,
+        teacherId: task.teacherId,
+        classId: task.classId,
+        branch: task.branch,
+        studentId: student.studentId,
+        subscriptionId,
+        startedAt: now,
+        status: "in_progress",
+        answers: [], // Will be populated below
+      });
+
+      // Sample questions for new attempt
+      const sampledQuestions = await sampleStudentTaskQuestions(task, targetCount);
+
+      if (sampledQuestions.length !== targetCount) {
+        next(new AppError(
+          409,
+          `Bank soal untuk latihan baru belum mencukupi ${targetCount} soal. Diminta: ${targetCount}, tersedia: ${sampledQuestions.length}`
+        ));
+        return;
+      }
+
+      newAttempt.answers = sampledQuestions.map(q => ({
+        questionId: q.questionId || q._id.toString(),
+        selectedAnswer: "",
+        isCorrect: null,
+      }));
+
+      // Update subscription if needed
+      if (!newAttempt.subscriptionId && subscriptionId) {
+        newAttempt.subscriptionId = subscriptionId;
+      }
+
+      await Promise.all([newAttempt.save()]);
+
+      // Return the new complete attempt
+      attempt = newAttempt;
     } else if (attempt.status === "submitted") {
       const grade = await TaskGrade.findOne({
         taskId: task.taskId,
@@ -438,20 +622,18 @@ export const startStudentClassTaskCbt = asyncHandler(
 
       archiveAttemptForRemedial(attempt, remedialReason, now);
       
-      // Re-sample questions for remedial
-      const QuestionBank = (await import("../models/QuestionBank")).QuestionBank;
-      const topicPattern = new RegExp(`Bab ${task.meetingNumber}:`, "i");
-      let sampledQuestions = await QuestionBank.aggregate([
-        { $match: { subject: task.subject, topic: { $regex: topicPattern } } },
-        { $sample: { size: targetCount } }
-      ]);
-      if (!sampledQuestions || sampledQuestions.length === 0) {
-        sampledQuestions = await QuestionBank.aggregate([
-          { $match: { subject: task.subject } },
-          { $sample: { size: targetCount } }
-        ]);
+      const remedialSampledQuestions = await sampleStudentTaskQuestions(task, targetCount);
+      
+      // ✅ VALIDATION for remedial: Ensure we have exactly 30 questions before regenerating
+      if (remedialSampledQuestions.length !== targetCount) {
+        next(new AppError(
+          409,
+          `Bank soal untuk remedial latihan ini belum mencukupi ${targetCount} soal. Diminta: ${targetCount}, tersedia: ${remedialSampledQuestions.length}`
+        ));
+        return;
       }
-      attempt.answers = sampledQuestions.map(q => ({
+      
+      attempt.answers = remedialSampledQuestions.map(q => ({
         questionId: q.questionId || q._id.toString(),
         selectedAnswer: "",
         isCorrect: null,
@@ -513,18 +695,7 @@ export const getStudentClassTaskCbtSession = asyncHandler(
       return;
     }
 
-    const QuestionBank = (await import("../models/QuestionBank")).QuestionBank;
-    const questionIds = attempt.answers.map(a => a.questionId);
-    
-    // Fetch all questions required by this attempt
-    const fetchedQuestions = await QuestionBank.find({
-      questionId: { $in: questionIds }
-    });
-
-    // We must return them in the exact order they were sampled (stored in attempt.answers)
-    const questions = questionIds.map(id => 
-      fetchedQuestions.find(q => q.questionId === id)
-    ).filter((q) => q !== undefined) as any[]; // Filter out any undefined just in case
+    const questions = await getAttemptQuestions(attempt);
 
     sendSuccess(res, {
       statusCode: 200,
@@ -579,18 +750,7 @@ export const submitStudentClassTaskCbt = asyncHandler(
       return;
     }
 
-    const QuestionBank = (await import("../models/QuestionBank")).QuestionBank;
-    const questionIds = attempt.answers.map(a => a.questionId);
-    
-    // Fetch all questions required by this attempt
-    const fetchedQuestions = await QuestionBank.find({
-      questionId: { $in: questionIds }
-    });
-
-    // Order them exactly as sampled
-    const questions = questionIds.map(id => 
-      fetchedQuestions.find(q => q.questionId === id)
-    ).filter((q) => q !== undefined) as any[]; // Filter out any undefined just in case
+    const questions = await getAttemptQuestions(attempt);
 
     const payloadAnswers = req.body.answers || [];
     let correctCount = 0;

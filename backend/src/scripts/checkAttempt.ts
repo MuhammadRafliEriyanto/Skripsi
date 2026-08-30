@@ -6,8 +6,20 @@ import { User } from "../models/User";
 
 dotenv.config();
 
+// REQUIREMENT: MONGODB_URI must be set in environment variables
+if (!process.env.MONGODB_URI) {
+  console.error('\n❌ ERROR: MONGODB_URI environment variable is required');
+  console.error('   Please set MONGODB_URI in backend/.env file');
+  console.error('   Example: MONGODB_URI=mongodb://localhost:27017/your_database');
+  console.error('');
+  console.error('   For Atlas cluster use:');
+  console.error('   MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/database');
+  console.error('');
+  process.exit(1);
+}
+
 async function run() {
-  await mongoose.connect(process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/bimbel-new");
+  await mongoose.connect(process.env.MONGODB_URI);
   
   const attempts = await StudentTryoutAttempt.find().lean();
   console.log(`Found ${attempts.length} total attempts in db.`);

@@ -109,6 +109,23 @@ type StudentLearningApiTaskAttemptItem = {
   submittedAt?: string | null;
   startedAt?: string | null;
   remedialCount?: number;
+  history?: {
+    remedialNumber?: number;
+    reason?: string;
+    score?: number;
+    correctCount?: number;
+    wrongCount?: number;
+    unansweredCount?: number;
+    timeUsedSeconds?: number;
+    startedAt?: string;
+    submittedAt?: string | null;
+    archivedAt?: string;
+    answers?: {
+      questionId?: string;
+      selectedAnswer?: string;
+      isCorrect?: boolean | null;
+    }[];
+  }[];
 };
 
 type StudentLearningResponse = {
@@ -388,6 +405,23 @@ function mapTaskAttemptSummary(
     submittedAt: attempt.submittedAt?.trim() || null,
     startedAt: attempt.startedAt?.trim() || null,
     remedialCount: Math.max(attempt.remedialCount ?? 0, 0),
+    history: attempt.history?.map((entry) => ({
+      remedialNumber: entry.remedialNumber ?? 0,
+      reason: normalizeText(entry.reason),
+      score: entry.score ?? 0,
+      correctCount: entry.correctCount ?? 0,
+      wrongCount: entry.wrongCount ?? 0,
+      unansweredCount: entry.unansweredCount ?? 0,
+      timeUsedSeconds: entry.timeUsedSeconds ?? 0,
+      startedAt: entry.startedAt ?? "",
+      submittedAt: entry.submittedAt ?? null,
+      archivedAt: entry.archivedAt ?? "",
+      answers: entry.answers?.map((answer) => ({
+        questionId: normalizeText(answer.questionId),
+        selectedAnswer: normalizeText(answer.selectedAnswer),
+        isCorrect: answer.isCorrect ?? null,
+      })) ?? [],
+    })),
   };
 }
 

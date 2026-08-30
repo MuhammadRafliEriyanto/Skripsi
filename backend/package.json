@@ -7,6 +7,10 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
+    "audit:bank-soal": "tsx src/scripts/audit-bank-soal.ts",
+    "audit:bank-soal:sample": "tsx src/scripts/audit-bank-soal.ts --sample",
+    "audit:bank-soal:full": "tsx src/scripts/audit-bank-soal.ts --full",
+    "audit:bank-soal:math": "tsx src/scripts/audit-bank-soal.ts --subject=Matematika",
     "schedules:generate:dry-run": "tsx src/scripts/generateTeacherSchedules.ts",
     "schedules:generate": "tsx src/scripts/generateTeacherSchedules.ts --apply",
     "schedules:generate:allow-orphans": "tsx src/scripts/generateTeacherSchedules.ts --apply --allow-learning-orphans",
@@ -60,12 +64,15 @@
     "data:bimbel:p1-p9:february-dates:dry-run": "tsx src/scripts/normalizeBimbelP1P9FebruaryDates.ts",
     "data:bimbel:p1-p9:february-dates": "tsx src/scripts/normalizeBimbelP1P9FebruaryDates.ts --apply",
     "data:schedules:duration-90:dry-run": "tsx src/scripts/normalizeScheduleDurations.ts",
-    "data:schedules:duration-90": "tsx src/scripts/normalizeScheduleDurations.ts --apply"
+    "data:schedules:duration-90": "tsx src/scripts/normalizeScheduleDurations.ts --apply",
+    "migrate:to-v6:dry-run": "node src/scripts/migrate-to-v6.js --dry-run",
+    "migrate:to-v6": "node src/scripts/migrate-to-v6.js --apply"
   },
   "dependencies": {
     "bcryptjs": "3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
     "express": "^4.21.0",
     "google-auth-library": "^10.6.2",
     "jsonwebtoken": "^9.0.2",
