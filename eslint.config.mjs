@@ -24,7 +24,6 @@ const eslintConfig = defineConfig([
     "docs/blackbox-evidence/**",
     "tests/**",
     "*.js",
-    "original_chatbot.tsx",
   ]),
 ]);
 

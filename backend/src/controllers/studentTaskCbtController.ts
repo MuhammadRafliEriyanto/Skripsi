@@ -200,7 +200,7 @@ async function getAttemptQuestions(attempt: StudentTaskAttemptDocument) {
     ClassTaskQuestion.find({ questionId: { $in: questionIds } }).lean().exec(),
   ]);
   const questionsById = new Map(
-    [...bankQuestions, ...classTaskQuestions].map((question) => [
+    [...classTaskQuestions, ...bankQuestions].map((question) => [
       question.questionId,
       question,
     ]),

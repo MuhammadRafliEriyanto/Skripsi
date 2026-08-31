@@ -74,4 +74,93 @@ node_modules/
 /playwright/.cache/
 /playwright/.auth/
 
+# ============================================================
+# Pembersihan repository (file tetap ada di komputer,
+# hanya TIDAK di-upload ke GitHub)
+# ============================================================
+
+# Media & binary besar (video demo skripsi, jurnal, jar)
+*.mp4
+*.mkv
+*.webm
+*.jar
+*.bak
+/output/
+/outputs/
+/Jurnal/
+/.playwright-mcp/
+
+# Folder kerja lokal: backup, output audit, config dengan credential
+backend/config/
+backend/scripts/
+backend/tests/
+backend/src/backups/
+backend/outputs/
+backend/src/outputs/
+
+# Script sekali-pakai di root project (fix_*, patch*, debug*, refactor*, dll.)
+/*.js
+/*.ps1
+/*.py
+/*.txt
+/*.diff
+/test
+/original_chatbot.tsx
+/audit_responsive.json
+/analyze-math-functions.mjs
+/deep-pattern-analysis.mjs
+/test-v6-quick.mjs
+
+# Laporan audit/forensik di root — KECUALI dokumen yang direferensikan AGENTS.md
+/*.md
+!/AGENTS.md
+!/CLAUDE.md
+!/README.md
+!/CBT_SYSTEM_INVENTORY.md
+!/FINAL-AUDIT-REPORT.md
+!/AUDIT-DATABASE-COMPLETE.md
+!/FRONTEND-VS-BACKEND-INVESTIGATION.md
+!/ROOT-CAUSE-FINAL.md
+!/CHECKLIST-MIGRASI-BESOK.md
+
+# Script sekali-pakai & artifact di root backend (non-runtime, lihat eslint.config.mjs)
+/backend/*.js
+/backend/*.ts
+/backend/*.md
+!/backend/README.md
+/backend/audit*.json
+/backend/smart_audit_result.json
+/backend/dry_run_output.txt
+/backend/output.txt
+
+# File backend/src/scripts yang mengandung credential hardcoded.
+# JANGAN di-commit sebelum di-refactor ke process.env!
+backend/src/scripts/build-clean-before-sample.mjs
+backend/src/scripts/extract-atlas-sample.mjs
+backend/src/scripts/extract-diversified-sample.mjs
+backend/src/scripts/forensic-trace-attempt.mjs
+backend/src/scripts/phase3a-duplicate-variation-analysis.mjs
+backend/src/scripts/phase3a-full-baseline-audit.mjs
+backend/src/scripts/phase3a-manual-review-list.mjs
+backend/src/scripts/phase3a-remediation-preview.mjs
+backend/src/scripts/verify-atlas-db.mjs
+backend/src/scripts/verify-question-presence.mjs
+backend/src/scripts/MIGRATION-GUIDE.md
+
+# Artifact output di folder scripts backend
+backend/src/scripts/*.txt
+backend/src/scripts/*.csv
+backend/src/scripts/dry_run_report*.md
+
+# State lokal AI agent
+/.agents/
+/memories/
+
+# Konfigurasi tool AI lokal (bukan bagian dari project)
+/opencode.json
+
 .vercel
+
+# Script test/debug sekali-pakai (backend root & root)
+/backend/*.mjs
+/prepare-p1p9-reset.ts
