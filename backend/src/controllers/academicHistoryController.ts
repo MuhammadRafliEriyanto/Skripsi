@@ -27,8 +27,14 @@ import {
 } from "../models/TaskSubmission";
 import { Teacher, type TeacherDocument } from "../models/Teacher";
 import { TeacherTryout, type ITeacherTryout } from "../models/TeacherTryout";
+import type { UserDocument } from "../models/User";
 import asyncHandler from "../utils/asyncHandler";
 import { AppError, sendSuccess } from "../utils/apiResponse";
+
+type AuthenticatedRequest<P extends Record<string, string> = Record<string, string>> =
+  Request<P> & {
+    user?: UserDocument;
+  };
 import {
   getCurrentAcademicPeriod,
   toPublicAcademicGrade,
@@ -1360,7 +1366,7 @@ async function loadAcademicHistoryDetail(
 }
 
 export const getMyStudentAcademicHistory = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
       next(new AppError(401, "User belum terautentikasi."));
       return;
@@ -1389,7 +1395,7 @@ export const getMyStudentAcademicHistory = asyncHandler(
 
 export const getMyStudentAcademicHistoryDetail = asyncHandler(
   async (
-    req: Request<{ subscriptionId: string }>,
+    req: AuthenticatedRequest<{ subscriptionId: string }>,
     res: Response,
     next: NextFunction,
   ) => {
@@ -1424,7 +1430,7 @@ export const getMyStudentAcademicHistoryDetail = asyncHandler(
 
 export const getTeacherStudentAcademicHistory = asyncHandler(
   async (
-    req: Request<{ studentId: string }>,
+    req: AuthenticatedRequest<{ studentId: string }>,
     res: Response,
     next: NextFunction,
   ) => {
@@ -1465,7 +1471,7 @@ export const getTeacherStudentAcademicHistory = asyncHandler(
 
 export const getTeacherStudentAcademicHistoryDetail = asyncHandler(
   async (
-    req: Request<{ studentId: string; subscriptionId: string }>,
+    req: AuthenticatedRequest<{ studentId: string; subscriptionId: string }>,
     res: Response,
     next: NextFunction,
   ) => {
