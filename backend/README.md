@@ -1371,3 +1371,14 @@ Urutan pekerjaan:
 ```
 
 **Jangan melompati urutan tersebut.**
+## Cloudinary question images
+
+Tambahkan tiga environment variable berikut pada `backend/.env` (jangan commit nilainya):
+
+```env
+CLOUDINARY_CLOUD_NAME=...
+CLOUDINARY_API_KEY=...
+CLOUDINARY_API_SECRET=...
+```
+
+Upload gambar soal dilakukan oleh backend ke folder `bimbel/question-bank`. API secret hanya boleh berada di backend.

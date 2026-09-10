@@ -37,6 +37,7 @@ import {
 import {
   getTeacherClassTaskQuestions,
   generateTeacherClassTaskQuestionsAuto,
+  selectTeacherClassTaskQuestions,
 } from "../controllers/teacherTaskCbtController";
 import {
   getMyTeacherClasses,
@@ -94,6 +95,10 @@ router.get(
 router.post(
   "/me/classes/:classId/tasks/:taskId/questions/auto-generate",
   generateTeacherClassTaskQuestionsAuto,
+);
+router.post(
+  "/me/classes/:classId/tasks/:taskId/questions/select",
+  selectTeacherClassTaskQuestions,
 );
 router.patch("/me/classes/:classId/settings", updateTeacherClassSetting);
 router.get(

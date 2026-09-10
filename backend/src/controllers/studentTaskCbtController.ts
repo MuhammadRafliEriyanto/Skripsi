@@ -7,6 +7,7 @@ import {
   type StudentTaskAttemptDocument,
 } from "../models/StudentTaskAttempt";
 import { ClassTaskQuestion } from "../models/ClassTaskQuestion";
+import { QuestionBankItem } from "../models/QuestionBankItem";
 import { TaskSubmission } from "../models/TaskSubmission";
 import { TaskGrade } from "../models/TaskGrade";
 import asyncHandler from "../utils/asyncHandler";
@@ -149,25 +150,35 @@ async function sampleStudentTaskQuestions(
   task: ClassTaskDocument,
   targetCount: number,
 ) {
-  const QuestionBank = (await import("../models/QuestionBank")).QuestionBank;
+  const selectedQuestions = await ClassTaskQuestion.find({ taskId: task.taskId })
+    .sort({ order: 1 })
+    .lean()
+    .exec();
+  if (selectedQuestions.length > 0) {
+    return selectedQuestions.slice(0, targetCount);
+  }
   const topicPattern = new RegExp(`Bab ${task.meetingNumber}:`, "i");
   const program = getQuestionBankProgram(task);
   const scopedMatch = {
     subject: task.subject,
+    className: task.className,
+    status: "approved",
     ...(program ? { program } : {}),
     topic: { $regex: topicPattern },
   };
 
-  let questions = await QuestionBank.aggregate([
+  let questions = await QuestionBankItem.aggregate([
     { $match: scopedMatch },
     { $sample: { size: targetCount } },
   ]);
 
   if (questions.length < targetCount) {
-    questions = await QuestionBank.aggregate([
+    questions = await QuestionBankItem.aggregate([
       {
         $match: {
           subject: task.subject,
+          className: task.className,
+          status: "approved",
           ...(program ? { program } : {}),
         },
       },
@@ -176,8 +187,8 @@ async function sampleStudentTaskQuestions(
   }
 
   if (questions.length < targetCount) {
-    questions = await QuestionBank.aggregate([
-      { $match: { subject: task.subject, topic: { $regex: topicPattern } } },
+    questions = await QuestionBankItem.aggregate([
+      { $match: { subject: task.subject, className: task.className, status: "approved", topic: { $regex: topicPattern } } },
       { $sample: { size: targetCount } },
     ]);
   }
@@ -193,10 +204,9 @@ async function sampleStudentTaskQuestions(
 }
 
 async function getAttemptQuestions(attempt: StudentTaskAttemptDocument) {
-  const QuestionBank = (await import("../models/QuestionBank")).QuestionBank;
   const questionIds = attempt.answers.map((answer) => answer.questionId);
   const [bankQuestions, classTaskQuestions] = await Promise.all([
-    QuestionBank.find({ questionId: { $in: questionIds } }).lean().exec(),
+    QuestionBankItem.find({ questionId: { $in: questionIds } }).lean().exec(),
     ClassTaskQuestion.find({ questionId: { $in: questionIds } }).lean().exec(),
   ]);
   const questionsById = new Map(
@@ -356,6 +366,7 @@ function toPublicTaskCbtQuestion(
     section: "Latihan Soal",
     topic: normalizeText(question.topic) || `Soal ${index + 1}`,
     prompt: normalizeText(question.questionText),
+    imageUrl: normalizeText(question.imageUrl),
     options: mappedOptions.map(o => ({ id: o.id, content: o.content })),
     difficulty: normalizeText(question.difficulty) || "Sedang",
     clue: "",
@@ -467,7 +478,7 @@ export const startStudentClassTaskCbt = asyncHandler(
       return;
     }
 
-    const targetCount = 30;
+    const targetCount = Math.max(Number(task.questionCount) || 0, 1);
 
     if (!task.durationMinutes) {
        next(new AppError(400, "Latihan ini belum memiliki durasi yang valid."));

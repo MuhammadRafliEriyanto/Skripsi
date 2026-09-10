@@ -60,6 +60,9 @@ export type TugasPertemuan = {
   durasiMenit: number;
   jumlahSoal: number;
   isCbt: boolean;
+  questionBankScope: "global" | "mine" | "mixed";
+  questionSelectionMode: "auto" | "manual";
+  selectedQuestionIds: string[];
   nilaiMinimum: number | null;
   jumlahMengumpulkan: number;
   statusPenilaian: TugasStatusPenilaian;
@@ -193,7 +196,7 @@ export type MateriFormDialogProps = {
 export type TugasFormDialogProps = {
   draft: TugasPertemuan | null;
   mode: DialogMode;
-  onChange: (field: keyof TugasPertemuan, value: string | number | boolean) => void;
+  onChange: (field: keyof TugasPertemuan, value: string | number | boolean | string[]) => void;
   onAttachmentChange: (file: File | null) => void;
   onClearSelectedAttachment: () => void;
   onRemoveExistingAttachment: () => void;

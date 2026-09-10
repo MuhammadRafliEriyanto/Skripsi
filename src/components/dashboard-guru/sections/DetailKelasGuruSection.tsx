@@ -907,6 +907,9 @@ function mapTeacherApiTaskToFormItem(
     durasiMenit: sessionDuration,
     jumlahSoal: Math.max(toSafeNumber(task.questionCount), 0),
     isCbt: Math.max(toSafeNumber(task.questionCount), 0) > 0,
+    questionBankScope: "mixed",
+    questionSelectionMode: "auto",
+    selectedQuestionIds: [],
     nilaiMinimum: Math.min(
       Math.max(toSafeNumber(task.passingGrade) || 70, 1),
       100,
@@ -1885,7 +1888,7 @@ export default function DetailKelasGuruSection({
     return mapTeacherApiTaskToFormItem(payload.data.task, normalizedClassId);
   }
 
-  async function uploadTaskQuestionsRequest(taskId: string, file: File | null) {
+  async function uploadTaskQuestionsRequest(taskId: string, draft: TugasPertemuan) {
     const normalizedClassId = normalizeText(activeClass.kelasId);
     const normalizedTaskId = normalizeText(taskId);
 
@@ -1895,13 +1898,19 @@ export default function DetailKelasGuruSection({
 
     const response = await fetch(
       buildGuruApiUrl(
-        `/api/teacher/me/classes/${encodeURIComponent(normalizedClassId)}/tasks/${encodeURIComponent(normalizedTaskId)}/questions/auto-generate`,
+        `/api/teacher/me/classes/${encodeURIComponent(normalizedClassId)}/tasks/${encodeURIComponent(normalizedTaskId)}/questions/${draft.questionSelectionMode === "manual" ? "select" : "auto-generate"}`,
         searchParams,
       ),
       {
-        method: "POST",
-        credentials: "include",
-        cache: "no-store",
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          cache: "no-store",
+          body: JSON.stringify(
+            draft.questionSelectionMode === "manual"
+              ? { questionIds: draft.selectedQuestionIds }
+              : { bankScope: draft.questionBankScope, questionCount: draft.jumlahSoal },
+          ),
       },
     );
     const payload = (await response.json().catch(() => null)) as
@@ -2838,13 +2847,13 @@ export default function DetailKelasGuruSection({
 
   function handleTugasDraftChange(
     field: keyof TugasPertemuan,
-    value: string | number | boolean,
+    value: string | number | boolean | string[],
   ) {
     setTugasDraft((current) =>
       current
         ? (() => {
             const nextValue = (() => {
-              if (typeof value === "boolean") {
+              if (Array.isArray(value) || typeof value === "boolean") {
                 return value;
               }
 
@@ -2996,7 +3005,7 @@ export default function DetailKelasGuruSection({
             ...savedTask,
             jumlahSoal: await uploadTaskQuestionsRequest(
               savedTask.id,
-              null,
+              tugasDraft,
             ),
           }
         : savedTask;

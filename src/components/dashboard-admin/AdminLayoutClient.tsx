@@ -72,6 +72,7 @@ function AdminLayoutClientInner({ children }: { children: React.ReactNode }) {
     if (pathname.includes("/monitoring-akademik")) return "utbkAssessments";
     if (pathname.includes("/akademik")) return "utbkAssessments";
     if (pathname.includes("/penilaian-utbk")) return "utbkAssessments";
+    if (pathname.includes("/bank-soal")) return "questionBank";
     if (pathname.includes("/profil")) return "profile";
     return "overview";
   };
@@ -86,6 +87,7 @@ function AdminLayoutClientInner({ children }: { children: React.ReactNode }) {
       case "schedule": router.push("/dashboard-admin/jadwal"); break;
       case "utbkAssessments": router.push("/dashboard-admin/monitoring-akademik"); break;
       case "profile": router.push("/dashboard-admin/profil"); break;
+      case "questionBank": router.push("/dashboard-admin/bank-soal"); break;
       default: router.push("/dashboard-admin"); break;
     }
   };

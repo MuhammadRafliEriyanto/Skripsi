@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import {
   Dialog,
   DialogClose,
@@ -11,6 +13,15 @@ import {
 } from "@/components/ui/dialog";
 
 import type { TugasFormDialogProps } from "./types";
+
+type AvailableQuestion = {
+  questionId: string;
+  questionText: string;
+  subject: string;
+  topic: string;
+  difficulty: string;
+  createdByName?: string;
+};
 
 export default function TugasFormDialog({
   attachmentMarkedForRemoval,
@@ -27,10 +38,30 @@ export default function TugasFormDialog({
   open,
   selectedAttachmentName,
 }: TugasFormDialogProps) {
+  const [availableQuestions, setAvailableQuestions] = useState<AvailableQuestion[]>([]);
+  const [questionsLoading, setQuestionsLoading] = useState(false);
+  const [questionSearch, setQuestionSearch] = useState("");
   const isSelectedWorkbook =
     selectedAttachmentName?.toLowerCase().endsWith(".xlsx") ||
     selectedAttachmentName?.toLowerCase().endsWith(".xls") ||
     false;
+
+  useEffect(() => {
+    if (!open || !draft?.isCbt || draft.questionSelectionMode !== "manual") return;
+    const controller = new AbortController();
+    setQuestionsLoading(true);
+    const params = new URLSearchParams({ scope: draft.questionBankScope });
+    fetch(`/api/teacher/me/question-bank/available?${params}`, { credentials: "include", cache: "no-store", signal: controller.signal })
+      .then((response) => response.json())
+      .then((payload) => setAvailableQuestions(payload.data?.items ?? []))
+      .catch((error) => { if (error instanceof Error && error.name !== "AbortError") setAvailableQuestions([]); })
+      .finally(() => setQuestionsLoading(false));
+    return () => controller.abort();
+  }, [draft?.isCbt, draft?.questionBankScope, draft?.questionSelectionMode, open]);
+
+  const visibleQuestions = availableQuestions.filter((question) =>
+    `${question.questionText} ${question.subject} ${question.topic}`.toLowerCase().includes(questionSearch.toLowerCase()),
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -138,7 +169,7 @@ export default function TugasFormDialog({
                     className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
                   />
                   <label htmlFor="isCbtToggle" className="text-sm text-slate-600 cursor-pointer">
-                    Gunakan Mode CBT Otomatis (Otomatis generate soal)
+                    Gunakan latihan CBT dari bank soal
                   </label>
                 </div>
               </label>
@@ -171,6 +202,42 @@ export default function TugasFormDialog({
                 />
               </label>
             </div>
+
+            {draft?.isCbt && (
+              <div className="grid gap-4 rounded-xl border border-orange-100 bg-orange-50/40 p-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="grid gap-2 text-sm font-medium text-slate-700">
+                    Sumber Bank Soal
+                    <select value={draft.questionBankScope} onChange={(event) => onChange("questionBankScope", event.target.value)} className="border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-orange-300">
+                      <option value="global">Bank soal global</option>
+                      <option value="mine">Bank soal saya</option>
+                      <option value="mixed">Campuran global + soal saya</option>
+                    </select>
+                  </label>
+                  <label className="grid gap-2 text-sm font-medium text-slate-700">
+                    Cara Memilih Soal
+                    <select value={draft.questionSelectionMode} onChange={(event) => onChange("questionSelectionMode", event.target.value)} className="border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-orange-300">
+                      <option value="auto">Generate otomatis dan acak</option>
+                      <option value="manual">Pilih manual satu per satu</option>
+                    </select>
+                  </label>
+                </div>
+                {draft.questionSelectionMode === "auto" ? (
+                  <p className="text-xs leading-5 text-slate-500">Sistem mengambil soal approved secara acak dengan campuran tingkat kesulitan. Paket akan disimpan sebagai snapshot latihan.</p>
+                ) : (
+                  <div className="grid gap-3">
+                    <input value={questionSearch} onChange={(event) => setQuestionSearch(event.target.value)} placeholder="Cari pertanyaan, mapel, atau topik..." className="border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-orange-300" />
+                    <div className="max-h-72 overflow-y-auto border border-slate-200 bg-white">
+                      {questionsLoading ? <p className="p-4 text-sm text-slate-500">Memuat bank soal...</p> : visibleQuestions.length ? visibleQuestions.map((question) => {
+                        const checked = draft.selectedQuestionIds.includes(question.questionId);
+                        return <label key={question.questionId} className="flex cursor-pointer items-start gap-3 border-b border-slate-100 p-3 last:border-b-0 hover:bg-orange-50/40"><input type="checkbox" checked={checked} onChange={() => onChange("selectedQuestionIds", checked ? draft.selectedQuestionIds.filter((id) => id !== question.questionId) : [...draft.selectedQuestionIds, question.questionId])} className="mt-1 size-4 accent-orange-600"/><span className="min-w-0"><span className="line-clamp-2 break-words text-sm font-medium text-slate-700">{question.questionText}</span><span className="mt-1 block text-xs text-slate-400">{question.subject} · {question.topic} · {question.difficulty} · {question.createdByName || "Bank pusat"}</span></span></label>;
+                      }) : <p className="p-4 text-sm text-slate-500">Belum ada soal approved sesuai sumber ini.</p>}
+                    </div>
+                    <p className="text-xs font-semibold text-orange-700">{draft.selectedQuestionIds.length} soal dipilih</p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {!draft?.isCbt && (
               <div className="grid gap-3 border border-slate-200 bg-slate-50/40 p-4 text-sm font-medium text-slate-700">

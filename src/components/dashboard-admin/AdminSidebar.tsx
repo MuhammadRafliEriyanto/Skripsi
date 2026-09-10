@@ -45,6 +45,7 @@ function buildSidebarNavigation(badgeCounts: AdminSidebarBadgeCounts): AdminNavI
         "schedule",
         "utbkAssessments",
         "payments",
+        "questionBank",
       ].includes(item.value),
     )
     .map((item) => {
@@ -98,6 +99,10 @@ function buildSidebarNavigation(badgeCounts: AdminSidebarBadgeCounts): AdminNavI
           description: "Pembayaran",
           ...(badgeLabel ? { badge: badgeLabel } : {}),
         };
+      }
+
+      if (item.value === "questionBank") {
+        return { ...item, label: "Review Bank Soal", description: "Akademik" };
       }
 
       return item;

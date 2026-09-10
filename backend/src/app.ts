@@ -142,6 +142,7 @@ app.get("/api/ready", (_req: Request, res: Response) => {
 
 app.use("/api/auth", lazyRouter(() => import("./routes/authRoutes")));
 app.use("/api/admin", lazyRouter(() => import("./routes/adminRoutes")));
+app.use("/api/admin", lazyRouter(() => import("./routes/adminQuestionBankRoutes")));
 app.use(
   "/api/branch-finances",
   lazyRouter(() => import("./routes/branchFinanceRoutes")),
@@ -171,6 +172,7 @@ app.use("/api/rooms", lazyRouter(() => import("./routes/roomRoutes")));
 app.use("/api/schedules", lazyRouter(() => import("./routes/scheduleRoutes")));
 app.use("/api/teacher", lazyRouter(() => import("./routes/teacherScheduleRoutes")));
 app.use("/api/teacher", lazyRouter(() => import("./routes/teacherTryoutRoutes")));
+app.use("/api/teacher", lazyRouter(() => import("./routes/teacherQuestionBankRoutes")));
 
 app.use((req: Request, _res: Response, next: NextFunction) => {
   next(new AppError(404, `Route ${req.originalUrl} tidak ditemukan.`));

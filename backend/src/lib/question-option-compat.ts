@@ -50,6 +50,11 @@ export function getQuestionOption(
     const value = question.options[indexNum];
     return value ? normalizeText(value) : "";
   }
+
+  if (question.options && typeof question.options === "object") {
+    const value = question.options[String.fromCharCode(indexNum + 65)];
+    return value ? normalizeText(value) : "";
+  }
   
   // Fall back to legacy format
   const letter = String.fromCharCode(indexNum + 65); // 0 → A, 1 → B, etc.

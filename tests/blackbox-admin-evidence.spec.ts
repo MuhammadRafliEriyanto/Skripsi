@@ -68,6 +68,17 @@ test.describe("Blackbox dashboard admin", () => {
     await expectPageText(page, /Reset filter|Tambah Jadwal|Import/i);
   });
 
+  test("Bank Soal Admin", async ({ page }) => {
+    await openLocalPage(page, "/dashboard-admin/bank-soal");
+    await expectPageText(page, /Review Bank Soal/i);
+    await expect(page.getByRole("button", { name: /Tambah soal/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Import Excel/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Import PDF/i })).toBeVisible();
+    await page.getByRole("button", { name: /Tambah soal/i }).click();
+    await expect(page.getByRole("dialog", { name: /Tambah soal/i })).toBeVisible();
+    await expect(page.getByLabel("Topik")).toHaveValue("Umum");
+  });
+
   test("Kelola Pembayaran", async ({ page }) => {
     await openLocalPage(page, "/dashboard-admin/pembayaran");
     await expectPageText(page, /Informasi Pembayaran/i);

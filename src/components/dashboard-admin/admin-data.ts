@@ -15,6 +15,7 @@ export type AdminTab =
   | "schedule"
   | "utbkAssessments"
   | "payments"
+  | "questionBank"
   | "profile";
 
 export type AdminTone = "slate" | "orange" | "amber" | "emerald" | "rose";
@@ -130,6 +131,12 @@ export const adminNavigation: AdminNavItem[] = [
     description: "Verifikasi transaksi yang masuk manual.",
     icon: WalletCards,
     showBadge: true,
+  },
+  {
+    value: "questionBank",
+    label: "Bank Soal",
+    description: "Review dan setujui soal guru.",
+    icon: ClipboardCheck,
   },
 ];
 
