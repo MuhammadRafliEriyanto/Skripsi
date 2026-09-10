@@ -1,5 +1,7 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 
+import "../types/express";
+
 type AsyncRequestHandler<TRequest extends Request = Request> = (
   req: TRequest,
   res: Response,
