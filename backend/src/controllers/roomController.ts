@@ -1,5 +1,6 @@
 import { Types } from "mongoose";
 import type { NextFunction, Request, Response } from "express";
+import "../types/express";
 
 import { Room, ROOM_STATUSES } from "../models/Room";
 import { toPublicRoom } from "../utils/adminView";

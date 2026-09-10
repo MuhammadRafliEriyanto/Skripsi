@@ -1,5 +1,6 @@
 import { Types } from "mongoose";
 import type { Request, Response } from "express";
+import "../types/express";
 
 import { Payment, type PaymentStatus } from "../models/Payment";
 import { Room, type RoomDocument } from "../models/Room";

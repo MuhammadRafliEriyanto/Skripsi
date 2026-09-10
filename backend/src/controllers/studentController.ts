@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { Types } from "mongoose";
 import type { NextFunction, Request, Response } from "express";
+import "../types/express";
 
 import { Branch } from "../models/Branch";
 import { Payment, type PaymentDocument } from "../models/Payment";

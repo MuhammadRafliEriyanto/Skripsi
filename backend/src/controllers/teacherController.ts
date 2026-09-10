@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { Types } from "mongoose";
 import type { NextFunction, Request, Response } from "express";
+import "../types/express";
 
 import { validateEnv } from "../config/env";
 import { sendVerificationEmail } from "../utils/email";

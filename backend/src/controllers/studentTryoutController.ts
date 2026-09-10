@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import "../types/express";
 import { randomUUID } from "crypto";
 import { Types } from "mongoose";
 

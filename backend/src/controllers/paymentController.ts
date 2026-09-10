@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import "../types/express";
 
 import { validateEnv } from "../config/env";
 import { Expense } from "../models/Expense";

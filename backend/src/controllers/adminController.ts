@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import "../types/express";
 
 import { AcademicGrade } from "../models/AcademicGrade";
 import { AttendanceRecord } from "../models/AttendanceRecord";

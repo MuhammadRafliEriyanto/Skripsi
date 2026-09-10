@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
+import "../types/express";
 import { QuestionBankItem, QUESTION_BANK_ITEM_ANSWERS, QUESTION_BANK_ITEM_DIFFICULTIES } from "../models/QuestionBankItem";
 import asyncHandler from "../utils/asyncHandler";
 import { AppError, sendSuccess } from "../utils/apiResponse";

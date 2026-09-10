@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import "../types/express";
 
 import { ClassMaterial } from "../models/ClassMaterial";
 import { ClassTask } from "../models/ClassTask";

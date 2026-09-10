@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import "../types/express";
 import { Types, type FilterQuery } from "mongoose";
 
 import { AcademicGrade, type IAcademicGrade } from "../models/AcademicGrade";

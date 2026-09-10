@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import "../types/express";
 
 import { BranchIncome, type BranchIncomeDocument } from "../models/BranchIncome";
 import { Expense, type ExpenseDocument } from "../models/Expense";

@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import type { NextFunction, Request, Response } from "express";
+import "../types/express";
 import { OAuth2Client } from "google-auth-library";
 
 import { validateEnv } from "../config/env";

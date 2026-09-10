@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import "../types/express";
 import { Types } from "mongoose";
 
 import { ClassMaterial } from "../models/ClassMaterial";
